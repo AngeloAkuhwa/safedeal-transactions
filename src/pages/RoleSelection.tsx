@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   Shield, ShoppingBag, Store, Loader2, CheckCircle,
   ArrowLeftRight, Users, Lock, FileText, Camera, Vault, LogOut
@@ -34,8 +34,21 @@ const infoCards = [
 
 const RoleSelection = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<SelectableRole | null>(null);
+
+
+  const isSafeRelativePath = (path: string | null | undefined): path is string =>
+    !!path && path.startsWith("/") && !path.startsWith("//");
+
+  const getRedirectTarget = () => {
+    const paramRedirect = searchParams.get("redirect");
+    if (isSafeRelativePath(paramRedirect)) return paramRedirect;
+    const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+    if (isSafeRelativePath(storedRedirect)) return storedRedirect;
+    return null;
+  };
 
   useEffect(() => {
     const check = async () => {
@@ -52,10 +65,10 @@ const RoleSelection = () => {
       const { data: roles } = await getUserRoles(session.user.id);
       if (roles && roles.length > 0) {
         const roleNames = roles.map((r) => r.role);
-        const storedRedirect = sessionStorage.getItem("safedeal_redirect");
-        if (storedRedirect) {
+        const redirectTarget = getRedirectTarget();
+        if (redirectTarget) {
           sessionStorage.removeItem("safedeal_redirect");
-          navigate(storedRedirect, { replace: true });
+          navigate(redirectTarget, { replace: true });
         } else {
           // Route to correct dashboard based on roles
           const destination = roleNames.includes("seller") && !roleNames.includes("buyer")
@@ -93,10 +106,10 @@ const RoleSelection = () => {
 
       toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
       const destination = role === "seller" ? "/seller" : "/dashboard";
-      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
-      if (storedRedirect) {
+      const redirectTarget = getRedirectTarget();
+      if (redirectTarget) {
         sessionStorage.removeItem("safedeal_redirect");
-        navigate(storedRedirect, { replace: true });
+        navigate(redirectTarget, { replace: true });
       } else {
         navigate(destination, { replace: true });
       }

@@ -80,6 +80,7 @@ import PermissionRoute from "./components/auth/PermissionRoute";
 import { AdminPermissionsProvider } from "./context/AdminPermissionsContext";
 import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 import { useSessionIdleTimeout } from "./hooks/useSessionIdleTimeout";
+import { TestModeBanner } from "./components/TestModeBanner";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <TestModeBanner />
           <AppShell>
           <Routes>
             {/* Public routes */}

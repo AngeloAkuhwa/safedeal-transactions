@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatMoney } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import {
   Loader2, RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
   Search, Filter, Download, Clock, CheckCircle2,
@@ -82,9 +82,16 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
   return null;
 }
 
+const VALID_PAYOUT_STATUS_FILTERS = new Set(["completed", "processing", "pending", "failed"]);
+
 const SellerPayouts = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatusFilter = (() => {
+    const s = searchParams.get("status");
+    return s && VALID_PAYOUT_STATUS_FILTERS.has(s) ? s : "";
+  })();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw, UserCog, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,11 @@ import {
   type NotificationPreferences,
 } from "@/services/seller-profile.service";
 import { toast } from "@/components/ui/sonner";
+import { useSearchParams } from "react-router";
 
 const SellerProfileSettings = () => {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["seller-profile"],
@@ -38,6 +40,16 @@ const SellerProfileSettings = () => {
   const hasPendingProfile = Object.keys(pendingChanges).length > 0;
   const hasPendingPrefs = Object.keys(pendingPrefs).length > 0;
   const hasPending = hasPendingProfile || hasPendingPrefs;
+
+  // Scroll to the requested section (e.g. ?section=payout or ?section=identity)
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (!section) return;
+    const el = document.getElementById(section);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    }
+  }, [searchParams]);
 
   const handleProfileChange = useCallback((updates: Partial<SellerProfile>) => {
     setPendingChanges((prev) => ({ ...prev, ...updates }));
@@ -142,7 +154,7 @@ const SellerProfileSettings = () => {
               showLocation
               onAvatarUploaded={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
             />
-            <SellerVerificationSection verification={data.verification} permissions={data.permissions} isLoading={isLoading} />
+            <div id="identity"><SellerVerificationSection verification={data.verification} permissions={data.permissions} isLoading={isLoading} /></div>
             <SecuritySection />
             {displayPrefs && (
               <NotificationPreferencesSection
@@ -150,10 +162,12 @@ const SellerProfileSettings = () => {
                 onToggle={handlePrefToggle}
               />
             )}
-            <PayoutDestinationSection
-              payoutAccount={data.payout_account}
-              onSaved={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
-            />
+            <div id="payout">
+              <PayoutDestinationSection
+                payoutAccount={data.payout_account}
+                onSaved={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
+              />
+            </div>
             {data.profile?.id && <EffectiveSettingsPanel vendorId={data.profile.id} />}
             <DangerZoneSection />
 

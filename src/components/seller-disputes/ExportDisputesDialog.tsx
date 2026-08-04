@@ -66,7 +66,6 @@ export function ExportDisputesDialog({
   open, onOpenChange, currentStatusFilter, currentReasonFilter, currentSearch,
 }: ExportDisputesDialogProps) {
   const [scope, setScope] = useState("filtered");
-  const [dateFilter, setDateFilter] = useState("all");
 
   const resolvedStatus = (() => {
     if (scope === "filtered") return currentStatusFilter !== "all" ? currentStatusFilter : undefined;
@@ -80,9 +79,8 @@ export function ExportDisputesDialog({
   const resolvedReason = scope === "filtered" && currentReasonFilter !== "all" ? currentReasonFilter : undefined;
   const resolvedSearch = scope === "filtered" ? currentSearch || undefined : undefined;
 
-  // TODO: dateFilter is visual-only for now — wire to API when backend supports date range filtering
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["seller-disputes-export", scope, dateFilter, resolvedStatus, resolvedReason, resolvedSearch],
+    queryKey: ["seller-disputes-export", scope, resolvedStatus, resolvedReason, resolvedSearch],
     queryFn: () => getSellerDisputes({
       status: resolvedStatus,
       reason: resolvedReason,
@@ -135,20 +133,10 @@ export function ExportDisputesDialog({
                   <SelectItem value="resolved">Resolved only</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-40 bg-background">
-                  <SelectValue placeholder="Time Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="this-quarter">This Quarter</SelectItem>
-                </SelectContent>
-              </Select>
+              
               {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
-            <p className="text-[11px] text-muted-foreground/70">Filters by date opened</p>
+            
           </div>
           <div className="flex items-center gap-5 text-sm">
             <div>
@@ -181,7 +169,7 @@ export function ExportDisputesDialog({
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm font-medium text-foreground">No disputes in this range</p>
-              <p className="text-xs text-muted-foreground mt-1">Try a different scope or time range</p>
+              <p className="text-xs text-muted-foreground mt-1">Try a different scope</p>
             </div>
           ) : (
             <>

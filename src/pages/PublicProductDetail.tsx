@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
-  Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
+  Heart, Share2, Star, Minus, Plus, BookmarkPlus,
   CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
   AlertCircle, ShoppingCart, Store,
 } from "lucide-react";
@@ -114,7 +114,6 @@ const PublicProductDetail = () => {
   const { product, seller } = data;
   const allMedia = product.media || [];
   const images = allMedia.filter((m: any) => m.media_type === "image");
-  const videos = allMedia.filter((m: any) => m.media_type === "video");
   const currentImage = images[selectedImage]?.file_url;
 
   const handleAddToCart = async () => {
@@ -242,7 +241,7 @@ const PublicProductDetail = () => {
               </div>
             )}
           </div>
-          {(images.length > 1 || videos.length > 0) && (
+          {images.length > 1 && (
             <div className="grid grid-cols-4 gap-2">
               {images.map((img: any, idx: number) => (
                 <button
@@ -255,15 +254,7 @@ const PublicProductDetail = () => {
                   <img src={img.file_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </button>
               ))}
-              {videos.map((vid: any) => (
-                <button
-                  key={vid.id}
-                  className="aspect-square rounded-xl border-2 border-border overflow-hidden bg-muted flex items-center justify-center hover:border-primary/40 transition-all"
-                  onClick={() => toast.info("Video playback coming soon")}
-                >
-                  <Play className="h-6 w-6 text-muted-foreground" />
-                </button>
-              ))}
+              
             </div>
           )}
         </div>
@@ -371,10 +362,9 @@ const PublicProductDetail = () => {
             {addingToCart ? "Adding..." : gateBlocked ? "Currently unavailable" : inCart ? "View in Cart" : "Add to Cart"}
           </Button>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
+          <Button
               variant="outline"
-              className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
+              className={`w-full gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
               onClick={() => handleAuthGatedAction(() => {
                 toggleSave.mutate({ productId: product.id, saved: !!isSaved });
                 toast.success(isSaved ? "Removed from saved" : "Saved for later");
@@ -383,15 +373,6 @@ const PublicProductDetail = () => {
               <BookmarkPlus className="h-4 w-4" />
               {isSaved ? "Saved" : "Save for Later"}
             </Button>
-            <Button
-              variant="outline"
-              className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => handleAuthGatedAction(() => toast.info("Contact seller feature coming soon"))}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Contact Seller
-            </Button>
-          </div>
 
           {/* Seller Info Card */}
           <div className={`${glassPanel} p-4`}>

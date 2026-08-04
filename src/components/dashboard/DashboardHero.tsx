@@ -29,7 +29,7 @@ export function DashboardHero({ buyerName }: DashboardHeroProps) {
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5">
-              <Link to="/help">
+              <Link to="/#faq">
                 <HelpCircle className="h-3.5 w-3.5" />
                 Need Help?
               </Link>
