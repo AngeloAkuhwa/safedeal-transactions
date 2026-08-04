@@ -103,3 +103,11 @@ all six rows read PASS.
 
 Supabase natively stores the factor, its secret, `status`, and the session AAL — none of
 that is duplicated here.
+
+### Table privileges
+
+`mfa_recovery_codes` and `mfa_verification_attempts` carry **no grants for `anon` or
+`authenticated`** — only `service_role`. RLS is enabled with service-role-only policies as
+well, so access is denied at both the grant and the policy layer. Client-side reads of
+recovery state go exclusively through the SECURITY DEFINER function
+`public.my_mfa_recovery_status()`, which returns counts only, never codes or hashes.
