@@ -120,15 +120,7 @@ const ROUTES: RouteCase[] = [
   { path: "/admin/reconciliation", load: () => import("@/pages/AdminReconciliation") },
   { path: "/admin/escrow", load: () => import("@/pages/AdminEscrow") },
   { path: "/admin/flagged-users", load: () => import("@/pages/AdminFlaggedUsers") },
-  {
-    path: "/admin/users",
-    load: () => import("@/pages/AdminUsers"),
-    // UAT Fix 5 finding: the URL-sync effect in AdminUsers lists `routeParams`
-    // (a fresh object on every render) in its dependency array, so setParams()
-    // re-triggers it forever and the mount never settles. Re-enable once the
-    // dependency array is narrowed to the id string.
-    skip: "URL-sync effect re-render loop (routeParams in deps)",
-  },
+  { path: "/admin/users", load: () => import("@/pages/AdminUsers") },
   { path: "/admin/users/:id", url: "/admin/users/u-1", load: () => import("@/pages/AdminUserDetail") },
   { path: "/admin/notifications", load: () => import("@/pages/AdminNotifications") },
   { path: "/admin/settings", load: () => import("@/pages/AdminSettings") },
