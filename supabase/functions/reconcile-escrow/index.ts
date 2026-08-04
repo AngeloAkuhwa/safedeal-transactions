@@ -7,13 +7,13 @@
  *   paystack_refunded  (sum of refunds.amount where status in processing/completed)
  *   ledger_balance     (signed sum of escrow_ledger_entries by entry_type)
  * Writes one row per (transaction, run) into `escrow_reconciliation_results`.
- * Drift (|delta| >= 0.01) fans out a notifyOpsTeam alert.
+ * Drift (|delta| >= 0.01) raises a deduplicated ops alert (one active alert per
+ * transaction, refreshed on repeat runs and resolved when the drift clears).
  *
  * Triggered hourly by pg_cron (no auth required — the function is locked to
  * the service role and only writes its own table + sends ops notifications).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { notifyOpsTeam } from "../_shared/notify.ts";
 import { formatMoney } from "../_shared/money-copy.ts";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
@@ -348,6 +348,7 @@ Deno.serve(async (req) => {
         run_id: runId,
         considered: txIds.length,
         drift_count: driftAlerts.length,
+      resolved_alerts: resolvedAlerts,
         lookback_hours: lookbackHours,
       },
     });
@@ -360,5 +361,6 @@ Deno.serve(async (req) => {
     run_id: runId,
     considered: txIds.length,
     drift_count: driftAlerts.length,
+    resolved_alerts: resolvedAlerts,
   });
 });
