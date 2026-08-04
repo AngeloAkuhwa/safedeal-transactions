@@ -1,72 +1,109 @@
-# Batch 4 — One configurable source of truth for charges
+# End-to-end 2FA (TOTP): enrolment, recovery, enforcement readiness
 
-Note on the 5b approval: I am in plan mode, so the ledger write and the `ledger_write_guarded` guard cannot execute in this turn. They are Step 0 below and run first the moment this plan is approved, exactly as dry-run.
+Enforcement stays OFF in this batch. Nothing here flips `security.two_factor_admin_enforced`.
 
-## Step 0 — Item 5b write (already approved, executes first)
-- Migration: set derived `balance_after` on the 9 `adjustment` rows only; no touch to `amount`, `entry_type`, or transaction linkage.
-- Add guard in `ledger_write_guarded`: reject future `adjustment` inserts without a balance.
-- Document `freeze_hold`, `payout_awaiting_release`, `dispute_release_approved_pending_admin_release` as intentionally NULL (intent markers, not cash-chain positions).
-- Verify: zero adjustment rows with NULL `balance_after`, chain replay reproduces every stored value, admin smoke 47/47, full tests + typecheck.
-- Rollback: single UPDATE back to NULL on those 9 ids (values recorded in the dry run).
+## Current state (verified now)
 
-## Item 1 — Server: single read path (needs approval)
-Every server `computePricing` caller, audited:
+- 2 active internal users: `admin@safedeal.test` (super_admin) and `angeloakuhwa@gmail.com` (support_agent). Both have **0 verified and 0 unverified** MFA factors.
+- `internal_users.two_factor_enabled` exists and is `false` for both. Nothing writes it today, and it is displayed in `UserDetailsDrawer.tsx` — it is a shadow source of truth and will be derived, not stored (Item 4).
+- `security.two_factor_admin` (advisory) and `security.two_factor_admin_enforced` (real switch, default OFF) are both in the client and server settings catalogs; `_shared/auth.ts` already reads them and runs the AAL2 gate in log-only mode.
+- Permission keys available: `users_and_access.manage_permissions`, `users_and_access.suspend`, `permissions.manage_permissions`, `platform_configuration.configure`, `financial_controls.*`.
 
-Config-aware already, with correct vendor scope:
-- `create-transaction` — `loadPricingConfig(userId)`; userId is the seller creating it.
-- `claim-offer` — `loadPricingConfig(offer.seller_id)`.
-- `storefront-checkout` — `loadPricingConfig(product.seller_id)`.
-- `cart-checkout` — `loadPricingConfig(sellerId)` per seller group.
-- `initiate-paystack-payment` — `loadPricingConfig(tx.seller_id)`.
+## Scope: I agree with the owner's split
 
-Config-blind callers, all display/reconciliation paths:
-- `verify-paystack-payment:110`, `paystack-webhook:162`, `transaction-agreement:166`, `resolve-share-token:123`, `transaction-detail:148`, `seller-transaction-detail:221` and `:252`.
+Internal = required (behind the OFF flag); buyers/sellers = offered, always skippable. One addition, flagged rather than assumed: **no consumer route ever triggers a step-up**. The only place a buyer or seller can be asked for a TOTP code is login, and only if they chose to enrol. Checkout, cart, payment, dispute and profile actions never call step-up, which makes "buyer blocked mid-checkout" structurally impossible rather than merely unlikely.
 
-Proposed change: these six recompute from `transaction_pricing.item_amount` for display/fallback. The right fix is not to feed them today's config but to make them read the immutable snapshot first and only fall back to `computePricing(..., loadPricingConfig(seller_id))` when a snapshot row is genuinely absent — otherwise historical transactions would re-render at current rates. `seller-transaction-detail:252` computes from `escrow.held_amount` with no snapshot; resolve via `tx.seller_id`. Every one of these paths has a seller id in scope, so no path lacks a vendor id.
+---
 
-Risk: display-only, no charge behaviour change. Rollback: revert per file. Tests: snapshot-wins-over-recompute assertion.
+## Item 1 — Supabase MFA wiring
 
-## Item 2 — Client preview parity (safe to apply)
-Preview surfaces and current state:
-- `StorefrontCheckout.tsx` — `useEffectivePricingConfig(product.seller_id)`. Correct.
-- `BuyerCart.tsx` — `useEffectivePricingConfigs(sellerIds)`. Correct.
-- `CartCheckoutReview.tsx` — `useEffectivePricingConfigs(sellerIds)`. Correct.
-- `SellerCreateTransaction.tsx` — `useEffectivePricingConfig(currentUserId)`; seller is the vendor. Correct.
-- Sweep for any fee shown outside these four (offer detail, buyer private offers, product detail pages); anything found gets the same hook.
+New `src/services/mfa.service.ts` (the only file importing the Supabase client for MFA): `listFactors`, `startEnrolment`, `verifyEnrolment`, `challengeAndVerify`, `unenrol`, `getAal`.
 
-Real parity gap: `useEffectivePricingConfig` returns `{}` while loading and on fetch failure, so first paint can show default-rate fees for a vendor that has overrides. Fix: expose a `loading` flag and render the fee lines as a skeleton until config resolves, instead of a possibly wrong number.
+(a) **Enrolment** — `mfa.enroll({ factorType: 'totp' })` → show QR plus the raw secret for manual entry → `mfa.challenge` + `mfa.verify` with the 6-digit code. A factor counts only at `status='verified'`.
+Abandoned enrolment: on opening the dialog, `listFactors()` and unenrol every `unverified` TOTP factor before enrolling a new one; also unenrol the pending factor on cancel/unmount. At most one live unverified factor, no junk accumulation.
 
-## Item 3 — Anti-drift tests (safe to apply)
-- (a) Static test scanning `supabase/functions/**` for `computePricing(` calls; each must either pass a config argument or be in an explicit allow-list of snapshot-read paths.
-- (b) Fallback-parity test: `DEFAULT_PRICING_CONFIG` compared against a checked-in fixture of the seeded platform rows. Confirmed today that the DB rows match the defaults (250 / 2500 / the four tiers), so a DB read failure degrades to the identical price.
-- (c) Extend `pricing-parity.contract.test.ts` across config variations: differing tier counts, floor-above-cap, single open-ended tier, zero floor.
+(b) **Login challenge** — native to Supabase: for a user with a verified factor, password sign-in yields aal1 with `nextLevel='aal2'`. `LoginForm.tsx` gains one extra step after `signIn` succeeds: if `currentLevel !== nextLevel`, render a code-entry step (reusing the code-entry styling from `PhoneVerificationModal.tsx`) that runs challenge+verify, then continues into the existing redirect logic. A "Use a recovery code" link switches input mode (Item 2).
 
-## Item 4 — Admin write path (report + minimal fixes, needs approval)
-`AdminSettings.tsx` already reads and writes `pricing.min_platform_fee_ngn`, `pricing.max_total_service_fee_ngn`, and the tier rates. To verify and report: the `financial_controls.configure` gate, one audit entry per changed key, and input validation. Expected minimal fixes: numeric validation (non-negative, floor <= cap, rates within a sane 0–20% band, tiers strictly ascending and non-overlapping with exactly one open-ended tier), and a "deprecated" badge sourced from `DEPRECATED_SETTING_KEYS` for the 7 dead keys. The report will also state explicitly that settings affect new transactions only — `transaction_pricing` is written once at creation/checkout and never re-derived.
+(c) **AAL helper** — `src/hooks/useAal.ts` wrapping `getAuthenticatorAssuranceLevel()`, refreshed on `onAuthStateChange`, returning `{ currentLevel, nextLevel, needsStepUp, hasVerifiedFactor, loading }`. Read-only; no route blocks on it in this batch.
 
-## Item 5 — Fee transparency (approved to build)
-- Shared `FeeExplainer` built on the existing `PricingBreakdown` and `Collapsible` components, collapsed by default, no redesign, no added step.
-- Seller side: beneath `seller_net` in the create-transaction wizard — item amount, platform fee, Paystack fee, what the seller receives, fees non-refundable.
-- Buyer side: at the checkout total, the same breakdown from the buyer's perspective.
-- Copy is derived from the resolved config object the preview already computes with (tier rate hit, floor, cap), never hardcoded, so a settings change propagates automatically on next load.
+(d) **Server side** — `_shared/auth.ts` already parses `aal` from the JWT and already has the advisory/enforced branch. The only change: keep log-only behaviour and add AAL + factor status to the `admin-me` response so the admin console can show enrolment state and drive the persistent prompt. No new gate on any endpoint.
 
-## Item 6 — Server-side payout gate (needs approval)
-Admin release already gates: `release-core.ts:77-92` requires `account_state = 'verified_ready'` plus a `provider_recipient_code`, recording a block reason otherwise. `retry-payout` reads the same fields — confirm it enforces rather than merely reads. The gap is the seller-facing path; `seller-payouts` is read-only today, so the gate belongs in whichever mutation initiates a payout, via a shared `assertPayoutEligible()` used by release, retry, and any future initiation. Seller-facing error: `payout_account_unverified` → "Add and verify your payout account before funds can be released."
+---
 
-## Item 7 — Release-time fee retention (verify, then minimal fix)
-Release transfers `transaction_pricing.seller_payout_amount` to the recipient — consistent. Ledger today: 10 `fee_record` entries vs 3 `payout_debit`, which indicates fee records are written at payment time, not per release. The report will state exactly when `fee_record` is written and whether every released transaction has one; a fix is proposed only if a released transaction is missing its fee record. No Paystack charge-time Split.
+## Item 2 — Recovery path (the blocker item, designed before enforcement)
 
-## Item 8 — 2FA column defect (propose only, do NOT apply)
-`_shared/auth.ts:69-74` and `orchestration-rules.ts:168` query `.select("value").eq("key", …)` against `system_settings`, whose columns are `setting_value` / `setting_key`. The read returns nothing, so the AAL2 gate has never fired — it fails open.
+(a) **Recovery codes.** New table `public.mfa_recovery_codes(id, user_id → auth.users, salt, code_hash, used_at, created_at, batch_id)`. Hash: **salted SHA-256** — `encode(digest(salt || upper(code)), 'hex')`. Ten codes of 10 Crockford-base32 characters, generated **server-side in an edge function**, returned exactly once in the response body. Never logged, never persisted client-side, never left in a toast that survives navigation.
+RLS: users can read only their own rows, and only non-secret columns via a view `public.my_mfa_recovery_status (id, used_at, created_at)`. No client insert/update/delete. Writes go through `SECURITY DEFINER` RPCs:
+- `generate_mfa_recovery_codes(_user_id)` — invalidates the previous batch, inserts the new one.
+- `consume_mfa_recovery_code(_user_id, _code)` — matches unused rows, sets `used_at`, returns boolean.
+Consumption runs in edge function `mfa-recovery`, which on success unenrols the user's factors so they must re-enrol. A recovery code is a way back in, not a permanent second factor.
 
-Blast radius, critical: `security.two_factor_admin` is already `true` in the platform row. Correcting the columns alone would immediately require AAL2 of every admin. There are 2 active internal users; `auth.mfa_factors` is not readable from this connection (permission denied), so enrolment state is unknown and must be read via the admin API before anything is flipped.
+(b) **Admin-assisted unenrol.** Edge function `admin-mfa-unenrol`, gated by `requirePermission(req, 'users_and_access.manage_permissions')` plus server-side rules:
+- The target's highest internal role must be **strictly lower** than the actor's (reuse `internal_effective_access_level`). A `support_agent` therefore cannot touch a `super_admin`; a `senior_admin` cannot strip a `super_admin`.
+- Only a `super_admin` may unenrol another `super_admin`, and never themselves via this path.
+- Reason ≥ 20 characters (matching the existing `ReviewChangesDrawer` convention), one `admin_actions` + `audit_logs` entry with before/after factor counts, and a `security_alert` notification to all super_admins.
+No escalation is possible: it removes a factor, never grants a role, and the target still needs their password.
 
-Proposed safe rollout:
-1. Fix the column names in both files, but bind enforcement to a new, separate, default-OFF key (`security.two_factor_admin_enforced`), leaving `security.two_factor_admin` as an advisory/UI flag.
-2. Log-only mode first: record who would have been blocked, deny nobody.
-3. Read real MFA enrolment via the admin API and report it.
-4. Flip the enforcement key only once every active admin is enrolled at AAL2, with a documented break-glass procedure.
+(c) **Break-glass (last super_admin locked out).** `docs/2fa-recovery-runbook.md`: (1) use a recovery code; (2) if codes are lost, a second super_admin performs the assisted unenrol; (3) if no second super_admin exists, recovery goes through the platform owner's backend access by removing the `auth.mfa_factors` row, followed by mandatory re-enrolment and a logged incident. **Therefore the enforcement pre-flight requires at least two super_admin accounts, each enrolled, each holding an unused recovery batch** — the single most important guard against total lockout.
+
+---
+
+## Item 3 — Prompting UX (reuse only, no layout changes)
+
+(a) **After signup** — the existing `EmailVerificationPending` flow is untouched; the offer appears on the first authenticated landing as a dismissible `Card` banner, not inside signup.
+(b) **After login** —
+- Internal users without a verified factor: a persistent (non-dismissible but non-blocking) banner at the top of the admin content area, reusing the status-banner pattern already used by the payouts auto-release banner, linking to admin profile security. Navigation is never blocked.
+- Buyers/sellers: a dismissible `Dialog` with a **30-day re-prompt interval**, dismissal stored per user in `localStorage` (`safedeal_2fa_prompt_dismissed_until`). The component checks the current path against a deny-list (cart, checkout, payment, transaction, dispute routes) and renders nothing there.
+(c) **Permanent entry point** — the existing `SecuritySection.tsx` "Two-Factor Authentication" row (currently a dead row with a hardcoded "Disabled" badge) becomes live and opens `TwoFactorDialog`: status, enrol (QR + manual secret), remaining recovery-code count, regenerate codes, unenrol (requires a current TOTP code). The same component mounts on the admin profile security surface.
+(d) **Reused**: `Dialog`, `Card`, `Badge`, `Button`, `Input`, `Label`, `Skeleton`, `sonner`, `useDrawerSafety`, `PhoneVerificationModal` code-entry styling. New files only: `src/components/security/TwoFactorDialog.tsx`, `TwoFactorPrompt.tsx`, `RecoveryCodesPanel.tsx`.
+
+---
+
+## Item 4 — Data model + migrations
+
+Supabase already stores natively: the factor, its TOTP secret, `status` (`unverified`/`verified`), friendly name, timestamps, and AAL in the JWT. None of that is duplicated.
+
+Migration (needs approval):
+1. `create table public.mfa_recovery_codes(...)`, then `GRANT SELECT ON public.mfa_recovery_codes TO authenticated; GRANT ALL ON public.mfa_recovery_codes TO service_role;`, then enable RLS, then own-row select policy; secret columns hidden behind the `my_mfa_recovery_status` view.
+2. `generate_mfa_recovery_codes` and `consume_mfa_recovery_code` as `SECURITY DEFINER ... SET search_path = public`.
+3. `internal_users.two_factor_enabled` — **stop treating it as truth.** Comment it as deprecated and have the access-control read path derive the flag from `auth.mfa_factors` (verified count > 0) inside the admin edge function that builds the directory row. The column stays one release, then drops.
+
+---
+
+## Item 5 — Enforcement readiness (design only, DO NOT ENABLE)
+
+Flipping `security.two_factor_admin_enforced` makes `requireAdmin` throw `AuthError(403, 'mfa_required')` for any internal caller whose JWT `aal !== 'aal2'` — i.e. every admin edge function, immediately, including existing sessions sitting at aal1. Those sessions are not force-refreshed; the user sees failures until they sign in again and complete the challenge. UI response: a global handler maps `mfa_required` on admin routes to a full-screen step-up prompt rather than a raw toast.
+
+Pre-flight checklist — all must pass:
+1. Every `active` internal user has a verified TOTP factor.
+2. At least two `super_admin` accounts, both enrolled.
+3. Every enrolled internal user holds an unused recovery-code batch.
+4. `docs/2fa-recovery-runbook.md` published and assisted unenrol exercised once on a test account.
+5. A real admin login reaches aal2 and one write endpoint succeeds.
+6. `security.two_factor_admin` (advisory) turned on first; log-only warnings observed for a full working day with no unexpected identities.
+
+---
+
+## Item 6 — Tests
+
+Enrolment happy path; wrong code rejected with the factor left unverified; abandoned-enrolment cleanup unenrols stale unverified factors; recovery code succeeds once and fails the second time; assisted unenrol authorised for super_admin over support_agent and **rejected** for support_agent over super_admin; `useAal` reports `needsStepUp` only when `currentLevel !== nextLevel`; guard test asserting `security.two_factor_admin_enforced` defaults to false in both catalogs and that no route guard blocks on AAL.
+
+---
+
+## Risks and rollback
+
+| Risk | Mitigation |
+|---|---|
+| Only super_admin locked out | Two-super_admin pre-flight, recovery codes, documented break-glass; enforcement stays OFF this batch |
+| Existing aal1 sessions break at flip | Named in pre-flight; flip in a low-traffic window; UI maps `mfa_required` to a re-login step-up |
+| Buyer blocked mid-checkout | No consumer route calls step-up; prompt has a route deny-list; covered by test |
+| Recovery codes leak | Server-generated, shown once, stored salted-SHA-256, never logged, no client persistence |
+| An RLS policy or function assuming aal1 | Nothing reads `aal` today except `_shared/auth.ts`; aal2 is a superset of aal1, so a stronger session cannot break a policy — re-verified with a repo scan during implementation |
+
+Rollback: the table, RPCs and components are all additive; reverting means deleting the new components and leaving the table unused. No existing behaviour changes.
 
 ## Approval split
-- Safe to apply: Items 2, 3, 5.
-- Needs approval (money, admin, or auth behaviour): Step 0 (already approved), Item 1, Item 4 fixes, Item 6, Item 7 fix if needed, Item 8 (propose only).
+
+- **Safe to apply**: mfa service, `useAal`, new components, tests, docs, `admin-me` returning factor status.
+- **Needs approval**: the migration (new table, RPCs, deprecating `internal_users.two_factor_enabled`), the two new edge functions (`mfa-recovery`, `admin-mfa-unenrol`), and the `LoginForm` step-up step.
+- **Explicitly out of scope**: enabling enforcement.
