@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, KeyRound, Smartphone, Monitor, Bell, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { changePassword } from "@/services/profile.service";
 import { toast } from "@/components/ui/sonner";
+import { TwoFactorDialog } from "@/components/security/TwoFactorDialog";
+import { getMfaStatus } from "@/services/mfa.service";
 
 export function SecuritySection() {
   const [pwdOpen, setPwdOpen] = useState(false);
@@ -23,6 +25,20 @@ export function SecuritySection() {
   const [confirmPwd, setConfirmPwd] = useState("");
   const [loading, setLoading] = useState(false);
   const [securityAlerts, setSecurityAlerts] = useState(true);
+  const [twoFaOpen, setTwoFaOpen] = useState(false);
+  // Real derived state from the auth factor list — no hardcoded badge.
+  const [twoFa, setTwoFa] = useState<{ enabled: boolean; unused: number } | null>(null);
+
+  const loadTwoFa = async () => {
+    try {
+      const s = await getMfaStatus();
+      setTwoFa({ enabled: s.has_verified_factor, unused: s.recovery_codes_unused });
+    } catch {
+      setTwoFa(null);
+    }
+  };
+
+  useEffect(() => { loadTwoFa(); }, []);
 
   const handleChangePassword = async () => {
     if (newPwd.length < 6) {
@@ -58,8 +74,11 @@ export function SecuritySection() {
     {
       icon: Smartphone,
       label: "Two-Factor Authentication",
-      description: "Add an extra layer of security",
-      badge: "Disabled",
+      description: twoFa?.enabled
+        ? `Authenticator app active · ${twoFa.unused} recovery codes left`
+        : "Add an extra layer of security",
+      badge: twoFa === null ? "…" : twoFa.enabled ? "Enabled" : "Disabled",
+      action: () => setTwoFaOpen(true),
       trailing: "chevron" as const,
     },
     {
@@ -125,6 +144,8 @@ export function SecuritySection() {
           ))}
         </CardContent>
       </Card>
+
+      <TwoFactorDialog open={twoFaOpen} onOpenChange={setTwoFaOpen} onChanged={loadTwoFa} />
 
       {/* Change Password Dialog */}
       <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
