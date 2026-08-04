@@ -54,40 +54,69 @@ async function fetchOne(vendorId: string): Promise<PricingConfigOverride> {
 
 /**
  * Resolve the effective pricing config for one vendor.
- * Returns platform defaults ({}) while loading or if the fetch fails,
- * so callers can render without waiting.
+ * While the fetch is in flight (and the vendor's config isn't already cached),
+ * `loading` is true so callers can avoid rendering platform-default fees as if
+ * they were final. Falls back to platform defaults ({}) if the fetch fails.
  */
-export function useEffectivePricingConfig(vendorId: string | null | undefined): PricingConfigOverride {
-  const [cfg, setCfg] = useState<PricingConfigOverride>(() =>
-    vendorId && cache.has(vendorId) ? cache.get(vendorId)! : {},
-  );
+export function useEffectivePricingConfig(
+  vendorId: string | null | undefined,
+): { config: PricingConfigOverride; loading: boolean } {
+  const [state, setState] = useState<{ config: PricingConfigOverride; loading: boolean }>(() => ({
+    config: vendorId && cache.has(vendorId) ? cache.get(vendorId)! : {},
+    loading: !!vendorId && !cache.has(vendorId),
+  }));
+
   useEffect(() => {
-    if (!vendorId) return;
+    if (!vendorId) {
+      setState({ config: {}, loading: false });
+      return;
+    }
+    if (cache.has(vendorId)) {
+      setState({ config: cache.get(vendorId)!, loading: false });
+      return;
+    }
     let cancelled = false;
-    fetchOne(vendorId).then((c) => { if (!cancelled) setCfg(c); });
+    setState({ config: {}, loading: true });
+    fetchOne(vendorId).then((c) => {
+      if (!cancelled) setState({ config: c, loading: false });
+    });
     return () => { cancelled = true; };
   }, [vendorId]);
-  return cfg;
+
+  return state;
 }
 
 /** Batch variant for cart-style views with multiple sellers. */
-export function useEffectivePricingConfigs(vendorIds: string[]): Record<string, PricingConfigOverride> {
+export function useEffectivePricingConfigs(
+  vendorIds: string[],
+): { configs: Record<string, PricingConfigOverride>; loading: boolean } {
   const key = vendorIds.slice().sort().join(",");
-  const [map, setMap] = useState<Record<string, PricingConfigOverride>>(() => {
+  const [state, setState] = useState<{ configs: Record<string, PricingConfigOverride>; loading: boolean }>(() => {
     const seed: Record<string, PricingConfigOverride> = {};
-    for (const id of vendorIds) if (cache.has(id)) seed[id] = cache.get(id)!;
-    return seed;
+    let allCached = true;
+    for (const id of vendorIds) {
+      if (cache.has(id)) seed[id] = cache.get(id)!;
+      else allCached = false;
+    }
+    return { configs: seed, loading: vendorIds.length > 0 && !allCached };
   });
+
   useEffect(() => {
+    if (vendorIds.length === 0) {
+      setState({ configs: {}, loading: false });
+      return;
+    }
     let cancelled = false;
+    setState((prev) => ({ ...prev, loading: true }));
     Promise.all(vendorIds.map((id) => fetchOne(id).then((c) => [id, c] as const))).then((entries) => {
       if (cancelled) return;
       const next: Record<string, PricingConfigOverride> = {};
       for (const [id, c] of entries) next[id] = c;
-      setMap(next);
+      setState({ configs: next, loading: false });
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  return map;
+
+  return state;
 }

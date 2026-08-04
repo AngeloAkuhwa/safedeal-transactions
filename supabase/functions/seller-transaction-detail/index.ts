@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,12 +216,19 @@ Deno.serve(async (req) => {
         }
       : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false, email_verified: false, phone_verified: false, verification_level: "unverified" };
 
+    // SNAPSHOT-FIRST: the branches below already read the locked
+    // transaction_pricing columns directly; computePricing is only invoked
+    // to fill legacy display fields (paystack_fee_amount) and in the no-row
+    // fallback branch, both using the seller's vendor config.
+    const sellerPricingConfig = await loadPricingConfig(tx.seller_id);
     let computedPricing: Record<string, unknown> | null = null;
     if (pricingRow) {
       // Use authoritative computePricing helper for full breakdown
       const pr = computePricing(
         Number(pricingRow.item_amount) || 0,
         pricingRow.currency_code || "NGN",
+        "local",
+        sellerPricingConfig,
       );
       // Phase 7: canonical snapshot columns are NOT NULL post-migration; read directly.
       if ((pricingRow as any).seller_payout_amount == null || (pricingRow as any).payment_processing_fee_amount == null) {
@@ -249,7 +257,9 @@ Deno.serve(async (req) => {
         pricing_model_version: (pricingRow as any).pricing_model_version ?? null,
       };
     } else if (escrow && escrow.held_amount > 0) {
-      const pr = computePricing(escrow.held_amount, "NGN");
+      // FALLBACK: no transaction_pricing snapshot row exists. Recompute using
+      // the seller's vendor config for display only.
+      const pr = computePricing(escrow.held_amount, "NGN", "local", sellerPricingConfig);
       computedPricing = {
         item_amount: pr.item_amount,
         platform_fee_amount: pr.platform_fee_amount,

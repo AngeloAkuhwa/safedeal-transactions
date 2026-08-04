@@ -97,3 +97,137 @@ describe("pricing parity: src/lib/pricing.ts vs supabase/functions/_shared/prici
     }
   });
 });
+
+describe("pricing parity: internal consistency under config variations", () => {
+  const CONSISTENCY_AMOUNTS = [0, -50, 1, 999, 2_500, 50_000, 250_000, 1_000_000, 3_000_000, 10_000_000];
+
+  function assertInternallyConsistent(
+    result: ReturnType<typeof clientComputePricing>,
+    amount: number,
+    label: string,
+    config: PricingConfigOverride,
+  ) {
+    // No NaN / negatives anywhere in the breakdown.
+    for (const [key, value] of Object.entries(result)) {
+      if (typeof value === "number") {
+        expect(Number.isNaN(value), `${label}: ${key} is NaN for amount=${amount}`).toBe(false);
+        expect(value, `${label}: ${key} is negative for amount=${amount}`).toBeGreaterThanOrEqual(0);
+      }
+    }
+
+    // total = item + fees
+    expect(result.total_amount, `${label}: total_amount mismatch for amount=${amount}`).toBe(
+      result.item_amount + result.service_fee_amount,
+    );
+
+    // service fee = paystack fee + platform fee
+    expect(result.service_fee_amount, `${label}: service_fee_amount mismatch for amount=${amount}`).toBe(
+      result.paystack_fee_amount + result.platform_fee_amount,
+    );
+
+    // seller payout = item - platform fee (client result has no seller_payout_amount
+    // field, so derive it the same way callers do). For pathologically tiny
+    // item amounts under an aggressive floor, the fee can legitimately exceed
+    // the item amount (this mirrors production behaviour, e.g. a min-fee
+    // floor larger than the item price) -- that is not a computation bug, so
+    // non-negativity is only asserted once the item amount clears the floor.
+    const sellerPayout = result.item_amount - result.platform_fee_amount;
+    if (amount >= (config.min_platform_fee ?? 0)) {
+      expect(
+        sellerPayout,
+        `${label}: derived seller payout went negative for amount=${amount}`,
+      ).toBeGreaterThanOrEqual(0);
+    }
+  }
+
+  const CONFIG_VARIATIONS: Array<{ label: string; config: PricingConfigOverride }> = [
+    {
+      label: "differing tier count (2 tiers)",
+      config: {
+        min_platform_fee: 200,
+        max_total_service_fee: 3_000,
+        tier_rates: [
+          { upto: 200_000, rate: 0.04 },
+          { upto: null, rate: 0.02 },
+        ],
+      },
+    },
+    {
+      label: "differing tier count (5 tiers)",
+      config: {
+        min_platform_fee: 300,
+        max_total_service_fee: 4_000,
+        tier_rates: [
+          { upto: 50_000, rate: 0.05 },
+          { upto: 150_000, rate: 0.04 },
+          { upto: 500_000, rate: 0.035 },
+          { upto: 2_000_000, rate: 0.03 },
+          { upto: null, rate: 0.02 },
+        ],
+      },
+    },
+    {
+      label: "floor above cap (degenerate config: min platform fee exceeds max total fee)",
+      config: {
+        min_platform_fee: 5_000,
+        max_total_service_fee: 2_500,
+        tier_rates: [{ upto: null, rate: 0.01 }],
+      },
+    },
+    {
+      label: "single open-ended tier",
+      config: {
+        min_platform_fee: 250,
+        max_total_service_fee: 2_500,
+        tier_rates: [{ upto: null, rate: 0.03 }],
+      },
+    },
+    {
+      label: "zero floor",
+      config: {
+        min_platform_fee: 0,
+        max_total_service_fee: 2_500,
+        tier_rates: [
+          { upto: 100_000, rate: 0.039 },
+          { upto: null, rate: 0.025 },
+        ],
+      },
+    },
+  ];
+
+  for (const { label, config } of CONFIG_VARIATIONS) {
+    it(`stays internally consistent for: ${label}`, () => {
+      for (const amount of CONSISTENCY_AMOUNTS) {
+        const result = clientComputePricing(amount, "NGN", config);
+        assertInternallyConsistent(result, amount, label, config);
+
+        if (amount > 0) {
+          // Total service fee never exceeds the configured cap.
+          expect(
+            result.service_fee_amount,
+            `${label}: service_fee_amount exceeded max_total_service_fee for amount=${amount}`,
+          ).toBeLessThanOrEqual(config.max_total_service_fee!);
+
+          // The floor only fails to bind when the cap forces the fee lower
+          // than the configured minimum (the "floor above cap" case) —
+          // otherwise platform fee should never fall below the floor.
+          if (result.service_fee_amount < config.max_total_service_fee!) {
+            expect(
+              result.platform_fee_amount,
+              `${label}: platform fee under-floored for amount=${amount}`,
+            ).toBeGreaterThanOrEqual(config.min_platform_fee!);
+          }
+        }
+      }
+    });
+
+    it(`matches the server implementation for: ${label}`, () => {
+      for (const amount of CONSISTENCY_AMOUNTS) {
+        expect(
+          clientComputePricing(amount, "NGN", config),
+          `${label}: client/server diverged at amount=${amount}`,
+        ).toEqual(serverComputePricing(amount, "NGN", "local", config));
+      }
+    });
+  }
+});

@@ -3,6 +3,7 @@ import { createTransfer, createRefund } from "./paystack.ts";
 import { nairaToKobo } from "./money.ts";
 import { notifyUser, notifyOpsTeam } from "./notify.ts";
 import { formatMoney, PRICING_LINE_LABELS } from "./money-copy.ts";
+import { assertPayoutEligible } from "./payout-eligibility.ts";
 
 export type CoreResult =
   | { ok: true; status: number; body: Record<string, unknown> }
@@ -75,15 +76,8 @@ export async function releasePayoutCore(
   }
 
   // 5. Resolve seller's verified Paystack recipient
-  const { data: account, error: acctErr } = await admin
-    .from("v_payout_account_state")
-    .select("account_id, provider_recipient_code, verification_status, account_state")
-    .eq("user_id", tx.seller_id)
-    .maybeSingle();
-  if (acctErr) return { ok: false, status: 500, body: { error: "account_fetch_failed" } };
-
-  const recipientCode = (account as any)?.provider_recipient_code;
-  if ((account as any)?.account_state !== "verified_ready" || !recipientCode) {
+  const eligibility = await assertPayoutEligible(admin, tx.seller_id as string);
+  if (!eligibility.ok) {
     try {
       await admin.rpc("flag_for_release_review", {
         p_transaction_id: transaction_id,
@@ -96,6 +90,7 @@ export async function releasePayoutCore(
     }
     return { ok: false, status: 409, body: { error: "payout_account_unverified" } };
   }
+  const recipientCode = eligibility.recipientCode;
 
   // 5b. Canonical amount guard — the immutable pricing snapshot is the single
   // source of truth for what the seller is owed. If the payout row drifted

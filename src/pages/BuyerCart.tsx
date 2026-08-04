@@ -27,6 +27,7 @@ import {
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
@@ -280,7 +281,8 @@ const BuyerCart = () => {
     const sid = item.product!.seller_id;
     sellerGroups.set(sid, (sellerGroups.get(sid) || 0) + item.product!.unit_price * item.quantity);
   }
-  const vendorConfigs = useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
+  const { configs: vendorConfigs, loading: pricingConfigLoading } =
+    useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
   let selectedFees = 0;
   for (const [sellerId, amount] of sellerGroups) {
     selectedFees += computePricing(amount, "NGN", vendorConfigs[sellerId]).service_fee_amount;
@@ -707,12 +709,16 @@ const BuyerCart = () => {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Service Fee</span>
-                            <span className="font-medium">{formatPrice(selectedFees)}</span>
+                            {pricingConfigLoading
+                              ? <Skeleton className="h-4 w-20" />
+                              : <span className="font-medium">{formatPrice(selectedFees)}</span>}
                           </div>
                           <Separator />
                           <div className="flex justify-between">
                             <span className="font-bold text-foreground">Total</span>
-                            <span className="text-xl font-bold text-foreground">{formatPrice(selectedTotal)}</span>
+                            {pricingConfigLoading
+                              ? <Skeleton className="h-6 w-28" />
+                              : <span className="text-xl font-bold text-foreground">{formatPrice(selectedTotal)}</span>}
                           </div>
                         </div>
                       )}

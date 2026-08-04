@@ -15,6 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { describeFeeBreakdown, DEFAULT_MIN_PLATFORM_FEE, DEFAULT_MAX_TOTAL_FEE } from "@/lib/pricing";
+import { ChevronDown } from "lucide-react";
 import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -323,6 +326,7 @@ export default function BuyerPaymentSummary() {
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
+  const platformFeeAmount = data.pricing?.platform_fee_amount ?? 0;
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
 
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
@@ -611,6 +615,29 @@ export default function BuyerPaymentSummary() {
                   <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Non-refundable · Covers escrow, buyer protection & dispute resolution</p>
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors pl-0.5">
+                    <ChevronDown className="h-3 w-3" />
+                    How this fee is calculated
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="text-[11px] text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
+                    {describeFeeBreakdown(
+                      { itemAmount },
+                      {
+                        currency_code: currencyCode,
+                        item_amount: itemAmount,
+                        paystack_fee_amount: 0,
+                        platform_fee_amount: platformFeeAmount,
+                        service_fee_amount: feeAmount,
+                        service_fee_rate: feeRate,
+                        total_amount: totalAmount,
+                        is_floored: platformFeeAmount === DEFAULT_MIN_PLATFORM_FEE,
+                        is_capped: feeAmount >= DEFAULT_MAX_TOTAL_FEE,
+                        non_refundable: true,
+                      },
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
 
               <div className="pt-4 border-t-2">

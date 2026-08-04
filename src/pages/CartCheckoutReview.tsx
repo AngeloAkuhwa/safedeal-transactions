@@ -14,6 +14,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
@@ -187,7 +188,8 @@ const CartCheckoutReview = () => {
 
   const totalItems = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
   const sellerCount = sellerGroups.size;
-  const vendorConfigs = useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
+  const { configs: vendorConfigs, loading: pricingConfigLoading } =
+    useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
 
   const handleConfirmPay = async () => {
     setIsSubmitting(true);
@@ -382,7 +384,9 @@ const CartCheckoutReview = () => {
                           Protection Fee Breakdown
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-primary">{formatPrice(sellerPricing.service_fee_amount)}</span>
+                          {pricingConfigLoading
+                            ? <Skeleton className="h-4 w-20" />
+                            : <span className="font-semibold text-primary">{formatPrice(sellerPricing.service_fee_amount)}</span>}
                           {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>
                       </CollapsibleTrigger>

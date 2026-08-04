@@ -9,8 +9,8 @@
  * callers unchanged.
  */
 
-const DEFAULT_MIN_PLATFORM_FEE = 250;
-const DEFAULT_MAX_TOTAL_FEE = 2500;
+export const DEFAULT_MIN_PLATFORM_FEE = 250;
+export const DEFAULT_MAX_TOTAL_FEE = 2500;
 const DEFAULT_TIER_RATES: Array<{ upto: number | null; rate: number }> = [
   { upto: 100_000, rate: 0.039 },
   { upto: 500_000, rate: 0.035 },
@@ -99,4 +99,32 @@ export function computePricing(
     is_capped,
     non_refundable: true,
   };
+}
+
+export interface FeeBreakdownInput {
+  itemAmount: number;
+  config?: PricingConfigOverride;
+}
+
+/**
+ * Produce a plain-language description of how a fee was derived, computed
+ * from the actual tier rate, cap and floor inputs used by `computePricing`
+ * (never hardcoded prose about rates/amounts).
+ */
+export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingResult): string {
+  const minPlatformFee = input.config?.min_platform_fee ?? DEFAULT_MIN_PLATFORM_FEE;
+  const maxTotalFee = input.config?.max_total_service_fee ?? DEFAULT_MAX_TOTAL_FEE;
+  const tiers = input.config?.tier_rates ?? DEFAULT_TIER_RATES;
+  const rate = tierRate(input.itemAmount, tiers);
+  const ratePct = (rate * 100).toFixed(1);
+
+  if (result.is_capped) {
+    return `This order's fee was capped at the maximum service fee of ${maxTotalFee.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% tier rate would have produced a higher amount, so the cap applied instead.`;
+  }
+
+  if (result.is_floored) {
+    return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because the calculated fee for this order amount fell below it.`;
+  }
+
+  return `A ${ratePct}% service fee rate applies to orders of this size, giving a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}.`;
 }

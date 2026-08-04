@@ -87,7 +87,14 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   {
     key: "security.two_factor_admin",
     label: "Two-factor for admins",
-    help: "Require 2FA for admin accounts.",
+    help: "Advisory only — records the platform's 2FA policy. It does NOT block sign-in on its own; turn on \"Enforce two-factor for admins\" to actually require AAL2.",
+    spec: { type: "boolean" },
+    writable: ["platform"],
+  },
+  {
+    key: "security.two_factor_admin_enforced",
+    label: "Enforce two-factor for admins",
+    help: "When on, admin API calls are rejected unless the session has completed a second factor (AAL2). Leave off until every internal user has enrolled — otherwise they lose access immediately.",
     spec: { type: "boolean" },
     writable: ["platform"],
   },
@@ -134,6 +141,63 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
     writable: ["platform", "vendor"],
   },
 ];
+
+
+/**
+ * Validate a `pricing.tier_rates` value.
+ *
+ * Rules:
+ * - Non-empty array of `{ upto: number | null; rate: number }`.
+ * - Every `rate` is finite, >= 0 and <= 1 (0%-100%).
+ * - Every non-open-ended `upto` is a positive finite number.
+ * - `upto` values are strictly increasing across the list (this both
+ *   prevents overlaps — a duplicate or smaller `upto` after a larger one —
+ *   and prevents gaps, since each tier's implicit lower bound is the
+ *   previous tier's `upto`, so a strictly increasing chain starting at 0
+ *   is gapless by construction).
+ * - Exactly one tier is open-ended (`upto === null`), and it must be last.
+ */
+export function validateTierRates(
+  value: unknown,
+): { ok: true; error?: undefined } | { ok: false; error: string } {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { ok: false, error: "tiers_must_be_non_empty_array" };
+  }
+  const tiers = value as Array<{ upto: unknown; rate: unknown }>;
+  let openEndedCount = 0;
+  let prevUpto = 0;
+  let sawFirst = false;
+  for (let i = 0; i < tiers.length; i++) {
+    const t = tiers[i];
+    const rate = t?.rate;
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate < 0 || rate > 1) {
+      return { ok: false, error: `tier_${i}_invalid_rate` };
+    }
+    const upto = t?.upto;
+    if (upto === null || upto === undefined) {
+      openEndedCount++;
+      if (i !== tiers.length - 1) {
+        return { ok: false, error: "open_ended_tier_must_be_last" };
+      }
+    } else {
+      if (typeof upto !== "number" || !Number.isFinite(upto) || upto <= 0) {
+        return { ok: false, error: `tier_${i}_invalid_upto` };
+      }
+      if (sawFirst && upto <= prevUpto) {
+        return { ok: false, error: `tier_${i}_overlaps_or_out_of_order` };
+      }
+      prevUpto = upto;
+      sawFirst = true;
+    }
+  }
+  if (openEndedCount === 0) {
+    return { ok: false, error: "missing_open_ended_final_tier" };
+  }
+  if (openEndedCount > 1) {
+    return { ok: false, error: "more_than_one_open_ended_tier" };
+  }
+  return { ok: true };
+}
 
 export const CATALOG_BY_KEY: Record<string, CatalogEntry> = Object.fromEntries(
   SETTINGS_CATALOG.map((e) => [e.key, e]),
@@ -226,12 +290,8 @@ export function clampSetting(
       return { ok: true, value: s };
     }
     case "tiers": {
-      if (!Array.isArray(value)) return { ok: false, error: "tiers_must_be_array" };
-      for (const t of value as Array<{ upto: number | null; rate: number }>) {
-        if (typeof t?.rate !== "number" || t.rate < 0 || t.rate > 1) {
-          return { ok: false, error: "invalid_tier_rate" };
-        }
-      }
+      const v = validateTierRates(value);
+      if (!v.ok) return { ok: false, error: v.error };
       return { ok: true, value };
     }
   }

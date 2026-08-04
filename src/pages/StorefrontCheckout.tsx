@@ -19,6 +19,10 @@ import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { describeFeeBreakdown } from "@/lib/pricing";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 
@@ -92,7 +96,7 @@ const StorefrontCheckout = () => {
 
   // Pricing
   const itemSubtotal = product.unit_price * quantity;
-  const vendorPricingConfig = useEffectivePricingConfig(product.seller_id);
+  const { config: vendorPricingConfig, loading: pricingConfigLoading } = useEffectivePricingConfig(product.seller_id);
   const gate = useCommerceGate(product.seller_id);
   const gateBlocked = !gate.loading && !gate.checkoutEnabled;
   const pricing = computePricing(itemSubtotal, product.currency_code, vendorPricingConfig);
@@ -383,26 +387,45 @@ const StorefrontCheckout = () => {
             {/* Payment Summary */}
             <div className={`${glassPanel} p-5`}>
               <h2 className="text-lg font-semibold text-foreground mb-4">Payment Summary</h2>
-              <PricingBreakdown
-                snapshot={viewFromRow(
-                  {
-                    item_amount: itemSubtotal,
-                    platform_fee_amount: pricing.platform_fee_amount,
-                    processing_fee_amount: pricing.paystack_fee_amount,
-                    service_fee_amount: pricing.service_fee_amount,
-                    buyer_total_amount: pricing.total_amount,
-                    currency_code: product.currency_code,
-                    is_total_service_fee_capped: pricing.is_capped,
-                  },
-                  { isEstimate: true },
-                )}
-                audience="buyer"
-              />
-              {isFloored && !isCapped ? (
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  Minimum SafeDeal Fee applied.
-                </p>
-              ) : null}
+              {pricingConfigLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-5 w-2/3" />
+                </div>
+              ) : (
+                <>
+                  <PricingBreakdown
+                    snapshot={viewFromRow(
+                      {
+                        item_amount: itemSubtotal,
+                        platform_fee_amount: pricing.platform_fee_amount,
+                        processing_fee_amount: pricing.paystack_fee_amount,
+                        service_fee_amount: pricing.service_fee_amount,
+                        buyer_total_amount: pricing.total_amount,
+                        currency_code: product.currency_code,
+                        is_total_service_fee_capped: pricing.is_capped,
+                      },
+                      { isEstimate: true },
+                    )}
+                    audience="buyer"
+                  />
+                  {isFloored && !isCapped ? (
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      Minimum SafeDeal Fee applied.
+                    </p>
+                  ) : null}
+                  <Collapsible className="mt-2">
+                    <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                      <ChevronDown className="h-3 w-3" />
+                      How this fee is calculated
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="text-[11px] text-muted-foreground pt-1.5 leading-relaxed">
+                      {describeFeeBreakdown({ itemAmount: itemSubtotal, config: vendorPricingConfig }, pricing)}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </>
+              )}
             </div>
 
             {/* SafeDeal Protection card */}
