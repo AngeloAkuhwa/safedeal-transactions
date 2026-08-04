@@ -28,13 +28,15 @@ import {
   Inbox,
   ListChecks,
   Gauge,
+  Tag,
+  Landmark,
 } from "lucide-react";
 import { useLocation } from "react-router";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNav, isBuiltAdminRoute } from "./useAdminNav";
 import { signOut } from "@/services/auth.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";
+import { adminDisplayName, adminInitials, adminRoleLabel } from "@/lib/admin-identity";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
 
@@ -79,6 +81,7 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Operations",
       items: [
         { label: "Transactions", href: "/admin/transactions", icon: Receipt },
+        { label: "Offers", href: "/admin/offers", icon: Tag },
         {
           label: "Disputes",
           href: "/admin/disputes",
@@ -99,6 +102,7 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Financial",
       items: [
         { label: "Escrow", href: "/admin/escrow", icon: PiggyBank },
+        { label: "Reconciliation", href: "/admin/reconciliation", icon: Landmark },
         {
           label: "Payouts",
           href: "/admin/payouts",
