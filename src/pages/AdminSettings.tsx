@@ -232,6 +232,9 @@ export default function AdminSettings() {
   // Which platform keys are overridable per-vendor
   const [overridable, setOverridable] = useState<Record<string, boolean>>({});
   const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
+  // Money-behaviour keys additionally require `financial_controls.configure`.
+  const { has: hasPermission } = useAdminPermissions();
+  const canConfigureFinancial = hasPermission("financial_controls.configure");
   // Which keys currently have a vendor-scoped override for the selected vendor
   const [overriddenKeys, setOverriddenKeys] = useState<Set<string>>(new Set());
   const isOverridden = (key: string) => scope === "vendor" && overriddenKeys.has(key);
