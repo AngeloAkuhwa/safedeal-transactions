@@ -1,88 +1,144 @@
-# Fixes 3 & 4 — Dead links and admin UI truth
+# Fix 5 of 5 — Internal Admin UAT / Regression Pass (verify-only)
 
-Internal admin only, plus two tiny public legal pages. No redesigns, no route renames, no buyer/seller screens touched. No database migration is required for any item below.
+A read-only verification pass over the internal admin surface. No production
+data is written, no source file is changed, no route is renamed. The only files
+created are throwaway verification scripts and temporary test files, all removed
+at the end of the pass (or kept only if you ask for them to be permanent).
 
-## Fix 3 — Dead footer links
+Deliverable: one structured findings report grouped **PASSED / FAILED (with
+minimal proposed fix) / NEEDS MANUAL CHECK**, plus the raw numbers behind every
+data-truth check. Fixes for anything that fails are proposed only — implemented
+after separate approval.
 
-`src/components/admin/AdminFooter.tsx` links to `/legal/privacy`, `/legal/terms` and `/admin/support`. None of the three is registered in `src/App.tsx`, so all land on the `*` NotFound catch-all. (`/admin/support` is also already listed in the sidebar's Support & Tools group but is filtered out today because it is not in `BUILT_ROUTES`.)
+## Execution order and estimated time
 
-### New files
-- `src/pages/LegalPrivacy.tsx` — public page, no admin chrome. Simple centred prose column using existing design tokens (`bg-background`, `text-foreground`, `text-muted-foreground`, `max-w-3xl`), an `h1`, a "Last updated" line and section headings. Copy is placeholder legal text with a clearly visible notice card: "Placeholder policy — replace with your reviewed legal copy before launch." Sets title and meta description for SEO.
-- `src/pages/LegalTerms.tsx` — same shell and placeholder notice, Terms of Service sections.
-- `src/pages/AdminSupport.tsx` — wrapped in the existing `AdminLayout` (same `title`/`subtitle` props pattern as `AdminReconciliation`). Content: contact channel cards (support email, escalation channel, on-call note) plus a short "Debug & audit basics" card linking, via the existing `useAdminNav().go`, to `/admin/audit-logs`, `/admin/notifications` and `/admin/reconciliation`. Reuses `Card` / `Button` only — no new UI primitives.
+Total: roughly 25–40 minutes of tool time, run in this order so cheap static
+checks fail fast before the expensive ones.
 
-### Edited files
-- `src/App.tsx` — add three routes: `/legal/privacy` and `/legal/terms` outside the protected block (public, alongside the other public routes), and `/admin/support` inside the admin block wrapped exactly like its siblings (`PermissionRoute`).
-- `src/components/admin/useAdminNav.ts` — add `/admin/support` to `BUILT_ROUTES` so the footer link and the existing sidebar entry both resolve instead of firing the "Coming soon" toast.
-- `src/services/admin-route-permissions.ts` — add `{ path: "/admin/support", permission: "dashboard.view" }`.
+### Stage 1 — Static route & permission integrity (~5 min)
 
-Legal pages are intentionally ungated: `permissionForPath` returns `null` for non-admin paths, so no permission entry is needed.
+A temporary Node script parses the router and the nav/permission sources and
+cross-checks them as sets:
 
-## Fix 4a — Real admin identity in the sidebar footer
+- Every `path` in the admin block of `src/App.tsx` — plus `/legal/privacy`,
+  `/legal/terms`, `/admin/support` — is collected as the router truth set.
+- `BUILT_ROUTES` (useAdminNav.ts) vs router: report both directions
+  (declared-but-not-routed, routed-but-not-declared).
+- Every entry in `admin-route-permissions.ts` maps to a real router path
+  (after stripping `:params`).
+- Every sidebar item href (AdminSidebar buildGroups), every AdminFooter link,
+  and every dashboard `action_href` in `supabase/functions/admin-dashboard/index.ts`
+  resolves to a built route once query/hash is stripped.
+- Every permission key referenced by a route guard exists in
+  `permission-catalog.ts`.
 
-Current state: `AdminSidebar.tsx` hardcodes the avatar letter `A`, the name `Admin User` and the role `Super Admin`.
+### Stage 2 — Route render smoke test (~8 min)
 
-Data source: the existing `AdminPermissionsContext`, which calls the `admin-me` edge function **once per admin session** (plus a 5-minute visibility-based refresh). Today `admin-me` returns `user_id, email, roles, permissions, access_level, is_super` but no display name.
+A temporary vitest file mounts each admin route component behind mocked
+`supabase` client, mocked `AdminPermissionsContext` (super admin), and a
+MemoryRouter. Assertion per route: renders without throwing, and the render
+produces no `console.error` / `console.warn`. Console output is captured with a
+spy so React key warnings, uncontrolled-input warnings, and `act()` warnings are
+recorded per route rather than lost in the noise. Any route that cannot be
+mounted in jsdom (heavy chart/virtualised screens) is reported as
+NEEDS MANUAL CHECK rather than silently skipped.
 
-- `supabase/functions/admin-me/index.ts` — add `full_name` (and `display_id`) by selecting them from `internal_users` for `ctx.userId` inside the existing parallel `Promise.all` batch. Primary-key lookup on a table the function already touches; no extra round trip on the hot path, no unindexed query.
-- `src/context/AdminPermissionsContext.tsx` — surface `fullName` on the already-memoised context value.
-- `src/components/admin/AdminSidebar.tsx` — footer block renders:
-  - name: `fullName` → fall back to the email local-part → `"Admin"`;
-  - initials: first letters of the first two name words, uppercased;
-  - role label: `ROLE_LABEL[roles[0]]` from the existing `permission-catalog.ts` (static in-memory map, zero queries); `isSuper` wins and shows "Super Admin"; unknown/empty roles show "Team member".
-  - Loading state: while `loading` is true, render fixed-size skeleton bars inside the exact same `h-9 w-9` avatar and two text rows, so no layout shift occurs.
+### Stage 3 — Permission consistency matrix (~6 min)
 
-No new hook, no new fetch, no per-render network work.
+For each internal role in `INTERNAL_ROLES`, compute effective permissions from
+the DB (`internal_effective_permissions` read via SQL for a synthetic role set,
+plus `role_permissions` rows) and assert three views agree:
 
-## Fix 4b — Dashboard "Admin Action Required" cards pointing at unbuilt routes
+1. Sidebar visibility — which items `AdminSidebar` would show for that permission set.
+2. Route guard — what `permissionForPath` + `PermissionRoute` would allow.
+3. Server gate — the `requirePermission` key each corresponding edge function uses
+   (extracted by grep over `supabase/functions/**`).
 
-Verified source: `supabase/functions/admin-dashboard/index.ts` lines ~600–605 emit six cards; four point at routes that do not exist.
+Any route visible in the sidebar but blocked by the guard, or allowed by the
+guard but gated on a different key server-side, is a FAILED finding.
+Suspended-user case: verify by SQL + code read that `admin-me` and the shared
+auth helper reject non-`active` internal users, and that the client context
+treats that as no permissions.
 
-| Card key | Current `action_href` | Built? | Proposed destination |
-|---|---|---|---|
-| `awaiting_release` | `/admin/release-queue` | no | `/admin/escrow?state=pending_release` (existing `EscrowQuery.state`) |
-| `failed_payouts` | `/admin/payouts` | yes | `/admin/payouts?tab=failed` (existing tab param; matches the alert-row card) |
-| `disputes_needing_decision` | `/admin/disputes` | yes | unchanged |
-| `stuck_transactions` | `/admin/transactions/stuck` | no | `/admin/transactions?quick=overdue` (existing `AdminTxQuickFilter`) |
-| `identity_reviews_pending` | `/admin/identity-reviews` | no | `/admin/users?status=pending&verification=id` (existing `UserDirectoryQuery` values) — interim until a dedicated identity review screen ships |
-| `webhook_recon_issues` | `/admin/webhooks` | no | `/admin/reconciliation` (built, `financial_controls.view`) |
+### Stage 4 — Data-truth checks, SQL only (~5 min)
 
-The four alert cards below these already emit `action_href: null` and are left as-is; `useAdminNav.go(null)` handles them.
+Each dashboard number is re-derived with the exact query its destination page
+uses, and the pair is reported side by side:
 
-Note: the request referenced `/admin/identity` and `/admin/money-tracing`; the code actually emits `/admin/identity-reviews` and `/admin/webhooks`. The mapping above uses the real values.
+| Dashboard card | Compared against |
+|---|---|
+| disputes_needing_decision | Disputes page list query |
+| failed_payouts | Payouts "failed" tab query |
+| webhook_recon_issues | Escrow reconciliation mismatch query (expected 0) |
+| awaiting_release | Escrow `pending_release` state query |
+| stuck_transactions | Transactions `quick=overdue` query |
+| identity_reviews_pending | `identity_submissions` pending query |
 
-Edited files: `supabase/functions/admin-dashboard/index.ts` (hrefs only — counts, keys, labels and severities unchanged). `src/services/admin-dashboard.service.ts` already types `action_href` as `string | null`, so it most likely needs no change.
+Plus: notification summary counts vs visible delivery states; count of
+unresolved drift alerts (expected 0); latest `escrow_reconciliation_results`
+run is all-ok.
 
-`AdminUsers.tsx`, `AdminEscrow.tsx` and `AdminTransactions.tsx` already read these params from the URL on mount, so no page changes are needed for the new destinations.
+### Stage 5 — Regression on Fixes 1–4 (~5 min)
 
-## Fix 4c — Orphaned screens and dead sidebar code
+- Dedupe idempotency: record `notifications` row count, trigger
+  `reconcile-escrow`, re-count — expect no new rows, only `occurrence_count` /
+  `last_seen_at` movement.
+- Remediation idempotency: re-invoke the remediation path for the three
+  remediated transactions — expect `already_applied`, no new ledger entries.
+- Footer links, sidebar Offers + Reconciliation, six action-card hrefs: covered
+  by Stage 1's set checks.
+- `admin-me` returns `full_name`: verified against the deployed function
+  response shape.
 
-`src/components/admin/AdminSidebar.tsx`:
-- Add `{ label: "Offers", href: "/admin/offers", icon: Tag }` to the **Operations** group (after Transactions). `/admin/offers` is in the router, in `BUILT_ROUTES`, and gated by `transactions.view`.
-- Add `{ label: "Reconciliation", href: "/admin/reconciliation", icon: Landmark }` to the **Financial** group (after Escrow), gated by `financial_controls.view`. `Landmark` is an existing lucide icon consistent with the other financial icons (`Scale` is already taken by Disputes).
-- Remove the dead `const built = true` branch: render `row` directly inside the `<li>`, drop the `built ? … : <Tooltip>"Coming soon"</Tooltip>` wrapper, the false-branch classes and `aria-disabled`. Remove the `Tooltip*` imports if no other consumer remains in the file.
+### Stage 6 — Runtime health (~4 min)
 
-Both new items stay behind the existing permission filter, so users without the required permission will not see them.
+- `tsgo --noEmit` typecheck.
+- Full `vitest run` including the Stage 2 temporary smoke tests.
+- Console warning inventory from Stage 2, grouped by warning type and route.
+- Network inventory: from the mount tests, list every distinct edge function /
+  table the mount triggers, and flag any target that does not exist in
+  `supabase/functions/` or the schema.
 
-## Scalability review
+### Stage 7 — Scalability spot-checks, read-only (~5 min)
 
-- **4a**: reuses the single existing `admin-me` call per session; the added `internal_users` select is a primary-key lookup inside an existing `Promise.all`. No new client fetch, no React Query entry, no per-render work. Role label resolution is a static map.
-- **4b**: string literal changes inside an edge function that already runs; zero added queries. Destination pages run the same paginated, filtered, server-side queries they already run from the UI — no N+1, no full scans.
-- **4c**: two extra array entries rendered client-side; the sidebar fetches nothing per item. Removing the tooltip branch shrinks the rendered tree.
-- **Fix 3**: legal pages are static markup with no data access. `/admin/support` renders static cards and issues no queries or edge function calls on load.
-- No migration, no new index, no new cron job, no new realtime channel.
+`EXPLAIN (ANALYZE, BUFFERS)` on: `admin_escrow_kpis`, the notifications list
+query, the escrow reconciliation query, and `admin_users_directory_page` with
+filters applied. Report any sequential scan on `transactions`, `notifications`,
+`escrow_ledger_entries`, or `audit_logs`, with a recommended index per finding
+(finding only, no migration). Also measure `escrow_reconciliation_results` row
+growth per run and per day; if unbounded, that is a finding with a proposed
+retention or upsert-per-transaction approach.
 
-## Tests
+### Stage 8 — Limits and manual checklist (~2 min)
 
-- `src/services/__tests__/admin-route-permissions.test.ts` — assert `permissionForPath("/admin/support") === "dashboard.view"` and that `/legal/privacy` and `/legal/terms` return `null`.
-- New test for `isBuiltAdminRoute` covering `/admin/support`, `/admin/offers`, `/admin/reconciliation`.
-- New unit test for the initials/role-label helper extracted from the sidebar into a pure module (e.g. `src/lib/admin-identity.ts`): multi-word names, single names, email fallback, super-admin override, unknown role.
-- Re-run the existing `admin-auth.contract.test.ts` and `access-audit.contract.test.ts` suites to confirm the `admin-me` payload change causes no regression.
+Everything that genuinely needs a signed-in browser is listed as a short
+click-through checklist rather than claimed as verified. Expected items:
+
+- Sidebar footer identity (real name, initials, role label) desktop + mobile.
+- Sidebar collapsed/expanded and mobile drawer layout, no shift on load.
+- Offers and Reconciliation items visible and navigating correctly.
+- Drawer focus trap and Escape behaviour on the heavier admin screens.
+- Dashboard action cards navigating to correctly pre-filtered destinations.
+
+## Technical notes
+
+- All DB work is `SELECT` / `EXPLAIN` through the read-only query tool; the only
+  write-adjacent actions are the two idempotency re-runs in Stage 5, which are
+  by design no-ops and are asserted as such before and after.
+- Temporary artefacts live under `/tmp/uat/` except the Stage 2 vitest file,
+  which must live under `src/` for the existing vitest `include` globs; it is
+  deleted at the end of the pass unless you want it kept as a permanent
+  route smoke suite.
+- Contract tests that require live admin/buyer credentials
+  (`admin-auth.contract.test.ts`, 105 cases) stay skipped unless
+  `VITE_TEST_ADMIN_*` / `VITE_TEST_BUYER_*` are present. If you want that layer
+  covered in this pass, add those secrets and I will include it.
 
 ## Risks
 
-- **`admin-me` payload change**: only `AdminPermissionsContext` reads it and the change is additive, so risk is low — but any strict shape assertion elsewhere would need updating.
-- **Legacy consumer admin**: a super admin present only in `user_roles` and not in `internal_users` gets `full_name = null`; the email-local-part fallback covers this.
-- **Identity reviews destination is an approximation**: `/admin/users?status=pending&verification=id` is not an exact match for the `identity_submissions` count on the card, so the number and the destination list can differ. The alternative is suppressing the card until a dedicated screen ships — say which you prefer.
-- **Legal copy is placeholder** and must be replaced before publishing; the pages carry a visible notice saying so.
-- **Removing the tooltip branch** is dead-code removal but touches the shared sidebar render path — worth a visual check of the collapsed and mobile sidebar afterwards.
+- Stage 2 mount tests may surface pre-existing console warnings unrelated to
+  Fixes 1–4. They will be reported as findings, not fixed in this pass.
+- Some admin screens may not mount cleanly in jsdom; those degrade to
+  NEEDS MANUAL CHECK instead of being reported as failures.
+- Stage 5 triggers a real reconciliation run. It is idempotent by design, and
+  the before/after counts prove that, but it does execute against live data.
