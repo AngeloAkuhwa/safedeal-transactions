@@ -276,8 +276,8 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
           <div className="min-w-0 flex-1">
             {loading ? (
               <>
-                <div className="h-[20px] w-28 animate-pulse rounded bg-muted" />
-                <div className="mt-0.5 h-4 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-5 w-28 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
               </>
             ) : (
               <>
