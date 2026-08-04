@@ -11,6 +11,9 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}", "supabase/functions/**/*.{test,spec}.ts"],
     // Deno-only suites (remote https imports) cannot run under the Vite ESM loader.
     exclude: ["**/node_modules/**", "**/dist/**", "supabase/functions/**/pricing.parity.test.ts"],
+    // react-router v7 ships ESM that expects React's ESM named exports; inline
+    // it so Vite handles the CJS interop for component mount tests.
+    server: { deps: { inline: ["react-router", "react-router-dom"] } },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
