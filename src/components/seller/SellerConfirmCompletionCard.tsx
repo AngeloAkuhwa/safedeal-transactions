@@ -131,7 +131,7 @@ export function SellerConfirmCompletionCard({
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate(`/seller/transactions/${transactionId}/messages`)}
+              onClick={() => navigate(`/seller/transactions/${transactionId}#messages`)}
               className="gap-2"
               disabled={mutation.isPending}
             >

@@ -474,7 +474,9 @@ const CartCheckoutReview = () => {
 
                 <p className="text-xs text-muted-foreground text-center">
                   By confirming, you agree to SafeDeal's{" "}
-                  <span className="text-primary hover:underline cursor-pointer">Terms of Service</span>
+                  <Link to="/legal/terms" className="text-primary hover:underline">Terms of Service</Link>
+                  {" "}and{" "}
+                  <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>
                 </p>
               </div>
             </div>

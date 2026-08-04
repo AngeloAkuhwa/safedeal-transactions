@@ -159,7 +159,10 @@ const Auth = () => {
 
             <p className="mt-6 text-center text-xs text-muted-foreground">
               By creating an account, you agree to receive transaction updates
-              and security notifications via email and SMS.
+              and security notifications via email and SMS, and to our{" "}
+              <Link to="/legal/terms" className="text-primary hover:underline">Terms of Service</Link>
+              {" "}and{" "}
+              <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </div>
         </div>
