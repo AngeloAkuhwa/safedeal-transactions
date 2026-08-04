@@ -461,7 +461,7 @@ Deno.serve(async (req) => {
         title: "Awaiting release",
         message: "Both parties have confirmed. SafeDeal is reviewing the release.",
         action_label: "View releases",
-        action_href: "/seller/payouts?filter=awaiting_release",
+        action_href: "/seller/payouts?status=pending",
         count: awaitingReleaseUnion.size,
         blocking: false,
         dismissible: true,
