@@ -133,6 +133,58 @@ const ROUTES: RouteCase[] = [
   { path: "/legal/terms", load: () => import("@/pages/LegalTerms") },
 ];
 
+/**
+ * Fix 7 — tab / sub-view coverage.
+ *
+ * Every admin screen whose tabs are URL-driven is mounted once per tab so a
+ * broken sub-view fails here instead of in the browser. Tabs that are local
+ * component state only (Access Approvals, Settings sections, Notifications
+ * segments) cannot be driven from the URL in jsdom and are tracked in the
+ * NEEDS MANUAL CHECK list of the Fix 7 report instead of being skipped here.
+ */
+const TAB_ROUTES: RouteCase[] = [
+  // Payouts — status tabs (?tab=)
+  ...["all", "pending_release", "blocked", "processing", "completed", "failed", "reversed", "on_hold"].map(
+    (tab) => ({
+      path: "/admin/payouts",
+      url: `/admin/payouts?tab=${tab}`,
+      load: () => import("@/pages/AdminPayouts"),
+    }),
+  ),
+  // Permission Matrix — workspace tabs (?tab=)
+  ...[
+    "role-matrix",
+    "role-detail",
+    "feature-registry",
+    "user-overrides",
+    "pending-approvals",
+    "permission-templates",
+    "change-history",
+  ].map((tab) => ({
+    path: "/admin/permission-matrix",
+    url: `/admin/permission-matrix?tab=${tab}`,
+    load: () => import("@/pages/AdminPermissionMatrix"),
+  })),
+  // Agent Performance — analysis tabs (?tab=)
+  ...["workload", "performance", "sla", "rankings"].map((tab) => ({
+    path: "/admin/agent-performance",
+    url: `/admin/agent-performance?tab=${tab}`,
+    load: () => import("@/pages/AdminAgentPerformance"),
+  })),
+  // Transactions — quick-filter views (?quick=)
+  ...["high_risk", "overdue", "in_dispute", "flagged"].map((quick) => ({
+    path: "/admin/transactions",
+    url: `/admin/transactions?quick=${quick}`,
+    load: () => import("@/pages/AdminTransactions"),
+  })),
+  // Disputes — quick-filter views (?quick=)
+  ...["all", "priority"].map((quick) => ({
+    path: "/admin/disputes",
+    url: `/admin/disputes?quick=${quick}`,
+    load: () => import("@/pages/AdminDisputes"),
+  })),
+];
+
 // ---------------------------------------------------------------- suite ----
 
 let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -180,4 +232,33 @@ describe("admin routes — mount smoke test", () => {
     expect(messages(errorSpy), `console.error during ${route.path}`).toEqual([]);
     expect(messages(warnSpy), `console.warn during ${route.path}`).toEqual([]);
   }, 20000);
+});
+
+describe("admin tabs — sub-view smoke test", () => {
+  it.each(TAB_ROUTES.map((r) => [r.url ?? r.path, r] as const))(
+    "%s renders cleanly",
+    async (_url, route) => {
+      const mod = await route.load();
+      const Page = mod.default;
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false, gcTime: 0 } },
+      });
+
+      expect(() =>
+        render(
+          <QueryClientProvider client={client}>
+            <MemoryRouter initialEntries={[route.url ?? route.path]}>
+              <Routes>
+                <Route path={route.path} element={<Page />} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>,
+        ),
+      ).not.toThrow();
+
+      expect(messages(errorSpy), `console.error during ${route.url}`).toEqual([]);
+      expect(messages(warnSpy), `console.warn during ${route.url}`).toEqual([]);
+    },
+    20000,
+  );
 });
