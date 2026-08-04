@@ -2705,6 +2705,63 @@ export type Database = {
           },
         ]
       }
+      mfa_recovery_codes: {
+        Row: {
+          batch_id: string
+          code_hash: string
+          created_at: string
+          id: string
+          salt: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          batch_id: string
+          code_hash: string
+          created_at?: string
+          id?: string
+          salt: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          batch_id?: string
+          code_hash?: string
+          created_at?: string
+          id?: string
+          salt?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_verification_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          kind: string
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          kind: string
+          success: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          kind?: string
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       money_status_history: {
         Row: {
           changed_at: string
@@ -7321,6 +7378,13 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      internal_users_mfa_status: {
+        Args: never
+        Returns: {
+          two_factor_enabled: boolean
+          user_id: string
+        }[]
+      }
       invalidate_old_sessions: {
         Args: { _user_id: string }
         Returns: undefined
@@ -7366,6 +7430,14 @@ export type Database = {
             }
             Returns: Json
           }
+      my_mfa_recovery_status: {
+        Args: never
+        Returns: {
+          generated_at: string
+          total: number
+          unused: number
+        }[]
+      }
       orch_generate_task_code: { Args: never; Returns: string }
       raise_system_alert: {
         Args: {
@@ -7573,6 +7645,7 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["money_status"]
       }
+      user_has_verified_mfa: { Args: { _user_id: string }; Returns: boolean }
       validate_dispute_transition: {
         Args: {
           new_status: Database["public"]["Enums"]["dispute_case_status"]

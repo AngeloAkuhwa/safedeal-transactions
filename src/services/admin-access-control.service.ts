@@ -217,15 +217,24 @@ function computeEffective(roles: string[], grants: string[], revokes: string[], 
 }
 
 export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promise<AccessDirectoryResponse> {
-  const [rolePerms, usersRes, rolesRes, overridesRes] = await Promise.all([
+  const [rolePerms, usersRes, rolesRes, overridesRes, mfaRes] = await Promise.all([
     loadRolePermissions(),
     supabase.from("internal_users").select("*").order("created_at", { ascending: false }),
     supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
     supabase.from("user_permission_overrides").select("user_id,permission_key,mode"),
+    // Real 2FA state, derived from the auth factor table. The
+    // `internal_users.two_factor_enabled` column is a deprecated shadow flag
+    // and is no longer trusted for display.
+    supabase.rpc("internal_users_mfa_status"),
   ]);
   if (usersRes.error) throw usersRes.error;
   if (rolesRes.error) throw rolesRes.error;
   if (overridesRes.error) throw overridesRes.error;
+
+  const mfaByUser = new Map<string, boolean>();
+  for (const m of ((mfaRes.data ?? []) as Array<{ user_id: string; two_factor_enabled: boolean }>)) {
+    mfaByUser.set(m.user_id, !!m.two_factor_enabled);
+  }
 
   const rolesByUser = new Map<string, { key: string; primary: boolean }[]>();
   for (const r of rolesRes.data ?? []) {
@@ -268,7 +277,7 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
       access_level: deriveAccessLevel(effective, roles),
       status: row.status as InternalUserStatus,
       last_active_at: row.last_active_at,
-      two_factor_enabled: !!row.two_factor_enabled,
+      two_factor_enabled: mfaByUser.get(row.id) ?? false,
       created_at: row.created_at,
       department: row.department,
       team: row.team ?? null,

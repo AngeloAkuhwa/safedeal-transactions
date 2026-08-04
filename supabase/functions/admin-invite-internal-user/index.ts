@@ -278,6 +278,9 @@ async function hydrateUser(admin: ReturnType<typeof requireAdmin> extends Promis
   const roles = (roleRows ?? []).map((r: any) => r.role_key as string);
   const primary = (roleRows ?? []).find((r: any) => r.is_primary)?.role_key
     ?? roles[0] ?? "support_agent";
+  // Derived from auth.mfa_factors — `internal_users.two_factor_enabled` is a
+  // deprecated shadow flag and is not trusted for display.
+  const { data: hasMfa } = await (admin as any).rpc("user_has_verified_mfa", { _user_id: userId });
   return {
     id: row.id,
     display_id: row.display_id,
@@ -292,7 +295,7 @@ async function hydrateUser(admin: ReturnType<typeof requireAdmin> extends Promis
     access_level: "standard",
     status: row.status,
     last_active_at: row.last_active_at,
-    two_factor_enabled: !!row.two_factor_enabled,
+    two_factor_enabled: hasMfa === true,
     created_at: row.created_at,
     department: row.department,
     team: row.team ?? null,

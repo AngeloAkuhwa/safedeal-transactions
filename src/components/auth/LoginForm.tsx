@@ -20,6 +20,8 @@ import ForgotPasswordModal from "./ForgotPasswordModal";
 import { signIn } from "@/services/auth.service";
 import { invalidateOldSessions, createSession } from "@/services/session.service";
 import { getUserRoles } from "@/services/role.service";
+import { getAal, listFactors, verifyFactor, consumeRecoveryCode } from "@/services/mfa.service";
+import { Label } from "@/components/ui/label";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address").max(255),
@@ -37,11 +39,61 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  // Step-up state: only ever entered when the signed-in user already has a
+  // verified factor. Consumer routes never trigger this — it lives on /auth.
+  const [stepUp, setStepUp] = useState<{ userId: string; factorId: string } | null>(null);
+  const [stepUpCode, setStepUpCode] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [stepUpBusy, setStepUpBusy] = useState(false);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  const finishLogin = async (userId: string) => {
+    const { data: roles } = await getUserRoles(userId);
+    toast.success("Welcome back!");
+    if (roles && roles.length > 0) {
+      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      if (storedRedirect) {
+        sessionStorage.removeItem("safedeal_redirect");
+        navigate(storedRedirect, { replace: true });
+        return;
+      }
+      const roleNames = roles.map((r: any) => r.role);
+      const destination = roleNames.includes("admin")
+        ? "/admin/dashboard"
+        : roleNames.includes("seller") && !roleNames.includes("buyer")
+        ? "/seller"
+        : "/dashboard";
+      navigate(destination, { replace: true });
+    } else {
+      navigate("/role-selection", { replace: true });
+    }
+  };
+
+  const handleStepUp = async () => {
+    if (!stepUp) return;
+    setStepUpBusy(true);
+    try {
+      if (recoveryMode) {
+        await consumeRecoveryCode(stepUpCode);
+        toast.success("Recovery code accepted. Set up two-factor authentication again.");
+        await finishLogin(stepUp.userId);
+      } else {
+        await verifyFactor(stepUp.factorId, stepUpCode);
+        await finishLogin(stepUp.userId);
+      }
+      setStepUp(null);
+      setStepUpCode("");
+      setRecoveryMode(false);
+    } catch (err) {
+      toast.error((err as Error).message || "That code was not correct");
+    } finally {
+      setStepUpBusy(false);
+    }
+  };
 
   const onSubmit = async (values: LoginValues) => {
     setLoading(true);
@@ -67,27 +119,23 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
         await invalidateOldSessions(data.user.id);
         await createSession(data.user.id, data.session.access_token);
 
-        const { data: roles } = await getUserRoles(data.user.id);
-
-        toast.success("Welcome back!");
-
-        if (roles && roles.length > 0) {
-          const storedRedirect = sessionStorage.getItem("safedeal_redirect");
-          if (storedRedirect) {
-            sessionStorage.removeItem("safedeal_redirect");
-            navigate(storedRedirect, { replace: true });
-          } else {
-            const roleNames = roles.map((r: any) => r.role);
-            const destination = roleNames.includes("admin")
-              ? "/admin/dashboard"
-              : roleNames.includes("seller") && !roleNames.includes("buyer")
-              ? "/seller"
-              : "/dashboard";
-            navigate(destination, { replace: true });
+        // Step up to aal2 when — and only when — this account has a verified
+        // factor. Users without 2FA continue straight through, unchanged.
+        try {
+          const aal = await getAal();
+          if (aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+            const factors = await listFactors();
+            const verified = factors.find((f) => f.status === "verified");
+            if (verified) {
+              setStepUp({ userId: data.user.id, factorId: verified.id });
+              return;
+            }
           }
-        } else {
-          navigate("/role-selection", { replace: true });
+        } catch {
+          /* AAL read failure must not block a normal login */
         }
+
+        await finishLogin(data.user.id);
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -98,6 +146,43 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
 
   return (
     <>
+      {stepUp ? (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Two-step verification</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {recoveryMode
+                ? "Enter one of your saved recovery codes."
+                : "Enter the 6-digit code from your authenticator app."}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stepUpCode">{recoveryMode ? "Recovery code" : "Authentication code"}</Label>
+            <Input
+              id="stepUpCode"
+              autoComplete="one-time-code"
+              inputMode={recoveryMode ? "text" : "numeric"}
+              maxLength={recoveryMode ? 12 : 6}
+              value={stepUpCode}
+              onChange={(e) =>
+                setStepUpCode(recoveryMode ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ""))
+              }
+              placeholder={recoveryMode ? "XXXXX-XXXXX" : "000000"}
+            />
+          </div>
+          <Button className="w-full" size="lg" onClick={handleStepUp} disabled={stepUpBusy || !stepUpCode}>
+            {stepUpBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+            Verify
+          </Button>
+          <button
+            type="button"
+            onClick={() => { setRecoveryMode(!recoveryMode); setStepUpCode(""); }}
+            className="w-full text-sm text-primary hover:underline"
+          >
+            {recoveryMode ? "Use my authenticator app instead" : "Use a recovery code"}
+          </button>
+        </div>
+      ) : (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
@@ -170,6 +255,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
           </Button>
         </form>
       </Form>
+      )}
 
       <ForgotPasswordModal open={forgotOpen} onOpenChange={setForgotOpen} />
     </>
