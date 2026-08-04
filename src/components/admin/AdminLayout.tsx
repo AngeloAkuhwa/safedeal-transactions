@@ -7,6 +7,7 @@ import { AdminMobileHeader } from "./AdminMobileHeader";
 import { ReadingModeProvider } from "./ReadingModeContext";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
 import { AdminFooter } from "./AdminFooter";
+import { TwoFactorEnrolmentBanner } from "@/components/security/TwoFactorEnrolmentBanner";
 import { useAgentHeartbeat } from "@/hooks/useAgentHeartbeat";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 
