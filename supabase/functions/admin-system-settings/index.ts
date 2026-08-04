@@ -234,17 +234,44 @@ Deno.serve(async (req) => {
       for (const t of timeouts) {
         timeoutAfter[t.rule_type] = { hours: t.hours, is_active: t.is_active ?? true };
       }
-      await logAdminAction(adminClient, {
-        actorId: userId,
-        action: "update_setting",
-        targetType: vendorId ? "vendor" : "setting",
-        targetId: vendorId,
-        reason,
-        before: { settings: beforeSnapshot, timeouts: timeoutBefore },
-        after: { settings: afterSettings, timeouts: timeoutAfter },
-        metadata: { scope, vendor_id: vendorId, apply_to_all_vendors: applyToAll },
-        mirrorToAuditLogs: true,
-      });
+      // One audit entry PER changed key, so the audit trail is filterable by
+      // the exact setting that moved (before/after scoped to that key).
+      for (const [key, afterValue] of Object.entries(afterSettings)) {
+        const beforeValue = beforeSnapshot[key] ?? null;
+        if (JSON.stringify(beforeValue) === JSON.stringify(afterValue)) continue;
+        await logAdminAction(adminClient, {
+          actorId: userId,
+          action: "update_setting",
+          targetType: vendorId ? "vendor" : "setting",
+          targetId: vendorId,
+          reason,
+          before: { [key]: beforeValue },
+          after: { [key]: afterValue },
+          metadata: {
+            scope,
+            vendor_id: vendorId,
+            apply_to_all_vendors: applyToAll,
+            setting_key: key,
+            is_financial_key: isFinancialKey(key),
+          },
+          mirrorToAuditLogs: true,
+        });
+      }
+      for (const [ruleType, afterValue] of Object.entries(timeoutAfter)) {
+        const beforeValue = timeoutBefore[ruleType] ?? null;
+        if (JSON.stringify(beforeValue) === JSON.stringify(afterValue)) continue;
+        await logAdminAction(adminClient, {
+          actorId: userId,
+          action: "update_setting",
+          targetType: vendorId ? "vendor" : "setting",
+          targetId: vendorId,
+          reason,
+          before: { [`timeout.${ruleType}`]: beforeValue },
+          after: { [`timeout.${ruleType}`]: afterValue },
+          metadata: { scope, vendor_id: vendorId, apply_to_all_vendors: applyToAll, rule_type: ruleType },
+          mirrorToAuditLogs: true,
+        });
+      }
 
       // Dedicated toggle_auto_release event — one row per flip so audit
       // history renders a distinct, filterable stream regardless of what
