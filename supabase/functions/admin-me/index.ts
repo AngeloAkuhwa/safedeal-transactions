@@ -53,11 +53,14 @@ Deno.serve(async (req) => {
     // non-fatal — permissions load must not be blocked by promotion
   }
 
-  const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }] = await Promise.all([
+  const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }, { data: profileRow }] = await Promise.all([
     client.from("internal_user_roles").select("role_key").eq("user_id", ctx.userId),
     client.from("user_roles").select("role").eq("user_id", ctx.userId),
     client.rpc("internal_effective_permissions", { _user_id: ctx.userId }),
     client.rpc("internal_effective_access_level", { _user_id: ctx.userId }),
+    // Display identity for the admin shell. Primary-key lookup; nullable for
+    // legacy consumer-admins that have no internal_users row.
+    client.from("internal_users").select("full_name, display_id").eq("id", ctx.userId).maybeSingle(),
   ]);
 
   const roles = [
@@ -75,6 +78,8 @@ Deno.serve(async (req) => {
     JSON.stringify({
       user_id: ctx.userId,
       email: ctx.email,
+      full_name: (profileRow as { full_name?: string | null } | null)?.full_name ?? null,
+      display_id: (profileRow as { display_id?: string | null } | null)?.display_id ?? null,
       roles,
       permissions,
       access_level: (level as string) ?? "limited",
