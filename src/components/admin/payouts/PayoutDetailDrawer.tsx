@@ -332,9 +332,11 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               <div className="space-y-3">
                 <h4 className="text-white font-semibold text-sm">Linked records</h4>
                 <div className="flex flex-col gap-2">
-                  <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
-                    Open Transaction <ExternalLink className="h-4 w-4" />
-                  </button>
+                  {detail.transaction?.id && (
+                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
+                      Open Transaction <ExternalLink className="h-4 w-4" />
+                    </button>
+                  )}
                   {detail.dispute && (
                     <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
                       Open Dispute <ExternalLink className="h-4 w-4" />
@@ -399,9 +401,11 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                       <ShieldOff className="h-4 w-4" /> Block Payout
                     </button>
                   ) : null}
-                  <button className={actionBtn} onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
-                    <ExternalLink className="h-4 w-4" /> Open Transaction
-                  </button>
+                  {detail.transaction?.id && (
+                    <button className={actionBtn} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
+                      <ExternalLink className="h-4 w-4" /> Open Transaction
+                    </button>
+                  )}
                 </div>
                 {!releaseEnabled && p!.status === "awaiting_release" && (
                   <p className="text-xs text-slate-500 mt-1">Release is disabled — resolve the failing gate above before retrying.</p>

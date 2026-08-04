@@ -1114,10 +1114,10 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
             <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/users/${party.id}`)}>
               <UserIcon className="h-3.5 w-3.5 shrink-0" /> View Profile
             </Button>
-            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?q=${party.id}`)}>
               <Scale className="h-3.5 w-3.5 shrink-0" /> Dispute History
             </Button>
-            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?q=${party.id}`)}>
               <Receipt className="h-3.5 w-3.5 shrink-0" /> Transactions
             </Button>
           </div>

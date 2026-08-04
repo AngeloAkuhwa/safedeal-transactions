@@ -288,7 +288,7 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/admin/audit-logs?actor_or_target=${user.id}`)}
+                  onClick={() => navigate(`/admin/audit-logs?ref=${user.id}`)}
                 >
                   <ExternalLink className="mr-1 h-3.5 w-3.5" /> View Audit History
                 </Button>

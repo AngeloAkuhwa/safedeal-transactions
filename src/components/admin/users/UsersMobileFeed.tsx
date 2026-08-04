@@ -190,14 +190,14 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                   </button>
                 ) : isTrustedSeller ? (
                   <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?user=${r.user_id}`); }}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }}
                     className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-600/20 active:scale-95 inline-flex items-center justify-center gap-2"
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" /> Transactions
                   </button>
                 ) : (
                   <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?user=${r.user_id}`); }}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }}
                     disabled={r.disputes.total === 0}
                     className={`flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
                       r.disputes.total === 0 ? "bg-slate-800/60 text-slate-500" : "bg-slate-800 text-slate-300"
