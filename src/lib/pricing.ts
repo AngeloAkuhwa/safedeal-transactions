@@ -9,8 +9,8 @@
  * callers unchanged.
  */
 
-const DEFAULT_MIN_PLATFORM_FEE = 250;
-const DEFAULT_MAX_TOTAL_FEE = 2500;
+export const DEFAULT_MIN_PLATFORM_FEE = 250;
+export const DEFAULT_MAX_TOTAL_FEE = 2500;
 const DEFAULT_TIER_RATES: Array<{ upto: number | null; rate: number }> = [
   { upto: 100_000, rate: 0.039 },
   { upto: 500_000, rate: 0.035 },
