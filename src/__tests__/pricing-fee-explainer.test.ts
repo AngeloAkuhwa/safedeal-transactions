@@ -34,9 +34,16 @@ describe("describeFeeBreakdown", () => {
   });
 
   it("respects vendor overrides when deriving the tier rate", () => {
-    const itemAmount = 50_000;
-    const config = { tier_rates: [{ upto: null, rate: 0.02 }] };
+    // Headroom on both bounds so neither the floor nor the cap binds and the
+    // raw tier rate is what actually gets described.
+    const itemAmount = 200_000;
+    const config = {
+      tier_rates: [{ upto: null, rate: 0.02 }],
+      max_total_service_fee: 100_000,
+    };
     const result = computePricing(itemAmount, "NGN", config);
+    expect(result.is_floored).toBe(false);
+    expect(result.is_capped).toBe(false);
     const desc = describeFeeBreakdown({ itemAmount, config }, result);
     expect(desc).toMatch(/2\.0%/);
   });
