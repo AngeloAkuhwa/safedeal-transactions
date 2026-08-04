@@ -555,9 +555,17 @@ export default function AdminSettings() {
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Protection fee structure and limits</p>
                 </div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                  <Coins className="h-3 w-3 text-emerald-400" />
-                  <span className="text-emerald-300 text-[11px] font-medium">Active Rules</span>
+                <div className="flex items-center gap-2">
+                  {!canConfigureFinancial && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                      <ShieldAlert className="h-3 w-3 text-amber-400" />
+                      <span className="text-amber-300 text-[11px] font-medium">Read-only — needs financial access</span>
+                    </div>
+                  )}
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                    <Coins className="h-3 w-3 text-emerald-400" />
+                    <span className="text-emerald-300 text-[11px] font-medium">Active Rules</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -569,8 +577,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn") || !canConfigureFinancial} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn") || !canConfigureFinancial} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
