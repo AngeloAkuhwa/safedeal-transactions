@@ -6,7 +6,6 @@ import { permissionForPath } from "@/services/admin-route-permissions";
 /** Routes that actually exist in the router. Everything else is "Coming soon". */
 const BUILT_ROUTES = new Set<string>([
   "/admin/dashboard",
-  "/admin/offers",
   "/admin/transactions",
   "/admin/disputes",
   "/admin/payouts",

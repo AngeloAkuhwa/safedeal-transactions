@@ -64,7 +64,6 @@ export const ADMIN_FUNCTIONS: string[] = [
   "admin-flagged-users-export",
   "admin-notifications",
   "admin-notifications-action",
-  "admin-offers",
   "admin-payouts-detail",
   "admin-payouts-list",
   "admin-payouts-summary",

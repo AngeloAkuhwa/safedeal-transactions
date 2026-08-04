@@ -51,8 +51,6 @@ import BuyerSavedProducts from "./pages/BuyerSavedProducts";
 import CartCheckoutReview from "./pages/CartCheckoutReview";
 import OfferClaimLanding from "./pages/OfferClaimLanding";
 import BuyerPrivateOffers from "./pages/BuyerPrivateOffers";
-import AdminOffers from "./pages/AdminOffers";
-import AdminOfferDetail from "./pages/AdminOfferDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminTransactionDetail from "./pages/AdminTransactionDetail";
@@ -156,8 +154,6 @@ const App = () => (
                 <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
                 <Route path="/admin/disputes" element={<AdminDisputes />} />
                 <Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
-                <Route path="/admin/offers" element={<AdminOffers />} />
-                <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
                 <Route path="/admin/payouts" element={<AdminPayouts />} />
                 <Route path="/admin/reconciliation" element={<AdminReconciliation />} />
                 <Route path="/admin/escrow" element={<AdminEscrow />} />
