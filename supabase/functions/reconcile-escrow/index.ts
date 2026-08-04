@@ -33,6 +33,9 @@ function json(status: number, body: Record<string, unknown>): Response {
 
 const CREDIT_ENTRY_TYPES = new Set([
   "payment_credit",
+  // Append-only corrections posted through `apply_financial_remediation_atomic`
+  // are credits in the canonical model (escrow_hold + adjustment − debits).
+  "adjustment",
 ]);
 const DEBIT_ENTRY_TYPES = new Set([
   "payout_debit",
