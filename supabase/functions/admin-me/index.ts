@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // non-fatal — permissions load must not be blocked by promotion
   }
 
-  const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }, { data: profileRow }] = await Promise.all([
+  const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }, { data: profileRow }, { data: hasMfa }] = await Promise.all([
     client.from("internal_user_roles").select("role_key").eq("user_id", ctx.userId),
     client.from("user_roles").select("role").eq("user_id", ctx.userId),
     client.rpc("internal_effective_permissions", { _user_id: ctx.userId }),
@@ -61,6 +61,8 @@ Deno.serve(async (req) => {
     // Display identity for the admin shell. Primary-key lookup; nullable for
     // legacy consumer-admins that have no internal_users row.
     client.from("internal_users").select("full_name, display_id").eq("id", ctx.userId).maybeSingle(),
+    // Real 2FA enrolment state, derived from auth.mfa_factors.
+    client.rpc("user_has_verified_mfa", { _user_id: ctx.userId }),
   ]);
 
   const roles = [
@@ -84,6 +86,8 @@ Deno.serve(async (req) => {
       permissions,
       access_level: (level as string) ?? "limited",
       is_super: isSuper,
+      aal: ctx.aal ?? null,
+      mfa_enrolled: hasMfa === true,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
   );
