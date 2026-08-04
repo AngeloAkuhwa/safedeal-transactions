@@ -38,7 +38,6 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/flagged-users/:id/remove-flag", permission: "flagged_users.remove_flag" },
   { path: "/admin/flagged-users",           permission: "flagged_users.view" },
   { path: "/admin/users",                   permission: "users_and_access.view" },
-  { path: "/admin/offers",                  permission: "transactions.view" },
   { path: "/admin/disputes/export",         permission: "disputes.export" },
   { path: "/admin/disputes/:id/resolve",    permission: "disputes.resolve_all" },
   { path: "/admin/disputes/:id/escalate",   permission: "disputes.escalate" },

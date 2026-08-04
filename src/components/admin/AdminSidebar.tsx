@@ -81,7 +81,6 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Operations",
       items: [
         { label: "Transactions", href: "/admin/transactions", icon: Receipt },
-        { label: "Offers", href: "/admin/offers", icon: Tag },
         {
           label: "Disputes",
           href: "/admin/disputes",

@@ -114,8 +114,6 @@ const ROUTES: RouteCase[] = [
   },
   { path: "/admin/disputes", load: () => import("@/pages/AdminDisputes") },
   { path: "/admin/disputes/:id", url: "/admin/disputes/d-1", load: () => import("@/pages/AdminDisputeDetail") },
-  { path: "/admin/offers", load: () => import("@/pages/AdminOffers") },
-  { path: "/admin/offers/:offerId", url: "/admin/offers/o-1", load: () => import("@/pages/AdminOfferDetail") },
   { path: "/admin/payouts", load: () => import("@/pages/AdminPayouts") },
   { path: "/admin/reconciliation", load: () => import("@/pages/AdminReconciliation") },
   { path: "/admin/escrow", load: () => import("@/pages/AdminEscrow") },
