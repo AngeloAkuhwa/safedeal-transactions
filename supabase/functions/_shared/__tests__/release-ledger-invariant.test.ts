@@ -44,17 +44,21 @@ function simulateRelease(payoutDebit: string): BuildInput {
 
 describe("release ledger invariants", () => {
   it("net payout_debit + fee_record reconciles the capture and movement identities", () => {
-    const built = buildCanonicalFinancials(simulateRelease(ITEM));
-    expect(checkCaptureIdentity(built).ok).toBe(true);
-    expect(checkEscrowMovementIdentity(built).ok).toBe(true);
+    const input = simulateRelease(ITEM);
+    const built = buildCanonicalFinancials(input);
+    expect(checkCaptureIdentity(built)).toBe(true);
+    expect(checkEscrowMovementIdentity(input.ledger)).toBe(true);
     // payment_credit == payout_debit + fee_record
-    expect(built.amount_captured).toBe(built.amount_released + built.fees_retained);
+    expect(built.amount_captured).toBe(built.payout_amount + built.fees_retained);
     // escrow fully drained by the net release
-    expect(built.amount_in_escrow_now).toBe(0);
+    expect(built.available_escrow).toBe(0);
+    expect(built.invariants).toEqual([]);
   });
 
   it("a gross payout_debit (the legacy bug) breaks the movement identity", () => {
-    const built = buildCanonicalFinancials(simulateRelease(BUYER_TOTAL));
-    expect(built.amount_captured).not.toBe(built.amount_released + built.fees_retained);
+    const input = simulateRelease(BUYER_TOTAL);
+    const built = buildCanonicalFinancials(input);
+    expect(built.amount_captured).not.toBe(built.payout_amount + built.fees_retained);
+    expect(checkEscrowMovementIdentity(input.ledger)).toBe(false);
   });
 });
