@@ -54,10 +54,13 @@ describe("2FA — consumer prompt policy", () => {
 });
 
 describe("2FA — enforcement stays OFF by default", () => {
-  it("the enforcement key defaults to false in the client catalog", () => {
+  it("the enforcement key is a platform-only boolean and defaults off in the UI", () => {
     const entry = SETTINGS_CATALOG.find((s) => s.key === "security.two_factor_admin_enforced");
     expect(entry).toBeTruthy();
-    expect(entry?.defaultValue ?? false).toBe(false);
+    expect(entry?.spec.type).toBe("boolean");
+    expect(entry?.writable).toEqual(["platform"]);
+    const adminSettings = readFileSync("src/pages/AdminSettings.tsx", "utf8");
+    expect(adminSettings).toMatch(/twoFAEnforced,\s*setTwoFAEnforced\s*\]\s*=\s*useState\(false\)/);
   });
 
   it("the server gate only hard-blocks when the enforcement key is on", () => {
