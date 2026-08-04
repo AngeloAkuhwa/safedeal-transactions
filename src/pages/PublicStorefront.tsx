@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { PublicStorefrontHeader } from "@/components/storefront/PublicStorefrontHeader";
 import { getPublicStorefront } from "@/services/public-storefront.service";
 import { getProductCategories } from "@/services/seller-storefront.service";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const PublicStorefront = () => {
   const { sellerSlug } = useParams<{ sellerSlug: string }>();
@@ -27,6 +28,15 @@ const PublicStorefront = () => {
     queryFn: () => getPublicStorefront(sellerSlug!, { search, category: categoryFilter }),
     enabled: !!sellerSlug,
     staleTime: 30_000,
+  });
+
+  const storeName = data?.seller?.full_name ?? "";
+  usePageMeta({
+    title: `${storeName} — Protected Store | SafeDeal`,
+    description: `Shop ${storeName} on SafeDeal. Payments are held in escrow and released only after you confirm delivery.`,
+    path: `/store/${sellerSlug ?? ""}`,
+    image: data?.seller?.avatar_url ?? null,
+    enabled: Boolean(storeName),
   });
 
   if (isLoading) {
