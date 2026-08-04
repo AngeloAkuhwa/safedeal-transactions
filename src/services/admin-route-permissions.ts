@@ -57,8 +57,8 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
  */
 export function permissionForPath(pathname: string | null | undefined): string | null {
   if (!pathname) return null;
-  // Normalise trailing slash.
-  const p = pathname.replace(/\/+$/g, "") || "/";
+  // Drop any query string / hash, then normalise trailing slash.
+  const p = pathname.split(/[?#]/)[0].replace(/\/+$/g, "") || "/";
   // Leaf-first: pick the LONGEST matching entry so nested action routes
   // (e.g. /admin/transactions/export or /admin/disputes/:id/resolve) take
   // precedence over parent view perms. Entries with ":id" segments match
