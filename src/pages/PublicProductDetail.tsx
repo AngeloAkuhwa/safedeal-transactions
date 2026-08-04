@@ -81,6 +81,42 @@ const PublicProductDetail = () => {
   const gate = useCommerceGate(data?.seller?.id);
   const gateBlocked = !gate.loading && (!gate.addToCartEnabled || !gate.checkoutEnabled);
 
+  const metaProduct = data?.product;
+  const metaSeller = data?.seller;
+  const metaImage =
+    (metaProduct?.media || []).find((m: any) => m.media_type === "image")?.file_url ?? null;
+  usePageMeta({
+    title: `${metaProduct?.title ?? ""} — ${metaSeller?.full_name ?? "SafeDeal"} | SafeDeal`,
+    description:
+      metaProduct?.short_description ||
+      `Buy ${metaProduct?.title ?? "this item"} on SafeDeal. Your payment stays in escrow until you confirm delivery.`,
+    path: `/store/${sellerSlug ?? ""}/${productSlug ?? ""}`,
+    image: metaImage,
+    ogType: "product",
+    jsonLd: metaProduct
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: metaProduct.title,
+          description: metaProduct.short_description || undefined,
+          image: metaImage || undefined,
+          brand: metaSeller?.full_name
+            ? { "@type": "Brand", name: metaSeller.full_name }
+            : undefined,
+          offers: {
+            "@type": "Offer",
+            priceCurrency: "NGN",
+            price: metaProduct.unit_price,
+            availability:
+              Math.max(0, (metaProduct.stock_quantity ?? 0) - (metaProduct.reserved_quantity ?? 0)) > 0
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+          },
+        }
+      : null,
+    enabled: Boolean(metaProduct),
+  });
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: sessData }) => {
       const authed = !!sessData.session;
