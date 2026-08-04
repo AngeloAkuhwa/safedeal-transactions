@@ -30,6 +30,35 @@ backfilled:
 
 ## Known legacy divergence (not corrected)
 
+## Release posting rule (current code path)
+
+A release books **`payout_debit` at NET** — `transaction_pricing.seller_payout_amount` —
+never the buyer's gross total. Fees are booked as `fee_record` entries earlier in the
+lifecycle, at capture, by `record_payment_capture_atomic`. Together this makes the chain
+reconcile with no compensating entry:
+
+```
+payment_credit = escrow_hold + fee_record
+payment_credit = payout_debit + fee_record      (payout_debit is NET)
+```
+
+Enforcement, all prospective:
+
+- `releasePayoutCore` refuses when there is no pricing snapshot (`pricing_missing`) —
+  previously a missing snapshot let an unverified, possibly gross, figure through.
+- The transfer amount is taken from the snapshot, not from the payout row.
+- A fee-chain guard refuses release (queued as `manual_hold`, notes prefixed
+  `fee_record_mismatch`) when booked `fee_record` totals disagree with the snapshot fees.
+- `paystack-webhook` books `payout_debit` at the snapshot net, logging loudly if the
+  payout row disagrees.
+- Covered by `supabase/functions/_shared/__tests__/release-ledger-invariant.test.ts`.
+
+`SD-2026-000005` predates `record_payment_capture_atomic`, which is why it has no
+`fee_record`; the current capture path would have produced one, so that gap is closed
+going forward.
+
+## Known legacy divergence (not corrected)
+
 Rows written before the canonical chain was formalised stored `balance_after` under
 older semantics — notably `payment_credit` / `fee_record` rows recorded a gross-in
 then fee-deducted running figure, and the two payouts that were posted **gross of
@@ -38,3 +67,8 @@ yields `−780.00` and `−535.00`. Those payouts were remediated with compensat
 `adjustment` entries in Fix 2. The historical rows are left exactly as written: they
 are what the system recorded at the time, and rewriting them would make the ledger
 disagree with the money that actually moved.
+
+This is deliberate: history keeps the legacy **gross** posting plus its Fix 2
+remediation `adjustment`, and reconciliation reports `ok` with delta 0 for those
+transactions. The code change above is forward-only — no historical row was written,
+backfilled or adjusted for `SD-2026-000005`, `SD-2026-000019` or `SD-2026-000021`.
