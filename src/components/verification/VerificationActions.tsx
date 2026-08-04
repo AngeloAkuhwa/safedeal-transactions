@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle, ShieldCheck, ArrowRight, Pause } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { ConfirmReceiptDialog } from "./ConfirmReceiptDialog";
@@ -9,6 +9,7 @@ interface VerificationActionsProps {
   transactionCode: string;
   amount: number;
   currency: string;
+  autoOpenDispute?: boolean;
 }
 
 export function VerificationActions({
@@ -16,9 +17,14 @@ export function VerificationActions({
   transactionCode,
   amount,
   currency,
+  autoOpenDispute = false,
 }: VerificationActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(autoOpenDispute);
+
+  useEffect(() => {
+    if (autoOpenDispute) setDisputeOpen(true);
+  }, [autoOpenDispute]);
 
   const formatted = formatMoney(amount, currency);
 

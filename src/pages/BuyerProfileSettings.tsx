@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw, UserCog, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { toast } from "@/components/ui/sonner";
 
 const BuyerProfileSettings = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["buyer-profile"],
@@ -29,6 +31,14 @@ const BuyerProfileSettings = () => {
     retry: 1,
     staleTime: 30_000,
   });
+
+  // Scroll to a section referenced via URL hash (e.g. #location) once data has loaded.
+  useEffect(() => {
+    if (!location.hash || isLoading || !data) return;
+    const id = location.hash.replace("#", "");
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [location.hash, isLoading, data]);
 
   // Track pending profile edits
   const [pendingChanges, setPendingChanges] = useState<Partial<BuyerProfile>>({});

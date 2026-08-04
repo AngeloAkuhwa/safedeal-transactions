@@ -28,7 +28,8 @@ const StorefrontCheckout = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const quantity = Math.max(1, Number(searchParams.get("qty")) || 1);
+  // Initial quantity is derived from ?qty= once product data (with stock) has loaded; see below for stock clamp.
+  const requestedQty = Math.max(1, Number(searchParams.get("qty")) || 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [addrLine1, setAddrLine1] = useState("");
@@ -83,6 +84,11 @@ const StorefrontCheckout = () => {
   }
 
   const { product, seller } = data;
+
+  // Clamp requested quantity to available stock (falls back to requested qty if stock is unknown).
+  const quantity = typeof product.stock_quantity === "number" && product.stock_quantity > 0
+    ? Math.min(requestedQty, product.stock_quantity)
+    : requestedQty;
 
   // Pricing
   const itemSubtotal = product.unit_price * quantity;

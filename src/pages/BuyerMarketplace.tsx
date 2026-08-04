@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
@@ -30,10 +30,11 @@ import { formatMoney } from "@/lib/format";
 export default function BuyerMarketplace() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthState();
+  const [searchParams] = useSearchParams();
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get("search") || "");
+  const [category, setCategory] = useState(() => searchParams.get("category") || "");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [priceMin, setPriceMin] = useState("");

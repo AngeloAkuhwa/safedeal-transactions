@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
@@ -32,7 +32,12 @@ function getVerificationDotColor(level: string) {
 const SellerStorefront = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchParams] = useSearchParams();
+  const initialStatusFilter = (() => {
+    const f = searchParams.get("filter");
+    return f === "low_stock" || f === "out_of_stock" ? f : "all";
+  })();
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -71,9 +76,22 @@ const SellerStorefront = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["seller-products", statusFilter, visibilityFilter, categoryFilter, search],
     queryFn: () =>
-      getSellerProducts({ status: statusFilter, visibility: visibilityFilter, category: categoryFilter, search }),
+      getSellerProducts({
+        status: statusFilter === "low_stock" ? "all" : statusFilter,
+        visibility: visibilityFilter,
+        category: categoryFilter,
+        search,
+      }),
     staleTime: 15_000,
   });
+
+  const isLowStockProduct = (p: any) => {
+    const available = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0);
+    return available >= 1 && available <= 5;
+  };
+  const displayedProducts = statusFilter === "low_stock"
+    ? (data?.products ?? []).filter(isLowStockProduct)
+    : data?.products;
 
   const trust = data?.trust_summary;
   const sellerName = dashData?.seller?.full_name || "Seller";
@@ -268,7 +286,7 @@ const SellerStorefront = () => {
                     Try Again
                   </Button>
                 </div>
-              ) : !data?.products?.length ? (
+              ) : !displayedProducts?.length ? (
                 <div className="bg-card border border-border rounded-2xl p-16 flex flex-col items-center text-center">
                   <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                     <PackageOpen className="h-10 w-10 text-primary" />
@@ -303,7 +321,7 @@ const SellerStorefront = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {data.products.map((product: any) => (
+                    {displayedProducts.map((product: any) => (
                       <SellerProductCard
                         key={product.id}
                         product={product}
@@ -315,9 +333,9 @@ const SellerStorefront = () => {
                       />
                     ))}
                   </div>
-                  {data.total > data.page_size && (
+                  {statusFilter !== "low_stock" && data.total > data.page_size && (
                     <p className="text-center text-sm text-muted-foreground mt-6">
-                      Showing {data.products.length} of {data.total} products
+                      Showing {displayedProducts.length} of {data.total} products
                     </p>
                   )}
                 </>

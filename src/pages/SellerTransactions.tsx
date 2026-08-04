@@ -376,7 +376,7 @@ const SellerTransactions = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(`/seller/transactions/${tx.transaction_id}?tab=messages`);
+                                        navigate(`/seller/transactions/${tx.transaction_id}#messages`);
                                       }}
                                       aria-label={`${tx.unread_message_count} unread messages`}
                                       className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors"

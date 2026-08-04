@@ -497,7 +497,7 @@ const SellerAnalytics = () => {
               <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 <KpiCard
                   index={0} animate={animate}
-                  to="/seller/payouts?status=paid"
+                  to="/seller/payouts?status=completed"
                   ariaLabel="Open payout history"
                   title="Net Released"
                   value={NGN(data.summary.seller_net_released)}
@@ -513,7 +513,7 @@ const SellerAnalytics = () => {
                 />
                 <KpiCard
                   index={1} animate={animate}
-                  to="/seller/transactions?money_status=funds_pending_release"
+                  to="/seller/transactions?filter=awaiting-buyer-review"
                   ariaLabel="Open Awaiting Release transactions"
                   title="Awaiting Release"
                   value={NGN(data.summary.funds_awaiting_release)}
@@ -528,7 +528,7 @@ const SellerAnalytics = () => {
                 />
                 <KpiCard
                   index={2} animate={animate}
-                  to="/seller/transactions?money_status=in_escrow"
+                  to="/seller/transactions?filter=processing"
                   ariaLabel="Open active escrow transactions"
                   title="In Escrow"
                   value={NGN(data.summary.funds_held_in_escrow)}
@@ -769,7 +769,7 @@ const SellerAnalytics = () => {
                     <h2 className="text-sm font-semibold mb-2">Release Performance</h2>
                     <div className="space-y-1.5">
                       <ReleaseRow
-                        to="/seller/transactions?money_status=funds_pending_release"
+                        to="/seller/transactions?filter=awaiting-buyer-review"
                         ariaLabel="Open Awaiting Release transactions"
                         tone="warning"
                         icon={<Hourglass className="h-3.5 w-3.5" />}
@@ -777,7 +777,7 @@ const SellerAnalytics = () => {
                         count={data.summary.funds_awaiting_release > 0 ? Math.max(1, Math.round(data.summary.active_transactions_count / 2)) : 0}
                       />
                       <ReleaseRow
-                        to="/seller/transactions?status=payment_processing"
+                        to="/seller/transactions?filter=payment-pending"
                         ariaLabel="Open Payment Processing transactions"
                         tone="info"
                         icon={<CreditCard className="h-3.5 w-3.5" />}
@@ -785,7 +785,7 @@ const SellerAnalytics = () => {
                         count={data.summary.active_transactions_count}
                       />
                       <ReleaseRow
-                        to="/seller/payouts?status=paid"
+                        to="/seller/payouts?status=completed"
                         ariaLabel="Open payout history"
                         tone="success"
                         icon={<CheckCircle2 className="h-3.5 w-3.5" />}

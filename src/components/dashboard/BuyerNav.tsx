@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from "react-router";
 import {
   Shield, Bell, LogOut, Menu, X,
   LayoutDashboard, ArrowLeftRight, Scale, BellRing, User, ShoppingBag, Lock,
+  ShoppingCart, Heart,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/sonner";
@@ -12,6 +14,8 @@ import { invalidateOldSessions } from "@/services/session.service";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { getBuyerNotifications } from "@/services/notifications.service";
+import { getCartItems } from "@/services/cart.service";
 
 interface BuyerNavProps {
   buyerName: string;
@@ -21,6 +25,7 @@ interface BuyerNavProps {
 const navLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Marketplace", href: "/dashboard/marketplace", icon: ShoppingBag },
+  { label: "Saved", href: "/dashboard/saved", icon: Heart },
   { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { label: "Private Offers", href: "/dashboard/offers", icon: Lock },
   { label: "Disputes", href: "/dashboard/disputes", icon: Scale },
@@ -34,6 +39,27 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const userId = useCurrentUserId();
   useRealtimeNotifications(userId);
+
+  const { data: notifSummary } = useQuery({
+    queryKey: ["notification-summary", userId],
+    queryFn: async () => {
+      const res = await getBuyerNotifications({ page: 1, page_size: 1 });
+      return res.summary;
+    },
+    enabled: !!userId,
+    staleTime: 15_000,
+  });
+  const unreadTotal = notifSummary?.unread_count ?? 0;
+  const badgeText = unreadTotal > 9 ? "9+" : String(unreadTotal);
+
+  const { data: cartData } = useQuery({
+    queryKey: ["buyer-cart"],
+    queryFn: getCartItems,
+    staleTime: 30_000,
+    enabled: !!userId,
+  });
+  const cartCount = cartData?.count ?? 0;
+  const cartBadgeText = cartCount > 9 ? "9+" : String(cartCount);
 
   const handleLogout = async () => {
     try {
@@ -67,7 +93,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-4 lg:gap-6 overflow-x-auto">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href || 
               (link.href !== "/dashboard" && location.pathname.startsWith(link.href));
@@ -75,7 +101,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap text-sm font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -88,12 +114,30 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <Button variant="ghost" size="icon" className="relative" asChild>
-            <Link to="/dashboard/notifications">
+            <Link to="/dashboard/cart" aria-label={`${cartCount} items in cart`}>
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {cartBadgeText}
+                </span>
+              )}
+            </Link>
+          </Button>
+
+          <Button variant="ghost" size="icon" className="relative" asChild>
+            <Link
+              to="/dashboard/notifications"
+              aria-label={`${unreadTotal} unread notifications`}
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+              {unreadTotal > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {badgeText}
+                </span>
+              )}
             </Link>
           </Button>
 

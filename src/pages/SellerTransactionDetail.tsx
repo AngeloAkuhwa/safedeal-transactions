@@ -74,6 +74,16 @@ const SellerTransactionDetail = () => {
     }
   }, [location.hash, data?.rider_link]);
 
+  // Auto-scroll to messages thread when navigated with #messages hash
+  useEffect(() => {
+    if (location.hash === "#messages") {
+      const el = document.getElementById("messages");
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      }
+    }
+  }, [location.hash, data]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -634,10 +644,12 @@ const SellerTransactionDetail = () => {
         </div>
 
         {/* Messages thread (anchored at #messages for notification deep links) */}
-        <MessageThread
-          transactionId={tx.id}
-          counterpartyName={buyer?.name ?? "Buyer"}
-        />
+        <div id="messages">
+          <MessageThread
+            transactionId={tx.id}
+            counterpartyName={buyer?.name ?? "Buyer"}
+          />
+        </div>
 
         {/* Bottom Nav */}
         <div className="flex flex-col sm:flex-row gap-3 pb-8">

@@ -47,8 +47,6 @@ async function fetchCheckoutSession(sessionId: string) {
   const token = sessionData?.session?.access_token;
   if (!token) throw new Error("NOT_AUTHENTICATED");
 
-  console.log("[checkout-review] fetching session:", sessionId);
-
   const res = await fetch(
     `${SUPABASE_URL}/functions/v1/checkout-review?session_id=${sessionId}`,
     {
@@ -61,9 +59,9 @@ async function fetchCheckoutSession(sessionId: string) {
   );
 
   const body = await res.json();
-  console.log("[checkout-review] response status:", res.status, body.error || "ok");
 
   if (!res.ok) {
+
     const err = new Error(body.error || "Failed to load checkout session");
     (err as any).status = res.status;
     throw err;

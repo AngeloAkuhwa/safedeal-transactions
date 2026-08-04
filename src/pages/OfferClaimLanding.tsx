@@ -21,6 +21,9 @@ type Item = {
   primary_media_url: string | null;
 };
 
+const isSafeRedirectPath = (path: unknown): path is string =>
+  typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
+
 export default function OfferClaimLanding() {
   const { offerToken } = useParams<{ offerToken: string }>();
   const navigate = useNavigate();
@@ -51,7 +54,8 @@ export default function OfferClaimLanding() {
         }
         // Resume / already_purchased terminal redirects
         if ((result as any).redirect_to) {
-          navigate((result as any).redirect_to, { replace: true });
+          const target = isSafeRedirectPath((result as any).redirect_to) ? (result as any).redirect_to : "/dashboard";
+          navigate(target, { replace: true });
           return;
         }
         setData(result);
@@ -71,7 +75,8 @@ export default function OfferClaimLanding() {
     try {
       const result = await claimOffer(offerToken);
       if ((result as any).redirect_to) {
-        navigate((result as any).redirect_to, { replace: true });
+        const target = isSafeRedirectPath((result as any).redirect_to) ? (result as any).redirect_to : "/dashboard";
+        navigate(target, { replace: true });
         return;
       }
       // No redirect (e.g. wrong_account, expired) — show state

@@ -156,7 +156,7 @@ export function SellerDisputeTable({ items }: Props) {
                       onClick={(e) => {
                         e.stopPropagation();
                         const sectionMap: Record<string, string> = {
-                          "Respond Now": "respond",
+                          "Respond Now": "overview",
                           "View Case": "overview",
                           "View Resolution": "resolution",
                         };

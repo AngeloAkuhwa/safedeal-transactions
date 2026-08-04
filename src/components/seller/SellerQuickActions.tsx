@@ -29,7 +29,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       icon: FileText,
       title: "View Drafts",
       description: `${draftCount} draft${draftCount !== 1 ? "s" : ""} saved and ready to send`,
-      href: "/seller/transactions?filter=drafts",
+      href: "/seller/transactions?filter=draft",
       iconBg: "bg-primary/10 group-hover:bg-primary",
       iconColor: "text-primary group-hover:text-white",
     },

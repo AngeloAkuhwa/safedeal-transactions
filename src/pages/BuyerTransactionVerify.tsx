@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatMoney } from "@/lib/format";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Loader2,
@@ -27,6 +27,7 @@ import { resolveTransactionLabel, resolveMoneyLabel } from "@/lib/status-labels"
 const BuyerTransactionVerify = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   const { data: profile } = useQuery({
@@ -216,6 +217,7 @@ const BuyerTransactionVerify = () => {
               transactionCode={transaction.transaction_code}
               amount={pricing ? Number(pricing.buyer_total_amount) : 0}
               currency={pricing?.currency_code || "NGN"}
+              autoOpenDispute={searchParams.get("action") === "dispute"}
             />
             <WhatHappensCard windowHours={windowHours} />
             {transaction.verification_deadline_at && (

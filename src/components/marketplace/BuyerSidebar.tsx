@@ -158,7 +158,7 @@ export function BuyerSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => navigate("/dashboard/settings")}
+                  onClick={() => navigate("/dashboard/profile")}
                   className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
                 >
                   <Settings className="h-4 w-4" />
@@ -168,7 +168,7 @@ export function BuyerSidebar() {
             </Tooltip>
           ) : (
             <button
-              onClick={() => navigate("/dashboard/settings")}
+              onClick={() => navigate("/dashboard/profile")}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
             >
               <Settings className="h-4 w-4" />
