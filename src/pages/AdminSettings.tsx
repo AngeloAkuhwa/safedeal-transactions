@@ -416,6 +416,13 @@ export default function AdminSettings() {
         if (!vendorWritable.has(k)) delete updates[k];
       }
     }
+    // Without `financial_controls.configure` the server rejects money keys;
+    // drop them client-side so the rest of the save still succeeds.
+    if (!canConfigureFinancial) {
+      for (const k of Object.keys(updates)) {
+        if (isFinancialSettingKey(k)) delete updates[k];
+      }
+    }
     const timeouts = [
       { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
       { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
