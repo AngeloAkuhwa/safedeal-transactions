@@ -73,6 +73,8 @@ import AdminAgentPerformance from "./pages/AdminAgentPerformance";
 import AdminSupport from "./pages/AdminSupport";
 import LegalPrivacy from "./pages/LegalPrivacy";
 import LegalTerms from "./pages/LegalTerms";
+import LegalRefundPolicy from "./pages/LegalRefundPolicy";
+import Contact from "./pages/Contact";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -115,6 +117,8 @@ const App = () => (
             <Route path="/marketplace" element={<BuyerMarketplace />} />
             <Route path="/legal/privacy" element={<LegalPrivacy />} />
             <Route path="/legal/terms" element={<LegalTerms />} />
+            <Route path="/legal/refund-policy" element={<LegalRefundPolicy />} />
+            <Route path="/contact" element={<Contact />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>
