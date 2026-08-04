@@ -68,11 +68,13 @@ describe("pricing fallback parity: no-config defaults mirror seeded platform row
     // Exercise the (unexported) tier table indirectly: for a large enough
     // item amount that the floor/cap don't bind, service_fee_rate should
     // equal the seeded rate for that tier.
+    // Use amounts small enough within each tier that the ₦2,500 total-fee
+    // cap does not bind (otherwise service_fee_rate reflects the cap, not
+    // the tier rate).
     const rateCases: Array<{ amount: number; rate: number }> = [
-      { amount: 100_000, rate: 0.039 }, // <= 100k tier
-      { amount: 500_000, rate: 0.035 }, // <= 500k tier
-      { amount: 2_000_000, rate: 0.029 }, // <= 2,000,000 tier
-      { amount: 4_000_000, rate: 0.025 }, // open-ended tier
+      { amount: 50_000, rate: 0.039 }, // <= 100k tier
+      { amount: 60_000, rate: 0.035 }, // <= 500k tier (well below its own upper bound)
+      { amount: 4_000_000, rate: 0.025 }, // open-ended tier (cap already binds, checked separately)
     ];
     for (const { amount, rate } of rateCases) {
       const result = computePricing(amount, "NGN");
