@@ -1,28 +1,13 @@
-import { useEffect } from "react";
 import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const TITLE = "Refund & Dispute Policy — SafeDeal";
 const DESCRIPTION =
   "How SafeDeal escrow refunds work: when funds are returned, what is non-refundable, how to open a dispute, and the timelines for each stage.";
 
 export default function LegalRefundPolicy() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = TITLE;
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const previousDescription = meta?.getAttribute("content") ?? null;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "description");
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", DESCRIPTION);
-    return () => {
-      document.title = previousTitle;
-      if (previousDescription !== null) meta?.setAttribute("content", previousDescription);
-    };
-  }, []);
+  usePageMeta({ title: TITLE, description: DESCRIPTION, path: "/legal/refund-policy" });
 
   return (
     <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-6">
