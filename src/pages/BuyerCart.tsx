@@ -27,6 +27,7 @@ import {
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
