@@ -339,6 +339,7 @@ const SellerProductCreate = () => {
                 </div>
               </div>
               <div className="p-6 space-y-6">
+                <MediaRequirementsPanel config={mediaConfig} />
                 <label className="flex flex-col items-center justify-center gap-3 py-12 rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer transition-colors bg-muted/30">
                   <CloudUpload className="h-10 w-10 text-muted-foreground" />
                   <div className="text-center">
@@ -348,8 +349,12 @@ const SellerProductCreate = () => {
                   <span className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 mt-1 pointer-events-none">
                     Choose Files
                   </span>
-                  <p className="text-xs text-muted-foreground">Max 3 images + 1 video · PNG, JPG, MP4 up to 10MB each</p>
-                  <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
+                  <p className="text-xs text-muted-foreground">
+                    Up to {mediaConfig.productMaxImages} images + {mediaConfig.productMaxVideos} video ·
+                    {" "}{mediaConfig.imageAllowedFormats.map((f) => f.toUpperCase()).join(", ")},
+                    {" "}{mediaConfig.videoAllowedFormats.map((f) => f.toUpperCase()).join("/")}
+                  </p>
+                  <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />
                 </label>
 
                 {files.length > 0 && (
@@ -388,12 +393,12 @@ const SellerProductCreate = () => {
                     {(() => {
                       const imgCount = files.filter((f) => f.media_type === "image").length;
                       const vidCount = files.filter((f) => f.media_type === "video").length;
-                      if (imgCount >= 3 && vidCount >= 1) return null;
+                       if (imgCount >= mediaConfig.productMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
                       return (
                         <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
                           <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Add More</span>
-                          <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
+                          <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />
                         </label>
                       );
                     })()}
