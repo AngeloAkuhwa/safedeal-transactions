@@ -1,135 +1,183 @@
-# Media Standards + Commerce Flag Correction
+# Commerce Flag Semantics + Product Card Sizing
 
-## PART A — Discovery findings
+Two independent workstreams. Part 1 makes the two commerce switches behave exactly as the owner specified. Part 2 is a sizing/responsiveness correction on buyer browsing screens. No redesign, no new components, no colour or typography changes.
 
-### A1. The commerce flags (what actually exists)
+---
 
-Three keys exist in `system_settings` (platform scope), confirmed by query:
+## PART 1 — Commerce flag semantics
 
-| key | current value |
-| --- | --- |
-| `commerce.checkout_enabled` | `true` |
-| `commerce.add_to_cart_enabled` | `false` |
-| `commerce.disabled_reason` | the "not yet available" string |
+### The owner's model
 
-So there are already **two** flags, matching the owner's mental model — the query that found only one key was reading a filtered subset. Both are registered in both catalogs: `src/lib/settings-catalog.ts:129-141` and `supabase/functions/_shared/settings-catalog.ts:30-31`. Neither is an orphan key, and the admin UI toggles at `src/pages/AdminSettings.tsx:775-788` write real keys (`AdminSettings.tsx:402-404`) and read them back (`:333-335`).
+- `checkout_enabled = false` -> cart stays fully usable, the wall is at checkout.
+- `add_to_cart_enabled = false` -> no adding to cart anywhere, but buying is still possible.
 
-Where `commerce.add_to_cart_enabled` is read:
-- Server resolver: `supabase/functions/_shared/commerce-gate.ts:31-33, 69-71`, exposed via `checkAddToCartAllowed` (`:120-129`).
-- Server enforcement: `supabase/functions/buyer-cart/index.ts:182-183` — the cart **add** action rejects with 403 `add_to_cart_disabled`.
-- Public read endpoint: `supabase/functions/commerce-config/index.ts`.
-- Client: `src/hooks/useCommerceGate.ts:33`, consumed by `MarketplaceProductCard.tsx:56-57` and `PublicProductDetail.tsx:82-83`.
+### What is live right now
 
-Where `commerce.checkout_enabled` is read/enforced server-side: `cart-checkout/index.ts:118`, `storefront-checkout/index.ts:164`, `claim-offer/index.ts:318`, `initiate-paystack-payment/index.ts:171-172`. Client mirrors at `BuyerCart.tsx:110-111`, `CartCheckoutReview.tsx:110-111`, `StorefrontCheckout.tsx:100-101`.
+Confirmed from the settings table: `add_to_cart_enabled = false`, `checkout_enabled = true`, `disabled_reason` = "Checkout is not yet available. We're preparing the platform...". The cart table has 0 rows, so no buyer is mid-flow.
 
-True enforcement state:
+What a buyer experiences today, end to end:
 
-| flag | client | server | verdict |
-| --- | --- | --- | --- |
-| `commerce.add_to_cart_enabled` | yes (product card + detail) | yes (`buyer-cart` add only) | enforced both sides for `add` |
-| `commerce.checkout_enabled` | yes (3 pages) | yes (4 functions incl. payment init) | enforced both sides |
+1. Marketplace card cart button is disabled with a tooltip. Correct.
+2. Product detail page: the single CTA is disabled and reads "Currently unavailable". **This is the main defect.** `PublicProductDetail.tsx:83` blocks on `!addToCartEnabled || !checkoutEnabled`, so turning off add-to-cart also kills the only purchase path on the page. Checkout is ON, so the buyer should be able to buy — instead the product page is a dead end.
+3. The banner copy says "Checkout is not yet available" while checkout is in fact available. The message is wrong for the live state.
+4. Cart page, storefront checkout and cart review all correctly key off `checkoutEnabled` only.
 
-**The real defects (not missing keys):**
-1. `buyer-cart` gates only the `add` action. `update_quantity` is not gated (the gate appears once, in the add branch), so a buyer with an existing cart row can raise quantity by direct API call while add-to-cart is off.
-2. Cart surfaces stay fully live while `add_to_cart_enabled` is false: the cart icon/count in `BuyerNav` and `BuyerCart.tsx` gate on `checkoutEnabled` only (`BuyerCart.tsx:111`), which is currently `true`. That is why cart "looks live" — the flag works; the cart UI just isn't reading it. This is the mismatch the owner observed.
-3. Default divergence: `commerce-gate.ts:17-19` defaults `checkout_enabled:false`, while `useCommerceGate.ts:14-21` defaults `addToCartEnabled:true`. When the config fetch fails, client and server disagree.
-4. Vendor-scope reads work, but `BuyerCart.tsx:110` resolves platform scope only, so a per-vendor cart disable is invisible in the cart.
+So the live state is **not coherent**: the platform is open for business but no buyer can complete a purchase from a product page.
 
-### A2. Seller media upload flow
+### Direct purchase when add-to-cart is off
 
-Entry point: `src/pages/SellerProductCreate.tsx` — hidden file inputs at `:352` and `:396` with `accept="image/*,video/*" multiple`, handler `handleFileUpload` at `:116-182`.
+The owner's model implies buy-now stays available. It currently does not. The fix is to split the product detail CTA into two independent controls driven by separate flags:
 
-Client validation that exists today:
-- Count only: max 3 images, max 1 video (`SellerProductCreate.tsx:121-139`).
-- Magic-byte sniffing on jpeg/png/webp/mp4 in `src/services/create-transaction.service.ts:100-129`.
-- `checkImageResolution(file, 400, 400)` exists in `create-transaction.service.ts:131-145` but **is never called** by the product flow.
-- No file-size check, no aspect-ratio check, no dimension check, no format allow-list before upload.
+- Add to Cart -> gated by `addToCartEnabled` only.
+- Buy Now (direct purchase, straight to storefront checkout) -> gated by `checkoutEnabled` only.
 
-Upload pipeline: `uploadProductFile` (`create-transaction.service.ts:147-228`) → `upload-evidence` `sign_upload` → **signed** direct-to-Cloudinary upload, signature covering only `folder` + `timestamp` (`upload-evidence/index.ts:100-122`), no upload preset, no incoming transformation, no `allowed_formats` in the signature → **the signature does not constrain what is uploaded**. Then `register_file` writes the `files` row.
+The server already supports this cleanly: `checkAddToCartAllowed` and `checkCheckoutAllowed` are independent and never consult each other. Only the client conflates them.
 
-Server validation in `upload-evidence` `register_file` (`:145-215`):
-- format allow-list jpg/jpeg/png/webp/mp4/mov/webm/pdf
-- resource_type vs format cross-check
-- size: 50 MB video / 10 MB other — **but from the client-supplied `bytes` field**, never re-read from Cloudinary
-- rate limit 50 uploads/hr (`:75-90`)
-- no width/height at all; `public.files` has no width/height columns (only `metadata_json jsonb`)
+### Behaviour matrix
 
-`seller-products` create (`supabase/functions/seller-products/index.ts:196-210`) links `file_ids` into `product_media` with **no media validation and no minimum image count** — a product can publish with zero images.
+Legend: OK = already correct, CHANGE = needs work.
 
-Other pipelines: avatar via `upload-avatar` (separate, signed, own rules); dispute/delivery evidence shares `upload-evidence` with a different `context_type`. There is no storefront banner/logo upload.
+**A. cart ON / checkout ON (normal trading)**
 
-**What a seller can upload today that they should not:** a 200×150 px 9 MB JPEG; a 30-second 49 MB phone video at 480p; any aspect ratio; a product published with zero or one image; and — because size is self-reported and the Cloudinary signature is unconstrained — a client that lies about `bytes` bypasses the size limit entirely.
+| Surface | Expected | Status |
+|---|---|---|
+| Marketplace card | Cart button active | OK |
+| Product detail | Add to Cart + Buy Now both active | CHANGE (no Buy Now exists) |
+| Nav cart icon + badge | Visible, live count | OK |
+| Cart with items | All controls active, no banner | OK |
+| Empty cart | Normal empty state | OK |
+| Cart review | Pay active | OK |
+| Storefront checkout | Active | OK |
+| Claim offer | Claim succeeds | OK |
+| Server | No gate failures | OK |
 
-## PART B — Temu-grade media standards (proposal)
+**B. cart ON / checkout OFF (wind-down, cart still usable)**
 
-### Config keys (registered in BOTH catalogs, platform-writable)
+| Surface | Expected | Status |
+|---|---|---|
+| Marketplace card | Cart button active | OK |
+| Product detail | Add to Cart active; Buy Now disabled + checkout banner | CHANGE |
+| Nav cart icon + badge | Visible, live count | OK |
+| Cart with items | Quantity, remove, select all active. Checkout button disabled with banner at the summary | OK |
+| Empty cart | Normal empty state plus a quiet note that checkout is paused | CHANGE (minor) |
+| Cart review | Pay disabled + banner | OK |
+| Storefront checkout | Blocked + banner | OK |
+| Claim offer | Server returns `checkout_disabled`, landing shows the reason | OK |
+| Server | `checkout_disabled` 403 on cart-checkout, storefront-checkout, claim-offer, initiate-paystack-payment | OK |
 
-| key | default | notes |
-| --- | --- | --- |
-| `media.image_min_dimension_px` | 800 | absolute floor, both sides |
-| `media.image_recommended_min_px` | 1600 | advisory only (longest side) |
-| `media.image_allowed_ratios` | `["1:1","3:4","4:5"]` | tolerance ±3% |
-| `media.image_max_bytes` | 3145728 (3 MB) | |
-| `media.image_allowed_formats` | `["jpeg","png","webp"]` | |
-| `media.product_min_images_to_publish` | 3 | publish gate only |
-| `media.product_max_images` | 10 | |
-| `media.product_max_videos` | 1 | |
-| `media.video_allowed_formats` | `["mp4","webm"]` | H.264 / VP9 |
-| `media.video_min_height_px` | 720 | 1080 recommended |
-| `media.video_max_seconds` | 60 | long enough for a product demo, short enough to keep storage and buyer attention sane |
-| `media.video_max_bytes` | 52428800 (50 MB) | ~60 s of 1080p H.264; unchanged from today so no regression |
-| `media.video_allowed_ratios` | `["1:1","4:5","9:16","16:9"]` | |
-| `media.quality_advisories_enabled` | true | turns heuristic warnings on/off |
-| `media.grandfather_before` | ISO timestamp set at migration time | products created before this are exempt from the publish gate |
+**C. cart OFF / checkout ON (the live state)**
 
-HEIC: **reject client-side with a specific message** ("iPhone HEIC photos aren't supported — set Camera > Formats to Most Compatible, or re-save as JPEG"). Server-side transcoding via Cloudinary is possible but adds a paid transformation on every upload and an async failure mode; rejecting with clear guidance is cheaper and honest. Revisit if rejection rates are high.
+| Surface | Expected | Status |
+|---|---|---|
+| Marketplace card | Cart button hidden, replaced by a Buy chevron routing to the product page | CHANGE (currently a dead disabled button) |
+| Product detail | Add to Cart hidden; Buy Now active and primary; short note that cart is paused | CHANGE |
+| Nav cart icon + badge | Stays visible if the buyer has items, hidden at zero | CHANGE (minor) |
+| Cart with items | Quantity locked, remove active, checkout active, "adding is paused" banner | OK |
+| Empty cart | Empty state pointing at the marketplace, no cart-paused alarm | OK |
+| Cart review | Fully active | OK |
+| Storefront checkout | Fully active | OK |
+| Claim offer | Works | OK |
+| Server | `add_to_cart_disabled` 403 on buyer-cart add and update_quantity only | OK |
 
-### Enforcement design
+**D. cart OFF / checkout OFF (fully paused)**
 
-HARD BLOCK (both sides): dimensions, aspect ratio, byte size, format, image/video counts, video duration and resolution.
-- Client: a shared `src/lib/media-rules.ts` (mirrored to `supabase/functions/_shared/media-rules.ts`) reading resolved config and validating a `File` before upload — `createImageBitmap` for images, a hidden `<video>` `loadedmetadata` for duration/resolution. Errors are specific: "This image is 640×480. Minimum is 800×800." Never a generic failure.
-- Server (authoritative): `upload-evidence.register_file` stops trusting the client. It calls the Cloudinary Admin API `resources/{type}/upload/{public_id}` to read real `bytes`, `width`, `height`, `format`, `duration`, then validates against the same config. On failure it deletes the Cloudinary asset, writes no `files` row, and returns 400 with the specific reason. Real dimensions/duration are persisted into `files.metadata_json`.
-- `seller-products` publish path additionally enforces min/max image count and that every linked `file_id` belongs to the caller and passed validation.
+| Surface | Expected | Status |
+|---|---|---|
+| Marketplace card | No purchase control; card still opens the product | CHANGE |
+| Product detail | Both CTAs hidden, single combined banner, Save for Later still active | CHANGE |
+| Nav cart icon + badge | Visible only with existing items | CHANGE (minor) |
+| Cart with items | Only remove active, single combined banner | OK |
+| Empty cart | Empty state + paused note | CHANGE (minor) |
+| Cart review | Blocked + banner | OK |
+| Storefront checkout | Blocked + banner | OK |
+| Claim offer | Blocked with reason | OK |
+| Server | Both gates fire | OK |
 
-ADVISORY WARNINGS (never block): white/neutral background, frame-fill percentage, burned-in text/watermark. Computed client-side with cheap heuristics (corner-pixel sampling for background; bounding box of non-background pixels for fill). Surfaced as an amber "Improve this photo" chip on the thumbnail plus a checklist in the existing media card — existing Alert/Badge components, no redesign. Rationale: a Lagos seller shooting on a phone in daylight will trip a background heuristic constantly; blocking them costs a listing, while one imperfect image costs almost nothing. Cloudinary's AI analysis add-ons could later justify blocking, but only after measuring false-positive rates on real listings.
+### Banner copy
 
-### Grandfathering
-Yes — existing published products are exempt. The publish gate applies only to products created or re-published after `media.grandfather_before`. Nothing is retroactively unpublished and no media is deleted. Instead, `SellerProductDetail` and the seller storefront card show a dismissible "Boost this listing" prompt when media falls below the new standard, linking to the edit flow with the failing checks listed.
+`commerce.disabled_reason` is one shared string used for both switches, which is why the live state shows checkout-flavoured copy while checkout is on. Two additions to the settings catalog, both optional with fallbacks:
 
-### Seller UX (reusing existing components)
-- Requirements panel rendered **above** the file picker in `SellerProductCreate` (and the edit path), generated from the resolved config so the numbers can never drift from enforcement.
-- Per-file error text under each thumbnail in the existing `FileEntry` card, replacing the current generic toast.
-- Publish button disabled with a reason chip when below `media.product_min_images_to_publish`; saving as draft is always allowed.
+- `commerce.cart_disabled_reason` — fallback: "Adding to cart is paused right now. You can still buy items directly, and everything already in your cart is safe."
+- `commerce.checkout_disabled_reason` — fallback: "Checkout is temporarily paused. Your cart is saved and nothing has been lost — please check back shortly."
 
-## PART C — Flag correction (proposal)
+`commerce.disabled_reason` stays as the override for both when set, so existing admin behaviour is unchanged. Every disabled control gets a visible banner or inline note; no control is ever both dead and silent.
 
-1. Keep the two existing keys — they are correct and already registered. Sharpen the admin copy so each says exactly what it gates:
-   - Checkout enabled → "Allows payment and transaction creation. OFF blocks all checkout and payment initiation."
-   - Add-to-cart enabled → "Allows adding items to a cart and changing cart quantities. OFF hides cart controls; existing carts are preserved."
-2. Close the server gap: gate `update_quantity` (and any other quantity-increasing branch) in `buyer-cart` behind `checkAddToCartAllowed`. Removal from cart stays allowed when the flag is off.
-3. Client mirror: `BuyerCart.tsx` and the `BuyerNav` cart control read `addToCartEnabled` as well as `checkoutEnabled`, resolving vendor scope where a single vendor is in play.
-4. Align defaults: `useCommerceGate` DEFAULTS must equal `DEFAULT_COMMERCE_CONFIG` (fail closed on both flags when the config fetch fails).
-5. **Existing cart contents: preserve, never delete.** With the flag off, cart rows stay in the database; the cart page renders read-only with the `disabled_reason` banner, quantity controls disabled, remove still available, checkout blocked. No cleanup job, no data loss.
-6. No third flag is needed. "Hide add-to-cart but keep buy-now" is already expressible as `add_to_cart_enabled=false` + `checkout_enabled=true` — exactly today's state — and will behave correctly once steps 2 and 3 land.
+### Loading state
 
-## Technical details
+`useCommerceGate` exposes `loading`, but callers compute `!gate.loading && ...`, which renders an enabled control during the fetch and then flips it off — a visible wrong state. Instead, while `loading` is true, purchase controls render as a skeleton of the same size. Fail-closed defaults still apply once the fetch resolves or errors.
 
-- **Migrations**: one migration inserting the `media.*` keys at platform scope with defaults, plus `media.grandfather_before` set to `now()`. No table changes; width/height/duration go into `files.metadata_json`. Settings writes stay audited through the existing `system_settings_history` path.
-- **Catalog registration**: every new key added to `src/lib/settings-catalog.ts` and `supabase/functions/_shared/settings-catalog.ts` with matching specs so `clampSetting` validates admin writes. Gated by the same permission as the rest of Platform Settings.
-- **Admin UI**: a new "Media standards" card in the existing `AdminSettings` platform section, built from existing `ToggleRow` / number-input patterns. No redesign.
-- **Edge functions to redeploy**: `upload-evidence`, `seller-products`, `buyer-cart`, plus a new `media-config` public read endpoint mirroring `commerce-config` / `pricing-config`.
-- **Cloudinary**: keep signed uploads; add `allowed_formats` and `max_file_size` to the signed params so Cloudinary rejects oversized/wrong-format uploads at the edge, in addition to post-upload Admin API verification.
+### Files, Part 1
 
-## Tests
-- Unit: `media-rules` — dimension, ratio tolerance, size, format, count, duration, with boundary cases (799×800 fails, 800×800 passes).
-- Contract: client and server media rule mirrors behave identically across a shared fixture set.
-- **Server bypass test**: call `upload-evidence.register_file` directly with understated `bytes` against an undersized real asset — assert 400 and no `files` row, proving the client cannot skip validation.
-- **Flag bypass test**: with `add_to_cart_enabled=false`, direct POST to `buyer-cart` `add` and `update_quantity` both return 403.
-- Grandfathering: a pre-cutoff product with 1 image stays published and still renders.
-- Admin smoke stays 47/47; full suite green.
+- `src/lib/settings-catalog.ts` and the server mirror — two new optional reason keys.
+- `src/hooks/useCommerceGate.ts` — expose `cartReason` and `checkoutReason` resolved with fallbacks; keep existing fields.
+- `supabase/functions/_shared/commerce-gate.ts` — return the matching reason per gate.
+- `src/components/marketplace/MarketplaceProductCard.tsx` — hide, not disable, the cart button when cart is off; skeleton while loading.
+- `src/pages/PublicProductDetail.tsx` — split CTA into Add to Cart and Buy Now with independent gates.
+- `src/pages/BuyerCart.tsx` — per-flag banner copy; empty-state note.
+- `src/pages/CartCheckoutReview.tsx`, `src/pages/StorefrontCheckout.tsx` — use `checkoutReason`.
+- `src/components/dashboard/BuyerNav.tsx` — hide the cart entry at zero items when cart is off.
 
-## Risks and rollback
-- The Cloudinary Admin API call adds ~200-400 ms per registration and a new dependency; on API error we fail closed and log — rollback is flipping a `media.server_verification_enabled` kill switch back to today's client-reported values.
-- Stricter rules could frustrate sellers mid-listing; mitigated by requirements-before-picker, specific errors, and draft-saving always allowed.
-- All thresholds are config rows, so any limit can be relaxed instantly from Platform Settings without a deploy.
-- Flag changes are small and reversible; no data is deleted at any point in this plan.
+Edge functions touched (`commerce-config` and every function importing the shared gate) get redeployed.
+
+---
+
+## PART 2 — Product card sizing and mobile responsiveness
+
+### Surfaces and current state
+
+| Surface | Grid | Media well | Notes |
+|---|---|---|---|
+| Buyer marketplace `BuyerMarketplace.tsx:237` | `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4` | `aspect-square object-cover` | Good baseline |
+| Landing preview `MarketplacePreview.tsx:133` | same | same card | Good |
+| Public storefront `PublicStorefront.tsx:117` | same | `ProductCard` `aspect-square object-cover` | Grid good, card differs |
+| Saved products `BuyerSavedProducts.tsx:164` | `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6` | `aspect-square` | **1 card per row on phones — defect** |
+| Seller storefront `SellerStorefront.tsx:323` | `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5` | — | Seller side, same 1-col defect |
+| Landing featured `FeaturedDealsSection.tsx:149` | `sm:grid-cols-2 lg:grid-cols-3` | `object-contain p-3` | 1 col on phone; demo data only |
+| Cart line items | List rows, not a grid | — | Out of scope |
+
+### Defects
+
+1. **Saved products renders one card per row on a phone.** Wrong for a shopping grid and inconsistent with marketplace.
+2. **Skeletons do not match the real card.** `BuyerMarketplace.tsx:225` and `MarketplacePreview.tsx:118` use `aspect-[3/4]`, but a real card is a square image plus roughly 110px of content. Every grid load causes a visible jump.
+3. **Landing featured cards** are single-column on phones and use `object-contain p-3` while every other surface uses `object-cover`, so the same kind of product looks letterboxed there and filled elsewhere.
+4. **Storefront `ProductCard` heights vary within a row** — the `Card` has no `h-full flex flex-col` and the price is not pushed down with `mt-auto`, so a product with a short description sits with its price floating mid-card next to a neighbour whose price is at the bottom.
+5. **Tap targets under 44px.** Marketplace card cart button `h-8 w-8`, wishlist heart `h-8 w-8`, cart quantity buttons `h-8 w-8`.
+6. **Gap too wide on phones.** `gap-4` at 320-360px leaves cards cramped; `gap-3` on mobile stepping up to `gap-4` reads better.
+7. No horizontal overflow found at 320px, and there is **no bottom nav** — `BuyerNav` is a sticky top header (`BuyerNav.tsx:87`), so no safe-area clearance work is needed. Reported for accuracy.
+
+### Media well vs the normalised images
+
+Images now normalise to 1:1 with white padding. Marketplace, storefront and saved cards all use `aspect-square` with `object-cover`, so a 1:1 source fills exactly with no second crop and no double padding — **already correct**. The one mismatch is `FeaturedDealsSection`'s `object-contain p-3`, which pads an already-padded image; aligning it to `object-cover` removes the double padding.
+
+### Proposed class changes
+
+- `BuyerSavedProducts.tsx:164` -> `grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4`
+- `SellerStorefront.tsx:323` -> `grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5`
+- `BuyerMarketplace.tsx:223,237` and `MarketplacePreview.tsx:114,133` -> `gap-3 sm:gap-4`; skeleton becomes a square media block plus two content bars matching the real card
+- `PublicStorefront.tsx:117` -> `gap-3 sm:gap-4`
+- `FeaturedDealsSection.tsx:149` -> `grid-cols-2 lg:grid-cols-3`; image `object-cover`, padding removed
+- `storefront/ProductCard.tsx:49` -> add `h-full flex flex-col`; `CardContent` gets `flex-1 flex flex-col`; price wrapper gets `mt-auto`
+- `MarketplaceProductCard.tsx:112,182` -> buttons to `h-9 w-9` with an invisible padded hit area so the visual size is unchanged
+- `BuyerCart.tsx:640,650` -> quantity buttons `h-9 w-9`
+
+All changes are class-level. No component is rewritten, no colour or font changes.
+
+### Tests
+
+- `src/__tests__/commerce-flag-matrix.contract.test.tsx` — renders the product card and detail CTAs against all four flag combinations and asserts which controls are present, disabled or hidden, plus that a banner is rendered for every blocked control.
+- `src/__tests__/product-grid-responsive.test.tsx` — asserts each grid container's class string yields 2 columns at mobile and the expected columns at `sm`/`lg`, and that skeleton and real card share the same media aspect.
+
+### Risks and rollback
+
+- Adding a Buy Now button introduces a second purchase entry point on the product page. It reuses the existing storefront-checkout route, so no new server surface.
+- The new reason keys are optional; if unset, behaviour matches today's copy.
+- Grid changes are cosmetic and revert by restoring the class strings.
+- Admin is untouched; the 47/47 smoke suite and all existing tests must stay green.
+
+### Sequence
+
+1. Reason keys + `useCommerceGate` split reasons.
+2. Product detail CTA split (fixes the live dead end).
+3. Card, nav, cart and empty-state states across the matrix.
+4. Grid and sizing corrections.
+5. Both new test files, full suite, deploy touched edge functions.
