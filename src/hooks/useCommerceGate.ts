@@ -13,7 +13,9 @@ export interface CommerceGateState {
 
 const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   checkoutEnabled: false,
-  addToCartEnabled: true,
+  // Fail closed, matching DEFAULT_COMMERCE_CONFIG on the server. If the config
+  // fetch fails we must not show a control that the server will reject.
+  addToCartEnabled: false,
   disabledReason:
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   scope: "platform",
@@ -30,7 +32,7 @@ async function fetchGate(vendorId: string | null | undefined): Promise<Omit<Comm
     const json = await res.json();
     return {
       checkoutEnabled: Boolean(json?.checkout_enabled),
-      addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : true,
+      addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : DEFAULTS.addToCartEnabled,
       disabledReason: typeof json?.disabled_reason === "string" ? json.disabled_reason : DEFAULTS.disabledReason,
       scope: (json?.scope as "platform" | "vendor") ?? "platform",
       sources: (json?.sources && typeof json.sources === "object") ? json.sources : {},

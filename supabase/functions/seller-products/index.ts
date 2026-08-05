@@ -153,6 +153,39 @@ async function handleCreate(adminClient: any, userId: string, body: any) {
 
   const finalStatus = requestedStatus === "published" ? "published" : "draft";
 
+  // ── Media publish gate ──
+  // Draft saving is ALWAYS allowed regardless of media state. Only a publish
+  // must satisfy the configured minimum/maximum media counts. Products that
+  // already exist are untouched by this path.
+  if (finalStatus === "published") {
+    const { loadMediaConfig } = await import("../_shared/media-config.ts");
+    const { validateProductMediaForPublish } = await import("../_shared/media-rules.ts");
+    const mediaCfg = await loadMediaConfig();
+    const linked = Array.isArray(file_ids) ? file_ids : [];
+    const images = linked.filter((f: any) => (typeof f === "object" ? f.media_type !== "video" : true)).length;
+    const videos = linked.filter((f: any) => typeof f === "object" && f.media_type === "video").length;
+    const check = validateProductMediaForPublish({ images, videos }, mediaCfg);
+    if (!check.ok) {
+      return jsonResponse({
+        error: check.errors.map((e: any) => e.message).join(" "),
+        code: "media_publish_requirements",
+        issues: check.errors,
+      }, 400);
+    }
+    // Every linked file must belong to this seller.
+    const fileIds = linked.map((f: any) => (typeof f === "string" ? f : f.file_id));
+    if (fileIds.length > 0) {
+      const { data: ownedFiles } = await adminClient
+        .from("files")
+        .select("id")
+        .in("id", fileIds)
+        .eq("uploaded_by_user_id", userId);
+      if ((ownedFiles?.length ?? 0) !== fileIds.length) {
+        return jsonResponse({ error: "One or more media files are not yours.", code: "media_ownership" }, 403);
+      }
+    }
+  }
+
   const productData: Record<string, unknown> = {
     seller_id: userId,
     title: title.trim(),
