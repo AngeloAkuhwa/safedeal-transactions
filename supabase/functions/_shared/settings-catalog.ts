@@ -140,6 +140,20 @@ export function clampSetting(
     if (!v.ok) return { ok: false, error: v.error };
     return { ok: true, value };
   }
+  if (spec.type === "string_list") {
+    if (!Array.isArray(value)) return { ok: false, error: "not_a_list" };
+    const list = value.map((v) => String(v));
+    if (spec.minItems != null && list.length < spec.minItems) return { ok: false, error: "too_few_items" };
+    for (const item of list) {
+      if (!spec.options.includes(item)) return { ok: false, error: `not_in_options:${item}` };
+    }
+    return { ok: true, value: list };
+  }
+  if (spec.type === "text") {
+    const s = String(value ?? "");
+    if (spec.maxLength != null && s.length > spec.maxLength) return { ok: false, error: "too_long" };
+    return { ok: true, value: s };
+  }
   return { ok: true, value };
 }
 /**
