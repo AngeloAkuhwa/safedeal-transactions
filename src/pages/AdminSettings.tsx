@@ -819,7 +819,7 @@ export default function AdminSettings() {
               />
               <ToggleRow
                 title="Add-to-Cart Enabled"
-                desc="When OFF, products cannot be added to cart. Useful when preparing to fully close commerce."
+                desc="Controls cart mutations: adding an item and changing quantity. When OFF the button is hidden and the server rejects both — existing cart rows are preserved and can still be removed or checked out (if checkout is ON)."
                 on={addToCartEnabled}
                 onChange={setBool(setAddToCartEnabled)}
                 overridden={isOverridden("commerce.add_to_cart_enabled")}
@@ -837,6 +837,56 @@ export default function AdminSettings() {
                   placeholder="e.g. Checkout is temporarily paused for maintenance."
                 />
               </div>
+            </div>
+          </section>
+
+          {/* ============ MEDIA STANDARDS ============ */}
+          <section className="sd-card">
+            <div className="sd-card-pad border-b border-border">
+              <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                </div>
+                Product Media Standards
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 ml-10">
+                The quality bar for seller product photos and video. Enforced in the browser for instant feedback and
+                again on the server as the authority. Already-published products are grandfathered and never unpublished.
+              </p>
+            </div>
+            <div className="sd-card-pad space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <NumField label="Min image side (px)" value={mediaMinDim} onChange={setStr(setMediaMinDim)} />
+                <NumField label="Recommended long side (px)" value={mediaRecommendedMin} onChange={setStr(setMediaRecommendedMin)} />
+                <NumField label="Max image size (MB)" value={mediaMaxMb} onChange={setStr(setMediaMaxMb)} />
+                <NumField label="Min images to publish" value={mediaMinImages} onChange={setStr(setMediaMinImages)} />
+                <NumField label="Max images" value={mediaMaxImages} onChange={setStr(setMediaMaxImages)} />
+                <NumField label="Max videos" value={mediaMaxVideos} onChange={setStr(setMediaMaxVideos)} />
+                <NumField label="Min video height (px)" value={videoMinHeight} onChange={setStr(setVideoMinHeight)} />
+                <NumField label="Max video length (s)" value={videoMaxSeconds} onChange={setStr(setVideoMaxSeconds)} />
+                <NumField label="Max video size (MB)" value={videoMaxMb} onChange={setStr(setVideoMaxMb)} />
+              </div>
+              <ToggleRow
+                title="Auto-normalise aspect ratio"
+                desc="ON: odd-shaped photos are padded with a white border to the first allowed ratio and the seller is shown the result — nothing is cropped. OFF: those photos are rejected instead."
+                on={mediaAutoNormalise}
+                onChange={setBool(setMediaAutoNormalise)}
+                overridden={isOverridden("media.image_auto_normalise_ratio")}
+              />
+              <ToggleRow
+                title="Server-side verification"
+                desc="Kill switch. ON: every product upload is re-read from the media provider and validated against these limits (a direct API call cannot bypass them). OFF: only the browser checks apply — emergency use only."
+                on={mediaServerVerification}
+                onChange={setBool(setMediaServerVerification)}
+                overridden={isOverridden("media.server_verification_enabled")}
+              />
+              <ToggleRow
+                title="Quality advisories"
+                desc="Show non-blocking hints about background, framing and watermarks. These are heuristics, so they never block an upload."
+                on={mediaAdvisories}
+                onChange={setBool(setMediaAdvisories)}
+                overridden={isOverridden("media.quality_advisories_enabled")}
+              />
             </div>
           </section>
 
