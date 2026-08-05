@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
+import { MediaRequirementsPanel } from "@/components/seller/MediaRequirementsPanel";
+import { useMediaConfig } from "@/hooks/useMediaConfig";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/sonner";
 import { createProduct, getProductCategories } from "@/services/seller-storefront.service";
@@ -65,6 +67,11 @@ const SellerProductCreate = () => {
   const [featureHighlights, setFeatureHighlights] = useState<{ title: string; description: string }[]>([]);
   const [deliveryScope, setDeliveryScope] = useState("");
   const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState("");
+  const { config: mediaConfig } = useMediaConfig();
+  const acceptAttr = [
+    ...mediaConfig.imageAllowedFormats.map((f) => `image/${f}`),
+    ...mediaConfig.videoAllowedFormats.map((f) => `video/${f}`),
+  ].join(",");
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
     queryFn: getSellerDashboard,
