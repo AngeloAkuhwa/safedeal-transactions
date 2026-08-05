@@ -279,10 +279,24 @@ export default function AdminSettings() {
 
   // Commerce (kill switches)
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
-  const [addToCartEnabled, setAddToCartEnabled] = useState(true);
+  const [addToCartEnabled, setAddToCartEnabled] = useState(false);
   const [disabledReason, setDisabledReason] = useState(
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   );
+
+  // Media standards (product photo / video quality bar)
+  const [mediaMinDim, setMediaMinDim] = useState("800");
+  const [mediaRecommendedMin, setMediaRecommendedMin] = useState("1600");
+  const [mediaMaxMb, setMediaMaxMb] = useState("3");
+  const [mediaMinImages, setMediaMinImages] = useState("3");
+  const [mediaMaxImages, setMediaMaxImages] = useState("10");
+  const [mediaMaxVideos, setMediaMaxVideos] = useState("1");
+  const [mediaAutoNormalise, setMediaAutoNormalise] = useState(true);
+  const [mediaServerVerification, setMediaServerVerification] = useState(true);
+  const [mediaAdvisories, setMediaAdvisories] = useState(true);
+  const [videoMaxSeconds, setVideoMaxSeconds] = useState("60");
+  const [videoMinHeight, setVideoMinHeight] = useState("720");
+  const [videoMaxMb, setVideoMaxMb] = useState("50");
 
   // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
   const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
@@ -333,6 +347,18 @@ export default function AdminSettings() {
         if (byKey["commerce.checkout_enabled"] != null) setCheckoutEnabled(Boolean(byKey["commerce.checkout_enabled"]));
         if (byKey["commerce.add_to_cart_enabled"] != null) setAddToCartEnabled(Boolean(byKey["commerce.add_to_cart_enabled"]));
         if (typeof byKey["commerce.disabled_reason"] === "string") setDisabledReason(String(byKey["commerce.disabled_reason"]));
+        if (byKey["media.image_min_dimension_px"] != null) setMediaMinDim(String(byKey["media.image_min_dimension_px"]));
+        if (byKey["media.image_recommended_min_px"] != null) setMediaRecommendedMin(String(byKey["media.image_recommended_min_px"]));
+        if (byKey["media.image_max_bytes"] != null) setMediaMaxMb(String(Math.round((Number(byKey["media.image_max_bytes"]) / (1024 * 1024)) * 10) / 10));
+        if (byKey["media.product_min_images_to_publish"] != null) setMediaMinImages(String(byKey["media.product_min_images_to_publish"]));
+        if (byKey["media.product_max_images"] != null) setMediaMaxImages(String(byKey["media.product_max_images"]));
+        if (byKey["media.product_max_videos"] != null) setMediaMaxVideos(String(byKey["media.product_max_videos"]));
+        if (byKey["media.image_auto_normalise_ratio"] != null) setMediaAutoNormalise(Boolean(byKey["media.image_auto_normalise_ratio"]));
+        if (byKey["media.server_verification_enabled"] != null) setMediaServerVerification(Boolean(byKey["media.server_verification_enabled"]));
+        if (byKey["media.quality_advisories_enabled"] != null) setMediaAdvisories(Boolean(byKey["media.quality_advisories_enabled"]));
+        if (byKey["media.video_max_seconds"] != null) setVideoMaxSeconds(String(byKey["media.video_max_seconds"]));
+        if (byKey["media.video_min_height_px"] != null) setVideoMinHeight(String(byKey["media.video_min_height_px"]));
+        if (byKey["media.video_max_bytes"] != null) setVideoMaxMb(String(Math.round(Number(byKey["media.video_max_bytes"]) / (1024 * 1024))));
         // Capture audit meta for the effective auto-release row.
         const arRow = (payload.settings ?? []).find((r) => {
           if (r.setting_key !== "escrow.auto_release_enabled") return false;
@@ -402,6 +428,18 @@ export default function AdminSettings() {
       "commerce.checkout_enabled": checkoutEnabled,
       "commerce.add_to_cart_enabled": addToCartEnabled,
       "commerce.disabled_reason": disabledReason,
+      "media.image_min_dimension_px": Number(mediaMinDim),
+      "media.image_recommended_min_px": Number(mediaRecommendedMin),
+      "media.image_max_bytes": Math.round(Number(mediaMaxMb) * 1024 * 1024),
+      "media.product_min_images_to_publish": Number(mediaMinImages),
+      "media.product_max_images": Number(mediaMaxImages),
+      "media.product_max_videos": Number(mediaMaxVideos),
+      "media.image_auto_normalise_ratio": mediaAutoNormalise,
+      "media.server_verification_enabled": mediaServerVerification,
+      "media.quality_advisories_enabled": mediaAdvisories,
+      "media.video_max_seconds": Number(videoMaxSeconds),
+      "media.video_min_height_px": Number(videoMinHeight),
+      "media.video_max_bytes": Math.round(Number(videoMaxMb) * 1024 * 1024),
     };
     // In vendor scope, strip keys the platform marked non-overridable AND
     // any key the catalog declares as not writable at the vendor scope
