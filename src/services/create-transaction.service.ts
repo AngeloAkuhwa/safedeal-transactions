@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getMediaConfig } from "@/hooks/useMediaConfig";
+import { validateImage, validateVideo } from "@/lib/media-rules";
 
 export interface DraftTransaction {
   transaction_id: string;
@@ -164,7 +166,7 @@ export async function uploadProductFile(
   // Client-side pre-check: fail fast with a specific message before we spend
   // the seller's bandwidth. The server re-checks authoritatively afterwards.
   const preCheck = await validateProductFileLocally(file);
-  if (!preCheck.ok) throw new Error(preCheck.message);
+  if (preCheck.message) throw new Error(preCheck.message);
 
   // 1. Get signed upload params
   const headers = await getAuthHeader();
@@ -256,7 +258,7 @@ export async function uploadProductFile(
 /** Reads real pixel dimensions in the browser and applies the shared rules. */
 async function validateProductFileLocally(
   file: File,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: boolean; message?: string }> {
   const cfg = await getMediaConfig();
   const isVideo = file.type.startsWith("video/");
   try {
