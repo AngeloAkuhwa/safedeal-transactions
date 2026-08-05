@@ -1,4 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { loadMediaConfig } from "../_shared/media-config.ts";
+import {
+  applyTransformation,
+  MediaConfig,
+  normalisationTransformation,
+  validateImage,
+  validateVideo,
+} from "../_shared/media-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,6 +115,19 @@ async function signUpload(
     timestamp: String(timestamp),
   };
 
+  // Product media: constrain the signed upload at Cloudinary's edge too, so an
+  // oversized or wrong-format file is rejected before it ever reaches us.
+  const isProduct = body.context === "product_evidence" || body.context === "product_media";
+  let mediaCfg: MediaConfig | null = null;
+  if (isProduct) {
+    mediaCfg = await loadMediaConfig();
+    params.allowed_formats = [
+      ...mediaCfg.imageAllowedFormats.flatMap((f) => (f === "jpeg" ? ["jpg", "jpeg"] : [f])),
+      ...mediaCfg.videoAllowedFormats,
+    ].join(",");
+    params.max_file_size = String(Math.max(mediaCfg.imageMaxBytes, mediaCfg.videoMaxBytes));
+  }
+
   const paramsToSign = Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)
@@ -120,6 +141,9 @@ async function signUpload(
     api_key: apiKey,
     cloud_name: cloudName,
     folder,
+    allowed_formats: params.allowed_formats ?? null,
+    max_file_size: params.max_file_size ?? null,
+    media_config: mediaCfg,
   });
 }
 
