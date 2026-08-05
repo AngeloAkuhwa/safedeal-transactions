@@ -41,6 +41,12 @@ export interface UploadedFile {
   original_name: string;
   mime_type: string;
   fingerprint: string;
+  /** Set when the server padded the image to an allowed aspect ratio. */
+  normalised?: boolean;
+  normalised_transformation?: string | null;
+  original_secure_url?: string;
+  width?: number | null;
+  height?: number | null;
 }
 
 async function getAuthHeader() {
@@ -155,6 +161,11 @@ export async function uploadProductFile(
     throw new Error("File content doesn't match its type. Please upload a valid file.");
   }
 
+  // Client-side pre-check: fail fast with a specific message before we spend
+  // the seller's bandwidth. The server re-checks authoritatively afterwards.
+  const preCheck = await validateProductFileLocally(file);
+  if (!preCheck.ok) throw new Error(preCheck.message);
+
   // 1. Get signed upload params
   const headers = await getAuthHeader();
   const { data: signData, error: signErr } = await supabase.functions.invoke("upload-evidence", {
@@ -165,7 +176,7 @@ export async function uploadProductFile(
     throw new Error(signData?.error || "Failed to get upload signature");
   }
 
-  const { timestamp, signature, api_key, cloud_name, folder } = signData;
+  const { timestamp, signature, api_key, cloud_name, folder, allowed_formats, max_file_size } = signData;
 
   // 2. Compute hash
   const fileHash = await computeFileHash(file);
@@ -180,6 +191,9 @@ export async function uploadProductFile(
   formDataUpload.append("timestamp", String(timestamp));
   formDataUpload.append("signature", signature);
   formDataUpload.append("folder", folder);
+  // These were part of the signed payload, so they must be sent verbatim.
+  if (allowed_formats) formDataUpload.append("allowed_formats", allowed_formats);
+  if (max_file_size) formDataUpload.append("max_file_size", max_file_size);
 
   const cloudinaryResult = await new Promise<any>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -219,6 +233,9 @@ export async function uploadProductFile(
   });
 
   if (regErr || !regData || regData.error) {
+    if (regData?.retryable) {
+      throw new Error(regData.error);
+    }
     throw new Error(regData?.error || "Failed to register file");
   }
 
@@ -228,5 +245,67 @@ export async function uploadProductFile(
     original_name: file.name,
     mime_type: regData.mime_type,
     fingerprint: regData.fingerprint,
+    normalised: Boolean(regData.normalised),
+    normalised_transformation: regData.normalised_transformation ?? null,
+    original_secure_url: regData.original_secure_url,
+    width: regData.width ?? null,
+    height: regData.height ?? null,
   };
+}
+
+/** Reads real pixel dimensions in the browser and applies the shared rules. */
+async function validateProductFileLocally(
+  file: File,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const cfg = await getMediaConfig();
+  const isVideo = file.type.startsWith("video/");
+  try {
+    if (isVideo) {
+      const meta = await readVideoMeta(file);
+      const res = validateVideo(
+        { ...meta, bytes: file.size, format: extensionOf(file) },
+        cfg,
+      );
+      return res.ok ? { ok: true } : { ok: false, message: res.errors.map((e) => e.message).join(" ") };
+    }
+    const meta = await readImageMeta(file);
+    const res = validateImage({ ...meta, bytes: file.size, format: extensionOf(file) }, cfg);
+    return res.ok ? { ok: true } : { ok: false, message: res.errors.map((e) => e.message).join(" ") };
+  } catch {
+    // If we can't read the file locally, let the server be the judge.
+    return { ok: true };
+  }
+}
+
+function extensionOf(file: File): string {
+  const fromName = file.name.split(".").pop()?.toLowerCase();
+  if (fromName) return fromName === "jpg" ? "jpg" : fromName;
+  return (file.type.split("/")[1] || "").toLowerCase();
+}
+
+function readImageMeta(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("unreadable")); };
+    img.src = url;
+  });
+}
+
+function readVideoMeta(file: File): Promise<{ width: number; height: number; durationSeconds: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: video.videoWidth, height: video.videoHeight, durationSeconds: video.duration });
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); reject(new Error("unreadable")); };
+    video.src = url;
+  });
 }
