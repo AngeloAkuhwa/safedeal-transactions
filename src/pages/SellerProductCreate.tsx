@@ -132,13 +132,13 @@ const SellerProductCreate = () => {
     for (const file of fileArray) {
       const isVideo = file.type.startsWith("video/");
       if (isVideo) {
-        if (currentVideos + filtered.filter((f) => f.type.startsWith("video/")).length >= 1) {
-          toast.error("Maximum 1 video allowed.");
+        if (currentVideos + filtered.filter((f) => f.type.startsWith("video/")).length >= mediaConfig.productMaxVideos) {
+          toast.error(`Maximum ${mediaConfig.productMaxVideos} video${mediaConfig.productMaxVideos === 1 ? "" : "s"} allowed.`);
           continue;
         }
       } else {
-        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= 3) {
-          toast.error("Maximum 3 images allowed.");
+        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= mediaConfig.productMaxImages) {
+          toast.error(`Maximum ${mediaConfig.productMaxImages} images allowed.`);
           continue;
         }
       }
@@ -169,6 +169,12 @@ const SellerProductCreate = () => {
         setFiles((prev) => prev.map((f) => (f.file_id === tempId ? { ...f, progress: pct } : f)));
       })
         .then((result) => {
+          if (result.normalised) {
+            toast.info(
+              `${file.name} was padded with a white border to fit ${mediaConfig.imageAllowedRatios[0]}. ` +
+              `Nothing was cropped — remove it and re-upload a square photo if you'd rather crop it yourself.`,
+            );
+          }
           setFiles((prev) =>
             prev.map((f) =>
               f.file_id === tempId
