@@ -1072,12 +1072,6 @@ function FeeField({
   );
 }
 
-function ToggleRow({
-  title, desc, on, onChange, overridden,
-}: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void; overridden?: boolean }) {
-  return ToggleRowBody({ title, desc, on, onChange, overridden });
-}
-
 /** Compact labelled number input used by the media standards grid. */
 function NumField({
   label, value, onChange,
@@ -1095,7 +1089,7 @@ function NumField({
   );
 }
 
-function ToggleRowBody({
+function ToggleRow({
   title, desc, on, onChange, overridden,
 }: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void; overridden?: boolean }) {
   return (
