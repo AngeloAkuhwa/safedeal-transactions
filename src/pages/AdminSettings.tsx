@@ -1075,6 +1075,29 @@ function FeeField({
 function ToggleRow({
   title, desc, on, onChange, overridden,
 }: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void; overridden?: boolean }) {
+  return ToggleRowBody({ title, desc, on, onChange, overridden });
+}
+
+/** Compact labelled number input used by the media standards grid. */
+function NumField({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground block mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+      />
+    </div>
+  );
+}
+
+function ToggleRowBody({
+  title, desc, on, onChange, overridden,
+}: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void; overridden?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 p-2.5 bg-muted/30 border border-border rounded-lg">
       <div className="min-w-0">
