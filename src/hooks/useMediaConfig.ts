@@ -6,7 +6,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 let cached: MediaConfig | null = null;
 let inflight: Promise<MediaConfig> | null = null;
 
-async function fetchMediaConfig(): Promise<MediaConfig> {
+export async function fetchMediaConfig(): Promise<MediaConfig> {
   if (cached) return cached;
   if (inflight) return inflight;
   inflight = (async () => {
@@ -28,6 +28,9 @@ async function fetchMediaConfig(): Promise<MediaConfig> {
   })();
   return inflight;
 }
+
+/** Non-hook accessor for services. */
+export const getMediaConfig = fetchMediaConfig;
 
 /**
  * The single source of truth for seller-facing media thresholds.
