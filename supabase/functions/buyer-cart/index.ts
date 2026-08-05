@@ -350,11 +350,19 @@ Deno.serve(async (req) => {
       // Validate stock
       const { data: product } = await admin
         .from("products")
-        .select("stock_quantity, reserved_quantity")
+        .select("stock_quantity, reserved_quantity, seller_id")
         .eq("id", productId)
         .single();
 
       if (!product) return json({ error: "Product not found" }, 404);
+
+      // Commerce gate: changing cart quantity is a cart mutation, so it is
+      // gated by the same add-to-cart kill switch as `add`. Removal stays
+      // allowed when the switch is off so buyers are never trapped.
+      const { checkAddToCartAllowed } = await import("../_shared/commerce-gate.ts");
+      const qtyGate = await checkAddToCartAllowed(product.seller_id);
+      if (qtyGate) return json(qtyGate.body, qtyGate.status);
+
       const available = product.stock_quantity - product.reserved_quantity;
       if (quantity > available) {
         return json({ error: `Only ${available} units available` }, 400);

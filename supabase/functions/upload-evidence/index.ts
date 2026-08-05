@@ -163,6 +163,7 @@ async function registerFile(
     original_filename?: string;
     file_hash?: string;
     hash_algorithm?: string;
+    context_type?: string;
   },
 ) {
   const {
@@ -210,6 +211,69 @@ async function registerFile(
     return jsonResponse({ error: `File exceeds ${isVideo ? "50MB" : "10MB"} limit` }, 400);
   }
 
+  // ══════════════════════════════════════════════════════════
+  // AUTHORITATIVE MEDIA VERIFICATION (product media only)
+  //
+  // Everything above trusts the client. From here we re-read the asset
+  // from Cloudinary's Admin API and validate the REAL bytes/width/height/
+  // duration against the configured media standards. A direct API call
+  // that understates `bytes` or lies about dimensions cannot get past this.
+  // ══════════════════════════════════════════════════════════
+  const isProductMedia = body.context_type === "product_evidence" || body.context_type === "product_media";
+  let verified: CloudinaryResource | null = null;
+  let normalisedTransformation: string | null = null;
+  let mediaCfg: MediaConfig | null = null;
+
+  if (isProductMedia) {
+    mediaCfg = await loadMediaConfig();
+    if (mediaCfg.serverVerificationEnabled) {
+      const lookup = await fetchCloudinaryResource(resource_type, public_id);
+      if (lookup.kind === "unavailable") {
+        // Fail closed, but tell the seller it is retry-able — never a silent loss.
+        return jsonResponse({
+          error: "We couldn't verify this upload just now. Please tap retry — your file was not lost.",
+          code: "verification_unavailable",
+          retryable: true,
+        }, 503);
+      }
+      if (lookup.kind === "missing") {
+        return jsonResponse({ error: "Upload not found at the media provider.", code: "asset_missing" }, 400);
+      }
+      verified = lookup.resource;
+
+      const realFormat = String(verified.format ?? format).toLowerCase();
+      const realBytes = Number(verified.bytes ?? bytes);
+
+      const result = verified.resource_type === "video"
+        ? validateVideo({
+            width: Number(verified.width ?? 0),
+            height: Number(verified.height ?? 0),
+            bytes: realBytes,
+            format: realFormat,
+            durationSeconds: Number(verified.duration ?? 0),
+          }, mediaCfg)
+        : validateImage({
+            width: Number(verified.width ?? 0),
+            height: Number(verified.height ?? 0),
+            bytes: realBytes,
+            format: realFormat,
+          }, mediaCfg);
+
+      if (!result.ok) {
+        // Reject: delete the asset so we never hold media we refused.
+        await destroyCloudinaryAsset(resource_type, public_id);
+        return jsonResponse({
+          error: result.errors.map((e) => e.message).join(" "),
+          code: "media_rejected",
+          issues: result.errors,
+        }, 400);
+      }
+      if (result.normalise) {
+        normalisedTransformation = result.normalise.transformation;
+      }
+    }
+  }
+
   // Map Cloudinary resource_type to our enum
   const resourceTypeMap: Record<string, string> = {
     image: "image",
@@ -236,7 +300,15 @@ async function registerFile(
 
   // Build optimized file_url
   const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
-  const fileUrl = `https://res.cloudinary.com/${cloudName}/${resource_type}/upload/q_auto,f_auto/${public_id}`;
+  let fileUrl = `https://res.cloudinary.com/${cloudName}/${resource_type}/upload/q_auto,f_auto/${public_id}`;
+  let storedSecureUrl = secure_url;
+  if (normalisedTransformation) {
+    // The STORED asset is the normalised (white-padded) derivative, so the
+    // catalogue grid stays consistent. The original stays retrievable in
+    // Cloudinary at the untransformed public_id.
+    fileUrl = `https://res.cloudinary.com/${cloudName}/${resource_type}/upload/${normalisedTransformation}/${public_id}`;
+    storedSecureUrl = applyTransformation(secure_url, normalisedTransformation);
+  }
 
   // Insert file record using service role (bypasses RLS)
   const { data: file, error: insertErr } = await admin
@@ -246,7 +318,7 @@ async function registerFile(
       provider_asset_id: asset_id,
       resource_type: mappedResourceType,
       file_url: fileUrl,
-      secure_url: secure_url,
+      secure_url: storedSecureUrl,
       original_file_name: original_filename || null,
       mime_type: mimeType,
       file_size_bytes: bytes,
@@ -256,7 +328,15 @@ async function registerFile(
       retention_category: (body.context_type === "product_evidence" || body.context_type === "product_media") ? "transaction_media" : body.context_type === "delivery_proof" ? "delivery_proof" : "dispute_evidence",
       file_hash: file_hash,
       hash_algorithm: hash_algorithm,
-      metadata_json: { public_id },
+      metadata_json: {
+        public_id,
+        width: verified?.width ?? null,
+        height: verified?.height ?? null,
+        duration_seconds: verified?.duration ?? null,
+        verified_bytes: verified?.bytes ?? null,
+        server_verified: Boolean(verified),
+        normalised_transformation: normalisedTransformation,
+      },
     })
     .select("id")
     .single();
@@ -271,9 +351,90 @@ async function registerFile(
 
   return jsonResponse({
     file_id: file.id,
-    secure_url,
+    secure_url: storedSecureUrl,
+    original_secure_url: secure_url,
+    normalised: Boolean(normalisedTransformation),
+    normalised_transformation: normalisedTransformation,
+    width: verified?.width ?? null,
+    height: verified?.height ?? null,
     mime_type: mimeType,
     original_file_name: original_filename || null,
     fingerprint,
   });
+}
+
+// ════════════════════════════════════════════
+// CLOUDINARY ADMIN API
+//
+// Rate limit: the Admin API allows 500 requests/hour on the free tier and
+// 2,000/hour on paid plans. We spend exactly ONE call per registered product
+// file (not per byte, not per view), so 500/hr equals 500 product images per
+// hour platform-wide — comfortably above our per-seller cap of 50 uploads/hr.
+// If we ever approach it, `media.server_verification_enabled` degrades us to
+// client-reported metadata without a deploy. On 429 / timeout we fail CLOSED
+// with a retry-able 503 rather than admitting unverified media.
+// ════════════════════════════════════════════
+interface CloudinaryResource {
+  format?: string;
+  bytes?: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+  resource_type?: string;
+}
+
+type ResourceLookup =
+  | { kind: "ok"; resource: CloudinaryResource }
+  | { kind: "missing" }
+  | { kind: "unavailable" };
+
+function cloudinaryAuthHeader(): string {
+  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
+  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
+  return `Basic ${btoa(`${apiKey}:${apiSecret}`)}`;
+}
+
+async function fetchCloudinaryResource(
+  resourceType: string,
+  publicId: string,
+): Promise<ResourceLookup> {
+  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}/upload/${encodeURIComponent(publicId)}`;
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: cloudinaryAuthHeader() },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.status === 404) return { kind: "missing" };
+    if (!res.ok) {
+      console.error("Cloudinary admin lookup failed:", res.status);
+      return { kind: "unavailable" };
+    }
+    return { kind: "ok", resource: await res.json() };
+  } catch (err) {
+    console.error("Cloudinary admin lookup error:", err);
+    return { kind: "unavailable" };
+  }
+}
+
+async function destroyCloudinaryAsset(resourceType: string, publicId: string): Promise<void> {
+  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
+  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = await cloudinarySignature(apiSecret, `public_id=${publicId}&timestamp=${timestamp}`);
+  const form = new FormData();
+  form.append("public_id", publicId);
+  form.append("timestamp", String(timestamp));
+  form.append("api_key", apiKey);
+  form.append("signature", signature);
+  try {
+    await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    console.error("Cloudinary destroy failed:", err);
+  }
 }
