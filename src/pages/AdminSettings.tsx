@@ -3,7 +3,7 @@ import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
   ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
-  ShoppingCart, Power,
+  ShoppingCart, Power, Image as ImageIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
