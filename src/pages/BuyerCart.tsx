@@ -321,6 +321,19 @@ const BuyerCart = () => {
             </Button>
           </div>
 
+          {cartMutationsBlocked && items.length > 0 && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Adding to cart is paused</p>
+                <p className="text-xs text-muted-foreground">
+                  Your saved items are safe and nothing has been removed. While this is paused you can't add
+                  items or change quantities{gateBlocked ? "" : ", but you can still remove items and check out"}.
+                </p>
+              </div>
+            </div>
+          )}
+
           {activeSessionId && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-2.5 min-w-0">
