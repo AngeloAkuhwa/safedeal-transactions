@@ -15,7 +15,9 @@ export interface EffectiveCommerceConfig {
 
 export const DEFAULT_COMMERCE_CONFIG: EffectiveCommerceConfig = {
   checkout_enabled: false,
-  add_to_cart_enabled: true,
+  // Fail closed on both switches; the client mirror in useCommerceGate.ts
+  // uses exactly these defaults so the two can never disagree.
+  add_to_cart_enabled: false,
   disabled_reason:
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   scope: "platform",
