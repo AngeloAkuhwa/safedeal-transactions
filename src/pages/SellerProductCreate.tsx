@@ -224,7 +224,16 @@ const SellerProductCreate = () => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const canPublish = title.trim().length >= 2 && description.trim().length >= 10 && !!unitPrice && parseFloat(unitPrice) > 0;
+  // Drafts save with any media state; only publishing requires the minimum
+  // image count. This mirrors the server gate in seller-products.
+  const readyImageCount = files.filter((f) => f.media_type === "image" && f.status === "done").length;
+  const hasEnoughImages = readyImageCount >= mediaConfig.productMinImagesToPublish;
+  const canPublish =
+    title.trim().length >= 2 && description.trim().length >= 10 &&
+    !!unitPrice && parseFloat(unitPrice) > 0 && hasEnoughImages;
+  const publishBlockedReason = !hasEnoughImages
+    ? `Add at least ${mediaConfig.productMinImagesToPublish} photos to publish (you have ${readyImageCount}). You can still save a draft.`
+    : undefined;
 
   const visibilityOptions = [
     { value: "public", label: "Public", description: "Visible on your storefront", icon: Globe, color: "text-primary" },
@@ -270,6 +279,7 @@ const SellerProductCreate = () => {
                 <Button
                   onClick={() => createMutation.mutate("published")}
                   disabled={createMutation.isPending || !canPublish}
+                  title={publishBlockedReason}
                   className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
