@@ -628,12 +628,16 @@ const SellerProductCreate = () => {
                 <Button
                   onClick={() => createMutation.mutate("published")}
                   disabled={createMutation.isPending || !canPublish}
+                  title={publishBlockedReason}
                   className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Create Product
                 </Button>
               </div>
+              {publishBlockedReason && (
+                <p className="w-full text-xs text-amber-600 mt-2 basis-full">{publishBlockedReason}</p>
+              )}
             </div>
           </div>
         </div>
