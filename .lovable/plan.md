@@ -1,109 +1,135 @@
-# End-to-end 2FA (TOTP): enrolment, recovery, enforcement readiness
+# Media Standards + Commerce Flag Correction
 
-Enforcement stays OFF in this batch. Nothing here flips `security.two_factor_admin_enforced`.
+## PART A — Discovery findings
 
-## Current state (verified now)
+### A1. The commerce flags (what actually exists)
 
-- 2 active internal users: `admin@safedeal.test` (super_admin) and `angeloakuhwa@gmail.com` (support_agent). Both have **0 verified and 0 unverified** MFA factors.
-- `internal_users.two_factor_enabled` exists and is `false` for both. Nothing writes it today, and it is displayed in `UserDetailsDrawer.tsx` — it is a shadow source of truth and will be derived, not stored (Item 4).
-- `security.two_factor_admin` (advisory) and `security.two_factor_admin_enforced` (real switch, default OFF) are both in the client and server settings catalogs; `_shared/auth.ts` already reads them and runs the AAL2 gate in log-only mode.
-- Permission keys available: `users_and_access.manage_permissions`, `users_and_access.suspend`, `permissions.manage_permissions`, `platform_configuration.configure`, `financial_controls.*`.
+Three keys exist in `system_settings` (platform scope), confirmed by query:
 
-## Scope: I agree with the owner's split
+| key | current value |
+| --- | --- |
+| `commerce.checkout_enabled` | `true` |
+| `commerce.add_to_cart_enabled` | `false` |
+| `commerce.disabled_reason` | the "not yet available" string |
 
-Internal = required (behind the OFF flag); buyers/sellers = offered, always skippable. One addition, flagged rather than assumed: **no consumer route ever triggers a step-up**. The only place a buyer or seller can be asked for a TOTP code is login, and only if they chose to enrol. Checkout, cart, payment, dispute and profile actions never call step-up, which makes "buyer blocked mid-checkout" structurally impossible rather than merely unlikely.
+So there are already **two** flags, matching the owner's mental model — the query that found only one key was reading a filtered subset. Both are registered in both catalogs: `src/lib/settings-catalog.ts:129-141` and `supabase/functions/_shared/settings-catalog.ts:30-31`. Neither is an orphan key, and the admin UI toggles at `src/pages/AdminSettings.tsx:775-788` write real keys (`AdminSettings.tsx:402-404`) and read them back (`:333-335`).
 
----
+Where `commerce.add_to_cart_enabled` is read:
+- Server resolver: `supabase/functions/_shared/commerce-gate.ts:31-33, 69-71`, exposed via `checkAddToCartAllowed` (`:120-129`).
+- Server enforcement: `supabase/functions/buyer-cart/index.ts:182-183` — the cart **add** action rejects with 403 `add_to_cart_disabled`.
+- Public read endpoint: `supabase/functions/commerce-config/index.ts`.
+- Client: `src/hooks/useCommerceGate.ts:33`, consumed by `MarketplaceProductCard.tsx:56-57` and `PublicProductDetail.tsx:82-83`.
 
-## Item 1 — Supabase MFA wiring
+Where `commerce.checkout_enabled` is read/enforced server-side: `cart-checkout/index.ts:118`, `storefront-checkout/index.ts:164`, `claim-offer/index.ts:318`, `initiate-paystack-payment/index.ts:171-172`. Client mirrors at `BuyerCart.tsx:110-111`, `CartCheckoutReview.tsx:110-111`, `StorefrontCheckout.tsx:100-101`.
 
-New `src/services/mfa.service.ts` (the only file importing the Supabase client for MFA): `listFactors`, `startEnrolment`, `verifyEnrolment`, `challengeAndVerify`, `unenrol`, `getAal`.
+True enforcement state:
 
-(a) **Enrolment** — `mfa.enroll({ factorType: 'totp' })` → show QR plus the raw secret for manual entry → `mfa.challenge` + `mfa.verify` with the 6-digit code. A factor counts only at `status='verified'`.
-Abandoned enrolment: on opening the dialog, `listFactors()` and unenrol every `unverified` TOTP factor before enrolling a new one; also unenrol the pending factor on cancel/unmount. At most one live unverified factor, no junk accumulation.
+| flag | client | server | verdict |
+| --- | --- | --- | --- |
+| `commerce.add_to_cart_enabled` | yes (product card + detail) | yes (`buyer-cart` add only) | enforced both sides for `add` |
+| `commerce.checkout_enabled` | yes (3 pages) | yes (4 functions incl. payment init) | enforced both sides |
 
-(b) **Login challenge** — native to Supabase: for a user with a verified factor, password sign-in yields aal1 with `nextLevel='aal2'`. `LoginForm.tsx` gains one extra step after `signIn` succeeds: if `currentLevel !== nextLevel`, render a code-entry step (reusing the code-entry styling from `PhoneVerificationModal.tsx`) that runs challenge+verify, then continues into the existing redirect logic. A "Use a recovery code" link switches input mode (Item 2).
+**The real defects (not missing keys):**
+1. `buyer-cart` gates only the `add` action. `update_quantity` is not gated (the gate appears once, in the add branch), so a buyer with an existing cart row can raise quantity by direct API call while add-to-cart is off.
+2. Cart surfaces stay fully live while `add_to_cart_enabled` is false: the cart icon/count in `BuyerNav` and `BuyerCart.tsx` gate on `checkoutEnabled` only (`BuyerCart.tsx:111`), which is currently `true`. That is why cart "looks live" — the flag works; the cart UI just isn't reading it. This is the mismatch the owner observed.
+3. Default divergence: `commerce-gate.ts:17-19` defaults `checkout_enabled:false`, while `useCommerceGate.ts:14-21` defaults `addToCartEnabled:true`. When the config fetch fails, client and server disagree.
+4. Vendor-scope reads work, but `BuyerCart.tsx:110` resolves platform scope only, so a per-vendor cart disable is invisible in the cart.
 
-(c) **AAL helper** — `src/hooks/useAal.ts` wrapping `getAuthenticatorAssuranceLevel()`, refreshed on `onAuthStateChange`, returning `{ currentLevel, nextLevel, needsStepUp, hasVerifiedFactor, loading }`. Read-only; no route blocks on it in this batch.
+### A2. Seller media upload flow
 
-(d) **Server side** — `_shared/auth.ts` already parses `aal` from the JWT and already has the advisory/enforced branch. The only change: keep log-only behaviour and add AAL + factor status to the `admin-me` response so the admin console can show enrolment state and drive the persistent prompt. No new gate on any endpoint.
+Entry point: `src/pages/SellerProductCreate.tsx` — hidden file inputs at `:352` and `:396` with `accept="image/*,video/*" multiple`, handler `handleFileUpload` at `:116-182`.
 
----
+Client validation that exists today:
+- Count only: max 3 images, max 1 video (`SellerProductCreate.tsx:121-139`).
+- Magic-byte sniffing on jpeg/png/webp/mp4 in `src/services/create-transaction.service.ts:100-129`.
+- `checkImageResolution(file, 400, 400)` exists in `create-transaction.service.ts:131-145` but **is never called** by the product flow.
+- No file-size check, no aspect-ratio check, no dimension check, no format allow-list before upload.
 
-## Item 2 — Recovery path (the blocker item, designed before enforcement)
+Upload pipeline: `uploadProductFile` (`create-transaction.service.ts:147-228`) → `upload-evidence` `sign_upload` → **signed** direct-to-Cloudinary upload, signature covering only `folder` + `timestamp` (`upload-evidence/index.ts:100-122`), no upload preset, no incoming transformation, no `allowed_formats` in the signature → **the signature does not constrain what is uploaded**. Then `register_file` writes the `files` row.
 
-(a) **Recovery codes.** New table `public.mfa_recovery_codes(id, user_id → auth.users, salt, code_hash, used_at, created_at, batch_id)`. Hash: **salted SHA-256** — `encode(digest(salt || upper(code)), 'hex')`. Ten codes of 10 Crockford-base32 characters, generated **server-side in an edge function**, returned exactly once in the response body. Never logged, never persisted client-side, never left in a toast that survives navigation.
-RLS: users can read only their own rows, and only non-secret columns via a view `public.my_mfa_recovery_status (id, used_at, created_at)`. No client insert/update/delete. Writes go through `SECURITY DEFINER` RPCs:
-- `generate_mfa_recovery_codes(_user_id)` — invalidates the previous batch, inserts the new one.
-- `consume_mfa_recovery_code(_user_id, _code)` — matches unused rows, sets `used_at`, returns boolean.
-Consumption runs in edge function `mfa-recovery`, which on success unenrols the user's factors so they must re-enrol. A recovery code is a way back in, not a permanent second factor.
+Server validation in `upload-evidence` `register_file` (`:145-215`):
+- format allow-list jpg/jpeg/png/webp/mp4/mov/webm/pdf
+- resource_type vs format cross-check
+- size: 50 MB video / 10 MB other — **but from the client-supplied `bytes` field**, never re-read from Cloudinary
+- rate limit 50 uploads/hr (`:75-90`)
+- no width/height at all; `public.files` has no width/height columns (only `metadata_json jsonb`)
 
-(b) **Admin-assisted unenrol.** Edge function `admin-mfa-unenrol`, gated by `requirePermission(req, 'users_and_access.manage_permissions')` plus server-side rules:
-- The target's highest internal role must be **strictly lower** than the actor's (reuse `internal_effective_access_level`). A `support_agent` therefore cannot touch a `super_admin`; a `senior_admin` cannot strip a `super_admin`.
-- Only a `super_admin` may unenrol another `super_admin`, and never themselves via this path.
-- Reason ≥ 20 characters (matching the existing `ReviewChangesDrawer` convention), one `admin_actions` + `audit_logs` entry with before/after factor counts, and a `security_alert` notification to all super_admins.
-No escalation is possible: it removes a factor, never grants a role, and the target still needs their password.
+`seller-products` create (`supabase/functions/seller-products/index.ts:196-210`) links `file_ids` into `product_media` with **no media validation and no minimum image count** — a product can publish with zero images.
 
-(c) **Break-glass (last super_admin locked out).** `docs/2fa-recovery-runbook.md`: (1) use a recovery code; (2) if codes are lost, a second super_admin performs the assisted unenrol; (3) if no second super_admin exists, recovery goes through the platform owner's backend access by removing the `auth.mfa_factors` row, followed by mandatory re-enrolment and a logged incident. **Therefore the enforcement pre-flight requires at least two super_admin accounts, each enrolled, each holding an unused recovery batch** — the single most important guard against total lockout.
+Other pipelines: avatar via `upload-avatar` (separate, signed, own rules); dispute/delivery evidence shares `upload-evidence` with a different `context_type`. There is no storefront banner/logo upload.
 
----
+**What a seller can upload today that they should not:** a 200×150 px 9 MB JPEG; a 30-second 49 MB phone video at 480p; any aspect ratio; a product published with zero or one image; and — because size is self-reported and the Cloudinary signature is unconstrained — a client that lies about `bytes` bypasses the size limit entirely.
 
-## Item 3 — Prompting UX (reuse only, no layout changes)
+## PART B — Temu-grade media standards (proposal)
 
-(a) **After signup** — the existing `EmailVerificationPending` flow is untouched; the offer appears on the first authenticated landing as a dismissible `Card` banner, not inside signup.
-(b) **After login** —
-- Internal users without a verified factor: a persistent (non-dismissible but non-blocking) banner at the top of the admin content area, reusing the status-banner pattern already used by the payouts auto-release banner, linking to admin profile security. Navigation is never blocked.
-- Buyers/sellers: a dismissible `Dialog` with a **30-day re-prompt interval**, dismissal stored per user in `localStorage` (`safedeal_2fa_prompt_dismissed_until`). The component checks the current path against a deny-list (cart, checkout, payment, transaction, dispute routes) and renders nothing there.
-(c) **Permanent entry point** — the existing `SecuritySection.tsx` "Two-Factor Authentication" row (currently a dead row with a hardcoded "Disabled" badge) becomes live and opens `TwoFactorDialog`: status, enrol (QR + manual secret), remaining recovery-code count, regenerate codes, unenrol (requires a current TOTP code). The same component mounts on the admin profile security surface.
-(d) **Reused**: `Dialog`, `Card`, `Badge`, `Button`, `Input`, `Label`, `Skeleton`, `sonner`, `useDrawerSafety`, `PhoneVerificationModal` code-entry styling. New files only: `src/components/security/TwoFactorDialog.tsx`, `TwoFactorPrompt.tsx`, `RecoveryCodesPanel.tsx`.
+### Config keys (registered in BOTH catalogs, platform-writable)
 
----
+| key | default | notes |
+| --- | --- | --- |
+| `media.image_min_dimension_px` | 800 | absolute floor, both sides |
+| `media.image_recommended_min_px` | 1600 | advisory only (longest side) |
+| `media.image_allowed_ratios` | `["1:1","3:4","4:5"]` | tolerance ±3% |
+| `media.image_max_bytes` | 3145728 (3 MB) | |
+| `media.image_allowed_formats` | `["jpeg","png","webp"]` | |
+| `media.product_min_images_to_publish` | 3 | publish gate only |
+| `media.product_max_images` | 10 | |
+| `media.product_max_videos` | 1 | |
+| `media.video_allowed_formats` | `["mp4","webm"]` | H.264 / VP9 |
+| `media.video_min_height_px` | 720 | 1080 recommended |
+| `media.video_max_seconds` | 60 | long enough for a product demo, short enough to keep storage and buyer attention sane |
+| `media.video_max_bytes` | 52428800 (50 MB) | ~60 s of 1080p H.264; unchanged from today so no regression |
+| `media.video_allowed_ratios` | `["1:1","4:5","9:16","16:9"]` | |
+| `media.quality_advisories_enabled` | true | turns heuristic warnings on/off |
+| `media.grandfather_before` | ISO timestamp set at migration time | products created before this are exempt from the publish gate |
 
-## Item 4 — Data model + migrations
+HEIC: **reject client-side with a specific message** ("iPhone HEIC photos aren't supported — set Camera > Formats to Most Compatible, or re-save as JPEG"). Server-side transcoding via Cloudinary is possible but adds a paid transformation on every upload and an async failure mode; rejecting with clear guidance is cheaper and honest. Revisit if rejection rates are high.
 
-Supabase already stores natively: the factor, its TOTP secret, `status` (`unverified`/`verified`), friendly name, timestamps, and AAL in the JWT. None of that is duplicated.
+### Enforcement design
 
-Migration (needs approval):
-1. `create table public.mfa_recovery_codes(...)`, then `GRANT SELECT ON public.mfa_recovery_codes TO authenticated; GRANT ALL ON public.mfa_recovery_codes TO service_role;`, then enable RLS, then own-row select policy; secret columns hidden behind the `my_mfa_recovery_status` view.
-2. `generate_mfa_recovery_codes` and `consume_mfa_recovery_code` as `SECURITY DEFINER ... SET search_path = public`.
-3. `internal_users.two_factor_enabled` — **stop treating it as truth.** Comment it as deprecated and have the access-control read path derive the flag from `auth.mfa_factors` (verified count > 0) inside the admin edge function that builds the directory row. The column stays one release, then drops.
+HARD BLOCK (both sides): dimensions, aspect ratio, byte size, format, image/video counts, video duration and resolution.
+- Client: a shared `src/lib/media-rules.ts` (mirrored to `supabase/functions/_shared/media-rules.ts`) reading resolved config and validating a `File` before upload — `createImageBitmap` for images, a hidden `<video>` `loadedmetadata` for duration/resolution. Errors are specific: "This image is 640×480. Minimum is 800×800." Never a generic failure.
+- Server (authoritative): `upload-evidence.register_file` stops trusting the client. It calls the Cloudinary Admin API `resources/{type}/upload/{public_id}` to read real `bytes`, `width`, `height`, `format`, `duration`, then validates against the same config. On failure it deletes the Cloudinary asset, writes no `files` row, and returns 400 with the specific reason. Real dimensions/duration are persisted into `files.metadata_json`.
+- `seller-products` publish path additionally enforces min/max image count and that every linked `file_id` belongs to the caller and passed validation.
 
----
+ADVISORY WARNINGS (never block): white/neutral background, frame-fill percentage, burned-in text/watermark. Computed client-side with cheap heuristics (corner-pixel sampling for background; bounding box of non-background pixels for fill). Surfaced as an amber "Improve this photo" chip on the thumbnail plus a checklist in the existing media card — existing Alert/Badge components, no redesign. Rationale: a Lagos seller shooting on a phone in daylight will trip a background heuristic constantly; blocking them costs a listing, while one imperfect image costs almost nothing. Cloudinary's AI analysis add-ons could later justify blocking, but only after measuring false-positive rates on real listings.
 
-## Item 5 — Enforcement readiness (design only, DO NOT ENABLE)
+### Grandfathering
+Yes — existing published products are exempt. The publish gate applies only to products created or re-published after `media.grandfather_before`. Nothing is retroactively unpublished and no media is deleted. Instead, `SellerProductDetail` and the seller storefront card show a dismissible "Boost this listing" prompt when media falls below the new standard, linking to the edit flow with the failing checks listed.
 
-Flipping `security.two_factor_admin_enforced` makes `requireAdmin` throw `AuthError(403, 'mfa_required')` for any internal caller whose JWT `aal !== 'aal2'` — i.e. every admin edge function, immediately, including existing sessions sitting at aal1. Those sessions are not force-refreshed; the user sees failures until they sign in again and complete the challenge. UI response: a global handler maps `mfa_required` on admin routes to a full-screen step-up prompt rather than a raw toast.
+### Seller UX (reusing existing components)
+- Requirements panel rendered **above** the file picker in `SellerProductCreate` (and the edit path), generated from the resolved config so the numbers can never drift from enforcement.
+- Per-file error text under each thumbnail in the existing `FileEntry` card, replacing the current generic toast.
+- Publish button disabled with a reason chip when below `media.product_min_images_to_publish`; saving as draft is always allowed.
 
-Pre-flight checklist — all must pass:
-1. Every `active` internal user has a verified TOTP factor.
-2. At least two `super_admin` accounts, both enrolled.
-3. Every enrolled internal user holds an unused recovery-code batch.
-4. `docs/2fa-recovery-runbook.md` published and assisted unenrol exercised once on a test account.
-5. A real admin login reaches aal2 and one write endpoint succeeds.
-6. `security.two_factor_admin` (advisory) turned on first; log-only warnings observed for a full working day with no unexpected identities.
+## PART C — Flag correction (proposal)
 
----
+1. Keep the two existing keys — they are correct and already registered. Sharpen the admin copy so each says exactly what it gates:
+   - Checkout enabled → "Allows payment and transaction creation. OFF blocks all checkout and payment initiation."
+   - Add-to-cart enabled → "Allows adding items to a cart and changing cart quantities. OFF hides cart controls; existing carts are preserved."
+2. Close the server gap: gate `update_quantity` (and any other quantity-increasing branch) in `buyer-cart` behind `checkAddToCartAllowed`. Removal from cart stays allowed when the flag is off.
+3. Client mirror: `BuyerCart.tsx` and the `BuyerNav` cart control read `addToCartEnabled` as well as `checkoutEnabled`, resolving vendor scope where a single vendor is in play.
+4. Align defaults: `useCommerceGate` DEFAULTS must equal `DEFAULT_COMMERCE_CONFIG` (fail closed on both flags when the config fetch fails).
+5. **Existing cart contents: preserve, never delete.** With the flag off, cart rows stay in the database; the cart page renders read-only with the `disabled_reason` banner, quantity controls disabled, remove still available, checkout blocked. No cleanup job, no data loss.
+6. No third flag is needed. "Hide add-to-cart but keep buy-now" is already expressible as `add_to_cart_enabled=false` + `checkout_enabled=true` — exactly today's state — and will behave correctly once steps 2 and 3 land.
 
-## Item 6 — Tests
+## Technical details
 
-Enrolment happy path; wrong code rejected with the factor left unverified; abandoned-enrolment cleanup unenrols stale unverified factors; recovery code succeeds once and fails the second time; assisted unenrol authorised for super_admin over support_agent and **rejected** for support_agent over super_admin; `useAal` reports `needsStepUp` only when `currentLevel !== nextLevel`; guard test asserting `security.two_factor_admin_enforced` defaults to false in both catalogs and that no route guard blocks on AAL.
+- **Migrations**: one migration inserting the `media.*` keys at platform scope with defaults, plus `media.grandfather_before` set to `now()`. No table changes; width/height/duration go into `files.metadata_json`. Settings writes stay audited through the existing `system_settings_history` path.
+- **Catalog registration**: every new key added to `src/lib/settings-catalog.ts` and `supabase/functions/_shared/settings-catalog.ts` with matching specs so `clampSetting` validates admin writes. Gated by the same permission as the rest of Platform Settings.
+- **Admin UI**: a new "Media standards" card in the existing `AdminSettings` platform section, built from existing `ToggleRow` / number-input patterns. No redesign.
+- **Edge functions to redeploy**: `upload-evidence`, `seller-products`, `buyer-cart`, plus a new `media-config` public read endpoint mirroring `commerce-config` / `pricing-config`.
+- **Cloudinary**: keep signed uploads; add `allowed_formats` and `max_file_size` to the signed params so Cloudinary rejects oversized/wrong-format uploads at the edge, in addition to post-upload Admin API verification.
 
----
+## Tests
+- Unit: `media-rules` — dimension, ratio tolerance, size, format, count, duration, with boundary cases (799×800 fails, 800×800 passes).
+- Contract: client and server media rule mirrors behave identically across a shared fixture set.
+- **Server bypass test**: call `upload-evidence.register_file` directly with understated `bytes` against an undersized real asset — assert 400 and no `files` row, proving the client cannot skip validation.
+- **Flag bypass test**: with `add_to_cart_enabled=false`, direct POST to `buyer-cart` `add` and `update_quantity` both return 403.
+- Grandfathering: a pre-cutoff product with 1 image stays published and still renders.
+- Admin smoke stays 47/47; full suite green.
 
 ## Risks and rollback
-
-| Risk | Mitigation |
-|---|---|
-| Only super_admin locked out | Two-super_admin pre-flight, recovery codes, documented break-glass; enforcement stays OFF this batch |
-| Existing aal1 sessions break at flip | Named in pre-flight; flip in a low-traffic window; UI maps `mfa_required` to a re-login step-up |
-| Buyer blocked mid-checkout | No consumer route calls step-up; prompt has a route deny-list; covered by test |
-| Recovery codes leak | Server-generated, shown once, stored salted-SHA-256, never logged, no client persistence |
-| An RLS policy or function assuming aal1 | Nothing reads `aal` today except `_shared/auth.ts`; aal2 is a superset of aal1, so a stronger session cannot break a policy — re-verified with a repo scan during implementation |
-
-Rollback: the table, RPCs and components are all additive; reverting means deleting the new components and leaving the table unused. No existing behaviour changes.
-
-## Approval split
-
-- **Safe to apply**: mfa service, `useAal`, new components, tests, docs, `admin-me` returning factor status.
-- **Needs approval**: the migration (new table, RPCs, deprecating `internal_users.two_factor_enabled`), the two new edge functions (`mfa-recovery`, `admin-mfa-unenrol`), and the `LoginForm` step-up step.
-- **Explicitly out of scope**: enabling enforcement.
+- The Cloudinary Admin API call adds ~200-400 ms per registration and a new dependency; on API error we fail closed and log — rollback is flipping a `media.server_verification_enabled` kill switch back to today's client-reported values.
+- Stricter rules could frustrate sellers mid-listing; mitigated by requirements-before-picker, specific errors, and draft-saving always allowed.
+- All thresholds are config rows, so any limit can be relaxed instantly from Platform Settings without a deploy.
+- Flag changes are small and reversible; no data is deleted at any point in this plan.
