@@ -22,8 +22,12 @@ export interface NumberSpec {
 export interface BoolSpec { type: "boolean" }
 export interface EnumSpec { type: "enum"; options: string[] }
 export interface TiersSpec { type: "tiers" }
+/** A list of short string tokens constrained to a fixed option set. */
+export interface StringListSpec { type: "string_list"; options: string[]; minItems?: number }
+/** Free-form short text (no option set). */
+export interface TextSpec { type: "text"; maxLength?: number }
 
-export type SettingSpec = NumberSpec | BoolSpec | EnumSpec | TiersSpec;
+export type SettingSpec = NumberSpec | BoolSpec | EnumSpec | TiersSpec | StringListSpec | TextSpec;
 
 export interface CatalogEntry {
   key: string;
@@ -136,9 +140,129 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   {
     key: "commerce.add_to_cart_enabled",
     label: "Add-to-cart enabled",
-    help: "When OFF, products cannot be added to cart. Useful when preparing to fully close commerce.",
+    help: "Allows adding items to a cart and changing cart quantities. When OFF, cart controls are hidden and existing carts are preserved read-only (nothing is deleted).",
     spec: { type: "boolean" },
     writable: ["platform", "vendor"],
+  },
+  // ── Media standards (Temu-grade product media) ──
+  {
+    key: "media.image_min_dimension_px",
+    label: "Image minimum dimension",
+    help: "Absolute floor for both width and height of a product image (px). Hard block.",
+    spec: { type: "number", min: 200, max: 4000, step: 100, unit: "px" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.image_recommended_min_px",
+    label: "Image recommended minimum",
+    help: "Advisory only: recommended minimum on the longest side (px). Never blocks an upload.",
+    spec: { type: "number", min: 200, max: 8000, step: 100, unit: "px" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.image_allowed_ratios",
+    label: "Allowed image ratios",
+    help: "Accepted aspect ratios for product images. Out-of-ratio images are padded to the nearest allowed ratio when auto-normalisation is ON, otherwise rejected.",
+    spec: { type: "string_list", options: ["1:1", "3:4", "4:5", "4:3", "16:9", "9:16"], minItems: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.image_auto_normalise_ratio",
+    label: "Auto-normalise image ratio",
+    help: "When ON, an out-of-ratio image is padded with white to the nearest allowed ratio (never cropped) and the seller is shown a before/after preview. When OFF, out-of-ratio images are rejected instead.",
+    spec: { type: "boolean" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.image_max_bytes",
+    label: "Image maximum size",
+    help: "Largest accepted product image, in bytes. Hard block, verified server-side.",
+    spec: { type: "number", min: 262_144, max: 20_971_520, step: 262_144, unit: "bytes" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.image_allowed_formats",
+    label: "Allowed image formats",
+    help: "Accepted image formats. HEIC is intentionally excluded — sellers are told to switch iPhone Camera to 'Most Compatible'.",
+    spec: { type: "string_list", options: ["jpeg", "png", "webp"], minItems: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.product_min_images_to_publish",
+    label: "Minimum images to publish",
+    help: "A product needs at least this many images to be published. Draft saving is always allowed regardless of media.",
+    spec: { type: "number", min: 1, max: 10, step: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.product_max_images",
+    label: "Maximum images per product",
+    help: "Upper bound on product images.",
+    spec: { type: "number", min: 1, max: 20, step: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.product_max_videos",
+    label: "Maximum videos per product",
+    help: "Upper bound on product videos.",
+    spec: { type: "number", min: 0, max: 5, step: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.video_allowed_formats",
+    label: "Allowed video formats",
+    help: "Accepted video containers (MP4/H.264 and WebM).",
+    spec: { type: "string_list", options: ["mp4", "webm"], minItems: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.video_min_height_px",
+    label: "Video minimum height",
+    help: "Resolution floor for product video (px). 720 = 720p.",
+    spec: { type: "number", min: 240, max: 2160, step: 60, unit: "px" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.video_max_seconds",
+    label: "Video maximum duration",
+    help: "Longest accepted product video, in seconds.",
+    spec: { type: "number", min: 5, max: 600, step: 5, unit: "s" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.video_max_bytes",
+    label: "Video maximum size",
+    help: "Largest accepted product video, in bytes.",
+    spec: { type: "number", min: 1_048_576, max: 209_715_200, step: 1_048_576, unit: "bytes" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.video_allowed_ratios",
+    label: "Allowed video ratios",
+    help: "Accepted video aspect ratios. Videos are never auto-normalised.",
+    spec: { type: "string_list", options: ["1:1", "4:5", "9:16", "16:9", "4:3"], minItems: 1 },
+    writable: ["platform"],
+  },
+  {
+    key: "media.quality_advisories_enabled",
+    label: "Photo quality hints",
+    help: "When ON, sellers see advisory warnings (background, frame fill, watermark). These never block an upload.",
+    spec: { type: "boolean" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.server_verification_enabled",
+    label: "Server-side media verification",
+    help: "When ON, uploads are re-read from Cloudinary and validated server-side (authoritative). Turning it OFF is the rollback switch: the system falls back to client-reported size/format only.",
+    spec: { type: "boolean" },
+    writable: ["platform"],
+  },
+  {
+    key: "media.grandfather_before",
+    label: "Media rules cutoff",
+    help: "Products created before this timestamp are exempt from the media publish rules. Existing live listings are never unpublished.",
+    spec: { type: "text", maxLength: 40 },
+    writable: ["platform"],
   },
 ];
 
@@ -293,6 +417,24 @@ export function clampSetting(
       const v = validateTierRates(value);
       if (!v.ok) return { ok: false, error: v.error };
       return { ok: true, value };
+    }
+    case "string_list": {
+      if (!Array.isArray(value)) return { ok: false, error: "not_a_list" };
+      const list = value.map((v) => String(v));
+      if (spec.minItems != null && list.length < spec.minItems) {
+        return { ok: false, error: "too_few_items" };
+      }
+      for (const item of list) {
+        if (!spec.options.includes(item)) return { ok: false, error: `not_in_options:${item}` };
+      }
+      return { ok: true, value: list };
+    }
+    case "text": {
+      const s = String(value ?? "");
+      if (spec.maxLength != null && s.length > spec.maxLength) {
+        return { ok: false, error: "too_long" };
+      }
+      return { ok: true, value: s };
     }
   }
 }

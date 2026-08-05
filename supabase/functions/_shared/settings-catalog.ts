@@ -10,7 +10,9 @@ export interface CatalogEntry {
     | { type: "number"; min?: number; max?: number }
     | { type: "boolean" }
     | { type: "enum"; options: string[] }
-    | { type: "tiers" };
+    | { type: "tiers" }
+    | { type: "string_list"; options: string[]; minItems?: number }
+    | { type: "text"; maxLength?: number };
 }
 
 export const SETTINGS_CATALOG: CatalogEntry[] = [
@@ -29,6 +31,24 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "risk.high_value_alert_ngn", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
   { key: "commerce.checkout_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "commerce.add_to_cart_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  // ── Media standards (mirror of src/lib/settings-catalog.ts) ──
+  { key: "media.image_min_dimension_px", writable: ["platform"], spec: { type: "number", min: 200, max: 4000 } },
+  { key: "media.image_recommended_min_px", writable: ["platform"], spec: { type: "number", min: 200, max: 8000 } },
+  { key: "media.image_allowed_ratios", writable: ["platform"], spec: { type: "string_list", options: ["1:1", "3:4", "4:5", "4:3", "16:9", "9:16"], minItems: 1 } },
+  { key: "media.image_auto_normalise_ratio", writable: ["platform"], spec: { type: "boolean" } },
+  { key: "media.image_max_bytes", writable: ["platform"], spec: { type: "number", min: 262_144, max: 20_971_520 } },
+  { key: "media.image_allowed_formats", writable: ["platform"], spec: { type: "string_list", options: ["jpeg", "png", "webp"], minItems: 1 } },
+  { key: "media.product_min_images_to_publish", writable: ["platform"], spec: { type: "number", min: 1, max: 10 } },
+  { key: "media.product_max_images", writable: ["platform"], spec: { type: "number", min: 1, max: 20 } },
+  { key: "media.product_max_videos", writable: ["platform"], spec: { type: "number", min: 0, max: 5 } },
+  { key: "media.video_allowed_formats", writable: ["platform"], spec: { type: "string_list", options: ["mp4", "webm"], minItems: 1 } },
+  { key: "media.video_min_height_px", writable: ["platform"], spec: { type: "number", min: 240, max: 2160 } },
+  { key: "media.video_max_seconds", writable: ["platform"], spec: { type: "number", min: 5, max: 600 } },
+  { key: "media.video_max_bytes", writable: ["platform"], spec: { type: "number", min: 1_048_576, max: 209_715_200 } },
+  { key: "media.video_allowed_ratios", writable: ["platform"], spec: { type: "string_list", options: ["1:1", "4:5", "9:16", "16:9", "4:3"], minItems: 1 } },
+  { key: "media.quality_advisories_enabled", writable: ["platform"], spec: { type: "boolean" } },
+  { key: "media.server_verification_enabled", writable: ["platform"], spec: { type: "boolean" } },
+  { key: "media.grandfather_before", writable: ["platform"], spec: { type: "text", maxLength: 40 } },
   // commerce.disabled_reason is a free-text string; it intentionally has no
   // catalog entry so writes at any scope pass through unclamped.
 ];
@@ -119,6 +139,20 @@ export function clampSetting(
     const v = validateTierRates(value);
     if (!v.ok) return { ok: false, error: v.error };
     return { ok: true, value };
+  }
+  if (spec.type === "string_list") {
+    if (!Array.isArray(value)) return { ok: false, error: "not_a_list" };
+    const list = value.map((v) => String(v));
+    if (spec.minItems != null && list.length < spec.minItems) return { ok: false, error: "too_few_items" };
+    for (const item of list) {
+      if (!spec.options.includes(item)) return { ok: false, error: `not_in_options:${item}` };
+    }
+    return { ok: true, value: list };
+  }
+  if (spec.type === "text") {
+    const s = String(value ?? "");
+    if (spec.maxLength != null && s.length > spec.maxLength) return { ok: false, error: "too_long" };
+    return { ok: true, value: s };
   }
   return { ok: true, value };
 }

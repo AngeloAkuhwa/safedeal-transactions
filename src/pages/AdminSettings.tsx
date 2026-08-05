@@ -3,7 +3,7 @@ import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
   ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
-  ShoppingCart, Power,
+  ShoppingCart, Power, Image as ImageIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
@@ -279,10 +279,24 @@ export default function AdminSettings() {
 
   // Commerce (kill switches)
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
-  const [addToCartEnabled, setAddToCartEnabled] = useState(true);
+  const [addToCartEnabled, setAddToCartEnabled] = useState(false);
   const [disabledReason, setDisabledReason] = useState(
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   );
+
+  // Media standards (product photo / video quality bar)
+  const [mediaMinDim, setMediaMinDim] = useState("800");
+  const [mediaRecommendedMin, setMediaRecommendedMin] = useState("1600");
+  const [mediaMaxMb, setMediaMaxMb] = useState("3");
+  const [mediaMinImages, setMediaMinImages] = useState("3");
+  const [mediaMaxImages, setMediaMaxImages] = useState("10");
+  const [mediaMaxVideos, setMediaMaxVideos] = useState("1");
+  const [mediaAutoNormalise, setMediaAutoNormalise] = useState(true);
+  const [mediaServerVerification, setMediaServerVerification] = useState(true);
+  const [mediaAdvisories, setMediaAdvisories] = useState(true);
+  const [videoMaxSeconds, setVideoMaxSeconds] = useState("60");
+  const [videoMinHeight, setVideoMinHeight] = useState("720");
+  const [videoMaxMb, setVideoMaxMb] = useState("50");
 
   // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
   const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
@@ -333,6 +347,18 @@ export default function AdminSettings() {
         if (byKey["commerce.checkout_enabled"] != null) setCheckoutEnabled(Boolean(byKey["commerce.checkout_enabled"]));
         if (byKey["commerce.add_to_cart_enabled"] != null) setAddToCartEnabled(Boolean(byKey["commerce.add_to_cart_enabled"]));
         if (typeof byKey["commerce.disabled_reason"] === "string") setDisabledReason(String(byKey["commerce.disabled_reason"]));
+        if (byKey["media.image_min_dimension_px"] != null) setMediaMinDim(String(byKey["media.image_min_dimension_px"]));
+        if (byKey["media.image_recommended_min_px"] != null) setMediaRecommendedMin(String(byKey["media.image_recommended_min_px"]));
+        if (byKey["media.image_max_bytes"] != null) setMediaMaxMb(String(Math.round((Number(byKey["media.image_max_bytes"]) / (1024 * 1024)) * 10) / 10));
+        if (byKey["media.product_min_images_to_publish"] != null) setMediaMinImages(String(byKey["media.product_min_images_to_publish"]));
+        if (byKey["media.product_max_images"] != null) setMediaMaxImages(String(byKey["media.product_max_images"]));
+        if (byKey["media.product_max_videos"] != null) setMediaMaxVideos(String(byKey["media.product_max_videos"]));
+        if (byKey["media.image_auto_normalise_ratio"] != null) setMediaAutoNormalise(Boolean(byKey["media.image_auto_normalise_ratio"]));
+        if (byKey["media.server_verification_enabled"] != null) setMediaServerVerification(Boolean(byKey["media.server_verification_enabled"]));
+        if (byKey["media.quality_advisories_enabled"] != null) setMediaAdvisories(Boolean(byKey["media.quality_advisories_enabled"]));
+        if (byKey["media.video_max_seconds"] != null) setVideoMaxSeconds(String(byKey["media.video_max_seconds"]));
+        if (byKey["media.video_min_height_px"] != null) setVideoMinHeight(String(byKey["media.video_min_height_px"]));
+        if (byKey["media.video_max_bytes"] != null) setVideoMaxMb(String(Math.round(Number(byKey["media.video_max_bytes"]) / (1024 * 1024))));
         // Capture audit meta for the effective auto-release row.
         const arRow = (payload.settings ?? []).find((r) => {
           if (r.setting_key !== "escrow.auto_release_enabled") return false;
@@ -402,6 +428,18 @@ export default function AdminSettings() {
       "commerce.checkout_enabled": checkoutEnabled,
       "commerce.add_to_cart_enabled": addToCartEnabled,
       "commerce.disabled_reason": disabledReason,
+      "media.image_min_dimension_px": Number(mediaMinDim),
+      "media.image_recommended_min_px": Number(mediaRecommendedMin),
+      "media.image_max_bytes": Math.round(Number(mediaMaxMb) * 1024 * 1024),
+      "media.product_min_images_to_publish": Number(mediaMinImages),
+      "media.product_max_images": Number(mediaMaxImages),
+      "media.product_max_videos": Number(mediaMaxVideos),
+      "media.image_auto_normalise_ratio": mediaAutoNormalise,
+      "media.server_verification_enabled": mediaServerVerification,
+      "media.quality_advisories_enabled": mediaAdvisories,
+      "media.video_max_seconds": Number(videoMaxSeconds),
+      "media.video_min_height_px": Number(videoMinHeight),
+      "media.video_max_bytes": Math.round(Number(videoMaxMb) * 1024 * 1024),
     };
     // In vendor scope, strip keys the platform marked non-overridable AND
     // any key the catalog declares as not writable at the vendor scope
@@ -781,7 +819,7 @@ export default function AdminSettings() {
               />
               <ToggleRow
                 title="Add-to-Cart Enabled"
-                desc="When OFF, products cannot be added to cart. Useful when preparing to fully close commerce."
+                desc="Controls cart mutations: adding an item and changing quantity. When OFF the button is hidden and the server rejects both — existing cart rows are preserved and can still be removed or checked out (if checkout is ON)."
                 on={addToCartEnabled}
                 onChange={setBool(setAddToCartEnabled)}
                 overridden={isOverridden("commerce.add_to_cart_enabled")}
@@ -799,6 +837,56 @@ export default function AdminSettings() {
                   placeholder="e.g. Checkout is temporarily paused for maintenance."
                 />
               </div>
+            </div>
+          </section>
+
+          {/* ============ MEDIA STANDARDS ============ */}
+          <section className="sd-card">
+            <div className="sd-card-pad border-b border-border">
+              <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                </div>
+                Product Media Standards
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 ml-10">
+                The quality bar for seller product photos and video. Enforced in the browser for instant feedback and
+                again on the server as the authority. Already-published products are grandfathered and never unpublished.
+              </p>
+            </div>
+            <div className="sd-card-pad space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <NumField label="Min image side (px)" value={mediaMinDim} onChange={setStr(setMediaMinDim)} />
+                <NumField label="Recommended long side (px)" value={mediaRecommendedMin} onChange={setStr(setMediaRecommendedMin)} />
+                <NumField label="Max image size (MB)" value={mediaMaxMb} onChange={setStr(setMediaMaxMb)} />
+                <NumField label="Min images to publish" value={mediaMinImages} onChange={setStr(setMediaMinImages)} />
+                <NumField label="Max images" value={mediaMaxImages} onChange={setStr(setMediaMaxImages)} />
+                <NumField label="Max videos" value={mediaMaxVideos} onChange={setStr(setMediaMaxVideos)} />
+                <NumField label="Min video height (px)" value={videoMinHeight} onChange={setStr(setVideoMinHeight)} />
+                <NumField label="Max video length (s)" value={videoMaxSeconds} onChange={setStr(setVideoMaxSeconds)} />
+                <NumField label="Max video size (MB)" value={videoMaxMb} onChange={setStr(setVideoMaxMb)} />
+              </div>
+              <ToggleRow
+                title="Auto-normalise aspect ratio"
+                desc="ON: odd-shaped photos are padded with a white border to the first allowed ratio and the seller is shown the result — nothing is cropped. OFF: those photos are rejected instead."
+                on={mediaAutoNormalise}
+                onChange={setBool(setMediaAutoNormalise)}
+                overridden={isOverridden("media.image_auto_normalise_ratio")}
+              />
+              <ToggleRow
+                title="Server-side verification"
+                desc="Kill switch. ON: every product upload is re-read from the media provider and validated against these limits (a direct API call cannot bypass them). OFF: only the browser checks apply — emergency use only."
+                on={mediaServerVerification}
+                onChange={setBool(setMediaServerVerification)}
+                overridden={isOverridden("media.server_verification_enabled")}
+              />
+              <ToggleRow
+                title="Quality advisories"
+                desc="Show non-blocking hints about background, framing and watermarks. These are heuristics, so they never block an upload."
+                on={mediaAdvisories}
+                onChange={setBool(setMediaAdvisories)}
+                overridden={isOverridden("media.quality_advisories_enabled")}
+              />
             </div>
           </section>
 
@@ -980,6 +1068,23 @@ function FeeField({
         />
         {suffix && <span className="text-muted-foreground text-xs">{suffix}</span>}
       </div>
+    </div>
+  );
+}
+
+/** Compact labelled number input used by the media standards grid. */
+function NumField({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground block mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+      />
     </div>
   );
 }

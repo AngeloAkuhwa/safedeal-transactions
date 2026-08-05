@@ -109,6 +109,9 @@ const BuyerCart = () => {
   const activeSessionId = data?.active_checkout_session_id || null;
   const gate = useCommerceGate(); // platform-scope gate
   const gateBlocked = !gate.loading && !gate.checkoutEnabled;
+  // Quantity changes are cart mutations, so they follow the add-to-cart switch.
+  // Existing rows are always preserved and always removable.
+  const cartMutationsBlocked = !gate.loading && !gate.addToCartEnabled;
 
   // Auto-initialize delivery drafts: pre-select when only one method is offered.
   useEffect(() => {
@@ -230,6 +233,10 @@ const BuyerCart = () => {
   };
 
   const handleQuantityChange = async (productId: string, newQty: number) => {
+    if (cartMutationsBlocked) {
+      toast.error("Cart updates are paused right now. Your items are saved — you can still remove items or check out.");
+      return;
+    }
     try {
       await updateCartQuantity(productId, newQty);
       await refetch();
@@ -313,6 +320,19 @@ const BuyerCart = () => {
               Continue Shopping
             </Button>
           </div>
+
+          {cartMutationsBlocked && items.length > 0 && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Adding to cart is paused</p>
+                <p className="text-xs text-muted-foreground">
+                  Your saved items are safe and nothing has been removed. While this is paused you can't add
+                  items or change quantities{gateBlocked ? "" : ", but you can still remove items and check out"}.
+                </p>
+              </div>
+            </div>
+          )}
 
           {activeSessionId && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
@@ -619,7 +639,8 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity - 1)}
-                                disabled={item.quantity <= 1 || isSoldOut || isLocked}
+                                disabled={item.quantity <= 1 || isSoldOut || isLocked || cartMutationsBlocked}
+                                title={cartMutationsBlocked ? "Cart updates are paused" : undefined}
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -627,7 +648,8 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
-                                disabled={isSoldOut || isLocked || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
+                                disabled={cartMutationsBlocked || isSoldOut || isLocked || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
+                                title={cartMutationsBlocked ? "Cart updates are paused" : undefined}
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -637,6 +659,7 @@ const BuyerCart = () => {
                                 variant="outline"
                                 size="sm"
                                 className="text-xs h-7 gap-1"
+                                disabled={cartMutationsBlocked}
                                 onClick={() => handleQuantityChange(item.product_id, item.product!.available_quantity)}
                               >
                                 <RefreshCw className="h-3 w-3" />

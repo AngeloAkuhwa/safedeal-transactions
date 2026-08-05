@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
+import { MediaRequirementsPanel } from "@/components/seller/MediaRequirementsPanel";
+import { useMediaConfig } from "@/hooks/useMediaConfig";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/sonner";
 import { createProduct, getProductCategories } from "@/services/seller-storefront.service";
@@ -65,6 +67,11 @@ const SellerProductCreate = () => {
   const [featureHighlights, setFeatureHighlights] = useState<{ title: string; description: string }[]>([]);
   const [deliveryScope, setDeliveryScope] = useState("");
   const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState("");
+  const { config: mediaConfig } = useMediaConfig();
+  const acceptAttr = [
+    ...mediaConfig.imageAllowedFormats.map((f) => `image/${f}`),
+    ...mediaConfig.videoAllowedFormats.map((f) => `video/${f}`),
+  ].join(",");
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
     queryFn: getSellerDashboard,
@@ -125,13 +132,13 @@ const SellerProductCreate = () => {
     for (const file of fileArray) {
       const isVideo = file.type.startsWith("video/");
       if (isVideo) {
-        if (currentVideos + filtered.filter((f) => f.type.startsWith("video/")).length >= 1) {
-          toast.error("Maximum 1 video allowed.");
+        if (currentVideos + filtered.filter((f) => f.type.startsWith("video/")).length >= mediaConfig.productMaxVideos) {
+          toast.error(`Maximum ${mediaConfig.productMaxVideos} video${mediaConfig.productMaxVideos === 1 ? "" : "s"} allowed.`);
           continue;
         }
       } else {
-        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= 3) {
-          toast.error("Maximum 3 images allowed.");
+        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= mediaConfig.productMaxImages) {
+          toast.error(`Maximum ${mediaConfig.productMaxImages} images allowed.`);
           continue;
         }
       }
@@ -162,6 +169,12 @@ const SellerProductCreate = () => {
         setFiles((prev) => prev.map((f) => (f.file_id === tempId ? { ...f, progress: pct } : f)));
       })
         .then((result) => {
+          if (result.normalised) {
+            toast.info(
+              `${file.name} was padded with a white border to fit ${mediaConfig.imageAllowedRatios[0]}. ` +
+              `Nothing was cropped — remove it and re-upload a square photo if you'd rather crop it yourself.`,
+            );
+          }
           setFiles((prev) =>
             prev.map((f) =>
               f.file_id === tempId
@@ -211,7 +224,16 @@ const SellerProductCreate = () => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const canPublish = title.trim().length >= 2 && description.trim().length >= 10 && !!unitPrice && parseFloat(unitPrice) > 0;
+  // Drafts save with any media state; only publishing requires the minimum
+  // image count. This mirrors the server gate in seller-products.
+  const readyImageCount = files.filter((f) => f.media_type === "image" && f.status === "done").length;
+  const hasEnoughImages = readyImageCount >= mediaConfig.productMinImagesToPublish;
+  const canPublish =
+    title.trim().length >= 2 && description.trim().length >= 10 &&
+    !!unitPrice && parseFloat(unitPrice) > 0 && hasEnoughImages;
+  const publishBlockedReason = !hasEnoughImages
+    ? `Add at least ${mediaConfig.productMinImagesToPublish} photos to publish (you have ${readyImageCount}). You can still save a draft.`
+    : undefined;
 
   const visibilityOptions = [
     { value: "public", label: "Public", description: "Visible on your storefront", icon: Globe, color: "text-primary" },
@@ -257,6 +279,7 @@ const SellerProductCreate = () => {
                 <Button
                   onClick={() => createMutation.mutate("published")}
                   disabled={createMutation.isPending || !canPublish}
+                  title={publishBlockedReason}
                   className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -339,6 +362,7 @@ const SellerProductCreate = () => {
                 </div>
               </div>
               <div className="p-6 space-y-6">
+                <MediaRequirementsPanel config={mediaConfig} />
                 <label className="flex flex-col items-center justify-center gap-3 py-12 rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer transition-colors bg-muted/30">
                   <CloudUpload className="h-10 w-10 text-muted-foreground" />
                   <div className="text-center">
@@ -348,8 +372,12 @@ const SellerProductCreate = () => {
                   <span className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 mt-1 pointer-events-none">
                     Choose Files
                   </span>
-                  <p className="text-xs text-muted-foreground">Max 3 images + 1 video · PNG, JPG, MP4 up to 10MB each</p>
-                  <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
+                  <p className="text-xs text-muted-foreground">
+                    Up to {mediaConfig.productMaxImages} images + {mediaConfig.productMaxVideos} video ·
+                    {" "}{mediaConfig.imageAllowedFormats.map((f) => f.toUpperCase()).join(", ")},
+                    {" "}{mediaConfig.videoAllowedFormats.map((f) => f.toUpperCase()).join("/")}
+                  </p>
+                  <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />
                 </label>
 
                 {files.length > 0 && (
@@ -388,12 +416,12 @@ const SellerProductCreate = () => {
                     {(() => {
                       const imgCount = files.filter((f) => f.media_type === "image").length;
                       const vidCount = files.filter((f) => f.media_type === "video").length;
-                      if (imgCount >= 3 && vidCount >= 1) return null;
+                       if (imgCount >= mediaConfig.productMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
                       return (
                         <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
                           <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Add More</span>
-                          <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
+                          <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />
                         </label>
                       );
                     })()}
@@ -600,12 +628,16 @@ const SellerProductCreate = () => {
                 <Button
                   onClick={() => createMutation.mutate("published")}
                   disabled={createMutation.isPending || !canPublish}
+                  title={publishBlockedReason}
                   className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Create Product
                 </Button>
               </div>
+              {publishBlockedReason && (
+                <p className="w-full text-xs text-amber-600 mt-2 basis-full">{publishBlockedReason}</p>
+              )}
             </div>
           </div>
         </div>
