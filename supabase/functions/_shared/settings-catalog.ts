@@ -31,6 +31,8 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "risk.high_value_alert_ngn", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
   { key: "commerce.checkout_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "commerce.add_to_cart_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  { key: "commerce.cart_disabled_reason", writable: ["platform", "vendor"], spec: { type: "text", maxLength: 300 } },
+  { key: "commerce.checkout_disabled_reason", writable: ["platform", "vendor"], spec: { type: "text", maxLength: 300 } },
   // ── Media standards (mirror of src/lib/settings-catalog.ts) ──
   { key: "media.image_min_dimension_px", writable: ["platform"], spec: { type: "number", min: 200, max: 4000 } },
   { key: "media.image_recommended_min_px", writable: ["platform"], spec: { type: "number", min: 200, max: 8000 } },

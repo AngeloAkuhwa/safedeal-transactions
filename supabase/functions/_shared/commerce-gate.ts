@@ -10,8 +10,17 @@ export interface EffectiveCommerceConfig {
   checkout_enabled: boolean;
   add_to_cart_enabled: boolean;
   disabled_reason: string;
+  /** Shown when add-to-cart is OFF. Falls back to disabled_reason override. */
+  cart_disabled_reason: string;
+  /** Shown when checkout/payment is OFF. Falls back to disabled_reason override. */
+  checkout_disabled_reason: string;
   scope: "platform" | "vendor";
 }
+
+export const DEFAULT_CART_DISABLED_REASON =
+  "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.";
+export const DEFAULT_CHECKOUT_DISABLED_REASON =
+  "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.";
 
 export const DEFAULT_COMMERCE_CONFIG: EffectiveCommerceConfig = {
   checkout_enabled: false,
@@ -20,6 +29,8 @@ export const DEFAULT_COMMERCE_CONFIG: EffectiveCommerceConfig = {
   add_to_cart_enabled: false,
   disabled_reason:
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+  cart_disabled_reason: DEFAULT_CART_DISABLED_REASON,
+  checkout_disabled_reason: DEFAULT_CHECKOUT_DISABLED_REASON,
   scope: "platform",
 };
 
@@ -33,6 +44,8 @@ const COMMERCE_KEYS = [
   "commerce.checkout_enabled",
   "commerce.add_to_cart_enabled",
   "commerce.disabled_reason",
+  "commerce.cart_disabled_reason",
+  "commerce.checkout_disabled_reason",
 ];
 
 /**
@@ -64,6 +77,18 @@ export async function loadCommerceConfig(
     }
     const map: Record<string, unknown> = {};
     rows.forEach((r) => { map[r.setting_key] = r.setting_value; });
+    // `commerce.disabled_reason` remains a global override: when an admin sets
+    // it, it wins for BOTH surfaces (unchanged behaviour). Otherwise each
+    // surface uses its own key, then its own default.
+    const globalOverride = typeof map["commerce.disabled_reason"] === "string" && map["commerce.disabled_reason"]
+      ? String(map["commerce.disabled_reason"])
+      : null;
+    const cartSpecific = typeof map["commerce.cart_disabled_reason"] === "string" && map["commerce.cart_disabled_reason"]
+      ? String(map["commerce.cart_disabled_reason"])
+      : null;
+    const checkoutSpecific = typeof map["commerce.checkout_disabled_reason"] === "string" && map["commerce.checkout_disabled_reason"]
+      ? String(map["commerce.checkout_disabled_reason"])
+      : null;
     return {
       checkout_enabled: map["commerce.checkout_enabled"] != null
         ? Boolean(map["commerce.checkout_enabled"])
@@ -71,9 +96,9 @@ export async function loadCommerceConfig(
       add_to_cart_enabled: map["commerce.add_to_cart_enabled"] != null
         ? Boolean(map["commerce.add_to_cart_enabled"])
         : DEFAULT_COMMERCE_CONFIG.add_to_cart_enabled,
-      disabled_reason: typeof map["commerce.disabled_reason"] === "string"
-        ? String(map["commerce.disabled_reason"])
-        : DEFAULT_COMMERCE_CONFIG.disabled_reason,
+      disabled_reason: globalOverride ?? DEFAULT_COMMERCE_CONFIG.disabled_reason,
+      cart_disabled_reason: globalOverride ?? cartSpecific ?? DEFAULT_CART_DISABLED_REASON,
+      checkout_disabled_reason: globalOverride ?? checkoutSpecific ?? DEFAULT_CHECKOUT_DISABLED_REASON,
       scope: vendorId ? "vendor" : "platform",
     };
   } catch (_e) {
@@ -126,7 +151,7 @@ export async function checkAddToCartAllowed(vendorId: string | null): Promise<Ga
   if (cfg.add_to_cart_enabled) return null;
   return {
     status: 403,
-    body: { error: "add_to_cart_disabled", reason: cfg.disabled_reason },
+    body: { error: "add_to_cart_disabled", reason: cfg.cart_disabled_reason },
   };
 }
 
@@ -137,6 +162,6 @@ export async function checkCheckoutAllowed(vendorId: string | null): Promise<Gat
   if (cfg.checkout_enabled) return null;
   return {
     status: 403,
-    body: { error: "checkout_disabled", reason: cfg.disabled_reason },
+    body: { error: "checkout_disabled", reason: cfg.checkout_disabled_reason },
   };
 }
