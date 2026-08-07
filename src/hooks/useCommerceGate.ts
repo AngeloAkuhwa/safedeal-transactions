@@ -6,10 +6,19 @@ export interface CommerceGateState {
   checkoutEnabled: boolean;
   addToCartEnabled: boolean;
   disabledReason: string;
+  /** Copy for the add-to-cart surface (global override wins when set). */
+  cartDisabledReason: string;
+  /** Copy for the pay/checkout surface (global override wins when set). */
+  checkoutDisabledReason: string;
   loading: boolean;
   scope: "platform" | "vendor";
   sources: Record<string, "vendor" | "platform" | "default">;
 }
+
+export const DEFAULT_CART_DISABLED_REASON =
+  "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.";
+export const DEFAULT_CHECKOUT_DISABLED_REASON =
+  "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.";
 
 const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   checkoutEnabled: false,
@@ -18,6 +27,8 @@ const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   addToCartEnabled: false,
   disabledReason:
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+  cartDisabledReason: DEFAULT_CART_DISABLED_REASON,
+  checkoutDisabledReason: DEFAULT_CHECKOUT_DISABLED_REASON,
   scope: "platform",
   sources: {},
 };
@@ -30,10 +41,19 @@ async function fetchGate(vendorId: string | null | undefined): Promise<Omit<Comm
     const res = await fetch(url);
     if (!res.ok) return DEFAULTS;
     const json = await res.json();
+    const globalOverride = typeof json?.disabled_reason === "string" && json.disabled_reason
+      ? json.disabled_reason as string
+      : null;
     return {
       checkoutEnabled: Boolean(json?.checkout_enabled),
       addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : DEFAULTS.addToCartEnabled,
       disabledReason: typeof json?.disabled_reason === "string" ? json.disabled_reason : DEFAULTS.disabledReason,
+      cartDisabledReason: (typeof json?.cart_disabled_reason === "string" && json.cart_disabled_reason)
+        ? json.cart_disabled_reason
+        : globalOverride ?? DEFAULTS.cartDisabledReason,
+      checkoutDisabledReason: (typeof json?.checkout_disabled_reason === "string" && json.checkout_disabled_reason)
+        ? json.checkout_disabled_reason
+        : globalOverride ?? DEFAULTS.checkoutDisabledReason,
       scope: (json?.scope as "platform" | "vendor") ?? "platform",
       sources: (json?.sources && typeof json.sources === "object") ? json.sources : {},
     };
