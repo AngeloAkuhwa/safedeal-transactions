@@ -64,11 +64,8 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   // When add-to-cart is off the badge is hidden at zero (nothing to promote),
   // but the cart entry point itself always stays reachable so a buyer can
   // always open, view and remove their own saved items.
-  const commerceGate = useCommerceGate();
   const showCartBadge = cartCount > 0;
-  const cartHint = !commerceGate.loading && !commerceGate.addToCartEnabled && cartCount === 0
-    ? "Cart (adding items is paused)"
-    : `${cartCount} items in cart`;
+  const cartHint = `${cartCount} items in cart`;
 
   const handleLogout = async () => {
     try {
