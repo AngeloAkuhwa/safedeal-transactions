@@ -16,6 +16,7 @@ import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { getBuyerNotifications } from "@/services/notifications.service";
 import { getCartItems } from "@/services/cart.service";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 
 interface BuyerNavProps {
   buyerName: string;
@@ -60,6 +61,14 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   });
   const cartCount = cartData?.count ?? 0;
   const cartBadgeText = cartCount > 9 ? "9+" : String(cartCount);
+  // When add-to-cart is off the badge is hidden at zero (nothing to promote),
+  // but the cart entry point itself always stays reachable so a buyer can
+  // always open, view and remove their own saved items.
+  const commerceGate = useCommerceGate();
+  const showCartBadge = cartCount > 0;
+  const cartHint = !commerceGate.loading && !commerceGate.addToCartEnabled && cartCount === 0
+    ? "Cart (adding items is paused)"
+    : `${cartCount} items in cart`;
 
   const handleLogout = async () => {
     try {
@@ -117,9 +126,9 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <Button variant="ghost" size="icon" className="relative" asChild>
-            <Link to="/dashboard/cart" aria-label={`${cartCount} items in cart`}>
+            <Link to="/dashboard/cart" aria-label={cartHint}>
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
+              {showCartBadge && (
                 <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                   {cartBadgeText}
                 </span>
