@@ -283,6 +283,12 @@ export default function AdminSettings() {
   const [disabledReason, setDisabledReason] = useState(
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   );
+  const [cartDisabledReason, setCartDisabledReason] = useState(
+    "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.",
+  );
+  const [checkoutDisabledReason, setCheckoutDisabledReason] = useState(
+    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+  );
 
   // Media standards (product photo / video quality bar)
   const [mediaMinDim, setMediaMinDim] = useState("800");
@@ -347,6 +353,8 @@ export default function AdminSettings() {
         if (byKey["commerce.checkout_enabled"] != null) setCheckoutEnabled(Boolean(byKey["commerce.checkout_enabled"]));
         if (byKey["commerce.add_to_cart_enabled"] != null) setAddToCartEnabled(Boolean(byKey["commerce.add_to_cart_enabled"]));
         if (typeof byKey["commerce.disabled_reason"] === "string") setDisabledReason(String(byKey["commerce.disabled_reason"]));
+        if (typeof byKey["commerce.cart_disabled_reason"] === "string") setCartDisabledReason(String(byKey["commerce.cart_disabled_reason"]));
+        if (typeof byKey["commerce.checkout_disabled_reason"] === "string") setCheckoutDisabledReason(String(byKey["commerce.checkout_disabled_reason"]));
         if (byKey["media.image_min_dimension_px"] != null) setMediaMinDim(String(byKey["media.image_min_dimension_px"]));
         if (byKey["media.image_recommended_min_px"] != null) setMediaRecommendedMin(String(byKey["media.image_recommended_min_px"]));
         if (byKey["media.image_max_bytes"] != null) setMediaMaxMb(String(Math.round((Number(byKey["media.image_max_bytes"]) / (1024 * 1024)) * 10) / 10));
@@ -428,6 +436,8 @@ export default function AdminSettings() {
       "commerce.checkout_enabled": checkoutEnabled,
       "commerce.add_to_cart_enabled": addToCartEnabled,
       "commerce.disabled_reason": disabledReason,
+      "commerce.cart_disabled_reason": cartDisabledReason,
+      "commerce.checkout_disabled_reason": checkoutDisabledReason,
       "media.image_min_dimension_px": Number(mediaMinDim),
       "media.image_recommended_min_px": Number(mediaRecommendedMin),
       "media.image_max_bytes": Math.round(Number(mediaMaxMb) * 1024 * 1024),
@@ -835,6 +845,37 @@ export default function AdminSettings() {
                   rows={2}
                   className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
                   placeholder="e.g. Checkout is temporarily paused for maintenance."
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Global override. While this is filled in it replaces both messages below.
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-foreground flex items-center gap-1.5 mb-1.5">
+                  <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+                  Cart disabled message
+                </label>
+                <textarea
+                  value={cartDisabledReason}
+                  onChange={(e) => { setCartDisabledReason(e.target.value); mark(); }}
+                  rows={2}
+                  maxLength={300}
+                  className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="Shown when add-to-cart is OFF."
+                />
+              </div>
+              <div>
+                <label className="text-xs text-foreground flex items-center gap-1.5 mb-1.5">
+                  <Power className="h-3.5 w-3.5 text-muted-foreground" />
+                  Checkout disabled message
+                </label>
+                <textarea
+                  value={checkoutDisabledReason}
+                  onChange={(e) => { setCheckoutDisabledReason(e.target.value); mark(); }}
+                  rows={2}
+                  maxLength={300}
+                  className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="Shown when checkout is OFF."
                 />
               </div>
             </div>
