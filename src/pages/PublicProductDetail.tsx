@@ -80,7 +80,10 @@ const PublicProductDetail = () => {
   const { data: isSaved } = useIsProductSaved(productId);
   const toggleSave = useToggleSave();
   const gate = useCommerceGate(data?.seller?.id);
-  const gateBlocked = !gate.loading && (!gate.addToCartEnabled || !gate.checkoutEnabled);
+  // Split gating: cart and checkout are independent. Buy Now depends only on
+  // checkout; Add to Cart depends only on add_to_cart.
+  const cartAllowed = !gate.loading && gate.addToCartEnabled;
+  const checkoutAllowed = !gate.loading && gate.checkoutEnabled;
 
   const metaProduct = data?.product;
   const metaSeller = data?.seller;
@@ -165,10 +168,17 @@ const PublicProductDetail = () => {
     finally { setAddingToCart(false); }
   };
 
-  const handleBuyCTA = () => {
+  const handleCartCTA = () => {
     if (!isAuthenticated) { setShowAuthModal(true); return; }
     if (inCart) { navigate("/dashboard/cart"); return; }
     handleAddToCart();
+  };
+
+  // Buy Now reuses the existing storefront direct-purchase route exactly —
+  // no new endpoint, no alternate pricing path.
+  const handleBuyNow = () => {
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
+    navigate(`/store/${sellerSlug}/${productSlug}/checkout?qty=${quantity}`);
   };
 
   const handleAuthGatedAction = (action: () => void) => {
@@ -382,22 +392,53 @@ const PublicProductDetail = () => {
           </div>
 
           {/* CTA Button */}
-          {gateBlocked && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              <AlertCircle className="h-3.5 w-3.5 inline mr-1.5" />
-              {gate.disabledReason}
+          {gate.loading ? (
+            /* Skeleton instead of a fail-open flash while the gate resolves */
+            <div className="space-y-2" data-testid="commerce-cta-skeleton">
+              <div className="h-12 w-full rounded-xl bg-muted/50 animate-pulse" />
+              <div className="h-11 w-full rounded-xl bg-muted/40 animate-pulse" />
             </div>
+          ) : (
+            <>
+              {(!checkoutAllowed || !cartAllowed) && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  <AlertCircle className="h-3.5 w-3.5 inline mr-1.5" />
+                  {!checkoutAllowed ? gate.checkoutDisabledReason : gate.cartDisabledReason}
+                </div>
+              )}
+
+              {checkoutAllowed && (
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                  onClick={handleBuyNow}
+                  disabled={availableQty === 0}
+                  data-testid="buy-now-button"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  Buy Now
+                </Button>
+              )}
+
+              {cartAllowed && (
+                <Button
+                  size="lg"
+                  variant={checkoutAllowed ? "outline" : "default"}
+                  className={
+                    checkoutAllowed
+                      ? `w-full gap-2 rounded-xl h-12 text-base font-semibold ${glassPanel} !rounded-xl`
+                      : "w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                  }
+                  onClick={handleCartCTA}
+                  disabled={availableQty === 0 || addingToCart}
+                  data-testid="add-to-cart-button"
+                >
+                  {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+                  {addingToCart ? "Adding..." : inCart ? "View in Cart" : "Add to Cart"}
+                </Button>
+              )}
+            </>
           )}
-          <Button
-            size="lg"
-            className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
-            onClick={handleBuyCTA}
-            disabled={availableQty === 0 || addingToCart || gateBlocked}
-            title={gateBlocked ? gate.disabledReason : undefined}
-          >
-            {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : inCart ? <ShoppingCart className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
-            {addingToCart ? "Adding..." : gateBlocked ? "Currently unavailable" : inCart ? "View in Cart" : "Add to Cart"}
-          </Button>
 
           <Button
               variant="outline"
