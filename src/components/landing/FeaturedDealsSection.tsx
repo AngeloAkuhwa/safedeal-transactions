@@ -20,7 +20,7 @@ function ProductImage({ product }: { product: DemoProduct }) {
       alt={product.title}
       loading="lazy"
       onError={() => setErrored(true)}
-      className="h-full w-full object-contain p-3 transition-transform duration-700 ease-out group-hover:scale-110"
+      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
     />
   );
 }
@@ -146,7 +146,7 @@ export function FeaturedDealsSection() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-5">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-5">
           {DEMO_PRODUCTS.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}
