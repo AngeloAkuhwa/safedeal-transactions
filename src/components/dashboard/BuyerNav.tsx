@@ -16,7 +16,6 @@ import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { getBuyerNotifications } from "@/services/notifications.service";
 import { getCartItems } from "@/services/cart.service";
-import { useCommerceGate } from "@/hooks/useCommerceGate";
 
 interface BuyerNavProps {
   buyerName: string;
