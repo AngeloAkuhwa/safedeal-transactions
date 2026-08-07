@@ -111,8 +111,12 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           {/* Wishlist */}
           <button
             onClick={handleHeartClick}
+            aria-label={isSaved ? "Remove from saved" : "Save for later"}
             className={cn(
+              // Visual size stays 32px; the pseudo-element expands the real hit
+              // area to 48x48 (>=44px) without shifting layout.
               "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
+              "before:absolute before:-inset-2 before:content-['']",
               isSaved ? "text-destructive" : "text-muted-foreground hover:text-destructive"
             )}
           >
@@ -176,12 +180,14 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 {formatPrice(product.unit_price, product.currency_code)}
               </p>
             </div>
+            {/* Dead controls are hidden, not disabled, when the cart is off. */}
+            {!gate.loading && !cartBlocked && (
             <Button
               size="icon"
               variant={outOfStock ? "outline" : "default"}
-              className="h-8 w-8 rounded-lg shrink-0"
-              disabled={outOfStock || addingToCart || cartBlocked}
-              title={cartBlocked ? gate.disabledReason : undefined}
+              aria-label={outOfStock ? "Notify me when back in stock" : "Add to cart"}
+              className="relative h-8 w-8 rounded-lg shrink-0 before:absolute before:-inset-2 before:content-['']"
+              disabled={outOfStock || addingToCart}
               onClick={async (e) => {
                 e.stopPropagation();
                 if (!isAuthenticated) { setShowAuthModal(true); return; }
@@ -202,6 +208,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 <ShoppingCart className="h-3.5 w-3.5" />
               )}
             </Button>
+            )}
           </div>
         </div>
       </div>
