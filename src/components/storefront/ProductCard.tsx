@@ -47,7 +47,7 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
 
   return (
     <Card
-      className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
+      className="h-full flex flex-col rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
       onClick={onClick}
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
@@ -79,7 +79,7 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
           </div>
         )}
       </div>
-      <CardContent className="p-4">
+      <CardContent className="flex-1 p-4">
         <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-1 group-hover:text-primary transition-colors">
           {product.title}
         </h3>

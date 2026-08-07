@@ -321,14 +321,23 @@ const BuyerCart = () => {
             </Button>
           </div>
 
-          {cartMutationsBlocked && items.length > 0 && (
+          {!gate.loading && (cartMutationsBlocked || gateBlocked) && items.length > 0 && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">Adding to cart is paused</p>
+                <p className="text-sm font-medium text-foreground">
+                  {cartMutationsBlocked && gateBlocked
+                    ? "Cart and checkout are paused"
+                    : cartMutationsBlocked
+                    ? "Adding to cart is paused"
+                    : "Checkout is paused"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Your saved items are safe and nothing has been removed. While this is paused you can't add
-                  items or change quantities{gateBlocked ? "" : ", but you can still remove items and check out"}.
+                  {cartMutationsBlocked && gateBlocked
+                    ? "Your saved items are safe and nothing has been removed. You can view and remove items, but you can't add, change quantities, or pay right now."
+                    : cartMutationsBlocked
+                    ? "Your saved items are safe and nothing has been removed. You can't add items or change quantities, but you can still remove items and check out."
+                    : "Your saved items are safe. You can add, change and remove items, but payment is unavailable right now."}
                 </p>
               </div>
             </div>
@@ -750,7 +759,7 @@ const BuyerCart = () => {
                         className="w-full gap-2 rounded-xl h-12 text-base font-semibold"
                         disabled={selected.size === 0 || checkingOut || gateBlocked}
                         onClick={handleCheckout}
-                        title={gateBlocked ? gate.disabledReason : undefined}
+                        title={gateBlocked ? gate.checkoutDisabledReason : undefined}
                       >
                         {checkingOut ? (
                           <Loader2 className="h-5 w-5 animate-spin" />
@@ -762,7 +771,7 @@ const BuyerCart = () => {
                       {gateBlocked && (
                         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                           <AlertTriangle className="h-3.5 w-3.5 inline mr-1.5" />
-                          {gate.disabledReason}
+                          {gate.checkoutDisabledReason}
                         </div>
                       )}
                     </div>

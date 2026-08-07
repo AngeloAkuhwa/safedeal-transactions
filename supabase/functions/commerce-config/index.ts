@@ -13,6 +13,8 @@ const COMMERCE_KEYS = [
   "commerce.checkout_enabled",
   "commerce.add_to_cart_enabled",
   "commerce.disabled_reason",
+  "commerce.cart_disabled_reason",
+  "commerce.checkout_disabled_reason",
 ];
 
 async function resolveSources(vendorId: string | null): Promise<Record<string, "vendor" | "platform" | "default">> {

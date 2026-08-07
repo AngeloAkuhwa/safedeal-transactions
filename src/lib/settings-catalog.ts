@@ -144,6 +144,20 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
     spec: { type: "boolean" },
     writable: ["platform", "vendor"],
   },
+  {
+    key: "commerce.cart_disabled_reason",
+    label: "Cart disabled message",
+    help: "Shown to shoppers when add-to-cart is OFF. Ignored while the global 'shown to shoppers' override message is set.",
+    spec: { type: "text", maxLength: 300 },
+    writable: ["platform", "vendor"],
+  },
+  {
+    key: "commerce.checkout_disabled_reason",
+    label: "Checkout disabled message",
+    help: "Shown to shoppers when checkout is OFF. Ignored while the global 'shown to shoppers' override message is set.",
+    spec: { type: "text", maxLength: 300 },
+    writable: ["platform", "vendor"],
+  },
   // ── Media standards (Temu-grade product media) ──
   {
     key: "media.image_min_dimension_px",

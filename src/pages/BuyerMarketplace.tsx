@@ -222,7 +222,14 @@ export default function BuyerMarketplace() {
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-muted animate-pulse rounded-2xl" />
+                <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
+                  {/* Matches the real card: square media well + two text lines */}
+                  <div className="aspect-square w-full bg-muted animate-pulse" />
+                  <div className="space-y-2 p-3">
+                    <div className="h-3.5 w-4/5 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-2/5 rounded bg-muted animate-pulse" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : products.length === 0 ? (
