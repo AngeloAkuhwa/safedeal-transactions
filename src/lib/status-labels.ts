@@ -168,7 +168,22 @@ export function resolveMoneyLabel(
 export function resolveTransactionLabel(
   status: TxStatus | string,
   audience: Audience,
+  ctx?: { moneyStatus?: MoneyStatus | string | null },
 ): LabelEntry {
+  // A receipt-confirmed transaction is NOT "Completed" while the money is
+  // still sitting in escrow — funds are released only after SafeDeal review.
+  if (
+    (status === "completed" || status === "resolved") &&
+    ctx?.moneyStatus != null &&
+    !TERMINAL_MONEY_STATUSES.has(String(ctx.moneyStatus))
+  ) {
+    return {
+      label: "Awaiting Release",
+      short: "Awaiting Release",
+      tone: "info",
+    };
+  }
+
   return (
     TRANSACTION_LABELS[audience][status as TxStatus] ??
     ({
