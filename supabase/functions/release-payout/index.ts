@@ -1,5 +1,6 @@
 import { z } from "https://esm.sh/zod@3.23.8";
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { checkMakerChecker } from "../_shared/maker-checker.ts";
 import { releasePayoutCore } from "../_shared/release-core.ts";
 
 const corsHeaders = {
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "payouts.release");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
@@ -43,6 +44,17 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid_body", issues: parsed.error.flatten().fieldErrors });
   }
   const { transaction_id, payout_id, notes } = parsed.data;
+
+  // Maker-checker: the approver must differ from whoever flagged/initiated
+  // this release. Enforced only when `finance.maker_checker_enforced` is on.
+  const mc = await checkMakerChecker(ctx.adminClient, {
+    transactionId: transaction_id,
+    approverId: ctx.userId,
+    kind: "release",
+  });
+  if (!mc.allowed) {
+    return json(409, { error: mc.error, initiator_user_id: mc.initiatorId });
+  }
 
   const result = await releasePayoutCore(ctx.adminClient, {
     transaction_id,

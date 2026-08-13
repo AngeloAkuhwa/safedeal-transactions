@@ -1,5 +1,6 @@
 import { z } from "https://esm.sh/zod@3.23.8";
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { checkMakerChecker } from "../_shared/maker-checker.ts";
 import { refundBuyerCore } from "../_shared/release-core.ts";
 
 const corsHeaders = {
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "refunds.issue"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
@@ -42,6 +43,17 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid_body", issues: parsed.error.flatten().fieldErrors });
   }
   const { transaction_id, reason, notes } = parsed.data;
+
+  // Maker-checker: the approver must differ from whoever opened/flagged the
+  // refund. Enforced only when `finance.maker_checker_enforced` is on.
+  const mc = await checkMakerChecker(ctx.adminClient, {
+    transactionId: transaction_id,
+    approverId: ctx.userId,
+    kind: "refund",
+  });
+  if (!mc.allowed) {
+    return json(409, { error: mc.error, initiator_user_id: mc.initiatorId });
+  }
 
   const result = await refundBuyerCore(ctx.adminClient, {
     transaction_id,
