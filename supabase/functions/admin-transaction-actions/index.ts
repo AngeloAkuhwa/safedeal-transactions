@@ -563,7 +563,87 @@ Deno.serve(async (req) => {
           ));
         }
 
-        return json({ ok: true, ...(rpc ?? {}) });
+        // ---- Execute the money movement ---------------------------------
+        // `resolve_dispute_atomic` only books the refund row + ledger state;
+        // nothing in the DB talks to Paystack. Without this call the buyer is
+        // never actually refunded and the transaction sits at
+        // money_status='refund_pending' forever.
+        const REFUND_OUTCOMES = ["refund_buyer", "dismissed_buyer_favor", "partial_refund_release"];
+        let refundExecution: Record<string, unknown> = {};
+        const rpcRefundId = (rpc as any)?.refund_id as string | null | undefined;
+        if (REFUND_OUTCOMES.includes(outcome) && rpcRefundId) {
+          const exec = await executeProviderRefund(admin, rpcRefundId, {
+            reason: `dispute_${outcome}`,
+            notes: summary.slice(0, 400),
+            actor_user_id: userId,
+          });
+          if (exec.ok) {
+            refundExecution = {
+              refund_execution: exec.idempotent ? "idempotent" : "processing",
+              refund_provider_reference: exec.provider_reference,
+            };
+          } else {
+            // The dispute IS resolved — report success for the resolution but
+            // surface the money-movement failure. fail_refund_atomic + the ops
+            // alert already fired inside the helper; an admin with
+            // `refunds.issue` can re-run it via `retry_dispute_refund`.
+            console.error("[resolve_dispute] provider refund failed", exec.error, exec.message);
+            refundExecution = {
+              refund_execution: "failed",
+              refund_execution_reason: exec.message ?? exec.error,
+            };
+          }
+        }
+
+        return json({ ok: true, ...(rpc ?? {}), ...refundExecution });
+      }
+
+      case "retry_dispute_refund": {
+        if (tx.money_status !== "refund_pending") {
+          return json({ error: "not_in_refund_pending", money_status: tx.money_status }, 409);
+        }
+        const { data: refundRow } = await admin
+          .from("refunds")
+          .select("id, status, refund_amount")
+          .eq("transaction_id", txId)
+          .in("status", ["pending", "failed"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!refundRow?.id) return json({ error: "no_retryable_refund" }, 409);
+
+        const exec = await executeProviderRefund(admin, refundRow.id as string, {
+          reason: "dispute_refund_retry",
+          notes: typeof payload.notes === "string" ? payload.notes.slice(0, 400) : null,
+          actor_user_id: userId,
+        });
+
+        await recordAdmin({
+          admin,
+          actorId: userId,
+          action: "retry_dispute_refund",
+          transactionId: txId,
+          reason: typeof payload.notes === "string" ? payload.notes : undefined,
+          metadata: {
+            refund_id: refundRow.id,
+            previous_status: refundRow.status,
+            result: exec.ok ? "processing" : "failed",
+            error: exec.ok ? null : (exec.message ?? exec.error),
+          },
+          ..._meta,
+        });
+
+        if (!exec.ok) {
+          return json({ error: exec.error, message: exec.message ?? null, refund_id: refundRow.id }, 502);
+        }
+        return json({
+          ok: true,
+          refund_id: exec.refund_id,
+          idempotent: exec.idempotent,
+          provider_reference: exec.provider_reference,
+          amount: exec.amount,
+          status: exec.status,
+        });
       }
 
       case "dispute_request_more_info": {
