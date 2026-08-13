@@ -31,7 +31,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-export type PayoutTab = "all" | "pending_release" | "blocked" | "processing" | "completed" | "failed" | "reversed" | "on_hold";
+export type PayoutTab = "all" | "pending_release" | "blocked" | "processing" | "completed" | "failed" | "reversed" | "on_hold" | "stuck";
 
 export interface PayoutSummary {
   currency: string;
@@ -42,6 +42,7 @@ export interface PayoutSummary {
     released_today: { amount: number; count?: number };
     released_week: { amount: number; count?: number };
     avg_release_hours: number | null;
+    stuck?: { count: number; amount: number; threshold_hours: number };
   };
   tab_counts: Record<PayoutTab, number> & { all: number };
   paystack_balance: { ok: boolean; available?: number; currency?: string; error?: string };
@@ -61,6 +62,9 @@ export interface PayoutRow {
   entered_queue_at: string;
   released_at: string | null;
   initiated_at: string | null;
+  is_stuck?: boolean;
+  stuck_hours?: number;
+  watchdog_alerted_at?: string | null;
   transaction: {
     id: string;
     code: string;

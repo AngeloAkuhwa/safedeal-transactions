@@ -23,7 +23,7 @@ import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
 
-const VALID_TABS: PayoutTab[] = ["all","pending_release","blocked","processing","completed","failed","reversed","on_hold"];
+const VALID_TABS: PayoutTab[] = ["all","pending_release","blocked","processing","completed","failed","reversed","on_hold","stuck"];
 
 export default function AdminPayouts() {
   const navigate = useNavigate();
