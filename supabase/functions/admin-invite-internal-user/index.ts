@@ -8,6 +8,7 @@
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 import { assertCanGrantRoles } from "../_shared/internal-role-rank.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -325,6 +326,9 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
+  const rl = await enforceAdminRateLimit(ctx, "invite_internal_user", 20, corsHeaders);
+  if (rl) return rl;
 
   let body: InviteBody;
   try { body = await req.json(); }

@@ -8,6 +8,21 @@ export interface AuthContext {
   aal?: string | null;
 }
 
+/** Raised when the AAL2 gate cannot read `system_settings`. */
+export class SettingsReadError extends Error {}
+
+/**
+ * Last successfully observed value of `security.two_factor_admin_enforced`.
+ * Seeded from the environment so a cold isolate still fails CLOSED once the
+ * platform has turned enforcement on.
+ */
+let lastKnownMfaEnforced =
+  (Deno.env.get("ADMIN_MFA_ENFORCED_HINT") ?? "").toLowerCase() === "true";
+
+/** Test seam: override / read the cached enforcement belief. */
+export function __setLastKnownMfaEnforced(v: boolean) { lastKnownMfaEnforced = v; }
+export function __getLastKnownMfaEnforced() { return lastKnownMfaEnforced; }
+
 /**
  * Resolve the calling user from the Authorization bearer token, returning
  * a service-role client and the user identity. Throws on auth failure.
@@ -66,10 +81,14 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   //   `security.two_factor_admin`          — ADVISORY policy signal only.
   //   `security.two_factor_admin_enforced` — the real switch (default OFF).
   // Until the enforcement key is turned on we run in log-only mode so the
-  // platform can measure how many admins would be blocked. Fails open on read
-  // errors so a misconfigured setting can't lock every admin out.
+  // platform can measure how many admins would be blocked.
+  //
+  // FAIL-CLOSED CONTRACT: if enforcement is (or was last observed to be) ON,
+  // a settings-read failure must NOT bypass the gate — we return 503
+  // `mfa_gate_unavailable` instead of silently allowing the request. When the
+  // flags are off we keep the log-only behaviour.
   try {
-    const { data: rows } = await ctx.adminClient
+    const { data: rows, error: readErr } = await ctx.adminClient
       .from("system_settings")
       .select("setting_key, setting_value")
       .eq("scope", "platform")
@@ -77,6 +96,7 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
         "security.two_factor_admin",
         "security.two_factor_admin_enforced",
       ]);
+    if (readErr) throw new SettingsReadError(readErr.message ?? "system_settings_read_failed");
     const truthy = (raw: unknown) =>
       raw === true || raw === "true" ||
       (typeof raw === "object" && raw !== null && (raw as { enabled?: unknown }).enabled === true);
@@ -86,6 +106,7 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
     );
     const advisory = truthy(byKey.get("security.two_factor_admin"));
     const enforced = truthy(byKey.get("security.two_factor_admin_enforced"));
+    lastKnownMfaEnforced = enforced;
     if (ctx.aal !== "aal2" && (advisory || enforced)) {
       if (enforced) {
         throw new AuthError(403, "mfa_required");
@@ -101,6 +122,19 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
     }
   } catch (e) {
     if (e instanceof AuthError) throw e;
+    console.error(
+      JSON.stringify({
+        event: "mfa_gate_settings_read_failed",
+        user_id: ctx.userId,
+        last_known_enforced: lastKnownMfaEnforced,
+        message: (e as Error).message,
+      }),
+    );
+    // Fail CLOSED when enforcement is believed to be on and the caller is not
+    // already at AAL2. Fail open (log-only) only while enforcement is off.
+    if (lastKnownMfaEnforced && ctx.aal !== "aal2") {
+      throw new AuthError(503, "mfa_gate_unavailable");
+    }
   }
 
   return ctx;

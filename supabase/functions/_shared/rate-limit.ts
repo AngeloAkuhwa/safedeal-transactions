@@ -6,10 +6,24 @@
  *   const gate = await enforceAdminRateLimit(ctx, "reveal_user_field", 20);
  *   if (gate) return gate;   // 429 response, already CORS-wrapped
  *
- * Fails open on RPC errors so a database blip cannot brick the admin UI —
- * we log the failure to the function console and let the request proceed.
+ * Fails CLOSED on internal read errors: money- and privilege-bearing
+ * endpoints must never lose their throttle because of a database blip.
  */
 import type { AuthContext } from "./auth.ts";
+
+function limiterUnavailable(corsHeaders: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({
+      error: "rate_limit_unavailable",
+      reason: "Rate limiting is temporarily unavailable. Please retry shortly.",
+      retry_after_seconds: 30,
+    }),
+    {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+    },
+  );
+}
 
 export async function enforceAdminRateLimit(
   ctx: AuthContext,
@@ -25,7 +39,7 @@ export async function enforceAdminRateLimit(
     });
     if (error) {
       console.error("[rate-limit] rpc error", actionKey, error);
-      return null;
+      return limiterUnavailable(corsHeaders);
     }
     const row = Array.isArray(data) ? data[0] : data;
     if (row && row.allowed === false) {
@@ -50,6 +64,6 @@ export async function enforceAdminRateLimit(
     return null;
   } catch (e) {
     console.error("[rate-limit] threw", actionKey, (e as Error).message);
-    return null;
+    return limiterUnavailable(corsHeaders);
   }
 }

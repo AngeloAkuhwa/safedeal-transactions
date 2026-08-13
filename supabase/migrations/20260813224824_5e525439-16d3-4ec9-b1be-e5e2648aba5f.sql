@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.apply_permission_change_set(uuid, text);
