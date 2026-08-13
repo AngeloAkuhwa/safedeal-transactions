@@ -155,6 +155,23 @@ export interface DisputeRequestMoreInfoPayload {
 export const disputeRequestMoreInfo = (transactionId: string, payload: DisputeRequestMoreInfoPayload) =>
   invokeAction("dispute_request_more_info", transactionId, payload as unknown as Record<string, unknown>);
 
+export interface RetryDisputeRefundResult {
+  ok: boolean;
+  refund_id?: string;
+  idempotent?: boolean;
+  provider_reference?: string | null;
+  amount?: number;
+  status?: string;
+}
+
+/**
+ * Re-runs the payment-provider hand-off for a dispute refund that is still
+ * stuck at 'pending'/'failed' while the transaction sits at
+ * money_status='refund_pending'. Gated server-side on `refunds.issue`.
+ */
+export const retryDisputeRefund = (transactionId: string, notes?: string) =>
+  invokeAction("retry_dispute_refund", transactionId, { notes }) as Promise<RetryDisputeRefundResult>;
+
 // Dedicated dispute state transition — calls the `admin-dispute-transition`
 // edge function so the state machine, history row, and audit diff are handled
 // server-side. Used by AdminDisputeDetail's Move-to-Under-Review action.
