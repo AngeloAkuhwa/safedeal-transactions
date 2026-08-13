@@ -8,6 +8,7 @@ const TABS: { value: PayoutTab; label: string }[] = [
   { value: "failed", label: "Failed" },
   { value: "completed", label: "Completed" },
   { value: "blocked", label: "Blocked" },
+  { value: "stuck", label: "Stuck" },
 ];
 
 interface Props {

@@ -1,4 +1,5 @@
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
+import { DEFAULT_STUCK_HOURS, WATCHDOG_STUCK_HOURS_KEY, isStuckPayout, parseStuckHours } from "../_shared/payout-watchdog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,14 @@ Deno.serve(async (req) => {
   }
   const admin = ctx.adminClient;
 
+  const { data: stuckSetting } = await admin
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", WATCHDOG_STUCK_HOURS_KEY)
+    .eq("scope", "platform")
+    .maybeSingle();
+  const stuckThresholdHours = parseStuckHours((stuckSetting as any)?.setting_value ?? DEFAULT_STUCK_HOURS);
+
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -53,7 +62,7 @@ Deno.serve(async (req) => {
   // Fetch payout rows in relevant statuses with their tx money_status.
   const { data: rows, error } = await admin
     .from("payouts")
-    .select("id, status, amount, release_blocked, retry_allowed, released_at, created_at, transaction_id, transactions:transaction_id (money_status, needs_release_review)")
+    .select("id, status, amount, release_blocked, retry_allowed, released_at, created_at, initiated_at, provider_reference, transaction_id, transactions:transaction_id (money_status, needs_release_review)")
     .in("status", ["awaiting_release", "pending", "processing", "completed", "failed", "reversed", "blocked", "cancelled"])
     .limit(5000);
 
@@ -66,6 +75,7 @@ Deno.serve(async (req) => {
   const reversed: any[] = [];
   const completed: any[] = [];
   const onHold: any[] = [];
+  const stuck: any[] = [];
   let releasedToday = 0;
   let releasedWeek = 0;
   let pendingDelta24 = 0;
@@ -92,6 +102,7 @@ Deno.serve(async (req) => {
     if (r.status === "reversed") reversed.push(r);
     if (r.status === "completed") completed.push(r);
     if (needsReview) onHold.push(r);
+    if (isStuckPayout(r, stuckThresholdHours, now)) stuck.push(r);
 
     if (r.released_at && (r.status === "completed" || r.status === "processing")) {
       const releasedAt = new Date(r.released_at).getTime();
@@ -120,6 +131,7 @@ Deno.serve(async (req) => {
       released_today: { amount: releasedToday, count: completed.filter((r:any)=>r.released_at && new Date(r.released_at).getTime() >= new Date(startOfDay).getTime()).length },
       released_week: { amount: releasedWeek, count: completed.filter((r:any)=>r.released_at && new Date(r.released_at).getTime() >= new Date(startOfWeek).getTime()).length },
       avg_release_hours: avg(leadHours),
+      stuck: { count: stuck.length, amount: sum(stuck), threshold_hours: stuckThresholdHours },
     },
     tab_counts: {
       pending_release: pending.length,
@@ -129,6 +141,7 @@ Deno.serve(async (req) => {
       reversed: reversed.length,
       completed: completed.length,
       on_hold: onHold.length,
+      stuck: stuck.length,
       all: (rows ?? []).length,
     },
     paystack_balance: balance,

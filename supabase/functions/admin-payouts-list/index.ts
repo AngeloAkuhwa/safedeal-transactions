@@ -1,4 +1,11 @@
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
+import {
+  DEFAULT_STUCK_HOURS,
+  WATCHDOG_STUCK_HOURS_KEY,
+  isStuckPayout,
+  parseStuckHours,
+  payoutAgeHours,
+} from "../_shared/payout-watchdog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +27,8 @@ type Tab =
   | "completed"
   | "failed"
   | "reversed"
-  | "on_hold";
+  | "on_hold"
+  | "stuck";
 
 function maskAccount(num?: string | null): string | null {
   if (!num) return null;
@@ -55,12 +63,21 @@ Deno.serve(async (req) => {
   const bankStatus = url.searchParams.get("bank_status"); // verified|unverified|pending
   const quick = url.searchParams.get("quick"); // failed_only|blocked_only|high_priority
 
+  const { data: stuckSetting } = await admin
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", WATCHDOG_STUCK_HOURS_KEY)
+    .eq("scope", "platform")
+    .maybeSingle();
+  const stuckThresholdHours = parseStuckHours((stuckSetting as any)?.setting_value ?? DEFAULT_STUCK_HOURS);
+  const nowDate = new Date();
+
   let q = admin
     .from("payouts")
     .select(`
       id, status, amount, currency_code, release_blocked, payout_blocked_reason,
       retry_allowed, failed_attempt_count, failure_reason, provider_reference,
-      released_at, created_at, initiated_at,
+      released_at, created_at, initiated_at, watchdog_alerted_at,
       transaction_id, seller_id,
       transactions:transaction_id (
         id, transaction_code, money_status, status, dispute_status, needs_release_review,
@@ -89,6 +106,10 @@ Deno.serve(async (req) => {
       break;
     case "reversed":
       q = q.eq("status", "reversed");
+      break;
+    case "stuck":
+      // Filtered below in JS using the stuck predicate
+      q = q.in("status", ["pending", "processing"]).is("provider_reference", null);
       break;
     case "on_hold":
       // Filtered below in JS using needs_release_review
@@ -191,6 +212,9 @@ Deno.serve(async (req) => {
       entered_queue_at: r.created_at,
       released_at: r.released_at,
       initiated_at: r.initiated_at,
+      is_stuck: isStuckPayout(r, stuckThresholdHours, nowDate),
+      stuck_hours: Math.round(payoutAgeHours(r, nowDate) * 10) / 10,
+      watchdog_alerted_at: r.watchdog_alerted_at ?? null,
       transaction: {
         id: r.transactions?.id ?? r.transaction_id,
         code: r.transactions?.transaction_code ?? "",
@@ -230,6 +254,10 @@ Deno.serve(async (req) => {
     };
   });
 
+  if (tab === "stuck") {
+    mapped = mapped.filter((r) => r.is_stuck);
+  }
+
   if (tab === "on_hold") {
     mapped = mapped.filter((r) => r.transaction.needs_release_review);
   }
@@ -261,6 +289,8 @@ Deno.serve(async (req) => {
 
   return json({
     rows: mapped,
+    stuck_threshold_hours: stuckThresholdHours,
+    stuck_count_on_page: mapped.filter((r) => r.is_stuck).length,
     pagination: { page, limit, total: count ?? mapped.length, total_pages: Math.max(1, Math.ceil((count ?? mapped.length) / limit)) },
   });
 });
