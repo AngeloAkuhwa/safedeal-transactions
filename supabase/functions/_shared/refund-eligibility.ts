@@ -254,3 +254,44 @@ export async function evaluateRefundEligibility(
     gates,
   };
 }
+/**
+ * Pure mirror of the DB rule implemented by
+ * `public.ensure_platform_fee_reversal` + `start_refund_atomic`.
+ *
+ * Escrow only holds the item amount; the SafeDeal platform fee is booked as a
+ * `fee_record`. A seller/platform-fault refund returns item + platform fee, so
+ * the excess above the available pool is reversed back in as an `adjustment`
+ * (capped at the platform fee still un-reversed). The payment processing fee
+ * is never refundable.
+ *
+ * Amounts are in minor units (kobo) to keep the arithmetic exact.
+ */
+export function planPlatformFeeReversal(args: {
+  requiredMinor: number;
+  availableMinor: number;
+  platformFeeBookedMinor: number;
+  alreadyReversedMinor?: number;
+}): { reversalMinor: number; availableAfterMinor: number; accepted: boolean } {
+  const { requiredMinor, availableMinor, platformFeeBookedMinor } = args;
+  const alreadyReversedMinor = args.alreadyReversedMinor ?? 0;
+
+  if (requiredMinor <= 0) {
+    return { reversalMinor: 0, availableAfterMinor: availableMinor, accepted: false };
+  }
+  if (requiredMinor <= availableMinor) {
+    return { reversalMinor: 0, availableAfterMinor: availableMinor, accepted: true };
+  }
+
+  const excess = requiredMinor - availableMinor;
+  const remainingFee = Math.max(platformFeeBookedMinor - alreadyReversedMinor, 0);
+  if (excess > remainingFee) {
+    // Cannot refund more than item + platform fee out of escrow.
+    return { reversalMinor: 0, availableAfterMinor: availableMinor, accepted: false };
+  }
+
+  return {
+    reversalMinor: excess,
+    availableAfterMinor: availableMinor + excess,
+    accepted: true,
+  };
+}
