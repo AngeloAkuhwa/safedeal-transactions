@@ -250,7 +250,7 @@ const BuyerTransactionDetail = () => {
   const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
   const showVerifyCTA = tx.status === "delivered_awaiting_verification";
   const currentStatusIndex = getStatusIndex(tx.status);
-  const sEntry = resolveTransactionLabel(tx.status, "buyer");
+  const sEntry = resolveTransactionLabel(tx.status, "buyer", { moneyStatus: tx.money_status });
   const mEntry = resolveMoneyLabel(tx.money_status, "buyer", {
     sellerConfirmed: tx.seller_confirmed_at ? true : false,
   });
