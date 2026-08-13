@@ -313,7 +313,7 @@ export default function AdminPayouts() {
         <PayoutBatchBar
           selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
           onClear={() => setSelectedIds(new Set())}
-          onProcess={handleBatchProcess}
+          onProcess={handleProcessBatchClick}
           processing={batchProcessing}
         />
       </div>
@@ -359,7 +359,7 @@ export default function AdminPayouts() {
         <PayoutBatchBar
           selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
           onClear={() => setSelectedIds(new Set())}
-          onProcess={handleBatchProcess}
+          onProcess={handleProcessBatchClick}
           processing={batchProcessing}
         />
       </div>
