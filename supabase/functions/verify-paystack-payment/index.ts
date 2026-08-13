@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
+import { verifyChargeAgainstSnapshot, checkReferenceBinding } from "../_shared/payment-capture-guard.ts";
 
 function koboToNairaSafe(kobo: unknown): number {
   const n = Number(kobo);
@@ -39,16 +40,35 @@ export async function processPaystackVerification(
 
   const psData = verifyData.data;
 
-  // 2. Find our payment record using our stored reference (or fall back to Paystack's)
-  const lookupRef = ourReference || paystackReference;
+  // 2. Find our payment record. SOURCE OF TRUTH is the reference Paystack
+  //    actually verified (psData.reference). Any client-supplied
+  //    provider_reference is advisory only and must resolve to the SAME
+  //    payment row, otherwise a caller could verify a cheap charge while
+  //    pointing the DB lookup at an expensive payment.
+  const verifiedRef = String(psData.reference || paystackReference);
   const { data: payment, error: payErr } = await supabase
     .from("payments")
     .select("id, transaction_id, status, user_id, amount, currency_code")
-    .eq("provider_reference", lookupRef)
+    .eq("provider_reference", verifiedRef)
     .maybeSingle();
 
   if (payErr) throw payErr;
   if (!payment) return { success: false, error: "Payment record not found for this reference" };
+
+  if (ourReference && ourReference !== verifiedRef) {
+    const { data: advisoryPayment } = await supabase
+      .from("payments")
+      .select("id")
+      .eq("provider_reference", ourReference)
+      .maybeSingle();
+    const bound = checkReferenceBinding(
+      payment.id as string,
+      (advisoryPayment?.id as string) ?? "__unresolved__",
+    );
+    if (!bound.ok) {
+      return { success: false, error: "reference_mismatch" };
+    }
+  }
 
   // 3. Idempotency: already processed
   if (payment.status === "succeeded") {
@@ -159,12 +179,43 @@ export async function processPaystackVerification(
 
   const now = new Date().toISOString();
 
+  // 5b. AUTHORITATIVE amount + currency check against the locked snapshot.
+  //     Never book escrow for a charge that does not match what was agreed.
+  if (pricingSnapshot) {
+    const guard = verifyChargeAgainstSnapshot(psData, pricingSnapshot);
+    if (!guard.ok) {
+      await supabase
+        .from("payments")
+        .update({
+          status: "failed",
+          failed_at: now,
+          failure_reason: "amount_mismatch",
+          raw_payload: psData,
+        })
+        .eq("id", payment.id);
+      console.error("amount_mismatch on capture", {
+        payment_id: payment.id,
+        transaction_id: txId,
+        reason: guard.reason,
+        expectedKobo: guard.expectedKobo,
+        chargedKobo: guard.chargedKobo,
+        expectedCurrency: guard.expectedCurrency,
+        chargedCurrency: guard.chargedCurrency,
+      });
+      return { success: false, error: "amount_mismatch" };
+    }
+  } else {
+    console.warn(
+      `verify-paystack-payment: no pricing snapshot for transaction ${txId} — strict amount/currency check skipped (legacy fallback path)`,
+    );
+  }
+
   // 6. Atomic updates — all must succeed
   // 6a–6d. Payment capture is recorded through the single guarded routine:
   // payment row, transaction/escrow state and the four authoritative ledger
   // entries are written all-or-nothing, keyed on the Paystack event id so a
   // retry can never produce a second set of money movements.
-  const providerEventId = String(psData.id ?? psData.reference ?? reference);
+  const providerEventId = String(psData.id ?? psData.reference ?? paystackReference);
   const { error: captureErr } = await supabase.rpc("record_payment_capture_atomic", {
     p_payment_id: payment.id,
     p_provider_event_id: providerEventId,

@@ -4,6 +4,7 @@ import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { koboToNaira } from "../_shared/money.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
+import { verifyChargeAgainstSnapshot } from "../_shared/payment-capture-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -193,6 +194,44 @@ Deno.serve(async (req) => {
         // Payment capture goes through the same guarded routine the verify path
         // uses. Keyed on the Paystack event id, so verify + webhook racing on the
         // same payment records exactly one set of money movements.
+        // AUTHORITATIVE amount + currency check against the locked snapshot —
+        // identical rule to the verify path. Refuse capture on mismatch.
+        if (pricingRow) {
+          const guard = verifyChargeAgainstSnapshot(psData, pricingRow);
+          if (!guard.ok) {
+            await supabase
+              .from("payments")
+              .update({
+                status: "failed",
+                failed_at: new Date().toISOString(),
+                failure_reason: "amount_mismatch",
+                raw_payload: psData,
+              })
+              .eq("id", payment.id);
+            await supabase.from("system_logs").insert({
+              level: "error",
+              service_name: "paystack-webhook",
+              message: "amount_mismatch — capture refused",
+              metadata: {
+                payment_id: payment.id,
+                transaction_id: txId,
+                provider_reference: providerReference,
+                reason: guard.reason,
+                expected_kobo: guard.expectedKobo,
+                charged_kobo: guard.chargedKobo,
+                expected_currency: guard.expectedCurrency,
+                charged_currency: guard.chargedCurrency,
+              },
+            });
+            await updateWebhookLog(supabase, providerReference, false, "amount_mismatch — capture refused");
+            return new Response("OK", { status: 200 });
+          }
+        } else {
+          console.warn(
+            `paystack-webhook: no pricing snapshot for transaction ${txId} — strict amount/currency check skipped (legacy fallback path)`,
+          );
+        }
+
         const captureEventId = String(psData.id ?? providerEventId ?? providerReference);
         const { error: captureErr } = await supabase.rpc("record_payment_capture_atomic", {
           p_payment_id: payment.id,
