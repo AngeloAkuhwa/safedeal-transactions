@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE_FALLBACK } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
+import { resolveInitiationCharge } from "../_shared/payment-capture-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -190,7 +191,7 @@ Deno.serve(async (req) => {
     // 6. Fetch pricing data and compute
     const { data: pricingRow } = await supabase
       .from("transaction_pricing")
-      .select("currency_code, item_amount")
+      .select("currency_code, item_amount, buyer_total_amount, platform_fee_amount, payment_processing_fee_amount")
       .eq("transaction_id", txId)
       .maybeSingle();
 
@@ -202,6 +203,19 @@ Deno.serve(async (req) => {
     const vendorPricingConfig = await loadPricingConfig(tx.seller_id);
     const pricing = computePricing(itemAmount, pricingRow.currency_code || "NGN", "local", vendorPricingConfig);
     const snapshot = buildPricingSnapshot(itemAmount, pricingRow.currency_code || "NGN", vendorPricingConfig);
+
+    // Charge the LOCKED snapshot total the buyer already agreed to. The live
+    // recomputation above is used only for fee metadata / gating and as a
+    // fallback when no snapshot total exists.
+    const charge = resolveInitiationCharge({
+      snapshot: pricingRow,
+      computed: { currency_code: pricing.currency_code, total_amount: pricing.total_amount },
+    });
+    if (charge.source === "computed") {
+      console.warn(
+        `initiate-paystack-payment: no locked buyer_total_amount for transaction ${txId} — falling back to live pricing`,
+      );
+    }
 
     // SafeDeal central gate: provider (Paystack) fee is covered first inside
     // the effective cap for this vendor. If the provider estimate alone would
@@ -268,8 +282,8 @@ Deno.serve(async (req) => {
       provider_reference: reference,
       status: "pending",
       payment_method_type: method,
-      currency_code: pricing.currency_code,
-      amount: pricing.total_amount,
+      currency_code: charge.currency_code,
+      amount: charge.total_amount,
     });
 
     if (payErr) throw payErr;
@@ -289,7 +303,7 @@ Deno.serve(async (req) => {
       throw new Error("PAYSTACK_SECRET_KEY not configured");
     }
 
-    const amountInKobo = Math.round(pricing.total_amount * 100);
+    const amountInKobo = charge.amount_kobo;
     const channels = paymentMethod === "bank" ? ["bank_transfer"] : ["card"];
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
@@ -301,17 +315,28 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         amount: amountInKobo,
         email: userEmail,
-        currency: pricing.currency_code,
+        currency: charge.currency_code,
         reference,
         channels,
         metadata: {
           transaction_id: txId,
           share_token: shareToken,
           buyer_user_id: userId,
-          item_amount: pricing.item_amount,
-          service_fee_amount: pricing.service_fee_amount,
-          paystack_fee_amount: pricing.paystack_fee_amount,
-          platform_fee_amount: pricing.platform_fee_amount,
+          item_amount: itemAmount,
+          service_fee_amount:
+            charge.source === "snapshot"
+              ? (Number(pricingRow.platform_fee_amount) || 0) +
+                (Number(pricingRow.payment_processing_fee_amount) || 0)
+              : pricing.service_fee_amount,
+          paystack_fee_amount:
+            charge.source === "snapshot"
+              ? Number(pricingRow.payment_processing_fee_amount) || 0
+              : pricing.paystack_fee_amount,
+          platform_fee_amount:
+            charge.source === "snapshot"
+              ? Number(pricingRow.platform_fee_amount) || 0
+              : pricing.platform_fee_amount,
+          pricing_source: charge.source,
         },
       }),
     });
