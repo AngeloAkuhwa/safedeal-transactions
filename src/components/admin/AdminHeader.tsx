@@ -1,4 +1,4 @@
-import { Filter, Download } from "lucide-react";
+import { Filter } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
 import { ThemeToggle } from "@/components/ThemeToggle";

@@ -1,4 +1,4 @@
-import { Menu, ShieldCheck, Download } from "lucide-react";
+import { Menu, ShieldCheck } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
 import { ThemeToggle } from "@/components/ThemeToggle";

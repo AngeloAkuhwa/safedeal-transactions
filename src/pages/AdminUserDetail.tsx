@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Download, StickyNote, UserCog, Search,
+  ArrowLeft, Download, StickyNote, Search,
   Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
