@@ -25,6 +25,7 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "security.session_timeout_minutes", writable: ["platform"], spec: { type: "number", min: 5, max: 240 } },
   { key: "security.two_factor_admin", writable: ["platform"], spec: { type: "boolean" } },
   { key: "security.two_factor_admin_enforced", writable: ["platform"], spec: { type: "boolean" } },
+  { key: "finance.maker_checker_enforced", writable: ["platform"], spec: { type: "boolean" } },
   { key: "notifications.email_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "notifications.sms_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "escrow.auto_release_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },

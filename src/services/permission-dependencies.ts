@@ -33,6 +33,10 @@ const FALLBACK_DEPENDENCIES: Array<[string, string]> = [
   ["identity_verification.reject", "identity_verification.view"],
   ["flagged_users.remove_flag", "flagged_users.view"],
   ["flagged_users.suspend", "flagged_users.view"],
+  ["payouts.release", "payouts.view"],
+  ["refunds.issue", "refunds.view"],
+  ["release_review.flag", "release_review.view"],
+  ["release_review.resolve", "release_review.view"],
 ];
 
 export let PERMISSION_DEPENDENCIES: Array<[string, string]> = [...FALLBACK_DEPENDENCIES];

@@ -103,6 +103,13 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
     writable: ["platform"],
   },
   {
+    key: "finance.maker_checker_enforced",
+    label: "Maker-checker for money movement",
+    help: "When on, the admin who flagged or opened a release/refund cannot be the one who executes it. Leave off for single-operator teams — self-approvals are logged either way.",
+    spec: { type: "boolean" },
+    writable: ["platform"],
+  },
+  {
     key: "notifications.email_enabled",
     label: "Email notifications",
     help: "Send email updates for transaction events.",

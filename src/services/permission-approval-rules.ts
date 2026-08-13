@@ -47,6 +47,9 @@ const FIN_KEYS = new Set([
   "payouts.initiate",
   "payouts.approve",
   "refunds.approve",
+  "payouts.release",
+  "refunds.issue",
+  "release_review.resolve",
 ]);
 
 const AUDIT_KEY = "audit.read_full";
