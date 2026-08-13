@@ -39,16 +39,24 @@ interface TransactionStatusBadgeProps {
   status: string;
   /** Defaults to "seller" so legacy call sites keep their existing copy. */
   audience?: Audience;
+  /**
+   * Money status for the same transaction. When supplied, a receipt-confirmed
+   * transaction whose funds are still in escrow reads "Awaiting Release"
+   * instead of the misleading "Completed".
+   */
+  moneyStatus?: string | null;
   className?: string;
 }
 
 export function TransactionStatusBadge({
   status,
   audience = "seller",
+  moneyStatus,
   className,
 }: TransactionStatusBadgeProps) {
-  const entry = resolveTransactionLabel(status as TxStatus, audience);
-  const Icon = ICONS[status] ?? Clock;
+  const entry = resolveTransactionLabel(status as TxStatus, audience, { moneyStatus });
+  const base = resolveTransactionLabel(status as TxStatus, audience);
+  const Icon = entry.label === base.label ? (ICONS[status] ?? Clock) : Clock;
   const display = entry.short ?? entry.label;
 
   return (
