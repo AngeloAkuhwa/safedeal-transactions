@@ -24,7 +24,7 @@ export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
             <p className="text-sm text-muted-foreground">
               If you take no action within the {windowHours}-hour verification window, SafeDeal
               will review the transaction on your behalf before releasing funds to the seller.
-              This protects both parties and keeps deals moving in a timely manner.
+              Funds are never released automatically on your silence.
             </p>
           </div>
         </div>
@@ -35,11 +35,12 @@ export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-1">
-              Dispute must be opened before expiry
+              You keep your right to dispute
             </h3>
             <p className="text-sm text-muted-foreground">
-              Once the verification window closes, you will no longer be able to raise a dispute.
-              Make sure to review the item carefully and take action before the countdown reaches zero.
+              Even after the countdown reaches zero, you can still raise a dispute until SafeDeal
+              completes its review and the case is closed. Acting before the deadline is still the
+              fastest way to get your issue resolved.
             </p>
           </div>
         </div>
