@@ -1,10 +1,13 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { createTransfer, createRefund } from "./paystack.ts";
+import { createTransfer } from "./paystack.ts";
 import { nairaToKobo } from "./money.ts";
 import { notifyUser, notifyOpsTeam } from "./notify.ts";
 import { formatMoney, PRICING_LINE_LABELS } from "./money-copy.ts";
 import { assertPayoutEligible } from "./payout-eligibility.ts";
 import { evaluateReleaseBlocks, hasOpenDispute } from "./dispute-guard.ts";
+import { executeProviderRefund } from "./provider-refund.ts";
+
+export { executeProviderRefund } from "./provider-refund.ts";
 
 export type CoreResult =
   | { ok: true; status: number; body: Record<string, unknown> }
