@@ -1,5 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { formatMoney, PRICING_LINE_LABELS } from "../_shared/money-copy.ts";
+import {
+  PAYOUT_ACCOUNT_BLOCK_REASONS,
+  PAYOUT_ACCOUNT_QUEUE_TYPE,
+} from "../_shared/payout-blocking.ts";
+
+const PAYOUT_ACCOUNT_MISSING = PAYOUT_ACCOUNT_BLOCK_REASONS[0];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -270,7 +276,7 @@ Deno.serve(async (req) => {
           currency_code: currency,
           status: "blocked",
           release_blocked: true,
-          payout_blocked_reason: "payout_account_missing",
+          payout_blocked_reason: PAYOUT_ACCOUNT_MISSING,
           notes: "Both parties confirmed. Payout blocked: seller payout account missing.",
         })
         .select("id")
@@ -282,7 +288,7 @@ Deno.serve(async (req) => {
         .from("transactions")
         .update({
           needs_release_review: true,
-          release_review_reason: "payout_account_missing",
+          release_review_reason: PAYOUT_ACCOUNT_MISSING,
         })
         .eq("id", transactionId);
 
@@ -292,7 +298,7 @@ Deno.serve(async (req) => {
         seller_id: tx.seller_id,
         amount: sellerNet,
         currency_code: currency,
-        queue_type: "payout_account_missing",
+        queue_type: PAYOUT_ACCOUNT_QUEUE_TYPE,
         status: "pending",
         notes: "Seller has no verified default payout account.",
       }).then(({ error }) => {
@@ -329,7 +335,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         blocked: true,
-        reason: "payout_account_missing",
+        reason: PAYOUT_ACCOUNT_MISSING,
         payout_id: blockedPayout?.id ?? null,
       });
     }
