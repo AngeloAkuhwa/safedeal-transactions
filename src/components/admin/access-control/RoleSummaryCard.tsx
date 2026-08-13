@@ -64,6 +64,7 @@ const ACTION_WORD: Record<PermissionAction, string> = {
   request_information: "request info", request_evidence: "request evidence",
   update_status: "update status", resolve_assigned: "resolve assigned",
   resolve_all: "resolve any", remove_flag: "remove flag",
+  release: "release funds", issue: "issue", flag: "flag",
 };
 
 const ALL_PERMISSIONS: PermissionEntry[] =
