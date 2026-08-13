@@ -1,6 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createTransferRecipient } from "../_shared/paystack.ts";
 import { logEdgeError } from "../_shared/log-error.ts";
+import {
+  PAYOUT_ACCOUNT_BLOCK_REASONS,
+  PAYOUT_ACCOUNT_QUEUE_TYPE,
+  OPEN_RELEASE_REVIEW_STATUSES,
+  IN_FLIGHT_PAYOUT_STATUSES,
+  blocksPayoutAccountEdit,
+} from "../_shared/payout-blocking.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +91,28 @@ Deno.serve(async (req) => {
     // Mask account number — keep last 4 digits only
     const cleanNumber = account_number.trim();
     const maskedAccountNumber = `****** ${cleanNumber.slice(-4)}`;
+
+    // Guard: refuse the edit while a genuine release is in flight, so a
+    // compromised session cannot redirect an imminent payout. Blocked payouts
+    // are intentionally excluded — adding an account is how they self-heal.
+    const { data: inFlightPayouts, error: inFlightErr } = await adminClient
+      .from("payouts")
+      .select("id, status")
+      .eq("seller_id", userId)
+      .in("status", IN_FLIGHT_PAYOUT_STATUSES as unknown as string[]);
+
+    if (inFlightErr) {
+      console.error("in-flight payout check failed:", inFlightErr);
+      return jsonResponse({ error: "payout_check_unavailable" }, 503);
+    }
+    if (blocksPayoutAccountEdit(inFlightPayouts ?? [])) {
+      return jsonResponse({
+        error: "payout_in_flight",
+        message:
+          "You have a payout being released right now. Contact support to change your payout account.",
+        payout_ids: (inFlightPayouts ?? []).map((p: any) => p.id),
+      }, 409);
+    }
 
     // Phase B7: if seller is editing an already-verified account, immediately
     // park it in `requires_update` and unverify so any in-flight release calls
@@ -219,7 +248,7 @@ Deno.serve(async (req) => {
 
     // 3) Auto-unblock any payouts that were blocked solely because the
     //    seller had no verified payout account.
-    await adminClient
+    const { data: unblockedPayouts, error: unblockErr } = await adminClient
       .from("payouts")
       .update({
         status: "awaiting_release",
@@ -228,10 +257,39 @@ Deno.serve(async (req) => {
       })
       .eq("seller_id", userId)
       .eq("status", "blocked")
-      .eq("payout_blocked_reason", "payout_account_unverified");
+      .in("payout_blocked_reason", PAYOUT_ACCOUNT_BLOCK_REASONS as unknown as string[])
+      .select("id, transaction_id");
+
+    if (unblockErr) console.error("payout auto-unblock failed:", unblockErr);
+
+    const unblocked = unblockedPayouts ?? [];
+    const transactionIds = Array.from(
+      new Set(unblocked.map((p: any) => p.transaction_id).filter(Boolean)),
+    );
+
+    if (transactionIds.length > 0) {
+      // Resolve the open release-review queue rows for these transactions.
+      const { error: queueErr } = await adminClient
+        .from("release_review_queue")
+        .update({ status: "resolved", resolved_at: new Date().toISOString() })
+        .in("transaction_id", transactionIds)
+        .eq("queue_type", PAYOUT_ACCOUNT_QUEUE_TYPE)
+        .in("status", OPEN_RELEASE_REVIEW_STATUSES as unknown as string[]);
+      if (queueErr) console.error("release review queue resolve failed:", queueErr);
+
+      // Clear the review flags on the affected transactions.
+      const { error: txErr } = await adminClient
+        .from("transactions")
+        .update({ needs_release_review: false, release_review_reason: null })
+        .in("id", transactionIds);
+      if (txErr) console.error("transaction review flag clear failed:", txErr);
+    }
 
     return jsonResponse({
       success: true,
+      unblocked_payout_count: unblocked.length,
+      unblocked_payout_ids: unblocked.map((p: any) => p.id),
+      unblocked_transaction_ids: transactionIds,
       payout_account: {
         bank_name: data.bank_name,
         account_name: data.account_name,
