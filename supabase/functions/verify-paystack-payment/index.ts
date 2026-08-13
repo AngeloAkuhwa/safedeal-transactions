@@ -179,12 +179,43 @@ export async function processPaystackVerification(
 
   const now = new Date().toISOString();
 
+  // 5b. AUTHORITATIVE amount + currency check against the locked snapshot.
+  //     Never book escrow for a charge that does not match what was agreed.
+  if (pricingSnapshot) {
+    const guard = verifyChargeAgainstSnapshot(psData, pricingSnapshot);
+    if (!guard.ok) {
+      await supabase
+        .from("payments")
+        .update({
+          status: "failed",
+          failed_at: now,
+          failure_reason: "amount_mismatch",
+          raw_payload: psData,
+        })
+        .eq("id", payment.id);
+      console.error("amount_mismatch on capture", {
+        payment_id: payment.id,
+        transaction_id: txId,
+        reason: guard.reason,
+        expectedKobo: guard.expectedKobo,
+        chargedKobo: guard.chargedKobo,
+        expectedCurrency: guard.expectedCurrency,
+        chargedCurrency: guard.chargedCurrency,
+      });
+      return { success: false, error: "amount_mismatch" };
+    }
+  } else {
+    console.warn(
+      `verify-paystack-payment: no pricing snapshot for transaction ${txId} — strict amount/currency check skipped (legacy fallback path)`,
+    );
+  }
+
   // 6. Atomic updates — all must succeed
   // 6a–6d. Payment capture is recorded through the single guarded routine:
   // payment row, transaction/escrow state and the four authoritative ledger
   // entries are written all-or-nothing, keyed on the Paystack event id so a
   // retry can never produce a second set of money movements.
-  const providerEventId = String(psData.id ?? psData.reference ?? reference);
+  const providerEventId = String(psData.id ?? psData.reference ?? paystackReference);
   const { error: captureErr } = await supabase.rpc("record_payment_capture_atomic", {
     p_payment_id: payment.id,
     p_provider_event_id: providerEventId,
