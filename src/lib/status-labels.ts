@@ -169,6 +169,15 @@ export function resolveTransactionLabel(
   status: TxStatus | string,
   audience: Audience,
   ctx?: { moneyStatus?: MoneyStatus | string | null },
+): LabelEntry;
+/**
+ * Money statuses where the buyer's money has genuinely left escrow, so the
+ * transaction can honestly read as terminal/"Completed".
+ */
+export function resolveTransactionLabel(
+  status: TxStatus | string,
+  audience: Audience,
+  ctx?: { moneyStatus?: MoneyStatus | string | null },
 ): LabelEntry {
   // A receipt-confirmed transaction is NOT "Completed" while the money is
   // still sitting in escrow — funds are released only after SafeDeal review.
