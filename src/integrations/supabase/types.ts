@@ -3570,6 +3570,7 @@ export type Database = {
           status: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
           updated_at: string
+          watchdog_alerted_at: string | null
         }
         Insert: {
           amount: number
@@ -3594,6 +3595,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
           updated_at?: string
+          watchdog_alerted_at?: string | null
         }
         Update: {
           amount?: number
@@ -3618,6 +3620,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id?: string
           updated_at?: string
+          watchdog_alerted_at?: string | null
         }
         Relationships: [
           {
