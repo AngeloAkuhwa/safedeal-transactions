@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  CANCELLABLE_STATUSES,
+  isShareLinkExpired,
+  resolveCancelActorRole,
+} from "../_shared/share-links.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +17,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // 0. Auth — this function runs with verify_jwt = false, so validate in code.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { shareToken } = await req.json();
     if (!shareToken || typeof shareToken !== "string") {
       return new Response(JSON.stringify({ error: "shareToken is required" }), {
@@ -24,6 +38,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const accessToken = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+    const callerEmail = userData.user.email ?? null;
 
     // 1. Resolve share token → transaction
     const { data: link, error: linkErr } = await supabase
@@ -40,28 +65,50 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (isShareLinkExpired(link.expires_at)) {
+      return new Response(
+        JSON.stringify({ error: "This transaction link has expired" }),
+        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const txId = link.transaction_id;
 
     // 2. Fetch current transaction status
     const { data: tx, error: txErr } = await supabase
       .from("transactions")
-      .select("id, transaction_code, status, money_status, seller_id, buyer_id")
+      .select("id, transaction_code, status, money_status, seller_id, buyer_id, buyer_contact_email")
       .eq("id", txId)
       .single();
 
     if (txErr) throw txErr;
 
-    // 3. Validate cancellable states
-    const cancellableStatuses = ["draft", "awaiting_buyer", "awaiting_payment"];
-    if (!cancellableStatuses.includes(tx.status)) {
+    // 3. Ownership — only the real parties may cancel, never a random link holder.
+    const actorRole = resolveCancelActorRole(
+      { userId: callerId, email: callerEmail },
+      tx as { seller_id: string | null; buyer_id: string | null; buyer_contact_email: string | null },
+    );
+    if (!actorRole) {
+      return new Response(
+        JSON.stringify({ error: "You are not a party to this transaction" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 4. Validate cancellable states
+    if (!(CANCELLABLE_STATUSES as readonly string[]).includes(tx.status)) {
       return new Response(
         JSON.stringify({ error: `Transaction cannot be cancelled in status: ${tx.status}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 4. Update transaction status → cancelled (also stamp cancelled_at and
+    const reason =
+      actorRole === "seller"
+        ? "Seller cancelled the transaction"
+        : "Buyer declined the transaction";
+
+    // 5. Update transaction status → cancelled (also stamp cancelled_at and
     //    transition money_status so the audit trail and ledger views line up)
     const nowIso = new Date().toISOString();
     const moneyShouldCancel =
@@ -78,14 +125,14 @@ Deno.serve(async (req) => {
 
     if (updateErr) throw updateErr;
 
-    // 5. Insert transaction_status_history record (and money_status_history
+    // 6. Insert transaction_status_history record (and money_status_history
     //    when the money state also transitioned).
     await supabase.from("transaction_status_history").insert({
       transaction_id: txId,
       old_status: tx.status,
       new_status: "cancelled",
-      reason: "Buyer declined the transaction",
-      changed_by_user_id: tx.buyer_id ?? null,
+      reason,
+      changed_by_user_id: callerId,
       changed_at: nowIso,
     });
     if (moneyShouldCancel) {
@@ -93,18 +140,18 @@ Deno.serve(async (req) => {
         transaction_id: txId,
         old_status: tx.money_status,
         new_status: "cancelled",
-        reason: "Buyer declined the transaction",
-        changed_by_user_id: tx.buyer_id ?? null,
+        reason,
+        changed_by_user_id: callerId,
       });
     }
 
-    // 6. Deactivate the share link
+    // 7. Deactivate the share link
     await supabase
       .from("transaction_links")
       .update({ is_active: false })
       .eq("share_token", shareToken);
 
-    // 6b. Release reserved stock for any source products on this transaction
+    // 7b. Release reserved stock for any source products on this transaction
     const { data: txItems } = await supabase
       .from("transaction_items")
       .select("quantity")
@@ -155,16 +202,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 7. Notify the seller
-    await supabase.from("notifications").insert({
-      user_id: tx.seller_id,
-      type: "transaction_update",
-      channel: "in_app",
-      title: "Transaction Declined",
-      message: `Transaction ${tx.transaction_code} was declined by the buyer and has been cancelled.`,
-      related_transaction_id: txId,
-      status: "pending",
-    });
+    // 8. Notify the counterparty
+    const notifyUserId = actorRole === "seller" ? tx.buyer_id : tx.seller_id;
+    if (notifyUserId) {
+      await supabase.from("notifications").insert({
+        user_id: notifyUserId,
+        type: "transaction_update",
+        channel: "in_app",
+        title: actorRole === "seller" ? "Transaction Cancelled" : "Transaction Declined",
+        message: `Transaction ${tx.transaction_code} was cancelled and is no longer active.`,
+        related_transaction_id: txId,
+        status: "pending",
+      });
+    }
 
     return new Response(
       JSON.stringify({ success: true, transaction_code: tx.transaction_code }),
