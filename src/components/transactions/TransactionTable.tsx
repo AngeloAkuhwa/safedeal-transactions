@@ -128,7 +128,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
 
                 {/* Status */}
                 <TableCell className="py-4 px-4">
-                  <TransactionStatusBadge status={tx.transaction_status} audience={audience} />
+                  <TransactionStatusBadge status={tx.transaction_status} audience={audience} moneyStatus={tx.money_status} />
                 </TableCell>
               </TableRow>
             ))}
@@ -165,7 +165,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <TransactionStatusBadge status={tx.transaction_status} audience={audience} />
+              <TransactionStatusBadge status={tx.transaction_status} audience={audience} moneyStatus={tx.money_status} />
             </div>
           </div>
         ))}
