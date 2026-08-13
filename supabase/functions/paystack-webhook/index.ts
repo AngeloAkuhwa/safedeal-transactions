@@ -210,9 +210,9 @@ Deno.serve(async (req) => {
               .eq("id", payment.id);
             await supabase.from("system_logs").insert({
               level: "error",
-              source: "paystack-webhook",
+              service_name: "paystack-webhook",
               message: "amount_mismatch — capture refused",
-              context: {
+              metadata: {
                 payment_id: payment.id,
                 transaction_id: txId,
                 provider_reference: providerReference,
