@@ -165,15 +165,15 @@ export function resolveMoneyLabel(
   return base;
 }
 
-export function resolveTransactionLabel(
-  status: TxStatus | string,
-  audience: Audience,
-  ctx?: { moneyStatus?: MoneyStatus | string | null },
-): LabelEntry;
 /**
  * Money statuses where the buyer's money has genuinely left escrow, so the
- * transaction can honestly read as terminal/"Completed".
+ * transaction can honestly read as terminal ("Completed"/"Refunded").
  */
+export const TERMINAL_MONEY_STATUSES: ReadonlySet<string> = new Set([
+  "funds_released",
+  "refund_issued",
+]);
+
 export function resolveTransactionLabel(
   status: TxStatus | string,
   audience: Audience,
