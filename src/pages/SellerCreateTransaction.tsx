@@ -40,6 +40,8 @@ import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { useMediaConfig } from "@/hooks/useMediaConfig";
+import { formatMaxMb } from "@/lib/media-rules";
 
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
@@ -96,6 +98,7 @@ const defaultForm: CreateTransactionData = {
 };
 
 const SellerCreateTransaction = () => {
+  const { config: mediaConfig } = useMediaConfig();
   const navigate = useNavigate();
   const { toast } = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
