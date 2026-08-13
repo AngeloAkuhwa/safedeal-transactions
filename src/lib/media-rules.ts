@@ -87,6 +87,12 @@ export function parseMediaConfig(raw: Record<string, unknown> | null | undefined
 
 // ── Ratio helpers ──────────────────────────────────────────────
 
+/** Human-readable megabyte label for a byte ceiling (e.g. 3145728 -> "3MB"). */
+export function formatMaxMb(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)}MB`;
+}
+
 export const RATIO_TOLERANCE = 0.03;
 
 export function parseRatio(label: string): number {
