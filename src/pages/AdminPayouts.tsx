@@ -13,6 +13,8 @@ import { PayoutsTable, eligibleForRelease } from "@/components/admin/payouts/Pay
 import { PayoutMobileCards } from "@/components/admin/payouts/PayoutMobileCards";
 import { PayoutDetailDrawer } from "@/components/admin/payouts/PayoutDetailDrawer";
 import { PayoutPromptDialog } from "@/components/admin/payouts/PayoutPromptDialog";
+import { BatchReleaseConfirmDialog } from "@/components/admin/payouts/BatchReleaseConfirmDialog";
+import { formatMoney } from "@/lib/format";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
@@ -50,6 +52,7 @@ export default function AdminPayouts() {
   const [listLoading, setListLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchProcessing, setBatchProcessing] = useState(false);
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
   const [releasingId, setReleasingId] = useState<string | null>(null);
 
   const initialDeepPayout = searchParams.get("payout_id");
