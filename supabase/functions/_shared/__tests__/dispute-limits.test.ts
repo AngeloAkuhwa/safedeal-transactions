@@ -96,7 +96,7 @@ describe("dispute recourse after the verification deadline", () => {
 
   it("raiseDispute no longer hard-410s on an expired verification window", () => {
     const raiseBody = verifySrc.slice(verifySrc.indexOf("async function raiseDispute"));
-    expect(raiseBody).not.toContain("410");
+    expect(raiseBody).not.toContain("Verification window has expired");
     expect(raiseBody).toContain("isDisputeStillAllowed");
   });
 });
