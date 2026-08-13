@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
     // 3. Process charge.success
     if (eventType === "charge.success" && providerReference) {
       try {
+        const now = new Date().toISOString();
         // Inline the verification logic (same as verify-paystack-payment)
         // Find payment record
         const { data: payment } = await supabase
@@ -265,14 +266,23 @@ Deno.serve(async (req) => {
           supabase.from("transaction_items").select("*").eq("transaction_id", txId).maybeSingle(),
           supabase.from("transaction_delivery_terms").select("*").eq("transaction_id", txId).maybeSingle(),
           supabase.from("transaction_media")
-            .select("id, file_id, media_type, display_order, files(file_url, secure_url, mime_type, original_file_name)")
+            .select("id, file_id, media_type, sort_order, files(file_url, secure_url, mime_type, original_file_name)")
             .eq("transaction_id", txId)
-            .order("display_order", { ascending: true }),
+            .order("sort_order", { ascending: true }),
         ]);
 
-        await supabase.from("transaction_agreement_snapshots").insert({
-          transaction_id: txId,
-          snapshot_json: {
+        // Idempotent: a webhook + client-verify race must not create two
+        // snapshots for the same transaction.
+        const { data: existingSnapshot } = await supabase
+          .from("transaction_agreement_snapshots")
+          .select("id")
+          .eq("transaction_id", txId)
+          .maybeSingle();
+
+        if (!existingSnapshot) {
+          await supabase.from("transaction_agreement_snapshots").insert({
+            transaction_id: txId,
+            snapshot_json: {
             item: itemRes.data || null,
             pricing: {
               currency_code: pricing.currency_code,
@@ -287,10 +297,11 @@ Deno.serve(async (req) => {
             media: mediaRes.data || [],
             locked_at: now,
             payment_reference: providerReference,
-          },
-          locked_at: now,
-          locked_by_user_id: tx.buyer_id,
-        });
+            },
+            locked_at: now,
+            locked_by_user_id: tx.buyer_id,
+          });
+        }
 
         // Transaction event
         await supabase.from("transaction_events").insert({
