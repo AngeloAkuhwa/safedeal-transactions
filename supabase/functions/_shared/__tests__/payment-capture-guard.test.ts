@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkReferenceBinding,
   verifyChargeAgainstSnapshot,
+  resolveInitiationCharge,
 } from "../payment-capture-guard.ts";
 
 const snapshot = { currency_code: "NGN", buyer_total_amount: "12880.00" };
@@ -70,5 +71,43 @@ describe("checkReferenceBinding", () => {
 
   it("accepts when no advisory reference was supplied", () => {
     expect(checkReferenceBinding("pay-verified", null).ok).toBe(true);
+  });
+});
+
+describe("resolveInitiationCharge", () => {
+  it("charges the locked snapshot total even when vendor pricing config has since changed", () => {
+    // Snapshot locked at checkout: ₦12,880.00
+    // Live recomputation after a fee-rate change would produce ₦13,400.00
+    const r = resolveInitiationCharge({
+      snapshot: { currency_code: "NGN", buyer_total_amount: "12880.00" },
+      computed: { currency_code: "NGN", total_amount: 13400 },
+    });
+    expect(r.source).toBe("snapshot");
+    expect(r.total_amount).toBe(12880);
+    expect(r.amount_kobo).toBe(1288000);
+    expect(r.currency_code).toBe("NGN");
+  });
+
+  it("matches the capture-path guard for the same snapshot", () => {
+    const snap = { currency_code: "NGN", buyer_total_amount: "12880.00" };
+    const charge = resolveInitiationCharge({
+      snapshot: snap,
+      computed: { currency_code: "NGN", total_amount: 13400 },
+    });
+    expect(
+      verifyChargeAgainstSnapshot({ amount: charge.amount_kobo, currency: charge.currency_code }, snap).ok,
+    ).toBe(true);
+  });
+
+  it("falls back to live pricing only when no snapshot total exists", () => {
+    expect(
+      resolveInitiationCharge({ snapshot: null, computed: { currency_code: "NGN", total_amount: 13400 } }),
+    ).toMatchObject({ source: "computed", amount_kobo: 1340000 });
+    expect(
+      resolveInitiationCharge({
+        snapshot: { currency_code: "NGN", buyer_total_amount: null },
+        computed: { currency_code: "NGN", total_amount: 100 },
+      }).source,
+    ).toBe("computed");
   });
 });

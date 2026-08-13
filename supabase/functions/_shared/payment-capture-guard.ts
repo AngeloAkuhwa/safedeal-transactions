@@ -86,3 +86,39 @@ export function checkReferenceBinding(
   if (!verifiedPaymentId) return { ok: false, error: "reference_mismatch" };
   return advisoryPaymentId === verifiedPaymentId ? { ok: true } : { ok: false, error: "reference_mismatch" };
 }
+
+export interface InitiationChargeInput {
+  snapshot?: PricingSnapshotLike | null;
+  /** Live recomputation, used only when no snapshot row exists. */
+  computed: { currency_code: string; total_amount: number };
+}
+
+export interface InitiationCharge {
+  currency_code: string;
+  total_amount: number;
+  amount_kobo: number;
+  source: "snapshot" | "computed";
+}
+
+/**
+ * What we charge at initiation must equal the locked agreement the buyer saw.
+ * The `transaction_pricing` snapshot wins; live recomputation is a fallback
+ * only for transactions that genuinely have no snapshot row.
+ */
+export function resolveInitiationCharge(input: InitiationChargeInput): InitiationCharge {
+  const snapTotal = Number(input.snapshot?.buyer_total_amount ?? NaN);
+  if (input.snapshot && Number.isFinite(snapTotal) && snapTotal > 0) {
+    return {
+      currency_code: String(input.snapshot.currency_code || "NGN").toUpperCase(),
+      total_amount: snapTotal,
+      amount_kobo: Math.round(snapTotal * 100),
+      source: "snapshot",
+    };
+  }
+  return {
+    currency_code: String(input.computed.currency_code || "NGN").toUpperCase(),
+    total_amount: input.computed.total_amount,
+    amount_kobo: Math.round(input.computed.total_amount * 100),
+    source: "computed",
+  };
+}
