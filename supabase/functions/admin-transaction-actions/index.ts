@@ -621,7 +621,7 @@ Deno.serve(async (req) => {
         await recordAdmin({
           admin,
           actorId: userId,
-          action: "retry_dispute_refund",
+          action: "retry_refund",
           transactionId: txId,
           reason: typeof payload.notes === "string" ? payload.notes : undefined,
           metadata: {
