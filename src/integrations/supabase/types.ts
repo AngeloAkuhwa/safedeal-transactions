@@ -7119,59 +7119,32 @@ export type Database = {
         }
         Returns: Json
       }
-      apply_permission_change_set:
-        | {
-            Args: { _id: string; _reason?: string }
-            Returns: {
-              after: Json
-              applied_at: string | null
-              applied_by: string | null
-              before: Json
-              created_at: string
-              environment: string
-              id: string
-              reason: string | null
-              requested_by: string | null
-              requires_approval: boolean
-              review_comments: Json
-              status: string
-              submitted_at: string | null
-              target_key: string
-              target_scope: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "permission_change_sets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: { _environment?: string; _id: string; _reason?: string }
-            Returns: {
-              after: Json
-              applied_at: string | null
-              applied_by: string | null
-              before: Json
-              created_at: string
-              environment: string
-              id: string
-              reason: string | null
-              requested_by: string | null
-              requires_approval: boolean
-              review_comments: Json
-              status: string
-              submitted_at: string | null
-              target_key: string
-              target_scope: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "permission_change_sets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      apply_permission_change_set: {
+        Args: { _environment?: string; _id: string; _reason?: string }
+        Returns: {
+          after: Json
+          applied_at: string | null
+          applied_by: string | null
+          before: Json
+          created_at: string
+          environment: string
+          id: string
+          reason: string | null
+          requested_by: string | null
+          requires_approval: boolean
+          review_comments: Json
+          status: string
+          submitted_at: string | null
+          target_key: string
+          target_scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permission_change_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       assign_task: {
         Args: {
           _actor_id: string
