@@ -7251,6 +7251,16 @@ export type Database = {
         }
         Returns: Json
       }
+      ensure_platform_fee_reversal: {
+        Args: {
+          p_actor_user_id: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_required: number
+          p_transaction_id: string
+        }
+        Returns: number
+      }
       escalate_task: {
         Args: { _actor_id: string; _reason: string; _task_id: string }
         Returns: undefined
