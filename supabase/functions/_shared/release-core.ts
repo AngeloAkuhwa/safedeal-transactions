@@ -4,11 +4,7 @@ import { nairaToKobo } from "./money.ts";
 import { notifyUser, notifyOpsTeam } from "./notify.ts";
 import { formatMoney, PRICING_LINE_LABELS } from "./money-copy.ts";
 import { assertPayoutEligible } from "./payout-eligibility.ts";
-import {
-  evaluateReleaseBlocks,
-  hasOpenDispute,
-  RESOLVED_DISPUTE_STATUS,
-} from "./dispute-guard.ts";
+import { evaluateReleaseBlocks, hasOpenDispute } from "./dispute-guard.ts";
 
 export type CoreResult =
   | { ok: true; status: number; body: Record<string, unknown> }
