@@ -61,7 +61,10 @@ export async function processPaystackVerification(
       .select("id")
       .eq("provider_reference", ourReference)
       .maybeSingle();
-    const bound = checkReferenceBinding(payment.id as string, (advisoryPayment?.id as string) ?? null);
+    const bound = checkReferenceBinding(
+      payment.id as string,
+      (advisoryPayment?.id as string) ?? "__unresolved__",
+    );
     if (!bound.ok) {
       return { success: false, error: "reference_mismatch" };
     }
