@@ -1,5 +1,5 @@
 import { z } from "https://esm.sh/zod@3.23.8";
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { createTransfer } from "../_shared/paystack.ts";
 import { nairaToKobo } from "../_shared/money.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "payouts.release");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

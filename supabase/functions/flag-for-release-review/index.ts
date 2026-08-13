@@ -1,5 +1,5 @@
 import { z } from "https://esm.sh/zod@3.23.8";
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { notifyOpsTeam } from "../_shared/notify.ts";
 
 const corsHeaders = {
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "release_review.flag"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

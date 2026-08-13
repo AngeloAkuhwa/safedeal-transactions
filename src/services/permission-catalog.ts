@@ -7,7 +7,8 @@ export type PermissionAction =
   | "export" | "configure" | "manage_permissions"
   | "view_assigned" | "add_internal_note" | "request_information"
   | "request_evidence" | "update_status" | "resolve_assigned"
-  | "resolve_all" | "remove_flag";
+  | "resolve_all" | "remove_flag"
+  | "release" | "issue" | "flag";
 
 export interface PermissionEntry {
   key: string;      // module.action
@@ -80,9 +81,10 @@ const MODULES: Array<{ key: string; label: string; actions: PermissionAction[] }
   { key: "reports",                label: "Reports & Exports",      actions: ["view", "export", "configure"] },
   { key: "transactions",           label: "Transactions",           actions: ["view", "update", "export", "escalate"] },
   { key: "escrow",                 label: "Escrow",                 actions: ["view", "update", "approve", "configure", "export"] },
-  { key: "payouts",                label: "Payouts",                actions: ["view", "create", "approve", "reject", "export"] },
+  { key: "payouts",                label: "Payouts",                actions: ["view", "create", "approve", "reject", "release", "export"] },
   { key: "payments",               label: "Payments",               actions: ["view", "update", "export"] },
-  { key: "refunds",                label: "Refunds",                actions: ["view", "create", "approve", "reject", "export"] },
+  { key: "refunds",                label: "Refunds",                actions: ["view", "create", "approve", "reject", "issue", "export"] },
+  { key: "release_review",         label: "Release Review",         actions: ["view", "flag", "resolve"] },
   { key: "money_tracing",          label: "Money Tracing",          actions: ["view", "export"] },
   { key: "disputes",               label: "Disputes",               actions: ["view", "view_assigned", "create", "update", "update_status", "add_internal_note", "request_information", "request_evidence", "assign", "reassign", "resolve", "resolve_assigned", "resolve_all", "escalate", "approve", "reject", "export"] },
   { key: "identity_verification",  label: "Identity Verification",  actions: ["view", "approve", "reject", "escalate", "export"] },
@@ -107,6 +109,7 @@ const ACTION_LABEL: Record<PermissionAction, string> = {
   request_information: "Request Information", request_evidence: "Request Evidence",
   update_status: "Update Status", resolve_assigned: "Resolve Assigned",
   resolve_all: "Resolve Any", remove_flag: "Remove Flag",
+  release: "Release Funds", issue: "Issue", flag: "Flag",
 };
 
 // Static fallback catalog (used until the DB hydrator resolves).
