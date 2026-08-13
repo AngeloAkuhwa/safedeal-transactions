@@ -51,7 +51,7 @@ function simulateRefund(): BuildInput {
     ],
     payments: [{ status: "succeeded", amount: BUYER_TOTAL }],
     payouts: [],
-    refunds: [{ status: "completed", amount: "20400.00" }],
+    refunds: [{ status: "completed", refund_amount: "20400.00" } as never],
   };
 }
 
