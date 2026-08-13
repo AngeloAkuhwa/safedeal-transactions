@@ -185,8 +185,9 @@ const BuyerTransactionVerify = () => {
                   Action Required: Verify your item within {remainingHours} hours
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  If no action is taken, funds will automatically be released to the seller.
-                  Please confirm the item matches the agreement or raise a dispute if there's an issue.
+                  If you don't act before the deadline, SafeDeal will review the transaction before
+                  releasing funds. Funds are never released automatically. Please confirm the item
+                  matches the agreement or raise a dispute if there's an issue.
                 </p>
               </div>
               <button

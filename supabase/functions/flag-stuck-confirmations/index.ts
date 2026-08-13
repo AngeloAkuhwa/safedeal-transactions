@@ -2,7 +2,6 @@ import { admin, corsHeaders, jsonResponse, logRun, verifyCronSecret } from "../_
 
 const SERVICE = "cron.flag-stuck-confirmations";
 const BATCH = 200;
-const BUYER_TIMEOUT_HOURS = 72;
 const SELLER_TIMEOUT_HOURS = 72;
 const RELEASE_SLA_HOURS = 48;
 
@@ -16,7 +15,7 @@ Deno.serve(async (req) => {
   if (!systemActor) return jsonResponse({ error: "SYSTEM_ACTOR_ID not configured" }, 500);
 
   const now = Date.now();
-  const buyerCut = new Date(now - BUYER_TIMEOUT_HOURS * 3600_000).toISOString();
+  const nowIso = new Date(now).toISOString();
   const sellerCut = new Date(now - SELLER_TIMEOUT_HOURS * 3600_000).toISOString();
   const releaseCut = new Date(now - RELEASE_SLA_HOURS * 3600_000).toISOString();
 
@@ -26,15 +25,18 @@ Deno.serve(async (req) => {
   try {
     const { data: rows, error } = await client
       .from("transactions")
-      .select("id,seller_id,buyer_id,transaction_code,status,money_status,delivered_at,buyer_confirmed_at,seller_confirmed_at,needs_release_review")
+      .select("id,seller_id,buyer_id,transaction_code,status,money_status,delivered_at,verification_deadline_at,buyer_confirmed_at,seller_confirmed_at,needs_release_review")
       .in("money_status", ["funds_held_in_escrow", "funds_pending_release"])
       .eq("needs_release_review", false)
       .limit(BATCH * 4);
     if (error) throw error;
 
     const candidates = (rows ?? []).filter((t: any) => {
+      // As soon as the buyer's own verification deadline passes with no
+      // confirmation, the transaction needs manual review — there is no
+      // automatic release job, so this must not wait for a fixed 72h.
       const case1 = t.status === "delivered_awaiting_verification"
-        && t.delivered_at && t.delivered_at < buyerCut
+        && t.verification_deadline_at && t.verification_deadline_at < nowIso
         && !t.buyer_confirmed_at;
       const case2 = t.buyer_confirmed_at && !t.seller_confirmed_at
         && t.buyer_confirmed_at < sellerCut;

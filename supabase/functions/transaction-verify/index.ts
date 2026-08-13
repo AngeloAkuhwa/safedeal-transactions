@@ -4,6 +4,12 @@ import {
   evaluateDeliveryConfirmGuard,
   isDeliveryAlreadyDone,
 } from "../_shared/delivery-confirm.ts";
+import {
+  countOpenDisputes,
+  isAtOpenDisputeCap,
+  isDisputeStillAllowed,
+  maxOpenDisputesForLevel,
+} from "../_shared/dispute-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -568,8 +574,45 @@ async function raiseDispute(
   if (!escrow || escrow.state !== "held") {
     return jsonResponse({ error: "Escrow not in held state" }, 409);
   }
-  if (tx.verification_deadline_at && new Date(tx.verification_deadline_at) < new Date()) {
-    return jsonResponse({ error: "Verification window has expired" }, 410);
+  // NOTE: no deadline 410 here. There is no automatic release job — funds only
+  // move after manual SafeDeal review — so the buyer keeps dispute recourse
+  // until the case is actually reviewed/closed.
+  if (!isDisputeStillAllowed(tx)) {
+    return jsonResponse({ error: "Dispute is no longer available for this transaction" }, 409);
+  }
+
+  // Per-tier cap on simultaneously open disputes (same source as buyer-disputes)
+  const { data: verifRow } = await admin
+    .from("account_verifications")
+    .select("verification_level")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const level = (verifRow?.verification_level as string) || "unverified";
+
+  const { data: buyerTxRows } = await admin
+    .from("transactions")
+    .select("id")
+    .eq("buyer_id", userId);
+  const buyerTxIds = (buyerTxRows ?? []).map((t: { id: string }) => t.id);
+
+  let openDisputeCount = 0;
+  if (buyerTxIds.length > 0) {
+    const { data: openRows } = await admin
+      .from("disputes")
+      .select("id,status")
+      .in("transaction_id", buyerTxIds);
+    openDisputeCount = countOpenDisputes(openRows ?? []);
+  }
+
+  if (isAtOpenDisputeCap(level, openDisputeCount)) {
+    return jsonResponse({
+      error: "dispute_limit_reached",
+      message:
+        `You already have ${openDisputeCount} open dispute(s), the maximum allowed for your verification level (${maxOpenDisputesForLevel(level)}). Resolve an existing dispute or upgrade your verification to open another.`,
+      verification_level: level,
+      open_disputes: openDisputeCount,
+      max_open_disputes: maxOpenDisputesForLevel(level),
+    }, 409);
   }
 
   // Duplicate dispute check

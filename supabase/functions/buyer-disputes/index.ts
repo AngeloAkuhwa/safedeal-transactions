@@ -31,12 +31,8 @@ const LIMIT_BY_LEVEL: Record<string, number> = {
   high_trust_buyer: 500_000,
 };
 
-const MAX_OPEN_DISPUTES_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 3,
-  high_trust_buyer: 5,
-};
+// Source of truth shared with transaction-verify enforcement
+import { MAX_OPEN_DISPUTES_BY_LEVEL } from "../_shared/dispute-limits.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

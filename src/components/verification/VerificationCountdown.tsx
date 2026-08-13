@@ -37,8 +37,8 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
             <h2 className="text-lg font-bold mb-1">Verification Countdown</h2>
             <p className="text-sm opacity-80 mb-1">
               {rem.expired
-                ? "Verification window has expired"
-                : "SafeDeal will review the transaction if no action is taken"}
+                ? "Deadline passed — SafeDeal will review this transaction before releasing funds"
+                : "If you don't act before the deadline, SafeDeal will review the transaction before releasing funds"}
             </p>
             {deliveredAt && (
               <p className="text-xs opacity-60">
