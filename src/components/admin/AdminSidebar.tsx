@@ -72,8 +72,6 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Overview",
       items: [
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-        { label: "Reports", href: "/admin/reports", icon: FileBarChart },
       ],
     },
     {
@@ -93,7 +91,6 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
           badge: badges ? { count: badges.identity, tone: "purple" } : undefined,
         },
         { label: "Users", href: "/admin/users", icon: Users },
-        { label: "Investigation", href: "/admin/investigation", icon: Search },
       ],
     },
     {
@@ -107,9 +104,6 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
           icon: Banknote,
           badge: badges ? { count: badges.payouts, tone: "red" } : undefined,
         },
-        { label: "Payments", href: "/admin/payments", icon: CreditCard },
-        { label: "Money Tracing", href: "/admin/money-tracing", icon: Activity },
-        { label: "Refunds", href: "/admin/refunds", icon: Undo2 },
       ],
     },
     {
@@ -121,22 +115,12 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
           icon: Flag,
           badge: badges ? { count: badges.flagged_users, tone: "yellow" } : undefined,
         },
-        { label: "Impersonation", href: "/admin/impersonation", icon: UserX },
-        { label: "Fraud Detection", href: "/admin/fraud", icon: ShieldAlert },
-        { label: "Compliance", href: "/admin/compliance", icon: FileCheck2 },
       ],
     },
     {
       label: "Support & Tools",
       items: [
         { label: "Support Center", href: "/admin/support", icon: Headphones },
-        { label: "Debug Tools", href: "/admin/debug", icon: Bug },
-        {
-          label: "Exports",
-          href: "/admin/exports",
-          icon: Download,
-          badge: badges ? { count: badges.exports, tone: "cyan" } : undefined,
-        },
       ],
     },
     {
