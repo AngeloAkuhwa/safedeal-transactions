@@ -8,6 +8,7 @@ const BUILT_ROUTES = new Set<string>([
   "/admin/dashboard",
   "/admin/transactions",
   "/admin/disputes",
+  "/admin/identity",
   "/admin/payouts",
   "/admin/escrow",
   "/admin/reconciliation",
