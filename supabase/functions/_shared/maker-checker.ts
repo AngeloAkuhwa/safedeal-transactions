@@ -8,36 +8,18 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  * platform setting `finance.maker_checker_enforced`, which is OFF by default
  * so a single-operator launch is not blocked — when off we log only.
  */
-export const MAKER_CHECKER_SETTING_KEY = "finance.maker_checker_enforced";
-export const MAKER_CHECKER_ERROR = "maker_checker_self_approval_forbidden";
+export {
+  MAKER_CHECKER_SETTING_KEY,
+  MAKER_CHECKER_ERROR,
+  evaluateMakerChecker,
+} from "./maker-checker-rules.ts";
+export type { MakerCheckerDecision } from "./maker-checker-rules.ts";
 
-export interface MakerCheckerDecision {
-  allowed: boolean;
-  enforced: boolean;
-  selfApproval: boolean;
-  initiatorId: string | null;
-  approverId: string;
-  error?: string;
-}
-
-/** Pure decision function — no IO, unit-testable. */
-export function evaluateMakerChecker(input: {
-  enforced: boolean;
-  initiatorId: string | null | undefined;
-  approverId: string;
-}): MakerCheckerDecision {
-  const initiatorId = input.initiatorId ?? null;
-  const selfApproval = !!initiatorId && initiatorId === input.approverId;
-  const allowed = !(input.enforced && selfApproval);
-  return {
-    allowed,
-    enforced: input.enforced,
-    selfApproval,
-    initiatorId,
-    approverId: input.approverId,
-    ...(allowed ? {} : { error: MAKER_CHECKER_ERROR }),
-  };
-}
+import {
+  MAKER_CHECKER_SETTING_KEY as SETTING_KEY,
+  evaluateMakerChecker as evaluate,
+} from "./maker-checker-rules.ts";
+import type { MakerCheckerDecision } from "./maker-checker-rules.ts";
 
 /** Read the platform switch. Fails CLOSED to `false` (log-only) on read errors. */
 export async function isMakerCheckerEnforced(admin: SupabaseClient): Promise<boolean> {
@@ -46,7 +28,7 @@ export async function isMakerCheckerEnforced(admin: SupabaseClient): Promise<boo
       .from("system_settings")
       .select("setting_value")
       .eq("scope", "platform")
-      .eq("setting_key", MAKER_CHECKER_SETTING_KEY)
+      .eq("setting_key", SETTING_KEY)
       .maybeSingle();
     const raw = (data as { setting_value?: unknown } | null)?.setting_value;
     return raw === true || raw === "true";
@@ -107,7 +89,7 @@ export async function checkMakerChecker(
       ? resolveRefundInitiator(admin, args.transactionId)
       : resolveReleaseInitiator(admin, args.transactionId),
   ]);
-  const decision = evaluateMakerChecker({ enforced, initiatorId, approverId: args.approverId });
+  const decision = evaluate({ enforced, initiatorId, approverId: args.approverId });
   if (decision.selfApproval && !decision.enforced) {
     console.warn(JSON.stringify({
       event: "maker_checker_log_only",
