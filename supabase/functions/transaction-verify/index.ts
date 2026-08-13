@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { enqueueOrchestrationTask } from "../_shared/orchestration.ts";
+import {
+  evaluateDeliveryConfirmGuard,
+  isDeliveryAlreadyDone,
+} from "../_shared/delivery-confirm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,6 +163,8 @@ Deno.serve(async (req) => {
         return await getVerificationData(admin, userId, transactionId);
       case "confirm_receipt":
         return await confirmReceipt(admin, userId, transactionId);
+      case "confirm_delivery":
+        return await buyerConfirmDelivery(admin, userId, transactionId);
       case "raise_dispute":
         return await raiseDispute(admin, userId, transactionId, body);
       default:
@@ -366,6 +372,147 @@ async function confirmReceipt(
 // ════════════════════════════════════════════
 // RAISE DISPUTE — using transitionTransaction
 // ════════════════════════════════════════════
+
+// ════════════════════════════════════════════
+// BUYER CONFIRM DELIVERY — primary, authenticated path.
+// Advances the transaction to delivered_awaiting_verification using the same
+// guarded transition as the rider OTP fallback. Money never moves here.
+// ════════════════════════════════════════════
+async function buyerConfirmDelivery(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  transactionId: string,
+) {
+  const { data: tx } = await admin
+    .from("transactions")
+    .select("id, buyer_id, seller_id, status, money_status, dispute_status, transaction_code, delivered_at")
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (!tx) return jsonResponse({ error: "Transaction not found" }, 404);
+  if (tx.buyer_id !== userId) {
+    return jsonResponse({ error: "You do not own this transaction" }, 403);
+  }
+
+  // Idempotency — already delivered or terminal.
+  if (isDeliveryAlreadyDone(tx.status)) {
+    return jsonResponse({
+      success: true,
+      already_delivered: true,
+      message: "This delivery was already confirmed.",
+    });
+  }
+
+  if (tx.dispute_status && tx.dispute_status !== "none") {
+    return jsonResponse({ error: "Transaction has an active dispute", code: "dispute_open" }, 409);
+  }
+
+  const guardFailure = evaluateDeliveryConfirmGuard({ status: tx.status, money_status: tx.money_status });
+  if (guardFailure) {
+    return jsonResponse({ error: guardFailure.message, code: guardFailure.error }, guardFailure.http);
+  }
+
+  const now = new Date().toISOString();
+
+  // Walk intermediate states so the DB transition trigger stays satisfied.
+  const walk = async (from: string, to: string) => {
+    const { data, error } = await admin
+      .from("transactions")
+      .update({ status: to })
+      .eq("id", transactionId)
+      .eq("status", from)
+      .eq("money_status", "funds_held_in_escrow")
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(`Walk failed ${from}→${to}: ${error.message}`);
+    if (!data) return false;
+    await admin.from("transaction_status_history").insert({
+      transaction_id: transactionId,
+      old_status: from,
+      new_status: to,
+      changed_by_user_id: userId,
+      changed_at: now,
+      reason: "Auto: buyer confirmed delivery in-app",
+    });
+    return true;
+  };
+
+  const { data: terms } = await admin
+    .from("transaction_delivery_terms")
+    .select("verification_window_hours")
+    .eq("transaction_id", transactionId)
+    .maybeSingle();
+  const verificationWindowHours = terms?.verification_window_hours ?? 72;
+
+  try {
+    if (tx.status === "payment_secured") {
+      if (await walk("payment_secured", "seller_preparing_delivery")) {
+        await walk("seller_preparing_delivery", "seller_dispatched");
+      }
+    } else if (tx.status === "seller_preparing_delivery") {
+      await walk("seller_preparing_delivery", "seller_dispatched");
+    }
+  } catch (walkErr) {
+    console.error("buyerConfirmDelivery walk error:", walkErr);
+    return jsonResponse({ error: walkErr instanceof Error ? walkErr.message : "State transition failed" }, 500);
+  }
+
+  const step = await transitionTransaction({
+    admin,
+    transactionId,
+    userId,
+    actorRole: "buyer",
+    fromStatus: "seller_dispatched",
+    toStatus: "delivered_awaiting_verification",
+    fromMoney: "funds_held_in_escrow",
+    toMoney: "funds_held_in_escrow",
+    reason: "Buyer confirmed delivery in-app",
+    eventType: "delivered",
+    eventData: { source: "buyer_in_app_confirmation" },
+    additionalUpdates: {
+      delivered_at: now,
+      verification_deadline_at: new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString(),
+    },
+  });
+
+  if (!step.success) {
+    if (step.alreadyProcessed) {
+      return jsonResponse({ success: true, already_delivered: true, message: "This delivery was already confirmed." });
+    }
+    return jsonResponse({ error: step.error }, step.status || 500);
+  }
+
+  await Promise.allSettled([
+    admin.from("delivery_confirmations").upsert(
+      { transaction_id: transactionId, system_delivery_marked_at: now },
+      { onConflict: "transaction_id" },
+    ),
+    admin.from("delivery_updates").insert({
+      transaction_id: transactionId,
+      status: "delivered",
+      notes: "Confirmed by buyer in-app",
+      updated_by_user_id: userId,
+    }),
+    admin.from("notifications").insert({
+      user_id: tx.seller_id,
+      type: "delivery_update",
+      channel: "in_app",
+      title: "Buyer confirmed delivery",
+      message: `The buyer confirmed delivery for ${tx.transaction_code}. They now have ${verificationWindowHours}h to inspect the item.`,
+      related_transaction_id: transactionId,
+      status: "pending",
+    }),
+  ]);
+
+  return jsonResponse({
+    success: true,
+    already_delivered: false,
+    delivered_at: now,
+    verification_window_hours: verificationWindowHours,
+    message: "Delivery confirmed.",
+  });
+}
+
 async function raiseDispute(
   admin: ReturnType<typeof createClient>,
   userId: string,

@@ -1,6 +1,7 @@
 // Public (no JWT) endpoint: rider submits OTP entered by buyer to confirm delivery.
 // Verifies OTP against phone_otp_codes for the buyer, then transitions transaction to delivered_awaiting_verification.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { evaluateDeliveryConfirmGuard, isDeliveryAlreadyDone } from "../_shared/delivery-confirm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,15 +99,22 @@ Deno.serve(async (req) => {
     // Fetch transaction
     const { data: tx } = await admin
       .from("transactions")
-      .select("id, status, seller_id, buyer_id")
+      .select("id, status, money_status, seller_id, buyer_id")
       .eq("id", tokenRow.transaction_id)
       .single();
 
     if (!tx) return jsonResponse({ error: "Transaction not found" }, 404);
 
     // Idempotency: if already delivered/awaiting/completed, just mark token used and succeed
-    const TERMINAL_OR_DONE = ["delivered_awaiting_verification", "completed", "disputed", "resolved", "refunded"];
-    const alreadyDone = TERMINAL_OR_DONE.includes(tx.status);
+    const alreadyDone = isDeliveryAlreadyDone(tx.status);
+
+    // Guard: funds must actually be held in escrow before delivery can start the release clock.
+    if (!alreadyDone) {
+      const guardFailure = evaluateDeliveryConfirmGuard({ status: tx.status, money_status: tx.money_status });
+      if (guardFailure) {
+        return jsonResponse({ error: guardFailure.message, code: guardFailure.error }, guardFailure.http);
+      }
+    }
 
     const now = new Date().toISOString();
 
@@ -140,20 +148,35 @@ Deno.serve(async (req) => {
           await walk("seller_dispatched", "seller_preparing_delivery", "Auto: rider OTP confirmation");
         }
 
-        // Final transition to delivered
+        // Final transition to delivered — optimistic lock on the expected current state.
         const verificationDeadline = new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString();
-        const { error: finalErr } = await admin
+        const { data: finalUpdated, error: finalErr } = await admin
           .from("transactions")
           .update({
             status: "delivered_awaiting_verification",
             delivered_at: now,
             verification_deadline_at: verificationDeadline,
           })
-          .eq("id", tx.id);
+          .eq("id", tx.id)
+          .eq("status", "seller_dispatched")
+          .eq("money_status", "funds_held_in_escrow")
+          .select("id")
+          .maybeSingle();
 
         if (finalErr) {
           console.error("Final transition failed:", finalErr);
           return jsonResponse({ error: `Failed to mark delivered: ${finalErr.message}` }, 500);
+        }
+
+        if (!finalUpdated) {
+          // Zero rows updated — someone else moved the transaction concurrently.
+          // Treat as idempotent rather than force-writing the status.
+          console.warn("delivery-token-confirm: concurrent state change, skipping force-write", { transaction_id: tx.id });
+          return jsonResponse({
+            success: true,
+            already_delivered: true,
+            message: "This delivery was already confirmed.",
+          });
         }
 
         await admin.from("transaction_status_history").insert({

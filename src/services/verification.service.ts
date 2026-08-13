@@ -121,6 +121,29 @@ export const confirmReceipt = async (transactionId: string) => {
   return data as { success: boolean; already_confirmed?: boolean; redirect?: string };
 };
 
+/**
+ * Primary, authenticated buyer delivery-confirmation path.
+ * Advances the transaction to delivered_awaiting_verification. The rider OTP
+ * link is only a fallback for cash/handoff cases.
+ */
+export const confirmDelivery = async (transactionId: string) => {
+  const headers = await getAuthHeader();
+  const { data, error } = await supabase.functions.invoke("transaction-verify", {
+    headers,
+    body: { action: "confirm_delivery", transactionId },
+  });
+
+  if (error) throw new Error(error.message || "Failed to confirm delivery");
+  if (data?.error) throw new Error(data.error);
+  return data as {
+    success: boolean;
+    already_delivered?: boolean;
+    delivered_at?: string;
+    verification_window_hours?: number;
+    message?: string;
+  };
+};
+
 async function computeSha256(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);

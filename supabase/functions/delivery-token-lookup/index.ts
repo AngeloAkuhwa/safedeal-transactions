@@ -1,6 +1,7 @@
 // Public (no JWT) endpoint a rider opens with a delivery confirmation token.
 // Returns minimal info about the delivery + triggers an OTP send to the buyer's phone.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { sendSms } from "../_shared/sms.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,7 +177,14 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Failed to send code" }, 500);
       }
 
-      console.log(`[DEV] Buyer OTP for ${buyerPhone} (rider flow): ${code}`);
+      // Deliver out-of-band only. The code is NEVER logged or returned.
+      const smsResult = await sendSms(
+        buyerPhone,
+        `SafeDeal: ${code} is your delivery confirmation code for ${tx.transaction_code}. Share it only when you have the item in hand. Expires in 10 minutes.`,
+      );
+      console.log(
+        `[delivery-token-lookup] OTP generated for buyer ${tokenRow.buyer_id} (tx ${tx.id}); sms_delivered=${smsResult.delivered} provider=${smsResult.provider}${smsResult.reason ? ` reason=${smsResult.reason}` : ""}`,
+      );
 
       // Notify buyer in-app that a rider is asking for an OTP
       await admin.from("notifications").insert({
@@ -193,8 +201,7 @@ Deno.serve(async (req) => {
         success: true,
         masked_buyer_phone: masked,
         expires_in: 600,
-        // DEV ONLY — remove in production
-        dev_otp: code,
+        sms_delivered: smsResult.delivered,
       });
     }
 

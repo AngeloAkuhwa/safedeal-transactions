@@ -18,7 +18,7 @@ export interface DeliveryOtpSendResult {
   success: true;
   masked_buyer_phone: string | null;
   expires_in: number;
-  dev_otp?: string;
+  sms_delivered?: boolean;
 }
 
 export interface DeliveryOtpConfirmResult {

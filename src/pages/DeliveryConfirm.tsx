@@ -48,10 +48,11 @@ export default function DeliveryConfirm() {
     try {
       const result = await sendDeliveryOtp(token);
       toast({
-        title: "Code sent to buyer",
-        description: result.dev_otp
-          ? `DEV: code is ${result.dev_otp}`
-          : `We've sent a 6-digit code to ${result.masked_buyer_phone}.`,
+        title: result.sms_delivered === false ? "Code generated" : "Code sent to buyer",
+        description:
+          result.sms_delivered === false
+            ? `Ask the buyer for the 6-digit code sent to ${result.masked_buyer_phone ?? "their phone"}. If they did not receive it, they can confirm delivery from their own SafeDeal account.`
+            : `We've sent a 6-digit code to ${result.masked_buyer_phone}.`,
       });
       setStage("otp_sent");
     } catch (err) {
