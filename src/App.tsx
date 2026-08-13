@@ -61,6 +61,7 @@ import AdminPayouts from "./pages/AdminPayouts";
 import AdminReconciliation from "./pages/AdminReconciliation";
 import AdminEscrow from "./pages/AdminEscrow";
 import AdminFlaggedUsers from "./pages/AdminFlaggedUsers";
+import AdminIdentity from "./pages/AdminIdentity";
 import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
 import AdminNotifications from "./pages/AdminNotifications";
