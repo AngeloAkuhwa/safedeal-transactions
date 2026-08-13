@@ -4,6 +4,7 @@ import { nairaToKobo } from "./money.ts";
 import { notifyUser, notifyOpsTeam } from "./notify.ts";
 import { formatMoney, PRICING_LINE_LABELS } from "./money-copy.ts";
 import { assertPayoutEligible } from "./payout-eligibility.ts";
+import { evaluateReleaseBlocks, hasOpenDispute } from "./dispute-guard.ts";
 
 export type CoreResult =
   | { ok: true; status: number; body: Record<string, unknown> }
@@ -180,6 +181,29 @@ export async function releasePayoutCore(
     }
   }
 
+  // 5d. Dispute / hold guard. Money must never leave escrow while a dispute is
+  // still open, or while an explicit hold ('held' / 'awaiting_info') is on the
+  // release review queue. NOTE: `needs_release_review` and queue rows in
+  // 'pending'/'claimed' are the normal "ready for release review" states and
+  // must remain releasable — that is how a dispute resolved in the seller's
+  // favour legitimately pays out.
+  const { data: disputeRows, error: disputeErr } = await admin
+    .from("disputes")
+    .select("id, status")
+    .eq("transaction_id", transaction_id);
+  if (disputeErr) return { ok: false, status: 500, body: { error: "dispute_check_failed" } };
+
+  const { data: holdRows, error: holdErr } = await admin
+    .from("release_review_queue")
+    .select("id, status")
+    .eq("transaction_id", transaction_id);
+  if (holdErr) return { ok: false, status: 500, body: { error: "release_hold_check_failed" } };
+
+  const block = evaluateReleaseBlocks(disputeRows as any[], holdRows as any[]);
+  if (block) {
+    return { ok: false, status: 409, body: block };
+  }
+
   // 6. Atomic state flip
   const { error: rpcErr } = await admin.rpc("release_payout_atomic", {
     p_transaction_id: transaction_id,
@@ -349,6 +373,18 @@ export async function refundBuyerCore(
     .limit(1);
   if (openRefund && openRefund.length > 0) {
     return { ok: false, status: 409, body: { error: "refund_already_in_flight" } };
+  }
+
+  // Ad-hoc admin refunds must not run while a dispute is still open — the
+  // dispute-resolution path (resolve_dispute_atomic) is the only sanctioned
+  // way to move money on a live dispute, and it is unaffected by this guard.
+  const { data: refundDisputes, error: refundDisputeErr } = await admin
+    .from("disputes")
+    .select("id, status")
+    .eq("transaction_id", transaction_id);
+  if (refundDisputeErr) return { ok: false, status: 500, body: { error: "dispute_check_failed" } };
+  if (hasOpenDispute(refundDisputes as any[])) {
+    return { ok: false, status: 409, body: { error: "dispute_open" } };
   }
 
   const { data: payment, error: payErr } = await admin
