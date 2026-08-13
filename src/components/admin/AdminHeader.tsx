@@ -28,14 +28,6 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
             <Filter className="h-4 w-4" />
             Filters
           </button>
-          <button
-            type="button"
-            onClick={() => go("/admin/exports", "Exports")}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-blue-500"
-          >
-            <Download className="h-4 w-4" />
-            Export Report
-          </button>
         </div>
       </div>
     </div>
