@@ -638,7 +638,7 @@ const SellerCreateTransaction = () => {
                         className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
                       >
                         <Video className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max 50MB)</p>
+                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max {formatMaxMb(mediaConfig.videoMaxBytes)})</p>
                       </button>
                     )}
                     <p className="text-xs text-muted-foreground">Upload at least one photo or video to proceed.</p>
