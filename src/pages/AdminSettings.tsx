@@ -276,6 +276,7 @@ export default function AdminSettings() {
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFA, setTwoFA] = useState(true);
   const [twoFAEnforced, setTwoFAEnforced] = useState(false);
+  const [makerChecker, setMakerChecker] = useState(false);
 
   // Commerce (kill switches)
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
