@@ -340,7 +340,7 @@ const AUDIT_ACTION_TYPES: string[] = [
   "add_internal_note","add_note","clear_flag","close_case","escalate_case",
   "export_data","extend_deadline","flag_for_review","flag_user","freeze_transaction",
   "high_value_flag","open_investigation","refund_buyer","release_funds","request_evidence",
-  "resolve_dispute","set_vendor_status","suspend_user","toggle_auto_release","unflag_user",
+  "resolve_dispute","retry_refund","set_vendor_status","suspend_user","toggle_auto_release","unflag_user",
   "unfreeze_transaction","unsuspend_user","update_investigation","update_setting",
 ];
 function parseAuditNotes(raw: string | null): Record<string, unknown> {

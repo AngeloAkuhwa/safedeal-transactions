@@ -7578,32 +7578,19 @@ export type Database = {
         }
         Returns: Json
       }
-      resolve_dispute_atomic:
-        | {
-            Args: {
-              p_actor: string
-              p_also_close_investigation?: boolean
-              p_decision_summary: string
-              p_dispute_id: string
-              p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
-              p_refund_amount: number
-              p_release_amount: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_acknowledge_frozen_funds?: boolean
-              p_actor: string
-              p_also_close_investigation?: boolean
-              p_decision_summary: string
-              p_dispute_id: string
-              p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
-              p_refund_amount: number
-              p_release_amount: number
-            }
-            Returns: Json
-          }
+      resolve_dispute_atomic: {
+        Args: {
+          p_acknowledge_frozen_funds?: boolean
+          p_actor: string
+          p_also_close_investigation?: boolean
+          p_decision_summary: string
+          p_dispute_id: string
+          p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
+          p_refund_amount: number
+          p_release_amount: number
+        }
+        Returns: Json
+      }
       resolve_system_alerts: {
         Args: { _active_keys?: string[]; _key_prefix: string }
         Returns: number
@@ -7731,6 +7718,7 @@ export type Database = {
         | "permission_deprecated"
         | "retry_payout"
         | "request_more_info"
+        | "retry_refund"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -8204,6 +8192,7 @@ export const Constants = {
         "permission_deprecated",
         "retry_payout",
         "request_more_info",
+        "retry_refund",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
