@@ -8,6 +8,21 @@ export interface AuthContext {
   aal?: string | null;
 }
 
+/** Raised when the AAL2 gate cannot read `system_settings`. */
+export class SettingsReadError extends Error {}
+
+/**
+ * Last successfully observed value of `security.two_factor_admin_enforced`.
+ * Seeded from the environment so a cold isolate still fails CLOSED once the
+ * platform has turned enforcement on.
+ */
+let lastKnownMfaEnforced =
+  (Deno.env.get("ADMIN_MFA_ENFORCED_HINT") ?? "").toLowerCase() === "true";
+
+/** Test seam: override / read the cached enforcement belief. */
+export function __setLastKnownMfaEnforced(v: boolean) { lastKnownMfaEnforced = v; }
+export function __getLastKnownMfaEnforced() { return lastKnownMfaEnforced; }
+
 /**
  * Resolve the calling user from the Authorization bearer token, returning
  * a service-role client and the user identity. Throws on auth failure.
