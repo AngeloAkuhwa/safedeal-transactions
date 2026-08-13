@@ -7383,6 +7383,7 @@ export type Database = {
           privilege: string
         }[]
       }
+      internal_actor_rank: { Args: { _user_id: string }; Returns: number }
       internal_effective_access_level: {
         Args: { _user_id: string }
         Returns: string
@@ -7391,6 +7392,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      internal_role_rank: { Args: { _role_key: string }; Returns: number }
       internal_users_mfa_status: {
         Args: never
         Returns: {
