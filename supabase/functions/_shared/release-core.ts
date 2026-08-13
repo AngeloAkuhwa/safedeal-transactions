@@ -443,41 +443,22 @@ export async function refundBuyerCore(
   }
   const refundId = refundIdRaw as string;
 
-  // Partial refund: pass `amount` (kobo) so Paystack refunds the buyer minus
-  // the non-refundable Payment Processing Fee. Full refund omits `amount`.
-  const paystack = await createRefund({
-    transaction: (payment as any).provider_reference,
-    customer_note: `SafeDeal refund for ${(tx as any).transaction_code}`,
-    merchant_note: notes ? `${reason} / ${notes}` : reason,
-    ...(isPartial ? { amount: nairaToKobo(refundAmount) } : {}),
+  // Single Paystack implementation lives in `executeProviderRefund` — it
+  // handles partial/full detection, idempotency, refund-row persistence,
+  // party notifications, and fail_refund_atomic + ops alerting on failure.
+  const exec = await executeProviderRefund(admin, refundId, {
+    reason,
+    notes,
+    actor_user_id: actor_user_id,
   });
-
-  if (!paystack.ok) {
-    const reasonText = paystack.message || `paystack_http_${paystack.status}`;
-    try {
-      await admin.rpc("fail_refund_atomic", { p_refund_id: refundId, p_reason: reasonText });
-    } catch (e) {
-      console.error("refundBuyerCore: fail_refund_atomic", e);
-    }
-    await notifyOpsTeam(admin, {
-      type: "security_alert",
-      title: "Refund failed at Paystack",
-      message: `Refund for ${(tx as any).transaction_code} rejected: ${reasonText}`,
-      related_transaction_id: transaction_id,
-      metadata: { severity: "high", refund_id: refundId, status: paystack.status },
-    });
-    return { ok: false, status: 502, body: { error: "paystack_refund_failed", message: reasonText } };
+  if (!exec.ok) {
+    return {
+      ok: false,
+      status: 502,
+      body: { error: exec.error, message: exec.message ?? null },
+    };
   }
-
-  const providerRef = paystack.data?.id ? String(paystack.data.id) : null;
-  await admin
-    .from("refunds")
-    .update({
-      provider_reference: providerRef,
-      initiated_at: new Date().toISOString(),
-      status: "processing",
-    })
-    .eq("id", refundId);
+  const providerRef = exec.provider_reference;
 
   await admin.from("transaction_events").insert({
     transaction_id,
@@ -493,21 +474,6 @@ export async function refundBuyerCore(
       amount: refundAmount,
       payment_processing_fee_non_refundable: isPartial,
     },
-  });
-
-  await notifyUser(admin, {
-    user_id: (tx as any).buyer_id,
-    type: "payment_update",
-    title: "Refund on the way",
-    message: `SafeDeal has initiated a refund of ${formatMoney(refundAmount)} for ${(tx as any).transaction_code}.`,
-    related_transaction_id: transaction_id,
-  });
-  await notifyUser(admin, {
-    user_id: (tx as any).seller_id,
-    type: "transaction_update",
-    title: "Refund initiated",
-    message: `SafeDeal has refunded the buyer for ${(tx as any).transaction_code}.`,
-    related_transaction_id: transaction_id,
   });
 
   return {
