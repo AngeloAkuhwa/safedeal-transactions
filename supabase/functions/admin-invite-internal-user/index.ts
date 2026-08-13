@@ -7,6 +7,7 @@
 // Returns a hydrated InternalUser payload matching the client contract.
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
+import { assertCanGrantRoles } from "../_shared/internal-role-rank.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -418,6 +419,39 @@ Deno.serve(async (req) => {
   if (!primary || !roles.includes(primary)) return json(400, { error: "invalid_primary_role" });
   if (!fullName) return json(400, { error: "missing_name" });
   if (!body.department) return json(400, { error: "missing_department" });
+
+  // Privilege-escalation guard: an actor may only grant roles strictly below
+  // their own highest internal rank, and ONLY a super_admin may grant
+  // super_admin or senior_admin. Mirrors the DB trigger
+  // `enforce_internal_role_rules` so a direct table write can't bypass it.
+  const rank = await assertCanGrantRoles(admin, ctx.userId, roles);
+  if (!rank.ok) {
+    if (rank.error === "invalid_role") {
+      return json(400, { error: "invalid_role", invalid_roles: rank.invalid });
+    }
+    await logAdminAction(admin, {
+      actorId: ctx.userId,
+      action: "user_invited",
+      targetType: "user",
+      targetId: ctx.userId,
+      reason: body.reason,
+      metadata: {
+        result: "blocked_insufficient_rank",
+        email,
+        requested_roles: roles,
+        blocked_roles: rank.blocked,
+        actor_roles: rank.actorRoles,
+      },
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    });
+    return json(403, {
+      error: "insufficient_rank",
+      blocked_roles: rank.blocked,
+      detail: "You may only grant roles below your own; super_admin and senior_admin can be granted by a super_admin only.",
+    });
+  }
 
   // Prevent duplicates
   const { data: dupe } = await admin
