@@ -180,7 +180,7 @@ export default function AdminPayouts() {
     toast({ title: "Receipt downloaded" });
   }
 
-  async function handleBatchProcess() {
+  async function handleBatchProcess(reason: string) {
     const candidates = selectedRows.filter((r) => eligibleForRelease(r).ok);
     if (candidates.length === 0) {
       toast({ title: "No eligible payouts selected" });
@@ -193,7 +193,11 @@ export default function AdminPayouts() {
       while (queue.length > 0) {
         const r = queue.shift()!;
         try {
-          await payoutsApi.releasePayout({ transaction_id: r.transaction.id, payout_id: r.id });
+          await payoutsApi.releasePayout({
+            transaction_id: r.transaction.id,
+            payout_id: r.id,
+            notes: reason,
+          });
           ok++;
         } catch { failed++; }
       }
@@ -210,6 +214,9 @@ export default function AdminPayouts() {
 
   const eligibleSelectedCount = selectedRows.filter((r) => eligibleForRelease(r).ok).length;
   const batchDisabled = batchProcessing || eligibleSelectedCount === 0;
+  const eligibleSelectedTotal = selectedRows
+    .filter((r) => eligibleForRelease(r).ok)
+    .reduce((acc, r) => acc + r.amount, 0);
 
   function handleExport() {
     if (rows.length === 0) {
@@ -220,22 +227,19 @@ export default function AdminPayouts() {
     toast({ title: "Export ready", description: `Exported ${rows.length} payout${rows.length === 1 ? "" : "s"} to CSV.` });
   }
 
-  async function handleProcessBatchClick() {
+  function handleProcessBatchClick() {
+    // Never auto-select silently: batch release requires an explicit selection.
     if (eligibleSelectedCount === 0) {
-      // Auto-select all eligible on current page
-      const eligible = rows.filter((r) => eligibleForRelease(r).ok);
-      if (eligible.length === 0) {
-        toast({ title: "No payouts eligible for release", description: "Adjust your filters and try again." });
-        return;
-      }
-      const ok = window.confirm(`Release ${eligible.length} eligible payout${eligible.length === 1 ? "" : "s"} on this page?`);
-      if (!ok) return;
-      setSelectedIds(new Set(eligible.map((r) => r.id)));
-      // Defer to next tick so selection is reflected
-      setTimeout(() => { handleBatchProcess(); }, 0);
+      const anyEligible = rows.some((r) => eligibleForRelease(r).ok);
+      toast({
+        title: "Select payouts first",
+        description: anyEligible
+          ? "Tick the payouts you want to release, then run the batch."
+          : "No payouts on this page are eligible for release. Adjust your filters and try again.",
+      });
       return;
     }
-    await handleBatchProcess();
+    setBatchConfirmOpen(true);
   }
 
   const headerSlot = (
