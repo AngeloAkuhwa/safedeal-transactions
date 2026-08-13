@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
+import { verifyChargeAgainstSnapshot, checkReferenceBinding } from "../_shared/payment-capture-guard.ts";
 
 function koboToNairaSafe(kobo: unknown): number {
   const n = Number(kobo);
@@ -39,16 +40,32 @@ export async function processPaystackVerification(
 
   const psData = verifyData.data;
 
-  // 2. Find our payment record using our stored reference (or fall back to Paystack's)
-  const lookupRef = ourReference || paystackReference;
+  // 2. Find our payment record. SOURCE OF TRUTH is the reference Paystack
+  //    actually verified (psData.reference). Any client-supplied
+  //    provider_reference is advisory only and must resolve to the SAME
+  //    payment row, otherwise a caller could verify a cheap charge while
+  //    pointing the DB lookup at an expensive payment.
+  const verifiedRef = String(psData.reference || paystackReference);
   const { data: payment, error: payErr } = await supabase
     .from("payments")
     .select("id, transaction_id, status, user_id, amount, currency_code")
-    .eq("provider_reference", lookupRef)
+    .eq("provider_reference", verifiedRef)
     .maybeSingle();
 
   if (payErr) throw payErr;
   if (!payment) return { success: false, error: "Payment record not found for this reference" };
+
+  if (ourReference && ourReference !== verifiedRef) {
+    const { data: advisoryPayment } = await supabase
+      .from("payments")
+      .select("id")
+      .eq("provider_reference", ourReference)
+      .maybeSingle();
+    const bound = checkReferenceBinding(payment.id as string, (advisoryPayment?.id as string) ?? null);
+    if (!bound.ok) {
+      return { success: false, error: "reference_mismatch" };
+    }
+  }
 
   // 3. Idempotency: already processed
   if (payment.status === "succeeded") {
