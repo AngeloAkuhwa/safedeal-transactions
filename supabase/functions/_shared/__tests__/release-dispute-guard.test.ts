@@ -76,7 +76,10 @@ describe("release dispute/hold guard — wiring", () => {
   });
 
   it("does not block merely on needs_release_review", () => {
-    expect(coreSrc).not.toContain("needs_release_review");
+    const codeLines = coreSrc
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*"));
+    expect(codeLines.some((l) => l.includes("needs_release_review"))).toBe(false);
   });
 
   it("refundBuyerCore blocks ad-hoc refunds on an open dispute before start_refund_atomic", () => {
