@@ -4632,6 +4632,7 @@ export type Database = {
           created_at: string
           currency_code: string | null
           entered_queue_at: string
+          flagged_by_user_id: string | null
           id: string
           notes: string | null
           payout_id: string | null
@@ -4649,6 +4650,7 @@ export type Database = {
           created_at?: string
           currency_code?: string | null
           entered_queue_at?: string
+          flagged_by_user_id?: string | null
           id?: string
           notes?: string | null
           payout_id?: string | null
@@ -4666,6 +4668,7 @@ export type Database = {
           created_at?: string
           currency_code?: string | null
           entered_queue_at?: string
+          flagged_by_user_id?: string | null
           id?: string
           notes?: string | null
           payout_id?: string | null
