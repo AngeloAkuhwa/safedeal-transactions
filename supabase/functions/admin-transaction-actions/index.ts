@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
+import { executeProviderRefund } from "../_shared/provider-refund.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,7 @@ type ActionName =
   | "upsert_investigation"
   | "resolve_dispute"
   | "dispute_request_more_info"
+  | "retry_dispute_refund"
   | "block_payout"
   | "unblock_payout";
 
@@ -88,6 +90,10 @@ const ACTION_PERMS: Record<string, string[]> = {
   // enforced inside the branch below.
   resolve_dispute:           ["disputes.resolve_all", "financial_controls.approve", "disputes.resolve_assigned"],
   dispute_request_more_info: ["disputes.request_information"],
+  // Re-runs the Paystack hand-off for a dispute refund that is still stuck in
+  // 'pending'/'failed' while the transaction sits at money_status
+  // 'refund_pending'. Money movement — finance authority only.
+  retry_dispute_refund:      ["refunds.issue"],
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
 };
