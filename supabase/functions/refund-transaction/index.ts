@@ -1,5 +1,6 @@
 import { z } from "https://esm.sh/zod@3.23.8";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 import { checkMakerChecker } from "../_shared/maker-checker.ts";
 import { refundBuyerCore } from "../_shared/release-core.ts";
 
@@ -35,6 +36,9 @@ Deno.serve(async (req) => {
     console.error("refund-buyer auth error", err);
     return json(500, { error: "auth_failed" });
   }
+
+  const rl = await enforceAdminRateLimit(ctx, "refund_transaction", 30, corsHeaders);
+  if (rl) return rl;
 
   let raw: unknown;
   try { raw = await req.json(); } catch { return json(400, { error: "invalid_json" }); }

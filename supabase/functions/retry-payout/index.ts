@@ -1,5 +1,6 @@
 import { z } from "https://esm.sh/zod@3.23.8";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 import { createTransfer } from "../_shared/paystack.ts";
 import { nairaToKobo } from "../_shared/money.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
@@ -38,6 +39,9 @@ Deno.serve(async (req) => {
     console.error("retry-payout auth error", err);
     return json(500, { error: "auth_failed" });
   }
+
+  const rl = await enforceAdminRateLimit(ctx, "retry_payout", 30, corsHeaders);
+  if (rl) return rl;
 
   let raw: unknown;
   try { raw = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
