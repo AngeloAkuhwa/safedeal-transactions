@@ -347,6 +347,7 @@ export default function AdminSettings() {
         if (byKey["security.session_timeout_minutes"] != null) setSessionTimeout(num(byKey["security.session_timeout_minutes"], "30"));
         if (byKey["security.two_factor_admin"] != null) setTwoFA(Boolean(byKey["security.two_factor_admin"]));
         if (byKey["security.two_factor_admin_enforced"] != null) setTwoFAEnforced(Boolean(byKey["security.two_factor_admin_enforced"]));
+        if (byKey["finance.maker_checker_enforced"] != null) setMakerChecker(Boolean(byKey["finance.maker_checker_enforced"]));
         if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
         if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
         if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
@@ -428,6 +429,7 @@ export default function AdminSettings() {
       "security.session_timeout_minutes": Number(sessionTimeout),
       "security.two_factor_admin": twoFA,
       "security.two_factor_admin_enforced": twoFAEnforced,
+      "finance.maker_checker_enforced": makerChecker,
       "notifications.email_enabled": emailOn,
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
@@ -798,6 +800,13 @@ export default function AdminSettings() {
                       on={twoFAEnforced}
                       onChange={setBool(setTwoFAEnforced)}
                       overridden={isOverridden("security.two_factor_admin_enforced")}
+                    />
+                    <ToggleRow
+                      title="Maker-checker for money movement"
+                      desc="Blocks the admin who flagged or opened a release/refund from executing it. Leave off for single-operator teams — self-approvals are logged either way."
+                      on={makerChecker}
+                      onChange={setBool(setMakerChecker)}
+                      overridden={isOverridden("finance.maker_checker_enforced")}
                     />
                   </div>
                 </div>
