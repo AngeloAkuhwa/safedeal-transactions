@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { enqueueOrchestrationTask } from "../_shared/orchestration.ts";
+import {
+  evaluateDeliveryConfirmGuard,
+  isDeliveryAlreadyDone,
+} from "../_shared/delivery-confirm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,6 +163,8 @@ Deno.serve(async (req) => {
         return await getVerificationData(admin, userId, transactionId);
       case "confirm_receipt":
         return await confirmReceipt(admin, userId, transactionId);
+      case "confirm_delivery":
+        return await buyerConfirmDelivery(admin, userId, transactionId);
       case "raise_dispute":
         return await raiseDispute(admin, userId, transactionId, body);
       default:
