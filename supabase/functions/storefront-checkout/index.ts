@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { shareLinkExpiresAt } from "../_shared/share-links.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
@@ -413,6 +414,7 @@ Deno.serve(async (req) => {
         share_token: shareToken,
         url: `/t/${shareToken}`,
         is_active: true,
+        expires_at: shareLinkExpiresAt(),
       }),
 
       // Reserve stock (increment reserved_quantity)
