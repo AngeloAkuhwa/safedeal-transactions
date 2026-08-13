@@ -379,6 +379,18 @@ export async function refundBuyerCore(
     return { ok: false, status: 409, body: { error: "refund_already_in_flight" } };
   }
 
+  // Ad-hoc admin refunds must not run while a dispute is still open — the
+  // dispute-resolution path (resolve_dispute_atomic) is the only sanctioned
+  // way to move money on a live dispute, and it is unaffected by this guard.
+  const { data: refundDisputes, error: refundDisputeErr } = await admin
+    .from("disputes")
+    .select("id, status")
+    .eq("transaction_id", transaction_id);
+  if (refundDisputeErr) return { ok: false, status: 500, body: { error: "dispute_check_failed" } };
+  if (hasOpenDispute(refundDisputes as any[])) {
+    return { ok: false, status: 409, body: { error: "dispute_open" } };
+  }
+
   const { data: payment, error: payErr } = await admin
     .from("payments")
     .select("id, provider_reference, amount")
