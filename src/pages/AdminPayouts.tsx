@@ -428,6 +428,14 @@ export default function AdminPayouts() {
           loadList(); loadSummary();
         }}
       />
+      <BatchReleaseConfirmDialog
+        open={batchConfirmOpen}
+        count={eligibleSelectedCount}
+        totalLabel={formatMoney(eligibleSelectedTotal, "NGN")}
+        processing={batchProcessing}
+        onClose={() => setBatchConfirmOpen(false)}
+        onConfirm={(reason) => handleBatchProcess(reason)}
+      />
       <PayoutPromptDialog
         open={!!noteFor}
         title="Add internal note"
