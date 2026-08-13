@@ -165,10 +165,34 @@ export function resolveMoneyLabel(
   return base;
 }
 
+/**
+ * Money statuses where the buyer's money has genuinely left escrow, so the
+ * transaction can honestly read as terminal ("Completed"/"Refunded").
+ */
+export const TERMINAL_MONEY_STATUSES: ReadonlySet<string> = new Set([
+  "funds_released",
+  "refund_issued",
+]);
+
 export function resolveTransactionLabel(
   status: TxStatus | string,
   audience: Audience,
+  ctx?: { moneyStatus?: MoneyStatus | string | null },
 ): LabelEntry {
+  // A receipt-confirmed transaction is NOT "Completed" while the money is
+  // still sitting in escrow — funds are released only after SafeDeal review.
+  if (
+    (status === "completed" || status === "resolved") &&
+    ctx?.moneyStatus != null &&
+    !TERMINAL_MONEY_STATUSES.has(String(ctx.moneyStatus))
+  ) {
+    return {
+      label: "Awaiting Release",
+      short: "Awaiting Release",
+      tone: "info",
+    };
+  }
+
   return (
     TRANSACTION_LABELS[audience][status as TxStatus] ??
     ({

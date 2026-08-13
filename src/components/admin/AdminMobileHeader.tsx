@@ -1,4 +1,4 @@
-import { Menu, ShieldCheck, Download } from "lucide-react";
+import { Menu, ShieldCheck } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -37,14 +37,6 @@ export function AdminMobileHeader({ onOpenMenu, title, subtitle, rightSlot }: Ad
         <div className="flex items-center gap-2">
           <AdminReadingModeControl variant="mobile-trigger" />
           <ThemeToggle />
-          <button
-          type="button"
-          onClick={() => go("/admin/exports", "Exports")}
-          aria-label="Export"
-          className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
-        >
-          <Download className="h-4 w-4" />
-          </button>
         </div>
       </div>
       {(title || subtitle || rightSlot) && (

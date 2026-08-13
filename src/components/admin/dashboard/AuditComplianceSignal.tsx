@@ -40,8 +40,8 @@ export function AuditComplianceSignalCard({ signal }: Props) {
       icon: UserX,
       label: "Impersonation sessions (24h)",
       value: `${signal.impersonation_sessions_24h}`,
-      meta: "View",
-      onClick: () => go("/admin/impersonation", "Impersonation"),
+      meta: "Audited",
+      onClick: () => go("/admin/audit-logs", "Audit Logs"),
     },
     {
       icon: KeyRound,

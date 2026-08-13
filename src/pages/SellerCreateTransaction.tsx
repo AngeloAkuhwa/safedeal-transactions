@@ -40,6 +40,8 @@ import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { useMediaConfig } from "@/hooks/useMediaConfig";
+import { formatMaxMb } from "@/lib/media-rules";
 
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
@@ -77,8 +79,6 @@ const CURRENCY_OPTIONS = [
 ];
 
 const MAX_PHOTOS = 3;
-const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 const ACCEPTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
@@ -98,6 +98,7 @@ const defaultForm: CreateTransactionData = {
 };
 
 const SellerCreateTransaction = () => {
+  const { config: mediaConfig } = useMediaConfig();
   const navigate = useNavigate();
   const { toast } = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -209,8 +210,8 @@ const SellerCreateTransaction = () => {
         toast({ title: "Invalid format", description: `${file.name} is not a valid image (JPEG, PNG, WEBP only).`, variant: "destructive" });
         continue;
       }
-      if (file.size > MAX_PHOTO_SIZE) {
-        toast({ title: "File too large", description: `${file.name} exceeds 5MB limit.`, variant: "destructive" });
+      if (file.size > mediaConfig.imageMaxBytes) {
+        toast({ title: "File too large", description: `${file.name} exceeds the ${formatMaxMb(mediaConfig.imageMaxBytes)} limit.`, variant: "destructive" });
         continue;
       }
       // Resolution check
@@ -250,8 +251,8 @@ const SellerCreateTransaction = () => {
       toast({ title: "Invalid format", description: "Only MP4, MOV, or WEBM videos are accepted.", variant: "destructive" });
       return;
     }
-    if (file.size > MAX_VIDEO_SIZE) {
-      toast({ title: "File too large", description: "Video must be under 50MB.", variant: "destructive" });
+    if (file.size > mediaConfig.videoMaxBytes) {
+      toast({ title: "File too large", description: `Video must be under ${formatMaxMb(mediaConfig.videoMaxBytes)}.`, variant: "destructive" });
       return;
     }
 
@@ -597,7 +598,7 @@ const SellerCreateTransaction = () => {
                       >
                         <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm font-medium text-muted-foreground">Click to upload photos</p>
-                        <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WEBP • Max 5MB each • Min 400×400px</p>
+                        <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WEBP • Max {formatMaxMb(mediaConfig.imageMaxBytes)} each • Min 400×400px</p>
                       </button>
                     )}
                   </div>
@@ -640,7 +641,7 @@ const SellerCreateTransaction = () => {
                         className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
                       >
                         <Video className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max 50MB)</p>
+                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max {formatMaxMb(mediaConfig.videoMaxBytes)})</p>
                       </button>
                     )}
                     <p className="text-xs text-muted-foreground">Upload at least one photo or video to proceed.</p>

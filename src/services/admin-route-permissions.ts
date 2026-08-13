@@ -30,6 +30,7 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/notifications",           permission: "platform_configuration.view" },
   { path: "/admin/reconciliation",          permission: "financial_controls.view" },
   { path: "/admin/escrow",                  permission: "escrow.view" },
+  { path: "/admin/identity",                permission: "identity_verification.view" },
   { path: "/admin/payouts",                 permission: "financial_controls.view" },
   { path: "/admin/flagged-users/export",    permission: "flagged_users.export" },
   // Nested action leaves — matched most-specific first by permissionForPath.

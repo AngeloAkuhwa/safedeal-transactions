@@ -61,6 +61,7 @@ import AdminPayouts from "./pages/AdminPayouts";
 import AdminReconciliation from "./pages/AdminReconciliation";
 import AdminEscrow from "./pages/AdminEscrow";
 import AdminFlaggedUsers from "./pages/AdminFlaggedUsers";
+import AdminIdentity from "./pages/AdminIdentity";
 import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
 import AdminNotifications from "./pages/AdminNotifications";
@@ -162,6 +163,7 @@ const App = () => (
                 <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
                 <Route path="/admin/disputes" element={<AdminDisputes />} />
                 <Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
+                <Route path="/admin/identity" element={<AdminIdentity />} />
                 <Route path="/admin/payouts" element={<AdminPayouts />} />
                 <Route path="/admin/reconciliation" element={<AdminReconciliation />} />
                 <Route path="/admin/escrow" element={<AdminEscrow />} />
