@@ -185,7 +185,6 @@ export async function releasePayoutCore(
     }
   }
 
-  // 6. Atomic state flip
   // 5d. Dispute / hold guard. Money must never leave escrow while a dispute is
   // still open, or while an explicit hold ('held' / 'awaiting_info') is on the
   // release review queue. NOTE: `needs_release_review` and queue rows in
@@ -209,6 +208,7 @@ export async function releasePayoutCore(
     return { ok: false, status: 409, body: block };
   }
 
+  // 6. Atomic state flip
   const { error: rpcErr } = await admin.rpc("release_payout_atomic", {
     p_transaction_id: transaction_id,
     p_payout_id: (payout as any).id,
