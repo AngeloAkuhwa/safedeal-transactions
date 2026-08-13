@@ -572,7 +572,7 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-bold text-foreground mb-1">{seller.full_name}</h3>
-            <p className="text-sm text-muted-foreground mb-3">{seller.email}</p>
+            <p className="text-sm text-muted-foreground mb-3">Member since {memberSince}</p>
             <div className="flex flex-wrap gap-2">
               {v?.identity_verified && (
                 <Badge className="bg-success/10 text-success border-success/30 hover:bg-success/10">

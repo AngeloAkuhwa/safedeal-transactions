@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     const [sellerRes, verifyRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name, avatar_url, email, created_at")
+        .select("full_name, avatar_url, created_at")
         .eq("id", tx.seller_id)
         .single(),
       supabase
@@ -212,7 +212,8 @@ Deno.serve(async (req) => {
         ? {
             full_name: sellerRes.data.full_name,
             avatar_url: sellerRes.data.avatar_url,
-            email: sellerRes.data.email,
+            // Seller email is deliberately NOT exposed: share links are
+            // pre-authentication surfaces.
             member_since: sellerRes.data.created_at,
           }
         : null,
