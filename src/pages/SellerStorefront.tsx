@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
@@ -12,6 +12,7 @@ import { getSellerProducts, getProductCategories, updateProduct, archiveProduct,
 import { setStockQuantity } from "@/services/inventory.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
+import { useVendorPlan } from "@/hooks/useVendorPlan";
 
 function getVerificationLabel(level: string) {
   switch (level) {
@@ -31,6 +32,8 @@ function getVerificationDotColor(level: string) {
 
 const SellerStorefront = () => {
   const navigate = useNavigate();
+  // Showcase-slot usage (display only; the server enforces the cap).
+  const { state: planState } = useVendorPlan();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialStatusFilter = (() => {
