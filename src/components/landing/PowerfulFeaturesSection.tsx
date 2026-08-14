@@ -322,7 +322,7 @@ function FeatureCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h3 className="min-w-0 truncate text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+              <h3 className="min-w-0 text-balance text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
                 {f.title}
               </h3>
               {f.hero && (
