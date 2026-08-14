@@ -51,8 +51,7 @@ export function HeroSection() {
 
           {/* Right — Animated transaction demo (desktop side-by-side) */}
           <div className="relative mx-auto hidden w-full max-w-sm animate-slide-in-right lg:block lg:mx-0 lg:ml-auto">
-            <div aria-hidden className="absolute -left-4 -top-4 h-16 w-16 rounded-2xl bg-success/15" />
-            <div aria-hidden className="absolute -bottom-4 -right-4 h-20 w-20 rounded-2xl bg-primary/15" />
+            <div aria-hidden className="absolute -bottom-4 -right-4 h-20 w-20 rounded-2xl bg-primary/10" />
             <AnimatedTransactionCard />
           </div>
         </div>

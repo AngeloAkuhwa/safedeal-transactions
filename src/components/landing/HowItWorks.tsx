@@ -73,7 +73,7 @@ export function HowItWorks() {
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <h2 className="h-section mb-2 font-bold text-foreground">How SafeDeal Works</h2>
-          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-left text-muted-foreground sm:text-center">
             Six steps. One protected deal.
           </p>
         </div>

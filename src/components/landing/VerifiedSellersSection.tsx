@@ -66,7 +66,7 @@ export function VerifiedSellersSection() {
 
         {/* Truthful trust strip — no invented numbers */}
         <div className="mt-6 rounded-2xl border bg-muted/40 p-4 sm:mt-8">
-          <ul className="flex flex-col items-center justify-center gap-2 text-center text-sm font-semibold text-muted-foreground sm:flex-row sm:gap-5">
+          <ul className="flex flex-col items-start justify-center gap-2 text-left text-sm font-semibold text-muted-foreground sm:flex-row sm:items-center sm:gap-5 sm:text-center">
             <li className="inline-flex items-center gap-1.5">
               <Lock className="h-4 w-4 text-muted-foreground" />
               Payments secured by Paystack
