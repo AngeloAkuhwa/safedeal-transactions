@@ -115,9 +115,9 @@ const StorefrontCheckout = () => {
   const images = (product.media || []).filter((m: any) => m.media_type === "image");
   const primaryImage = images.find((m: any) => m.is_primary)?.file_url || images[0]?.file_url;
 
-  const activeMethod = selectedMethod || deliveryMethods[0] || "delivery";
-  const needsAddress = activeMethod === "courier_shipping" || activeMethod === "delivery";
-  const needsPhone = activeMethod === "pickup" || activeMethod === "meetup" || activeMethod === "hand_delivery";
+  const activeMethod = selectedMethod || deliveryMethods[0] || "";
+  const needsAddress = methodNeedsAddress(activeMethod);
+  const needsPhone = methodNeedsPhone(activeMethod);
 
   // Parse agreement terms
   const agreementBullets = product.agreement_terms
