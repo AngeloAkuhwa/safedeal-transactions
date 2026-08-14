@@ -155,8 +155,11 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               </div>
               <span className="truncate text-xs text-muted-foreground hover:text-foreground transition-colors">{seller.full_name}</span>
             </button>
-            {seller.trust_summary.identity_verified && (
-              <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
+            {sellerTrustClaim && (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {sellerTrustClaim}
+              </span>
             )}
             <div className="ml-auto">
               {outOfStock ? (
