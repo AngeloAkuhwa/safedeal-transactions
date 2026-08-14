@@ -226,6 +226,53 @@ Deno.serve(async (req) => {
       sellerGroups.get(sellerId)!.push({ cartItem: ci, product });
     }
 
+    // 5b. Resolve every persisted commitment BEFORE the first insert, so a
+    // refusal can never strand a half-built transaction.
+    //
+    // The verification window IS a commitment: it is the clock the buyer is
+    // held to, so it must come from the product or the vendor's effective
+    // settings — never a literal, and never a guess.
+    //
+    // The delivery estimate is NOT a commitment: it is optional seller-supplied
+    // information. When the seller left it blank we carry `null` through and
+    // simply show no estimate, rather than blocking the sale.
+    const verificationWindowBySeller = new Map<string, number>();
+    const expectedDateBySeller = new Map<string, string | null>();
+    for (const [sellerId, items] of sellerGroups) {
+      const firstProduct = items[0].product;
+      const productWindow =
+        firstProduct.verification_window_hours === null || firstProduct.verification_window_hours === undefined
+          ? null
+          : Number(firstProduct.verification_window_hours);
+      const verificationWindowHours =
+        productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
+          ? productWindow
+          : await resolveEffectiveTimeoutHours(sellerId, "buyer_verification_timeout");
+      if (verificationWindowHours === null) {
+        return json(
+          {
+            error: "verification_window_unresolved",
+            reason: "No buyer verification window is configured for this seller.",
+          },
+          409,
+        );
+      }
+      verificationWindowBySeller.set(sellerId, verificationWindowHours);
+
+      const rawDeliveryDays = firstProduct.estimated_delivery_days;
+      const parsedDays =
+        rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
+          ? null
+          : Number.parseInt(String(rawDeliveryDays), 10);
+      if (parsedDays === null || !Number.isFinite(parsedDays) || parsedDays < 0) {
+        expectedDateBySeller.set(sellerId, null);
+      } else {
+        const expected = new Date();
+        expected.setDate(expected.getDate() + parsedDays);
+        expectedDateBySeller.set(sellerId, expected.toISOString().split("T")[0]);
+      }
+    }
+
     // 6. Create checkout session
     let subtotalAmount = 0;
     let totalProtectionFee = 0;
