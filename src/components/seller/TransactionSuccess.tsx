@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
-import { DEFAULT_MAX_TOTAL_FEE } from "@/lib/pricing";
 import { MISSING_MONEY } from "@/lib/payment/money-format";
 
 interface TransactionSuccessProps {
