@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { LAUNCH_REGION_COUNTRY_CODE } from "../_shared/launch-region.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
