@@ -183,7 +183,6 @@ const WINDOW_DEBT = [
   // pass. Recorded, not narrowed away.
   "supabase/functions/_shared/settings-resolver.ts",
   "supabase/functions/claim-offer/index.ts",
-  "supabase/functions/storefront-checkout/index.ts",
 ];
 
 /**
