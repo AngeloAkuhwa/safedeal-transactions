@@ -134,7 +134,14 @@ vi.mock("@/services/transaction-detail.service", () => ({
       is_verified: sellerVerified,
       member_since: "2025-01-01T00:00:00Z",
     },
-    item: null,
+    item: {
+      title: "Test item",
+      description: "A test item",
+      quantity: 1,
+      condition_label: "new",
+      brand: null,
+      model: null,
+    },
     items: [],
     pricing: {
       currency_code: "NGN",
@@ -164,9 +171,6 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     renderPage(<Page />);
-    await new Promise((r) => setTimeout(r, 300));
-    // eslint-disable-next-line no-console
-    console.log(document.body.textContent?.slice(0, 800));
     const notVerified = await screen.findAllByText("Not verified");
     // Desktop + mobile copies of the seller card.
     expect(notVerified.length).toBeGreaterThanOrEqual(2);
