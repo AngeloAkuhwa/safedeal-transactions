@@ -86,7 +86,13 @@ export default function SellerUpdateDelivery() {
   });
 
   const tx = data?.transaction;
-  const deliveryMethod = (tx?.delivery_method ?? "courier") as DeliveryMethod;
+  // Raw value straight from the transaction — passed to children untouched so
+  // each one fails closed on its own. Defaulting here made every child's
+  // fail-closed guard dead code.
+  const rawDeliveryMethod = tx?.delivery_method ?? null;
+  // This page's own branching uses the resolved enum, which is null when the
+  // method is missing or unrecognised.
+  const deliveryMethod = toTransactionDeliveryMethod(rawDeliveryMethod);
   const deliveryTerms = data?.delivery_terms;
   const termsMissing = !deliveryTerms;
 
