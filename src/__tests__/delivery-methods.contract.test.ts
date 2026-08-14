@@ -38,7 +38,9 @@ const FILES = [
 
 /** `x === "literal"` / `!==` where the operand names a delivery method. */
 const COMPARISON =
-  /\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*[=!]==\s*["'`]([a-z_]+)["'`]/g;
+  /(?<!typeof\s)\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*[=!]==\s*["'`]([a-z_]+)["'`]/g;
+/** Operand names that actually hold a delivery method. */
+const DELIVERY_OPERAND = /(?:^|[._])(?:delivery_?method|shipping_?method|fulfil?lment_?method|method)$/i;
 /** `{ pickup: ..., delivery: ... }` style maps keyed by a method name. */
 const MAP_KEYS = /\b(?:deliveryMethod|delivery_method|method|rawMethod)\b/;
 
@@ -61,7 +63,8 @@ describe("delivery method vocabulary", () => {
         const [, operand, literal] = m;
         // Only delivery-method operands: payment methods, verification
         // methods and typeof checks have their own vocabularies.
-        if (!/deliver|shipp|fulfil/i.test(operand)) continue;
+        if (!DELIVERY_OPERAND.test(operand)) continue;
+        if (!/deliver|shipp|fulfil/i.test(file) && !/deliver|shipp|fulfil/i.test(operand)) continue;
         if (!VOCAB.has(literal)) {
           offenders.push(`${path.relative(ROOT, file)}: ${operand} === "${literal}"`);
         }
