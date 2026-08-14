@@ -454,7 +454,7 @@ describe("exemption lists cannot rot", () => {
  * notification copy that a person reads.
  */
 const MONEY_ZERO_FALLBACK =
-  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
+  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*\.?(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
 
 /**
  * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
@@ -555,7 +555,16 @@ describe("money never falls back to zero", () => {
  */
 const MONEY_NAME = "(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held|net|Net|kobo|Kobo)";
 const MONEY_ZERO_WRAPPED = new RegExp(
-  String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+  [
+    // `const totalAmount = Number(x) || 0;` — money-named declaration.
+    String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    // `amount: Number(x) ?? 0,` / `this.fee = num(x) || 0` — money-named
+    // object-literal property or assignment target.
+    String.raw`\b[\w$.]*${MONEY_NAME}[\w$]*\s*[:=]\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    // `Number(pricingRow.platform_fee_amount) || 0` anywhere — call argument,
+    // return expression, nested property. The money noun is inside the call.
+    String.raw`\([^()\n]*${MONEY_NAME}[^()\n]*\)\s*(?:\?\?|\|\|)\s*0\b`,
+  ].join("|"),
   "g",
 );
 
