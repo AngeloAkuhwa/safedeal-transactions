@@ -1,6 +1,6 @@
 import { Lock, FileText, ShieldCheck } from "lucide-react";
 import type { AgreementData } from "@/services/agreement.service";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/format";
 
 interface AgreementTrustIndicatorsProps {
   pricing: AgreementData["pricing"];
@@ -9,8 +9,12 @@ interface AgreementTrustIndicatorsProps {
 }
 
 export function AgreementTrustIndicators({ pricing, lockedAt }: AgreementTrustIndicatorsProps) {
-  const totalAmount = pricing
-    ? formatMoney(Number(pricing.total_amount), pricing.currency_code)
+  // `Number(null)` is 0, so a missing total used to render "₦0.00" inside a
+  // trust claim. An unknown amount is described, never priced.
+  const hasTotal =
+    pricing != null && pricing.total_amount != null && Number.isFinite(Number(pricing.total_amount));
+  const totalAmount = hasTotal
+    ? formatMoneyOrDash(Number(pricing!.total_amount), pricing!.currency_code)
     : "Your funds";
 
   const indicators = [
