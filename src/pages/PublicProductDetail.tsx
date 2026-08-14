@@ -599,7 +599,11 @@ const PublicProductDetail = () => {
                   )}
                   <div>
                     <p className="text-sm font-semibold text-foreground">{resolveDeliveryMethod(method)}</p>
-                    <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
+                    <p className="text-xs text-muted-foreground">
+                      {method === "hand_delivery" || method === "meetup"
+                        ? "Confirmed with a delivery code at handover"
+                        : "Courier tracking required before funds release"}
+                    </p>
                   </div>
                 </div>
               ))
@@ -610,7 +614,7 @@ const PublicProductDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
-                  <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
+                  <p className="text-xs text-muted-foreground">Courier tracking required before funds release</p>
                 </div>
               </div>
             )}
