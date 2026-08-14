@@ -46,7 +46,7 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/transactions/export",     permission: "transactions.export" },
   { path: "/admin/transactions/:id/update", permission: "transactions.update" },
   { path: "/admin/transactions",            permission: "transactions.view" },
-  { path: "/admin/support",                 permission: "dashboard.view" },
+  { path: "/admin/support",                 permission: "support.view" },
   { path: "/admin/dashboard",               permission: "dashboard.view" },
 ];
 
