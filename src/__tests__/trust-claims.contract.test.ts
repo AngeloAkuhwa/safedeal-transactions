@@ -240,7 +240,7 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/pages/Pricing.tsx", text: "Opening a store, listing products and taking protected payments costs nothing. We only earn when you get paid safely.", reason: "Plan pricing explainer: no fee is charged until a deal is paid." },
   { file: "src/pages/Pricing.tsx", text: "No listing fees. No setup fees. Cancel a paid plan anytime — it simply runs to the end of the period you paid for, then returns to the free Verified plan.", reason: "Plan cancellation terms; no protection claim." },
   { file: "src/pages/Pricing.tsx", text: "Reduced escrow fee — % + per completed deal", reason: "Fee-line label for a paid plan's reduced escrow rate." },
-  { file: "src/pages/Pricing.tsx", text: "Escrow fee % + per completed deal", reason: "Fee-line label for the standard escrow rate." },
+  { file: "src/pages/Pricing.tsx", text: "Escrow fee", reason: "Plan-card label prefixing the live per-deal fee line derived from pricing-copy.ts." },
   { file: "src/pages/PublicProductDetail.tsx", text: "Amount held in escrow", reason: "Row label for the amount that will be held for this listing's price." },
   { file: "src/pages/PublicProductDetail.tsx", text: "Buy on SafeDeal. Your payment stays in escrow until you confirm delivery.", reason: "Share/meta copy stating the escrow mechanic buyers get on this listing." },
   { file: "src/pages/PublicProductDetail.tsx", text: "— protected by SafeDeal escrow:", reason: "Share caption suffix naming the escrow leg of the deal." },
