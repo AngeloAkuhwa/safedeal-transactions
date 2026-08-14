@@ -7,6 +7,7 @@ import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveMoneyLabel } from "@/lib/status-labels";
 
 export default function TransactionCancelled() {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -30,6 +31,18 @@ export default function TransactionCancelled() {
   const transactionCode = data?.transaction?.transaction_code;
   const cancelledByRole: string | null = data?.transaction?.cancelled_by_role ?? null;
   const cancellationReason: string | null = data?.transaction?.cancellation_reason ?? null;
+  const moneyStatus: string | null = data?.transaction?.money_status ?? null;
+  const escrowState: string | null = data?.escrow?.state ?? data?.escrow?.escrow_state ?? null;
+
+  // A cancellation says nothing about money. Only these recorded states mean
+  // the buyer was never charged; anything else (or an unread record) must not
+  // be described as "no payment was processed".
+  const NEVER_CHARGED = new Set(["not_secured", "payment_pending"]);
+  const neverCharged =
+    moneyStatus != null && NEVER_CHARGED.has(moneyStatus) && escrowState !== "held";
+  const moneyLabel = moneyStatus
+    ? resolveMoneyLabel(moneyStatus, "buyer").label
+    : "Not available";
 
   // Only state what the record actually says. Never attribute a cancellation
   // to a party the transaction record does not identify.
@@ -43,7 +56,7 @@ export default function TransactionCancelled() {
           : "This transaction was cancelled";
   const reasonBody =
     cancellationReason?.trim() ||
-    "No payment was processed, and no funds were held or transferred.";
+    "No reason was recorded for this cancellation.";
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
