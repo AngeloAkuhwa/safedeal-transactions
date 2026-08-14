@@ -10,11 +10,9 @@ import {
   monthsFreeOnYearly,
   type VendorPlan,
 } from "@/services/vendor-plan.service";
-import { FALLBACK_PRICING_CONFIG } from "@/lib/pricing";
+import { usePublicPricing } from "@/hooks/usePublicPricing";
 
 const TITLE = "Pricing — Free forever, paid to grow | SafeDeal";
-const DESCRIPTION =
-  "SafeDeal is free to start: open a store, list products and get paid safely. We only earn when you get paid safely — 2% + ₦100 per completed deal, capped at ₦5,000.";
 
 const PLAN_ICONS: Record<string, typeof Shield> = {
   verified: Shield,
@@ -22,12 +20,12 @@ const PLAN_ICONS: Record<string, typeof Shield> = {
   growth: Rocket,
 };
 
-function planFeatures(plan: VendorPlan, baseRate: number): string[] {
+function planFeatures(plan: VendorPlan, baseRate: number, flatFee: number, baseLine: string): string[] {
   const feats = [
     `Showcase up to ${plan.photo_slots} product photos`,
     plan.escrow_fee_rate < baseRate
-      ? `Reduced escrow fee — ${(plan.escrow_fee_rate * 100).toFixed(1)}% + ${formatNaira(FALLBACK_PRICING_CONFIG.platform_fee_flat)} per completed deal`
-      : `Escrow fee ${(baseRate * 100).toFixed(0)}% + ${formatNaira(FALLBACK_PRICING_CONFIG.platform_fee_flat)} per completed deal`,
+      ? `Reduced escrow fee — ${(plan.escrow_fee_rate * 100).toFixed(1)}% + ${formatNaira(flatFee)} per completed deal`
+      : `Escrow fee ${baseLine}`,
     "Buyer-protected checkout and escrow",
     "Store page with your real verification status shown",
   ];
@@ -36,7 +34,8 @@ function planFeatures(plan: VendorPlan, baseRate: number): string[] {
 }
 
 export default function Pricing() {
-  usePageMeta({ title: TITLE, description: DESCRIPTION, path: "/pricing" });
+  const { copy } = usePublicPricing();
+  usePageMeta({ title: TITLE, description: copy.metaDescription, path: "/pricing" });
 
   const [plans, setPlans] = useState<VendorPlan[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -47,7 +46,7 @@ export default function Pricing() {
       .catch(() => setFailed(true));
   }, []);
 
-  const baseRate = FALLBACK_PRICING_CONFIG.platform_fee_rate;
+  const baseRate = copy.platformFeeRate;
 
   return (
     <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-6">
@@ -80,12 +79,14 @@ export default function Pricing() {
             The only fee on every plan
           </p>
           <p className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">
-            {(baseRate * 100).toFixed(0)}% + {formatNaira(FALLBACK_PRICING_CONFIG.platform_fee_flat)}
+            {copy.safedealFeeHeadline}
           </p>
           <p className="mt-2 text-base text-muted-foreground">
-            per completed deal — capped at {formatNaira(FALLBACK_PRICING_CONFIG.max_platform_fee)}.
+            per completed deal — capped at {copy.safedealFeeCap}.
             Nothing is charged if a deal is cancelled or refunded.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">{copy.feeDisclosure}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{copy.refundLine}</p>
           <p className="mt-2 text-xs text-muted-foreground">
             Nigeria pricing shown in ₦. Local pricing announced as each new region goes live.
           </p>
@@ -120,11 +121,6 @@ export default function Pricing() {
                     highlight ? "border-primary ring-1 ring-primary/30" : ""
                   }`}
                 >
-                  {highlight && (
-                    <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground">
-                      Most popular
-                    </span>
-                  )}
                   <div className="flex items-center gap-2">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                       <Icon className="h-[18px] w-[18px] text-primary" />
@@ -149,7 +145,7 @@ export default function Pricing() {
                   )}
 
                   <ul className="mt-5 flex-1 space-y-2.5 text-sm">
-                    {planFeatures(plan, baseRate).map((f) => (
+                    {planFeatures(plan, baseRate, copy.platformFeeFlat, copy.perDealLine).map((f) => (
                       <li key={f} className="flex items-start gap-2 text-muted-foreground">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                         <span>{f}</span>
@@ -180,11 +176,11 @@ export default function Pricing() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                   <Camera className="h-[18px] w-[18px] text-primary" />
                 </span>
-                <h3 className="font-bold">+10 photo slots</h3>
+                <h3 className="font-bold">{copy.photoSlotsAddon.label}</h3>
               </div>
-              <p className="mt-3 text-2xl font-extrabold">{formatNaira(1000)}</p>
+              <p className="mt-3 text-2xl font-extrabold">{copy.photoSlotsAddon.price}</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Ten extra showcase slots added to your store permanently.
+                Extra showcase slots added to your store permanently.
               </p>
             </div>
             <div className="rounded-2xl border bg-card p-6 shadow-sm">
@@ -192,11 +188,11 @@ export default function Pricing() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                   <TrendingUp className="h-[18px] w-[18px] text-primary" />
                 </span>
-                <h3 className="font-bold">Boost my store</h3>
+                <h3 className="font-bold">{copy.storeBoostAddon.label}</h3>
               </div>
-              <p className="mt-3 text-2xl font-extrabold">{formatNaira(1500)}</p>
+              <p className="mt-3 text-2xl font-extrabold">{copy.storeBoostAddon.price}</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Featured placement in marketplace search for 7 days.
+                Featured placement in marketplace search for {copy.storeBoostAddon.days} days.
               </p>
             </div>
           </div>

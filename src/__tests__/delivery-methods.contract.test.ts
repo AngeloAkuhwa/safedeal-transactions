@@ -39,10 +39,30 @@ const FILES = [
 /** `x === "literal"` / `!==` where the operand names a delivery method. */
 const COMPARISON =
   /(?<!typeof\s)\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*[=!]==\s*["'`]([a-z_]+)["'`]/g;
-/** Operand names that actually hold a delivery method. */
-const DELIVERY_OPERAND = /(?:^|[._])(?:delivery_?method|shipping_?method|fulfil?lment_?method|method)$/i;
-/** `{ pickup: ..., delivery: ... }` style maps keyed by a method name. */
-const MAP_KEYS = /\b(?:deliveryMethod|delivery_method|method|rawMethod)\b/;
+/** `x ?? "literal"` / `x || "literal"` defaults on a method-named operand. */
+const DEFAULTING =
+  /\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*(?:\?\?|\|\|)\s*["'`]([a-z_]+)["'`]/g;
+/** `switch (method) { case "literal": }` — captured per switch block below. */
+const SWITCH_HEAD = /switch\s*\(\s*([A-Za-z_$][\w$]*(?:\.[\w$]+)*)[^)]*\)\s*\{/g;
+const CASE_LABEL = /case\s+["'`]([a-z_]+)["'`]/g;
+/**
+ * Any operand whose name mentions a method is in scope — the invented names
+ * have appeared under `method`, `rawMethod`, `deliveryMethod` and
+ * `fulfillment_method` alike.
+ */
+const DELIVERY_OPERAND = /method/i;
+/** Vocabularies that legitimately live under a `*method*` name. */
+const OTHER_METHOD_VOCAB =
+  /(payment|auth|verification|http|request|shipping_provider|login|signin|contact)/i;
+/**
+ * Operands that carry a NON-delivery vocabulary despite being named `*method*`.
+ * Every entry is hand-checked; add only with a reason.
+ */
+const NON_DELIVERY_OPERANDS = new Set([
+  "selectedMethod", // BuyerPaymentSummary — Paystack channel ("card" | "bank")
+]);
+/** Fail-closed sentinels are not claims about a delivery method. */
+const SENTINELS = new Set(["unknown", "none", "other", "null", "unspecified"]);
 
 describe("delivery method vocabulary", () => {
   it("has exactly the four live delivery_method_type enum members", () => {
@@ -56,19 +76,60 @@ describe("delivery method vocabulary", () => {
 
   it("only branches on real delivery-method values", () => {
     const offenders: string[] = [];
+    const SHAPE = ["string", "object", "number", "boolean", "undefined", "function", "symbol", "bigint"];
+
+    const record = (file: string, msg: string) =>
+      offenders.push(`${path.relative(ROOT, file)}: ${msg}`);
+
+    const inScope = (operand: string) =>
+      DELIVERY_OPERAND.test(operand) &&
+      !OTHER_METHOD_VOCAB.test(operand) &&
+      !NON_DELIVERY_OPERANDS.has(operand.split(".").pop()!);
+
     for (const file of FILES) {
       const src = fs.readFileSync(file, "utf8");
-      if (!MAP_KEYS.test(src)) continue;
+      // Skip files that never mention delivery at all — a bare `method` there
+      // belongs to some other vocabulary.
+      const deliveryFile = /deliver|shipp|fulfil|dispatch|courier|pickup|meetup/i.test(src);
+      if (!deliveryFile) continue;
+
       for (const m of src.matchAll(COMPARISON)) {
         const [, operand, literal] = m;
-        // Only delivery-method operands: payment methods, verification
-        // methods and typeof checks have their own vocabularies.
-        if (!DELIVERY_OPERAND.test(operand)) continue;
-        // `typeof x.delivery_method === "string"` is a shape check, not a branch.
-        if (["string", "object", "number", "boolean", "undefined"].includes(literal)) continue;
-        if (!/deliver|shipp|fulfil/i.test(file) && !/deliver|shipp|fulfil/i.test(operand)) continue;
-        if (!VOCAB.has(literal)) {
-          offenders.push(`${path.relative(ROOT, file)}: ${operand} === "${literal}"`);
+        if (!inScope(operand) || SHAPE.includes(literal)) continue;
+        if (!VOCAB.has(literal)) record(file, `${operand} === "${literal}"`);
+      }
+
+      for (const m of src.matchAll(DEFAULTING)) {
+        const [, operand, literal] = m;
+        if (!inScope(operand) || SHAPE.includes(literal) || SENTINELS.has(literal)) continue;
+        if (!VOCAB.has(literal)) record(file, `${operand} ?? "${literal}"`);
+      }
+
+      // switch blocks: take the text from the head to the matching brace depth.
+      for (const head of src.matchAll(SWITCH_HEAD)) {
+        const operand = head[1];
+        if (!inScope(operand)) continue;
+        let depth = 0;
+        let end = head.index! + head[0].length;
+        for (let i = head.index! + head[0].length - 1; i < src.length; i++) {
+          if (src[i] === "{") depth++;
+          else if (src[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+        }
+        const body = src.slice(head.index!, end);
+        for (const c of body.matchAll(CASE_LABEL)) {
+          if (!VOCAB.has(c[1])) record(file, `switch (${operand}) case "${c[1]}"`);
+        }
+      }
+
+      // Object maps keyed by a delivery method: `const X: Record<..Method..>`
+      // or a literal named `*method*Map` / `*Methods`.
+      for (const m of src.matchAll(
+        /(?:const|let)\s+([A-Za-z_$][\w$]*)[^=\n]*=\s*\{([^{}]*)\}/g,
+      )) {
+        const [, name, body] = m;
+        if (!inScope(name)) continue;
+        for (const k of body.matchAll(/(?:^|[,{\s])["']?([a-z_]{3,})["']?\s*:/g)) {
+          if (!VOCAB.has(k[1])) record(file, `${name} map key "${k[1]}"`);
         }
       }
     }

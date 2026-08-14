@@ -113,11 +113,7 @@ const BuyerDisputeDetail = () => {
               <DisputeInfoBanner status={data.dispute.status} />
 
               {/* Possible outcomes */}
-              <PossibleOutcomesPanel
-                status={data.dispute.status}
-                amount={data.pricing?.buyer_total_amount ?? null}
-                currencyCode={data.pricing?.currency_code ?? "NGN"}
-              />
+              <PossibleOutcomesPanel status={data.dispute.status} />
 
               {/* 2-column layout */}
               <div className="grid lg:grid-cols-3 gap-6">

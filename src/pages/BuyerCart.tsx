@@ -299,6 +299,11 @@ const BuyerCart = () => {
     ).service_fee_amount;
   }
   const selectedTotal = selectedSubtotal + selectedFees;
+  // Order Summary must speak the rows' own currency, never a hardcoded NGN.
+  const summaryCurrency = selectedItems[0]?.product?.currency_code ?? items[0]?.product?.currency_code ?? null;
+  const mixedCurrency = new Set(selectedItems.map((i) => i.product!.currency_code)).size > 1;
+  const formatSummary = (v: number) =>
+    summaryCurrency && !mixedCurrency ? formatMoney(v, summaryCurrency) : "—";
 
   const needsAttentionCount = items.filter((i) => !getStockStatus(i).canCheckout).length;
 
@@ -740,20 +745,20 @@ const BuyerCart = () => {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Subtotal</span>
-                            <span className="font-medium">{formatPrice(selectedSubtotal)}</span>
+                            <span className="font-medium">{formatSummary(selectedSubtotal)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">{FEE_NAME}</span>
                             {pricingConfigLoading
                               ? <Skeleton className="h-4 w-20" />
-                              : <span className="font-medium">{formatPrice(selectedFees)}</span>}
+                              : <span className="font-medium">{formatSummary(selectedFees)}</span>}
                           </div>
                           <Separator />
                           <div className="flex justify-between">
                             <span className="font-bold text-foreground">Total</span>
                             {pricingConfigLoading
                               ? <Skeleton className="h-6 w-28" />
-                              : <span className="text-xl font-bold text-foreground">{formatPrice(selectedTotal)}</span>}
+                              : <span className="text-xl font-bold text-foreground">{formatSummary(selectedTotal)}</span>}
                           </div>
                         </div>
                       )}
