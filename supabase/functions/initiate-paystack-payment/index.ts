@@ -198,11 +198,14 @@ Deno.serve(async (req) => {
     if (!pricingRow || !pricingRow.item_amount) {
       return jsonErr("Transaction pricing not found", 400);
     }
+    if (!pricingRow.currency_code) {
+      return jsonErr("Transaction pricing currency is missing", 409);
+    }
 
     const itemAmount = Number(pricingRow.item_amount);
     const vendorPricingConfig = await loadPricingConfig(tx.seller_id);
-    const pricing = computePricing(itemAmount, pricingRow.currency_code || "NGN", "local", vendorPricingConfig);
-    const snapshot = buildPricingSnapshot(itemAmount, pricingRow.currency_code || "NGN", vendorPricingConfig);
+    const pricing = computePricing(itemAmount, pricingRow.currency_code, "local", vendorPricingConfig);
+    const snapshot = buildPricingSnapshot(itemAmount, pricingRow.currency_code, vendorPricingConfig);
 
     // Charge the LOCKED snapshot total the buyer already agreed to. The live
     // recomputation above is used only for fee metadata / gating and as a

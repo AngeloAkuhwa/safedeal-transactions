@@ -94,7 +94,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/_shared/flagged-users-sql.ts",
   "supabase/functions/_shared/money-copy.ts",
   "supabase/functions/_shared/orchestration.ts",
-  "supabase/functions/_shared/payment-capture-guard.ts",
   "supabase/functions/_shared/paystack.ts",
   "supabase/functions/_shared/safedeal-money-policy.ts",
   "supabase/functions/_shared/security-resolver.ts",
@@ -113,7 +112,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
   "supabase/functions/dispute-detail/index.ts",
-  "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/payout-watchdog/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
@@ -193,7 +191,6 @@ const POSITIONAL_DEBT = [
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
   "supabase/functions/_shared/safedeal-money-policy.ts",
   "supabase/functions/admin-system-settings/index.ts",
-  "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
   "supabase/functions/transaction-agreement/index.ts",
   "src/components/admin/dashboard/KpiCards.tsx",
@@ -908,6 +905,20 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
         "supabase/migrations/20260813222037_572828c2-b4d3-4742-ab0e-a98ea90e735d.sql",
         "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql"
   ],
+  },
+  {
+    name: "hardcoded fee rate, cap, or fee-setting key",
+    pattern: /(?<![\w.])0\.0?2(?!\d)|(?<![\w.])400(?:\.0+)?(?!\d)|max_total_service_fee/i,
+    debt: [
+      "supabase/migrations/20260718214353_7fc13186-70b1-4c65-ba35-d707bc40470b.sql",
+      "supabase/migrations/20260804095428_64f55a4f-3059-48bf-aeaa-706bc2f75e24.sql",
+      "supabase/migrations/20260804095754_f076fd17-a756-42b1-88a7-ba28194af818.sql",
+      "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql",
+      "supabase/migrations/20260814014442_d963a8fb-7584-4973-bffc-1faa27070b85.sql",
+      "supabase/migrations/20260814213855_809d1f72-4338-46e6-b116-e53479fc6bc7.sql",
+      "supabase/migrations/20260814214011_4684446c-18a8-4070-b873-44fb8fbc7162.sql",
+      "supabase/migrations/20260814214121_dafeafc2-77d6-41b7-9044-f09e453764d2.sql",
+    ],
   },
 ];
 

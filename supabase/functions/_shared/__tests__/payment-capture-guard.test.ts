@@ -43,9 +43,13 @@ describe("verifyChargeAgainstSnapshot", () => {
     }
   });
 
-  it("defaults the snapshot currency to NGN when absent", () => {
-    expect(verifyChargeAgainstSnapshot({ amount: 100, currency: "NGN" }, { buyer_total_amount: 1 }).ok).toBe(true);
-    expect(verifyChargeAgainstSnapshot({ amount: 100, currency: "GHS" }, { buyer_total_amount: 1 }).ok).toBe(false);
+  it("refuses a snapshot with no currency", () => {
+    const result = verifyChargeAgainstSnapshot({ amount: 100, currency: "NGN" }, { buyer_total_amount: 1 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("currency");
+      expect(result.expectedCurrency).toBe("");
+    }
   });
 
   it("rejects unusable amounts", () => {
@@ -109,5 +113,17 @@ describe("resolveInitiationCharge", () => {
         computed: { currency_code: "NGN", total_amount: 100 },
       }).source,
     ).toBe("computed");
+  });
+
+  it("refuses to initiate from a snapshot or computation with no currency", () => {
+    expect(() =>
+      resolveInitiationCharge({
+        snapshot: { currency_code: null, buyer_total_amount: 100 },
+        computed: { currency_code: "NGN", total_amount: 100 },
+      }),
+    ).toThrow("missing_snapshot_currency");
+    expect(() =>
+      resolveInitiationCharge({ snapshot: null, computed: { currency_code: "", total_amount: 100 } }),
+    ).toThrow("missing_computed_currency");
   });
 });
