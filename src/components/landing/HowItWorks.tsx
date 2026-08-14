@@ -69,7 +69,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="section-y bg-muted/30"
+      className="py-12 sm:py-16 bg-muted/30"
     >
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
@@ -143,7 +143,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
         {state === "done" ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
       </span>
       <span
-        className={`mt-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+        className={`mt-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
           state === "pending" ? "text-muted-foreground" : "text-primary"
         }`}
       >
@@ -156,7 +156,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
       >
         {step.title}
       </h3>
-      <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{step.helper}</p>
+      <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{step.helper}</p>
     </li>
   );
 }
@@ -187,9 +187,9 @@ function MobileStep({ step, index, active }: { step: Step; index: number; active
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[14px] font-bold leading-tight text-foreground">{step.title}</h3>
-          <span className="text-[10px] font-bold text-muted-foreground">{index + 1}/6</span>
+          <span className="text-xs font-bold text-muted-foreground">{index + 1}/6</span>
         </div>
-        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{step.helper}</p>
+        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{step.helper}</p>
       </div>
     </li>
   );

@@ -262,7 +262,7 @@ function MiniFlow({
                 <StepIcon className="h-3 w-3" />
               )}
             </span>
-            <span className="min-w-0 truncate text-[10px] font-bold leading-tight">
+            <span className="min-w-0 truncate text-xs font-bold leading-tight">
               {s.label}
             </span>
           </div>
@@ -361,13 +361,13 @@ function FeatureCard({
                 {f.title}
               </h3>
               {f.hero && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-destructive">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-destructive">
                   <Sparkles className="h-2.5 w-2.5" />
                   AI
                 </span>
               )}
             </div>
-            <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
               {f.line}
             </p>
           </div>
@@ -378,7 +378,7 @@ function FeatureCard({
           <div className="mb-3 flex flex-wrap gap-1.5">
             {f.chips.map((c, i) => (
               <ChipReveal key={c} delay={i * 90}>
-                <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-xs font-semibold text-destructive">
                   <Check className="h-2.5 w-2.5" />
                   {c}
                 </span>
@@ -467,7 +467,7 @@ function ProtectionStrip() {
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                 {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
               </span>
-              <span className="min-w-0 truncate text-[10px] font-bold sm:text-[11px]">
+              <span className="min-w-0 truncate text-xs font-bold sm:text-xs">
                 {it.label}
               </span>
             </div>
@@ -510,7 +510,7 @@ export function PowerfulFeaturesSection() {
   };
 
   return (
-    <section id="features" className="section-y bg-muted/30">
+    <section id="features" className="py-12 sm:py-16 bg-muted/30">
       <style>{`
         @keyframes sd-hero-glow-shift {
           0%, 100% { opacity: 0.85; transform: translate3d(0, 0, 0); }
