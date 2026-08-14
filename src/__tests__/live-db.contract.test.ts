@@ -74,6 +74,8 @@ d("live refund rail", () => {
         "resolve_dispute_refund_buyer_executes",
         "dispute_refund_has_buyer",
         "dispute_unwinds_frozen_escrow",
+        // A session variable alone must not lift the pricing lock.
+        "pricing_override_requires_super_admin",
         // Class-level structural rules.
         "all_escrow_writes_guarded",
         "ledger_write_guarded_single_overload",
