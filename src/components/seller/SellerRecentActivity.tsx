@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeftRight, Shield, Search, SlidersHorizontal, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
+import { ArrowLeftRight, Shield, Search, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
 
