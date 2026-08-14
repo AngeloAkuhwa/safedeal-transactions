@@ -1,6 +1,6 @@
 import { Lock, FileText, ShieldCheck } from "lucide-react";
 import type { AgreementData } from "@/services/agreement.service";
-import { formatMoneyOrDash } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 
 interface AgreementTrustIndicatorsProps {
   pricing: AgreementData["pricing"];
@@ -14,7 +14,7 @@ export function AgreementTrustIndicators({ pricing, lockedAt }: AgreementTrustIn
   const hasTotal =
     pricing != null && pricing.total_amount != null && Number.isFinite(Number(pricing.total_amount));
   const totalAmount = hasTotal
-    ? formatMoneyOrDash(Number(pricing!.total_amount), pricing!.currency_code)
+    ? formatMoney(Number(pricing!.total_amount), pricing!.currency_code)
     : "Your funds";
 
   const indicators = [
