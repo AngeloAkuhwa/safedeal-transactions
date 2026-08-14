@@ -117,6 +117,8 @@ export function ternaryCopyBranches(source: string): string[] {
 function isProse(s: string): boolean {
   if (s.length > 300) return false;
   if (/className|=>|<\/|\/>|[<>]=|\bconst\b|\);|\) as |\bexport \b|\breturn \(|\*\//.test(s)) return false;
+  // Source fragments and generated filenames are not user copy.
+  if (/\) : \(|\?\s*\(|typeKey|\.csv\b|\.tsx?\b/.test(s)) return false;
   if (/\btracking-(?:wide|wider|widest|tight|tighter|normal)\b/.test(s)) return false;
   if (/^[a-z0-9:/[\]\-.,%() ]+$/.test(s) && /(?:^|\s)(?:text|bg|border|px|py|pt|pb|mt|mb|font|rounded|flex|grid|w|h|gap|space)-/.test(s)) return false;
   return true;
@@ -129,6 +131,16 @@ function isProse(s: string): boolean {
  * a statement about the escrow leg that is structurally true for every paid
  * transaction.
  */
+/**
+ * The only two justifications that may repeat freely: both cover surfaces no
+ * buyer or seller ever sees (internal admin tooling and backend ops output).
+ * Every buyer-facing or money-facing entry carries its own hand-written reason.
+ */
+const BULK_APPROVED_REASONS = new Set([
+  "Admin/back-office label for a stored record, state, filter or permission flag.",
+  "Backend operations/alerting text naming stored escrow records and computed drift.",
+]);
+
 const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }> = [
   { file: "src/pages/BuyerTransactionDetail.tsx", text: "Tracking:", reason: "Prefix for the courier tracking number recorded on this transaction." },
   
