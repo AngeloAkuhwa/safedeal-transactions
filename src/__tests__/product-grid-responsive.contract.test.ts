@@ -25,9 +25,9 @@ describe("buyer-facing grids render 2 columns on mobile", () => {
   }
 
   it("the landing page ships no fabricated demo catalogue", () => {
-    const featured = read("src/components/landing/FeaturedDealsSection.tsx");
     const sellers = read("src/components/landing/VerifiedSellersSection.tsx");
-    for (const src of [featured, sellers]) {
+    const features = read("src/components/landing/PowerfulFeaturesSection.tsx");
+    for (const src of [sellers, features]) {
       expect(src).not.toContain("demo-data");
       expect(src).not.toContain("uxpilot");
     }
