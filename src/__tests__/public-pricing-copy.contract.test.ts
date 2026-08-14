@@ -51,6 +51,8 @@ const FILES = [
   ...walk(path.join(ROOT, "src/pages")),
   ...walk(path.join(ROOT, "src/components")),
   ...walk(path.join(ROOT, "src/lib")),
+  ...walk(path.join(ROOT, "src/hooks")),
+  ...walk(path.join(ROOT, "src/services")),
   ...walk(path.join(ROOT, "supabase/functions")),
 ].filter((f) => {
   const rel = path.relative(ROOT, f).split(path.sep).join("/");
