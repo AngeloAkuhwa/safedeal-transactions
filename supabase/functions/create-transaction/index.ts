@@ -422,6 +422,23 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   }
   const offerStatus = linkedBuyerId ? "linked" : "pending_claim";
 
+  // Validate every item's condition BEFORE the first product insert, so a
+  // refusal cannot leave half an offer's products published.
+  const conditionByIndex: string[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const mappedCondition = mapConditionToProduct(items[i].condition);
+    if (!mappedCondition) {
+      return jsonResponse(
+        {
+          error: "condition_unmapped",
+          reason: `"${items[i].title || `Item ${i + 1}`}" has no recognised condition. Set the item condition and publish again.`,
+        },
+        409,
+      );
+    }
+    conditionByIndex.push(mappedCondition);
+  }
+
   // ── Create products first, then offer with first product as anchor ──
   const createdProducts: { id: string; item: any; index: number }[] = [];
   for (let i = 0; i < items.length; i++) {
@@ -435,19 +452,17 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
         slug,
         description: it.description || it.title,
         short_description: (it.description || "").substring(0, 200),
-        condition_label: mapConditionToProduct(it.condition || "brand_new"),
+        condition_label: conditionByIndex[i],
         currency_code: it.currency_code || currencyCode,
         unit_price: Number(it.price),
         stock_quantity: Math.max(1, parseInt(it.quantity) || 1),
         visibility_type: "buyer_specific",
         status: "published",
         is_active: true,
-        delivery_method: JSON.stringify([mapDeliveryToProduct(delivery.delivery_method)]),
-        verification_window_hours: delivery.verification_window_hours || 72,
+        delivery_method: JSON.stringify([productDeliveryMethod]),
+        verification_window_hours: publishWindowHours,
         seller_notes: notes?.seller_notes || null,
-        estimated_delivery_days: delivery.expected_delivery_date
-          ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
-          : "7",
+        estimated_delivery_days: publishEstimatedDays,
         published_at: new Date().toISOString(),
       })
       .select("id")
