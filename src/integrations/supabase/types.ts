@@ -5483,7 +5483,7 @@ export type Database = {
           delivery_method: Database["public"]["Enums"]["delivery_method_type"]
           delivery_postal_code: string | null
           delivery_state: string | null
-          expected_delivery_date: string
+          expected_delivery_date: string | null
           id: string
           transaction_id: string
           updated_at: string
@@ -5498,7 +5498,7 @@ export type Database = {
           delivery_method: Database["public"]["Enums"]["delivery_method_type"]
           delivery_postal_code?: string | null
           delivery_state?: string | null
-          expected_delivery_date: string
+          expected_delivery_date?: string | null
           id?: string
           transaction_id: string
           updated_at?: string
@@ -5513,7 +5513,7 @@ export type Database = {
           delivery_method?: Database["public"]["Enums"]["delivery_method_type"]
           delivery_postal_code?: string | null
           delivery_state?: string | null
-          expected_delivery_date?: string
+          expected_delivery_date?: string | null
           id?: string
           transaction_id?: string
           updated_at?: string

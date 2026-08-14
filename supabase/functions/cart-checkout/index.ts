@@ -116,9 +116,12 @@ Deno.serve(async (req) => {
     const productMap = new Map((products || []).map((p: any) => [p.id, p]));
 
     // 3. Validate ALL items — block entire checkout if any fail
-    const errors: Array<{ product_id: string; error: string }> = [];
+    const errors: Array<{ product_id: string; error: string; code?: string }> = [];
     // Resolved selection per cart item, populated during validation
-    const resolvedByCartItem = new Map<string, { rawMethod: string; address: any; phone: string | null }>();
+    const resolvedByCartItem = new Map<
+      string,
+      { rawMethod: string; mappedMethod: string; condition: string; address: any; phone: string | null }
+    >();
     for (const ci of cartItems) {
       const product = productMap.get(ci.product_id);
       if (!product) { errors.push({ product_id: ci.product_id, error: "Product not found" }); continue; }
@@ -179,7 +182,35 @@ Deno.serve(async (req) => {
       }
       // Phone fallback to buyer profile is checked later; not blocking here
       void needsPhone;
-      resolvedByCartItem.set(ci.id, { rawMethod, address: sel?.delivery_address ?? null, phone: sel?.contact_phone ?? null });
+
+      // FAIL CLOSED, BEFORE ANY WRITE: an unmapped condition or delivery
+      // method is a fact about someone else's goods. Both are validated here
+      // so a refusal can never happen after rows have been inserted.
+      const mappedMethod = mapDeliveryMethod(rawMethod);
+      if (!mappedMethod) {
+        errors.push({
+          product_id: ci.product_id,
+          code: "delivery_method_unmapped",
+          error: `'${rawMethod}' is not a delivery method SafeDeal can record`,
+        });
+        continue;
+      }
+      const condition = mapCondition(product.condition_label);
+      if (!condition) {
+        errors.push({
+          product_id: ci.product_id,
+          code: "condition_unmapped",
+          error: `"${product.title}" has no recognised condition recorded`,
+        });
+        continue;
+      }
+      resolvedByCartItem.set(ci.id, {
+        rawMethod,
+        mappedMethod,
+        condition,
+        address: sel?.delivery_address ?? null,
+        phone: sel?.contact_phone ?? null,
+      });
     }
 
     if (errors.length > 0) {
@@ -201,6 +232,53 @@ Deno.serve(async (req) => {
       const sellerId = product.seller_id;
       if (!sellerGroups.has(sellerId)) sellerGroups.set(sellerId, []);
       sellerGroups.get(sellerId)!.push({ cartItem: ci, product });
+    }
+
+    // 5b. Resolve every persisted commitment BEFORE the first insert, so a
+    // refusal can never strand a half-built transaction.
+    //
+    // The verification window IS a commitment: it is the clock the buyer is
+    // held to, so it must come from the product or the vendor's effective
+    // settings — never a literal, and never a guess.
+    //
+    // The delivery estimate is NOT a commitment: it is optional seller-supplied
+    // information. When the seller left it blank we carry `null` through and
+    // simply show no estimate, rather than blocking the sale.
+    const verificationWindowBySeller = new Map<string, number>();
+    const expectedDateBySeller = new Map<string, string | null>();
+    for (const [sellerId, items] of sellerGroups) {
+      const firstProduct = items[0].product;
+      const productWindow =
+        firstProduct.verification_window_hours === null || firstProduct.verification_window_hours === undefined
+          ? null
+          : Number(firstProduct.verification_window_hours);
+      const verificationWindowHours =
+        productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
+          ? productWindow
+          : await resolveEffectiveTimeoutHours(sellerId, "buyer_verification_timeout");
+      if (verificationWindowHours === null) {
+        return json(
+          {
+            error: "verification_window_unresolved",
+            reason: "No buyer verification window is configured for this seller.",
+          },
+          409,
+        );
+      }
+      verificationWindowBySeller.set(sellerId, verificationWindowHours);
+
+      const rawDeliveryDays = firstProduct.estimated_delivery_days;
+      const parsedDays =
+        rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
+          ? null
+          : Number.parseInt(String(rawDeliveryDays), 10);
+      if (parsedDays === null || !Number.isFinite(parsedDays) || parsedDays < 0) {
+        expectedDateBySeller.set(sellerId, null);
+      } else {
+        const expected = new Date();
+        expected.setDate(expected.getDate() + parsedDays);
+        expectedDateBySeller.set(sellerId, expected.toISOString().split("T")[0]);
+      }
     }
 
     // 6. Create checkout session
@@ -311,7 +389,20 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          existingTx = existing;
+          // Only ADOPT a complete transaction. An incomplete one (no pricing,
+          // no share link) would otherwise be handed back as a 200 whose
+          // review page has nothing to show and whose payment cannot start.
+          const [{ count: pricingCount }, { count: linkCount }] = await Promise.all([
+            admin.from("transaction_pricing").select("transaction_id", { count: "exact", head: true })
+              .eq("transaction_id", existing.id),
+            admin.from("transaction_links").select("transaction_id", { count: "exact", head: true })
+              .eq("transaction_id", existing.id),
+          ]);
+          if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && existing.share_token) {
+            existingTx = existing;
+          } else {
+            console.warn(`cart-checkout: ignoring incomplete transaction ${existing.id}; creating a fresh one`);
+          }
         }
       }
 
@@ -346,7 +437,8 @@ Deno.serve(async (req) => {
           title: product.title,
           description: product.short_description || product.description || "",
           quantity: cartItem.quantity,
-          condition_label: mapCondition(product.condition_label),
+          // Validated before any write; the map lookup cannot be null here.
+          condition_label: resolvedByCartItem.get(cartItem.id)!.condition,
           brand: product.brand,
           model: product.model,
         }));
@@ -426,13 +518,7 @@ Deno.serve(async (req) => {
         // Create related records
         const txItemInserts: any[] = [];
         for (const { cartItem, product } of items as any[]) {
-          const condition = mapCondition(product.condition_label);
-          if (!condition) {
-            return json(
-              { error: "condition_unmapped", reason: `"${product.title}" has no recognised condition recorded.`, product_id: product.id },
-              409,
-            );
-          }
+          const condition = resolvedByCartItem.get(cartItem.id)!.condition;
           txItemInserts.push({
             transaction_id: transactionId,
             title: product.title,
@@ -447,56 +533,12 @@ Deno.serve(async (req) => {
         // Use the buyer's selection captured at validation time
         const firstProduct = items[0].product;
         const firstResolved = resolvedByCartItem.get(items[0].cartItem.id)!;
-        const primaryDeliveryMethod = mapDeliveryMethod(firstResolved.rawMethod);
-        if (!primaryDeliveryMethod) {
-          return json(
-            { error: "delivery_method_unmapped", reason: `"${firstResolved.rawMethod}" is not a delivery method SafeDeal can record.` },
-            409,
-          );
-        }
+        const primaryDeliveryMethod = firstResolved.mappedMethod;
         const needsAddress = firstResolved.rawMethod === "courier_shipping" || firstResolved.rawMethod === "delivery";
         const addr = firstResolved.address ?? {};
-
-        // The delivery estimate is the seller's own published figure, and the
-        // column is NOT NULL. With no figure there is no honest expected date,
-        // so we refuse rather than promising a week nobody agreed to.
-        const rawDeliveryDays = firstProduct.estimated_delivery_days;
-        const deliveryDays =
-          rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
-            ? null
-            : Number.parseInt(String(rawDeliveryDays), 10);
-        if (deliveryDays === null || !Number.isFinite(deliveryDays) || deliveryDays < 0) {
-          return json(
-            {
-              error: "delivery_estimate_missing",
-              reason: `"${firstProduct.title}" has no delivery estimate recorded, so no expected delivery date can be agreed.`,
-              product_id: firstProduct.id,
-            },
-            409,
-          );
-        }
-        const expectedDate = new Date();
-        expectedDate.setDate(expectedDate.getDate() + deliveryDays);
-
-        // The verification window is persisted, so it must come from the
-        // product or the vendor's effective settings — never a literal.
-        const productWindow =
-          firstProduct.verification_window_hours === null || firstProduct.verification_window_hours === undefined
-            ? null
-            : Number(firstProduct.verification_window_hours);
-        const verificationWindowHours =
-          productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
-            ? productWindow
-            : await resolveEffectiveTimeoutHours(sellerId, "buyer_verification_timeout");
-        if (verificationWindowHours === null) {
-          return json(
-            {
-              error: "verification_window_unresolved",
-              reason: "No buyer verification window is configured for this seller.",
-            },
-            409,
-          );
-        }
+        // Resolved in step 5b, before any insert.
+        const expectedDeliveryDate = expectedDateBySeller.get(sellerId) ?? null;
+        const verificationWindowHours = verificationWindowBySeller.get(sellerId)!;
 
         await Promise.all([
           admin.from("transaction_items").insert(txItemInserts),
@@ -514,7 +556,7 @@ Deno.serve(async (req) => {
           admin.from("transaction_delivery_terms").insert({
             transaction_id: transactionId,
             delivery_method: primaryDeliveryMethod,
-            expected_delivery_date: expectedDate.toISOString().split("T")[0],
+            expected_delivery_date: expectedDeliveryDate,
             verification_window_hours: verificationWindowHours,
             delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
             delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,

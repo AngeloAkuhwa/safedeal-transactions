@@ -226,8 +226,13 @@ Deno.serve(async (req) => {
       return jsonErr("payment_method_blocked", 409);
     }
 
-    // Gate 3: Amount limit by verification level
-    const amountLimit = LIMIT_BY_LEVEL[level] ?? 0;
+    // Gate 3: Amount limit by verification level.
+    // An unrecognised level is a data fault, not a ₦0 limit: refuse explicitly
+    // rather than fabricating a cap the buyer was never told about.
+    if (!Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level)) {
+      return jsonErr("verification_level_unknown", 409);
+    }
+    const amountLimit = LIMIT_BY_LEVEL[level];
     if (itemAmount > amountLimit) {
       return jsonErr(
         `This transaction (₦${itemAmount.toLocaleString()}) exceeds your ₦${amountLimit.toLocaleString()} limit. Complete identity verification to unlock higher limits.`,

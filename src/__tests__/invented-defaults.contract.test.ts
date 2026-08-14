@@ -58,7 +58,7 @@ const WINDOW_PARAM_DEFAULT =
  * literal 48-hour verification window unnoticed.
  */
 const WINDOW_POSITIONAL =
-  /\b(?:loadEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
+  /\b(?:loadEffectiveTimeoutHours|resolveEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
 /**
  * A DELIVERY-ESTIMATE default — `estimated_delivery_days || "7"`, `days ?? 7`.
  * Not window-named, so the two rules above miss it, yet it invents a promise
@@ -183,7 +183,6 @@ const WINDOW_DEBT = [
   // pass. Recorded, not narrowed away.
   "supabase/functions/_shared/settings-resolver.ts",
   "supabase/functions/claim-offer/index.ts",
-  "supabase/functions/storefront-checkout/index.ts",
 ];
 
 /**
@@ -498,10 +497,14 @@ const MONEY_ZERO_FALLBACK = new RegExp(
     // member access, optionally chained, on an identifier / call / cast /
     // index result: `x.amount ?? 0`, `x?.amount ?? 0`, `(p as any)?.fee ?? 0`.
     String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
-    // bare money-named identifier: `totalAmount ?? 0`.
-    String.raw`\b[A-Za-z_$][\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    // bare money-named identifier: `totalAmount ?? 0`, and one whose money
+    // noun starts at index 0 (`amountDue ?? 0`) — the old leading
+    // `[A-Za-z_$]` forced the noun to start at index >= 1.
+    String.raw`\b[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
     // bracket lookup on a money-named table: `LIMIT_BY_LEVEL[level] ?? 0`.
-    String.raw`\b[A-Za-z_$][\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
+    // Same leading-character fix: `LIMIT_BY_LEVEL` begins with its noun, so
+    // the rule could not see the very line its comment cites.
+    String.raw`\b[\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
   ].join("|"),
   "g",
 );
@@ -585,6 +588,15 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
   "supabase/functions/seller-transactions/index.ts",
+  // Newly VISIBLE after the bracket rule was fixed to allow a money noun at
+  // index 0 (`LIMIT_BY_LEVEL[level] ?? 0`) and after the bare-identifier rule
+  // lost the same leading-character requirement. Recorded, not narrowed away.
+  "src/components/security/RecoveryCodesPanel.tsx",
+  "src/pages/SellerTransactionDetail.tsx",
+  "supabase/functions/admin-audit-logs/index.ts",
+  "supabase/functions/buyer-disputes/index.ts",
+  "supabase/functions/buyer-profile/index.ts",
+  "supabase/functions/seller-profile/index.ts",
 ];
 
 describe("money never falls back to zero", () => {
@@ -772,15 +784,26 @@ describe("the release fee-chain guard fails closed", () => {
   });
 });
 
-describe("cart checkout invents nothing about someone else's goods", () => {
-  const src = stripComments(
-    fs.readFileSync(path.join(ROOT, "supabase/functions/cart-checkout/index.ts"), "utf8"),
-  );
+/**
+ * BOTH CHECKOUT PATHS. `cart-checkout` (multi-item) and `storefront-checkout`
+ * ("Buy Now") are twins: every rule here is asserted against both, because
+ * four rounds of fixes landed on one half of a pair.
+ *
+ * Note the deliberate asymmetry between the two commitments:
+ *  - the VERIFICATION WINDOW is a real commitment, so an unresolvable window
+ *    refuses the checkout (`verification_window_unresolved`);
+ *  - the DELIVERY ESTIMATE is optional seller-supplied information, so a
+ *    missing one is carried through as `null` and simply not displayed. It
+ *    must never block a sale, and must never be invented as "7 days".
+ */
+describe.each([
+  "supabase/functions/cart-checkout/index.ts",
+  "supabase/functions/storefront-checkout/index.ts",
+])("%s invents nothing about someone else's goods", (rel) => {
+  const src = stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8"));
 
-  it("takes the session currency from the products", () => {
+  it("never names a currency literally", () => {
     expect(src).not.toMatch(CURRENCY_DEFAULT);
-    expect(src).toContain("mixed_currency_cart");
-    expect(src).toContain("currency_code: sessionCurrency");
   });
 
   it("fails closed on an unmapped condition or delivery method", () => {
@@ -790,10 +813,25 @@ describe("cart checkout invents nothing about someone else's goods", () => {
     expect(src).toContain("delivery_method_unmapped");
   });
 
-  it("sources the verification window and delivery estimate from real data", () => {
+  it("resolves the verification window from real data, or refuses", () => {
     expect(src).not.toMatch(WINDOW_POSITIONAL);
-    expect(src).not.toMatch(DAYS_DEFAULT);
     expect(src).toContain("verification_window_unresolved");
-    expect(src).toContain("delivery_estimate_missing");
+  });
+
+  it("treats a missing delivery estimate as absent, not as a default", () => {
+    expect(src).not.toMatch(DAYS_DEFAULT);
+    // No estimate => no date persisted, and no refusal.
+    expect(src).not.toContain("delivery_estimate_missing");
+    expect(src).toMatch(/expectedDeliveryDate/);
+  });
+});
+
+describe("cart checkout session currency", () => {
+  const src = stripComments(
+    fs.readFileSync(path.join(ROOT, "supabase/functions/cart-checkout/index.ts"), "utf8"),
+  );
+  it("takes the session currency from the products", () => {
+    expect(src).toContain("mixed_currency_cart");
+    expect(src).toContain("currency_code: sessionCurrency");
   });
 });
