@@ -12,6 +12,7 @@ import {
   buildSweep,
   MIN_PLATFORM_MARGIN_NGN,
 } from "@/lib/pricing-invariant";
+import { resolveAppliedCap } from "@/types/payment-flow.types";
 
 const compute = (amount: number, config?: any) => computePricing(amount, "NGN", config);
 
