@@ -7,7 +7,6 @@ import {
   CircleCheck,
   Wallet,
   Check,
-  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,14 +68,10 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="py-8 sm:py-12 lg:py-16 bg-muted/30"
+      className="section-y bg-muted/30"
     >
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Lightbulb className="h-3 w-3 text-primary" />
-            <span className="text-xs font-semibold text-foreground">Simple &amp; Secure</span>
-          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">How SafeDeal Works</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Six steps. One protected deal.

@@ -4,7 +4,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { HelpCircle } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const faqs = [
@@ -54,7 +53,7 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
         <AccordionTrigger className="group px-3.5 py-3 text-left text-sm font-semibold text-foreground hover:no-underline sm:text-base">
           <span className="flex-1">{faq.q}</span>
         </AccordionTrigger>
-        <AccordionContent className="px-3.5 pb-3 text-sm leading-relaxed text-muted-foreground">
+        <AccordionContent className="px-3.5 pb-3 text-left text-sm leading-relaxed text-muted-foreground">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -64,13 +63,9 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
 
 export function FAQSection() {
   return (
-    <section id="faq" className="bg-background py-8 sm:py-12 lg:py-16">
+    <section id="faq" className="section-y bg-background">
       <div className="container-x mx-auto max-w-4xl">
         <div className="mb-5 text-center sm:mb-7">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <HelpCircle className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">FAQ</span>
-          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Tap to expand.

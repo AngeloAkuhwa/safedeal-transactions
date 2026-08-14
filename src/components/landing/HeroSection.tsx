@@ -1,32 +1,24 @@
 import { Link } from "react-router";
-import { MapPin, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { AnimatedTransactionCard } from "./AnimatedTransactionCard";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-8 sm:py-12 lg:py-16">
-      {/* Decorative blobs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="absolute -top-10 left-0 h-44 w-44 rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute -bottom-10 right-0 h-56 w-56 rounded-full bg-success/15 blur-3xl" />
-      </div>
+    <section className="section-y relative overflow-hidden bg-gradient-to-b from-primary/5 to-background">
 
       <div className="container-x relative mx-auto max-w-6xl">
         <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10">
           {/* Left */}
           <div className="text-center lg:text-left">
-            <div className="mb-3 inline-flex animate-fade-in items-center gap-2 rounded-full border border-border bg-card px-3 py-1 shadow-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground">
-                Live in Lagos 🇳🇬 — more cities rolling out
-              </span>
-            </div>
+            <p className="mb-3 animate-fade-in text-xs font-semibold text-muted-foreground">
+              Live in Lagos 🇳🇬 — more cities rolling out
+            </p>
 
-            <h1 className="animate-fade-in mb-3 text-3xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
+            <h1 className="h-display animate-fade-in mb-3 text-balance font-extrabold text-foreground">
               Escrow for every <span className="text-primary">online deal.</span>
             </h1>
 
-            <p className="animate-fade-in mx-auto mb-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground lg:mx-0 [animation-delay:80ms]">
+            <p className="body-lead animate-fade-in mx-auto mb-6 max-w-lg text-left text-muted-foreground sm:text-center lg:mx-0 lg:text-left [animation-delay:80ms]">
               SafeDeal holds the buyer&apos;s payment until the item is delivered and confirmed — so
               nobody has to trust a stranger. Free for verified sellers.
             </p>
