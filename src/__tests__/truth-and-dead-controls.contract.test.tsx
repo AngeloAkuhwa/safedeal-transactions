@@ -14,7 +14,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, cleanup, screen } from "@testing-library/react";
+import { render, cleanup, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import fs from "node:fs";
@@ -24,8 +24,10 @@ import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import {
   SUPPORT_RESPONSE_PROMISE,
   SUPPORT_RESPONSE_TARGET,
+  SUPPORT_HOURS,
   supportLink,
 } from "@/lib/support/support-copy";
+import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
 
 const SRC = path.resolve(__dirname, "..");
 
@@ -109,24 +111,81 @@ function renderPage(node: React.ReactElement) {
 
 let sellerVerified = false;
 
+const detailFixture = {
+  transaction: {
+    id: "tx-1",
+    transaction_code: "SD-2026-000123",
+    status: "delivered_awaiting_verification",
+    money_status: "held_in_escrow",
+    dispute_status: "none",
+    created_at: "2026-01-01T00:00:00Z",
+    delivered_at: "2026-01-05T00:00:00Z",
+    verification_deadline_at: "2026-01-07T00:00:00Z",
+    share_token: null,
+    agreement_locked_at: null,
+    cancellation_reason: null,
+    cancelled_by_role: null,
+  },
+  item: {
+    title: "Test item",
+    description: "A test item",
+    quantity: 1,
+    condition: "new",
+    condition_label: "new",
+    brand: null,
+    model: null,
+    category: null,
+  },
+  items: [],
+  pricing: {
+    currency_code: "NGN",
+    item_amount: 100000,
+    paystack_fee_amount: 0,
+    platform_fee_amount: 2100,
+    service_fee_amount: 2100,
+    service_fee_rate: 0.021,
+    total_amount: 102100,
+    buyer_total_amount: 102100,
+    seller_net_amount: 100000,
+    delivery_fee_amount: 0,
+  },
+  escrow: {
+    state: "held",
+    held_amount: 102100,
+    released_amount: 0,
+    frozen_amount: 0,
+    refunded_amount: 0,
+    amount: 102100,
+    currency_code: "NGN",
+  },
+  dispute: null,
+  status_history: [],
+  money_history: [],
+  delivery_terms: null,
+  delivery_tracking: null,
+  delivery_proof_files: [],
+  dispatch_evidence_files: [],
+  agreement: null,
+  next_action: { action: "verify_receipt", label: "Verify item received", description: "" },
+  product_media: [],
+  completion_event: null,
+};
+
+// The fixture must satisfy the real service contract, or these render tests
+// prove nothing about the real screen.
+const _fixtureMatchesContract: TransactionDetailResponse = {
+  ...detailFixture,
+  seller: { full_name: "Test Seller", avatar_url: null, member_since: "2025-01-01T00:00:00Z", is_verified: false },
+};
+void _fixtureMatchesContract;
+
 vi.mock("@/hooks/useBuyerIdentity", () => ({
   useBuyerIdentity: () => ({ buyerName: "Test Buyer", avatarUrl: null }),
 }));
 
 vi.mock("@/services/transaction-detail.service", () => ({
   getTransactionDetail: vi.fn(async () => ({
-    transaction: {
-      id: "tx-1",
-      transaction_code: "SD-2026-000123",
-      status: "delivered_awaiting_verification",
-      money_status: "held_in_escrow",
-      dispute_status: "none",
-      created_at: "2026-01-01T00:00:00Z",
-      delivered_at: "2026-01-05T00:00:00Z",
-      verification_deadline_at: "2026-01-07T00:00:00Z",
-      cancellation_reason: null,
-      cancelled_by_role: null,
-    },
+    ...detailFixture,
     seller: {
       id: "seller-1",
       full_name: "Test Seller",
@@ -134,35 +193,6 @@ vi.mock("@/services/transaction-detail.service", () => ({
       is_verified: sellerVerified,
       member_since: "2025-01-01T00:00:00Z",
     },
-    item: {
-      title: "Test item",
-      description: "A test item",
-      quantity: 1,
-      condition_label: "new",
-      brand: null,
-      model: null,
-    },
-    items: [],
-    pricing: {
-      currency_code: "NGN",
-      item_amount: 100000,
-      service_fee_amount: 2100,
-      buyer_total_amount: 102100,
-      seller_net_amount: 100000,
-      delivery_fee_amount: 0,
-    },
-    escrow: { state: "held", amount: 102100, currency_code: "NGN" },
-    dispute: null,
-    status_history: [],
-    money_history: [],
-    delivery_terms: null,
-    delivery_tracking: null,
-    delivery_proof_files: [],
-    dispatch_evidence_files: [],
-    agreement: null,
-    next_action: { action: "verify_receipt", label: "Verify item received" },
-    product_media: [],
-    completion_event: null,
   })),
 }));
 
