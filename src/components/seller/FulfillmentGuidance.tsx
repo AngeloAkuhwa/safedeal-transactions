@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { ChevronDown, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DeliveryMethod } from "./DeliveryMethodBadge";
+import {
+  toTransactionDeliveryMethod,
+  type TransactionDeliveryMethod,
+} from "@/lib/delivery-methods";
 
 interface FulfillmentGuidanceProps {
-  method: DeliveryMethod | string | null | undefined;
+  method: TransactionDeliveryMethod | string | null | undefined;
 }
 
-const COPY: Record<string, { before: string[]; after: string[] }> = {
+const COPY: Record<TransactionDeliveryMethod, { before: string[]; after: string[] }> = {
   courier: {
     before: [
       "Package the item securely with appropriate cushioning.",
@@ -57,7 +60,10 @@ const COPY: Record<string, { before: string[]; after: string[] }> = {
 
 export function FulfillmentGuidance({ method }: FulfillmentGuidanceProps) {
   const [open, setOpen] = useState(false);
-  const key = ((method ?? "courier") as DeliveryMethod) in COPY ? (method as string) : "courier";
+  // Fail closed: a missing or unrecognised method must not be narrated as a
+  // courier shipment, and must never index COPY with a non-member key.
+  const key = toTransactionDeliveryMethod(method);
+  if (!key) return null;
   const copy = COPY[key];
 
   return (
