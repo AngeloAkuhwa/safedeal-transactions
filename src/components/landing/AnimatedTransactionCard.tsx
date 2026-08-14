@@ -68,14 +68,14 @@ export function AnimatedTransactionCard() {
       <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Shield className="h-4 w-4 text-primary" />
+            <Shield className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-[13px] font-bold text-foreground">How a protected deal works</p>
-            <p className="text-[10px] text-muted-foreground">Example flow · not a real transaction</p>
+            <p className="text-sm font-bold text-foreground">How a protected deal works</p>
+            <p className="text-xs text-muted-foreground">Example flow · not a real transaction</p>
           </div>
         </div>
-        <span className="rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-success">
+        <span className="rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-success">
           Protected
         </span>
       </div>
@@ -107,7 +107,7 @@ export function AnimatedTransactionCard() {
             );
           })}
         </div>
-        <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+        <span className="shrink-0 text-xs font-semibold text-muted-foreground">
           Step {active + 1}/{STEPS.length}
         </span>
       </div>
@@ -145,18 +145,18 @@ function StepRow({
 
   return (
     <li
-      className={`flex items-center gap-2 rounded-lg p-2 transition-all duration-500 ease-out ${wrapClass}`}
+      className={`flex items-center gap-2 rounded-xl p-2 transition-all duration-500 ease-out ${wrapClass}`}
     >
       <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors duration-500 ${iconWrapClass}`}
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-colors duration-500 ${iconWrapClass}`}
       >
-        <Icon className="h-3.5 w-3.5" />
+        <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className={`text-[12px] font-bold leading-tight transition-colors duration-500 ${titleClass}`}>
+        <p className={`text-xs font-bold leading-tight transition-colors duration-500 ${titleClass}`}>
           {step.title}
         </p>
-        <p className="text-[10px] font-medium leading-tight text-muted-foreground">
+        <p className="text-xs font-medium leading-tight text-muted-foreground">
           {step.subtitle}
         </p>
       </div>
