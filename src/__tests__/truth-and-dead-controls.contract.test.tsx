@@ -164,6 +164,9 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     renderPage(<Page />);
+    await new Promise((r) => setTimeout(r, 300));
+    // eslint-disable-next-line no-console
+    console.log(document.body.textContent?.slice(0, 800));
     const notVerified = await screen.findAllByText("Not verified");
     // Desktop + mobile copies of the seller card.
     expect(notVerified.length).toBeGreaterThanOrEqual(2);
