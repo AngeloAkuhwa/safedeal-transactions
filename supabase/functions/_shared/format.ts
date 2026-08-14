@@ -50,11 +50,14 @@ export function formatMoneyOrDash(
   return formatMoney(Number(amount), currency);
 }
 
-/** CSV-safe variant: no currency symbol, just `1234.50` (still 2 dp). */
+/**
+ * CSV-safe variant: no currency symbol, just `1234.50` (still 2 dp).
+ * A missing amount yields an EMPTY cell — writing `0.00` would state, in a
+ * file someone reconciles against, that the figure was zero.
+ */
 export function formatMoneyCsv(amount: number | null | undefined): string {
-  const value =
-    amount === null || amount === undefined || Number.isNaN(amount)
-      ? 0
-      : Number(amount);
-  return value.toFixed(2);
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+    return "";
+  }
+  return Number(amount).toFixed(2);
 }
