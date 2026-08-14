@@ -329,44 +329,115 @@ async function fetchSellerSummary(adminClient: any, sellerId: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Create the buyer transaction lazily from offer + offer_items snapshots.
+// Resolve and validate EVERYTHING the transaction commits to, before any write.
+// Throws an httpError on refusal so no half-built transaction can be minted.
+// Also runs the two authorization gates (commerce kill switch, KYC threshold),
+// which is why both the create and the reuse branch call it.
 // ─────────────────────────────────────────────────────────────────────────────
-async function createTransactionFromOffer(adminClient: any, offer: any, buyerId: string): Promise<string | null> {
+async function buildOfferPlan(adminClient: any, offer: any, buyerId: string) {
   const items = await fetchOfferItems(adminClient, offer.id);
   if (items.length === 0) {
-    console.error("Cannot create tx: offer has no items", offer.id);
-    return null;
+    throw httpError(409, { error: "offer_has_no_items", reason: "This offer has no items to purchase." });
   }
 
-  // Fetch seller delivery terms via the first product (all items share delivery)
+  // Seller delivery terms come from the first product (all items share delivery)
   const { data: firstProduct } = await adminClient
     .from("products")
     .select("delivery_method, verification_window_hours, estimated_delivery_days, seller_notes, currency_code")
     .eq("id", offer.product_id)
     .maybeSingle();
 
-  let deliveryMethod = "courier";
-  try {
-    const parsed = JSON.parse(firstProduct?.delivery_method || "[]");
-    if (Array.isArray(parsed) && parsed[0]) deliveryMethod = parsed[0];
-  } catch { /* keep default */ }
-
-  const verificationWindow = firstProduct?.verification_window_hours
-    || await loadEffectiveTimeoutHours(offer.seller_id, "buyer_verification_timeout", 72);
-  const currencyCode = items[0].currency_code || firstProduct?.currency_code || "NGN";
-
-  // Commerce gate: platform kill switch + vendor active check
-  {
-    const gate = await checkCheckoutAllowed(offer.seller_id);
-    if (gate) {
-      const err: any = new Error("checkout_not_allowed");
-      err.__httpStatus = gate.status;
-      err.__httpBody = gate.body;
-      throw err;
-    }
+  if (!firstProduct) {
+    throw httpError(409, { error: "product_missing", reason: "The product behind this offer is no longer available." });
   }
 
-  const totalAmount = items.reduce((sum, it) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
+  // Commerce gate: platform kill switch + vendor active check
+  const gate = await checkCheckoutAllowed(offer.seller_id);
+  if (gate) throw httpError(gate.status, gate.body);
+
+  // ── Delivery method: mapped through the shared vocabulary, never raw ──
+  let enabledMethods: string[] = [];
+  if (firstProduct.delivery_method) {
+    try {
+      const parsed = JSON.parse(firstProduct.delivery_method);
+      enabledMethods = Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch {
+      enabledMethods = [String(firstProduct.delivery_method)];
+    }
+  }
+  if (enabledMethods.length === 0) {
+    throw httpError(409, {
+      error: "delivery_method_missing",
+      reason: "The seller has not configured any delivery method for this product.",
+    });
+  }
+  const mapped = enabledMethods.map((m) => mapDeliveryMethod(m));
+  if (mapped.some((m) => m === null)) {
+    const bad = enabledMethods.filter((_m, i) => mapped[i] === null);
+    throw httpError(409, {
+      error: "delivery_method_unmapped",
+      reason: `'${bad.join(", ")}' is not a delivery method SafeDeal can record.`,
+    });
+  }
+  const distinct = [...new Set(mapped as string[])];
+  if (distinct.length !== 1) {
+    // An offer carries no buyer delivery selection, so with several distinct
+    // handoff shapes we cannot know which one the agreement commits to.
+    throw httpError(409, {
+      error: "delivery_method_ambiguous",
+      reason: "This product offers several delivery methods; the seller must send a single-method offer.",
+    });
+  }
+  const deliveryMethod = distinct[0];
+
+  // ── Condition: mapped, never invented ──
+  const conditionLabel = mapCondition(items[0].condition_summary);
+  if (!conditionLabel) {
+    throw httpError(409, {
+      error: "condition_unmapped",
+      reason: `"${items[0].product_title}" has no recognised condition recorded.`,
+    });
+  }
+
+  // ── Verification window IS a commitment: resolve strictly ──
+  const productWindow =
+    firstProduct.verification_window_hours === null || firstProduct.verification_window_hours === undefined
+      ? null
+      : Number(firstProduct.verification_window_hours);
+  const verificationWindow =
+    productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
+      ? productWindow
+      : await resolveEffectiveTimeoutHours(offer.seller_id, "buyer_verification_timeout");
+  if (verificationWindow === null) {
+    throw httpError(409, {
+      error: "verification_window_unresolved",
+      reason: "No buyer verification window is configured for this seller.",
+    });
+  }
+
+  // ── Delivery estimate is NOT a commitment: null is legal, show none ──
+  const rawDeliveryDays = firstProduct.estimated_delivery_days;
+  const parsedDays =
+    rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
+      ? null
+      : Number.parseInt(String(rawDeliveryDays), 10);
+  let expectedDeliveryDate: string | null = null;
+  if (parsedDays !== null && Number.isFinite(parsedDays) && parsedDays >= 0) {
+    const expected = new Date();
+    expected.setDate(expected.getDate() + parsedDays);
+    expectedDeliveryDate = expected.toISOString().split("T")[0];
+  }
+
+  // ── Currency comes from the goods ──
+  const currencyCode = firstProduct.currency_code || items[0].currency_code;
+  if (!currencyCode) {
+    throw httpError(409, { error: "currency_missing", reason: "No currency is recorded on this product." });
+  }
+
+  const totalAmount = items.reduce(
+    (sum: number, it: any) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)),
+    0,
+  );
   const vendorConfig = await loadPricingConfig(offer.seller_id);
   const pricing = computePricing(totalAmount, currencyCode, "local", vendorConfig);
   const snapshot = buildPricingSnapshot(totalAmount, currencyCode, vendorConfig);
@@ -378,13 +449,31 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
     currencyCode,
     pricing.total_amount,
   );
-  if (kyc) {
-    // Signal caller (claim-offer HTTP handler) — throw to bubble up as 403 JSON.
-    const err: any = new Error("identity_verification_required");
-    err.__httpStatus = kyc.status;
-    err.__httpBody = kyc.body;
-    throw err;
-  }
+  if (kyc) throw httpError(kyc.status, kyc.body);
+
+  return {
+    items,
+    firstProduct,
+    deliveryMethod,
+    conditionLabel,
+    verificationWindow,
+    expectedDeliveryDate,
+    currencyCode,
+    totalAmount,
+    pricing,
+    snapshot,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Create the buyer transaction lazily from offer + offer_items snapshots.
+// ─────────────────────────────────────────────────────────────────────────────
+async function createTransactionFromOffer(adminClient: any, offer: any, buyerId: string): Promise<string | null> {
+  const plan = await buildOfferPlan(adminClient, offer, buyerId);
+  const {
+    items, firstProduct, deliveryMethod, conditionLabel, verificationWindow,
+    expectedDeliveryDate, currencyCode, totalAmount, pricing, snapshot,
+  } = plan;
 
   const { data: codeData } = await adminClient.rpc("generate_transaction_code");
   const transactionCode = codeData ?? `SD-${Date.now()}`;
@@ -434,7 +523,7 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
       title: aggregateTitle,
       description: aggregateDescription,
       quantity: totalQuantity,
-      condition_label: items[0].condition_summary || "brand_new",
+      condition_label: conditionLabel,
     }),
     adminClient.from("transaction_pricing").insert({
       transaction_id: txId,
@@ -450,12 +539,12 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
     adminClient.from("transaction_delivery_terms").insert({
       transaction_id: txId,
       delivery_method: deliveryMethod,
-      expected_delivery_date: new Date(Date.now() + (parseInt(firstProduct?.estimated_delivery_days || "7") * 86400000)).toISOString(),
+      expected_delivery_date: expectedDeliveryDate,
       verification_window_hours: verificationWindow,
     }),
     adminClient.from("transaction_notes").insert({
       transaction_id: txId,
-      seller_notes: firstProduct?.seller_notes || null,
+      seller_notes: firstProduct.seller_notes || null,
     }),
     adminClient.from("transaction_participants").insert([
       {
