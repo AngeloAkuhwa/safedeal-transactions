@@ -2,10 +2,10 @@ import { Link } from "react-router";
 import { Shield, MapPin, Twitter, Facebook, Linkedin, Instagram } from "lucide-react";
 
 const productLinks = [
-  { label: "How It Works", href: "#how-it-works" },
+  { label: "How It Works", href: "#protected-deal" },
   { label: "Marketplace", href: "/marketplace" },
   { label: "Protection", href: "#protection" },
-  { label: "Trust & Safety", href: "#trust" },
+  { label: "Pricing", href: "#fees" },
 ];
 
 const companyLinks = ["About Us", "Careers", "Blog", "Press Kit"];

@@ -51,15 +51,15 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
       className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
     >
       <AccordionItem value={`faq-${index}`} className="border-none">
-        <AccordionTrigger className="group px-3.5 py-3 text-left text-[13px] font-semibold text-foreground hover:no-underline sm:text-[14px]">
+        <AccordionTrigger className="group px-3.5 py-3 text-left text-sm font-semibold text-foreground hover:no-underline sm:text-base">
           <span className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-              <HelpCircle className="h-3.5 w-3.5" />
+              <HelpCircle className="h-4 w-4" />
             </span>
             <span className="flex-1">{faq.q}</span>
           </span>
         </AccordionTrigger>
-        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-[13px] leading-relaxed text-muted-foreground">
+        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-sm leading-relaxed text-muted-foreground">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -69,11 +69,11 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
 
 export function FAQSection() {
   return (
-    <section id="faq" className="section-y bg-background">
+    <section id="faq" className="bg-background py-12 sm:py-16">
       <div className="container-x mx-auto max-w-4xl">
         <div className="mb-5 text-center sm:mb-7">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <HelpCircle className="h-3.5 w-3.5 text-primary" />
+            <HelpCircle className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">FAQ</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>

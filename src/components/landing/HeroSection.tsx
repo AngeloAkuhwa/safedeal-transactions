@@ -4,7 +4,7 @@ import { AnimatedTransactionCard } from "./AnimatedTransactionCard";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-8 sm:py-10 lg:py-12">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-12 sm:py-16">
       {/* Decorative blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute -top-10 left-0 h-44 w-44 rounded-full bg-primary/15 blur-3xl" />
@@ -16,8 +16,8 @@ export function HeroSection() {
           {/* Left */}
           <div className="text-center lg:text-left">
             <div className="mb-3 inline-flex animate-fade-in items-center gap-2 rounded-full border border-border bg-card px-3 py-1 shadow-sm">
-              <MapPin className="h-3.5 w-3.5 text-success sm:h-4 sm:w-4" />
-              <span className="text-[11px] font-semibold text-foreground sm:text-xs">
+              <MapPin className="h-4 w-4 text-success" />
+              <span className="text-xs font-semibold text-foreground">
                 Available in Lagos, Nigeria — expanding soon
               </span>
             </div>
