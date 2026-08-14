@@ -40,7 +40,7 @@ export function ScrollProgressBar() {
   return (
     <div aria-hidden className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-transparent">
       <div
-        className="h-full origin-left bg-gradient-to-r from-primary to-success transition-[width] duration-150 ease-out"
+        className="h-full origin-left bg-primary transition-[width] duration-150 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>
