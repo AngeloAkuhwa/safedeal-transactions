@@ -120,7 +120,9 @@ d("live refund rail", () => {
     const nanOnly = psql(
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
         " where n.nspname = 'public' and p.prokind = 'f'" +
-        " and p.proname <> 'is_finite_money'" +
+        // The self-test inserts a literal NaN on purpose to prove the column
+        // constraint rejects it.
+        " and p.proname not in ('is_finite_money', 'selftest_refund_rail')" +
         " and pg_get_functiondef(p.oid) ~ '''NaN''::numeric'" +
         " and pg_get_functiondef(p.oid) !~ 'is_finite_money'" +
         " order by 1",
