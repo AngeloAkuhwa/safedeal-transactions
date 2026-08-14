@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { signOut, getSession } from "@/services/auth.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { toast } from "@/components/ui/sonner";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface SellerStorefrontSidebarProps {
   sellerName: string;
@@ -26,7 +27,7 @@ const navLinks = [
 
 function getVerificationLabel(level: string) {
   switch (level) {
-    case "trusted_buyer": return "Verified Seller";
+    case "trusted_buyer": return TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text;
     case "basic_verified": return "Basic Verified";
     default: return "Unverified";
   }

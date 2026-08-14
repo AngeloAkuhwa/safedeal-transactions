@@ -13,10 +13,11 @@ import { setStockQuantity } from "@/services/inventory.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
 import { useVendorPlan } from "@/hooks/useVendorPlan";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 function getVerificationLabel(level: string) {
   switch (level) {
-    case "trusted_buyer": return "Verified Seller";
+    case "trusted_buyer": return TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text;
     case "basic_verified": return "Basic Verified";
     default: return "Unverified";
   }

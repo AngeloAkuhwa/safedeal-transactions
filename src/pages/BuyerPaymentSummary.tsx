@@ -10,6 +10,7 @@ import {
   Headphones, Eye, RotateCcw, Check as CheckIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
@@ -914,7 +915,7 @@ export default function BuyerPaymentSummary() {
                     <div>
                       <p className="text-sm font-bold text-foreground">{data.seller.full_name}</p>
                       {data.sellerVerification?.identity_verified && (
-                        <p className="text-xs text-muted-foreground">Verified Seller</p>
+                        <p className="text-xs text-muted-foreground">{TRUST_CLAIMS.SELLER_ID_VERIFIED.text}</p>
                       )}
                     </div>
                   </div>

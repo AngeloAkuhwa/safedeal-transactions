@@ -184,16 +184,19 @@ vi.mock("@/hooks/useBuyerIdentity", () => ({
 }));
 
 vi.mock("@/services/transaction-detail.service", () => ({
-  getTransactionDetail: vi.fn(async () => ({
-    ...detailFixture,
-    seller: {
-      id: "seller-1",
-      full_name: "Test Seller",
-      avatar_url: null,
-      is_verified: sellerVerified,
-      member_since: "2025-01-01T00:00:00Z",
-    },
-  })),
+  // Typed against the real contract, so any drift in TransactionDetailResponse
+  // breaks this mock loudly instead of silently rendering a stale shape.
+  getTransactionDetail: vi.fn(
+    async (): Promise<TransactionDetailResponse> => ({
+      ...detailFixture,
+      seller: {
+        full_name: "Test Seller",
+        avatar_url: null,
+        is_verified: sellerVerified,
+        member_since: "2025-01-01T00:00:00Z",
+      },
+    }),
+  ),
 }));
 
 vi.mock("@/components/dashboard/BuyerNav", () => ({ BuyerNav: () => <nav /> }));
