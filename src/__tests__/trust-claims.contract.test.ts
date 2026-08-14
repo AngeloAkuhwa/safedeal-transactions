@@ -64,13 +64,15 @@ const SAFE_OPERATIONAL_CONTEXTS: Array<{ pattern: RegExp; reason: string }> = [
 
 function stringLiterals(source: string): string[] {
   const values: string[] = [];
-  for (const match of source.matchAll(/(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/g)) {
-    const value = match[2].replace(/\s+/g, " ").trim();
-    if (value && !/(?:className|class=|@\/|^[a-z0-9_./:-]+$)/i.test(value)) values.push(value);
-  }
-  for (const match of source.matchAll(/>([^<>{}]+)</g)) {
-    const value = match[1].replace(/\s+/g, " ").trim();
-    if (value) values.push(value);
+  for (const line of source.split("\n")) {
+    for (const match of line.matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`/g)) {
+      const value = (match[1] ?? match[2] ?? match[3] ?? "").replace(/\s+/g, " ").trim();
+      if (value && !/(?:className|class=|@\/|^[a-z0-9_./:-]+$)/i.test(value)) values.push(value);
+    }
+    for (const match of line.matchAll(/>([^<>{}]+)</g)) {
+      const value = match[1].replace(/\s+/g, " ").trim();
+      if (value) values.push(value);
+    }
   }
   return values;
 }
