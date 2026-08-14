@@ -1755,12 +1755,6 @@ function CaseCommunicationSection(props: {
             </div>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <button className={cn(
-                  "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
-                  "hover:border-slate-500"
-                )}>
-                  <Paperclip className="w-3 h-3 mr-1" /> Attach File
-                </button>
                 <select
                   value={msgType}
                   onChange={(e) => setMsgType(e.target.value)}
