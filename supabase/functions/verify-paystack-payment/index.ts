@@ -143,20 +143,35 @@ export async function processPaystackVerification(
     paystack_fee_amount: number;
     platform_fee_amount: number;
     service_fee_amount: number;
+    /**
+     * `transaction_pricing` has no rate column, so the rate is DERIVED from the
+     * charged fees the same way `resolve-share-token` derives it: service fee ÷
+     * item amount, null when the item amount is 0 or either fee is missing.
+     * It must be persisted explicitly — the payment screen treats it as
+     * load-bearing evidence of what the buyer was actually charged.
+     */
+    service_fee_rate: number | null;
     total_amount: number;
     seller_payout_amount: number | null;
   } | null = null;
 
   if (pricingSnapshot) {
-    const processingFee = num(pricingSnapshot.payment_processing_fee_amount) ?? 0;
-    const platformFee = num(pricingSnapshot.platform_fee_amount) ?? 0;
+    const rawProcessingFee = num(pricingSnapshot.payment_processing_fee_amount);
+    const rawPlatformFee = num(pricingSnapshot.platform_fee_amount);
+    const processingFee = rawProcessingFee ?? 0;
+    const platformFee = rawPlatformFee ?? 0;
     const itemAmount = Number(pricingSnapshot.item_amount) || 0;
+    const derivedRate =
+      rawProcessingFee !== null && rawPlatformFee !== null && itemAmount > 0
+        ? (rawProcessingFee + rawPlatformFee) / itemAmount
+        : null;
     pricing = {
       currency_code: pricingSnapshot.currency_code || "NGN",
       item_amount: itemAmount,
       paystack_fee_amount: processingFee,
       platform_fee_amount: platformFee,
       service_fee_amount: processingFee + platformFee,
+      service_fee_rate: derivedRate,
       total_amount: num(pricingSnapshot.buyer_total_amount) ?? itemAmount + processingFee + platformFee,
       seller_payout_amount: num(pricingSnapshot.seller_payout_amount),
     };
@@ -170,7 +185,16 @@ export async function processPaystackVerification(
       "local",
       await loadPricingConfig(tx.seller_id),
     );
-    pricing = { ...fallback, seller_payout_amount: null };
+    pricing = {
+      currency_code: fallback.currency_code,
+      item_amount: fallback.item_amount,
+      paystack_fee_amount: fallback.paystack_fee_amount,
+      platform_fee_amount: fallback.platform_fee_amount,
+      service_fee_amount: fallback.service_fee_amount,
+      service_fee_rate: fallback.service_fee_rate,
+      total_amount: fallback.total_amount,
+      seller_payout_amount: null,
+    };
   }
 
   if (!pricing) {

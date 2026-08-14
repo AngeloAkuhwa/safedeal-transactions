@@ -52,6 +52,20 @@ const WINDOW_DEFAULT =
 /** A default parameter: `windowHours = 72`. */
 const WINDOW_PARAM_DEFAULT =
   /\b(?:verification_window_hours|verificationWindowHours|windowHours)\s*(?::\s*number\s*)?=\s*(\d+)\b/g;
+/**
+ * A POSITIONAL window fallback — `loadEffectiveTimeoutHours(id, "…", 48)`.
+ * Neither rule above can see it, which is how `cart-checkout` persisted a
+ * literal 48-hour verification window unnoticed.
+ */
+const WINDOW_POSITIONAL =
+  /\b(?:loadEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
+/**
+ * A DELIVERY-ESTIMATE default — `estimated_delivery_days || "7"`, `days ?? 7`.
+ * Not window-named, so the two rules above miss it, yet it invents a promise
+ * about someone else's goods just as a window default does.
+ */
+const DAYS_DEFAULT =
+  /\b[\w$.?]*(?:estimated_delivery_days|delivery_days|deliveryDays|fulfilmentDays|fulfillmentDays)\s*(?:\?\?|\|\|)\s*["']?\d+["']?/g;
 
 /** `?? "NGN"`, `|| "NGN"`, `currency = "NGN"`, `currency: "NGN"`. */
 const CURRENCY_DEFAULT =
@@ -97,7 +111,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-transactions-monitor/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/cart-checkout/index.ts",
   "supabase/functions/claim-offer/index.ts",
   "supabase/functions/create-transaction/index.ts",
   "supabase/functions/dispute-detail/index.ts",
@@ -166,6 +179,11 @@ const WINDOW_DEBT = [
   "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-delivery-status/index.ts",
+  // Newly VISIBLE under the positional + delivery-estimate rules added in this
+  // pass. Recorded, not narrowed away.
+  "supabase/functions/_shared/settings-resolver.ts",
+  "supabase/functions/claim-offer/index.ts",
+  "supabase/functions/storefront-checkout/index.ts",
 ];
 
 /**
@@ -226,7 +244,12 @@ describe("invented defaults", () => {
     for (const file of FILES) {
       const rel = relOf(file);
       const src = stripComments(fs.readFileSync(file, "utf8"));
-      const hits = [...src.matchAll(WINDOW_DEFAULT), ...src.matchAll(WINDOW_PARAM_DEFAULT)];
+      const hits = [
+        ...src.matchAll(WINDOW_DEFAULT),
+        ...src.matchAll(WINDOW_PARAM_DEFAULT),
+        ...src.matchAll(WINDOW_POSITIONAL),
+        ...src.matchAll(DAYS_DEFAULT),
+      ];
       if (hits.length === 0) continue;
       if (WINDOW_DEBT.includes(rel)) {
         debtSeen.add(rel);
@@ -461,8 +484,27 @@ describe("exemption lists cannot rot", () => {
  * screen. Scope is the whole tree — edge functions compose receipts and
  * notification copy that a person reads.
  */
-const MONEY_ZERO_FALLBACK =
-  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*\.?(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
+const MONEY_NOUN =
+  "(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)";
+/** Map/table names that hold monetary limits: `LIMIT_BY_LEVEL[level] ?? 0`. */
+const MONEY_MAP_NOUN = `(?:${MONEY_NOUN}|limit|Limit|LIMIT|cap|Cap|CAP|amounts|AMOUNT|FEE|PRICE|TOTAL)`;
+/**
+ * Widened again in this pass to cover the three shapes that still evaded it:
+ * optional chaining (`x?.amount ?? 0`), a cast receiver
+ * (`(x as any)?.fee ?? 0`) and bracket access (`LIMIT_BY_LEVEL[level] ?? 0`).
+ */
+const MONEY_ZERO_FALLBACK = new RegExp(
+  [
+    // member access, optionally chained, on an identifier / call / cast /
+    // index result: `x.amount ?? 0`, `x?.amount ?? 0`, `(p as any)?.fee ?? 0`.
+    String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    // bare money-named identifier: `totalAmount ?? 0`.
+    String.raw`\b[A-Za-z_$][\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    // bracket lookup on a money-named table: `LIMIT_BY_LEVEL[level] ?? 0`.
+    String.raw`\b[A-Za-z_$][\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
+  ].join("|"),
+  "g",
+);
 
 /**
  * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
@@ -473,8 +515,34 @@ const MONEY_ZERO_FALLBACK =
  * (`p.amount ?? 0`), which the previous form could not see. The three files
  * appended below are newly VISIBLE offences, not new offences.
  */
+/**
+ * A COUNTER is not money. `total_count ?? 0`, `total_users ?? 0` and
+ * `failed_payouts_count ?? 0` are honest zeroes — a row count that is absent
+ * really is zero rows. Only explicitly count-shaped names are excused; a bare
+ * `.total ?? 0` stays an offence, because it may well be a money total.
+ */
+function isCountName(match: string): boolean {
+  return /(?:_count|_users|_flagged|_transactions|_items|_disputes|Count)\s*(?:\?\?|\|\|)\s*0\b/.test(match);
+}
+
 const MONEY_ZERO_DEBT: string[] = [
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
+  "src/components/agreement/LockedSnapshotCard.tsx",
+  "src/hooks/useSellerUnreadCounts.ts",
+  "src/pages/AdminAuditLogs.tsx",
+  "src/pages/AdminIdentity.tsx",
+  "src/pages/AdminSupport.tsx",
+  "src/pages/BuyerCart.tsx",
+  "src/pages/BuyerMarketplace.tsx",
+  "supabase/functions/admin-flagged-users-export/index.ts",
+  "supabase/functions/admin-users-directory-export/index.ts",
+  "supabase/functions/buyer-dashboard/index.ts",
+  "supabase/functions/buyer-transactions/index.ts",
+  "supabase/functions/create-transaction/index.ts",
+  "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/reconcile-escrow/index.ts",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/verify-paystack-payment/index.ts",
   "src/components/admin/transactions/MoneyStatus.ts",
   "src/components/admin/transactions/ResolveDisputeDialog.tsx",
   "src/components/seller/SellerMetricsCards.tsx",
@@ -526,7 +594,7 @@ describe("money never falls back to zero", () => {
     for (const file of FILES) {
       const r = relOf(file);
       const src = stripComments(fs.readFileSync(file, "utf8"));
-      const hits = [...src.matchAll(MONEY_ZERO_FALLBACK)];
+      const hits = [...src.matchAll(MONEY_ZERO_FALLBACK)].filter((m) => !isCountName(m[0]));
       if (hits.length === 0) continue;
       if (MONEY_ZERO_DEBT.includes(r)) { debtSeen.add(r); continue; }
       for (const m of hits) offenders.push(`${r}: ${m[0].trim()}`);
@@ -568,7 +636,7 @@ describe("money never falls back to zero", () => {
  * `resolve-share-token`. This catches a wrapped call whose result defaults to
  * zero when the ASSIGNMENT NAME is money-shaped.
  */
-const MONEY_NAME = "(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held|net|Net|kobo|Kobo)";
+const MONEY_NAME = `(?:${MONEY_NOUN.slice(3, -1)}|net|Net|kobo|Kobo)`;
 const MONEY_ZERO_WRAPPED = new RegExp(
   [
     // `const totalAmount = Number(x) || 0;` — money-named declaration.
@@ -657,5 +725,75 @@ describe("money never falls back to zero (wrapped calls)", () => {
     }
     expect(src).not.toMatch(MONEY_ZERO_WRAPPED);
     expect(src).not.toMatch(MONEY_ZERO_FALLBACK);
+  });
+});
+
+/**
+ * SNAPSHOT + RELEASE GUARDS.
+ *
+ * `transaction_agreement_snapshots.snapshot_json.pricing.service_fee_rate` is
+ * load-bearing evidence on the payment screen. `transaction_pricing` has no
+ * rate column, so both capture paths must DERIVE it (service fee ÷ item
+ * amount, null when it cannot be derived) and persist it explicitly.
+ */
+describe("agreement snapshots persist the charged fee rate", () => {
+  for (const f of [
+    "supabase/functions/verify-paystack-payment/index.ts",
+    "supabase/functions/paystack-webhook/index.ts",
+  ]) {
+    it(`${f} declares and derives service_fee_rate`, () => {
+      const src = stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"));
+      // The pricing shape must DECLARE the field, so a missing one is a type error.
+      expect(src).toMatch(/service_fee_rate:\s*number\s*\|\s*null;/);
+      // …and derive it from the charged fees rather than reading an absent key.
+      expect(src).toMatch(/rawProcessingFee\s*!==\s*null\s*&&\s*rawPlatformFee\s*!==\s*null\s*&&\s*itemAmount\s*>\s*0/);
+      // The persisted snapshot still writes it.
+      expect(src).toMatch(/service_fee_rate:\s*pricing\.service_fee_rate/);
+    });
+  }
+});
+
+describe("the release fee-chain guard fails closed", () => {
+  const src = stripComments(
+    fs.readFileSync(path.join(ROOT, "supabase/functions/_shared/release-core.ts"), "utf8"),
+  );
+
+  it("refuses the release when a snapshot fee is missing", () => {
+    expect(src).toContain("fee_chain_unverifiable");
+    // The old shape zeroed the expectation and skipped reconciliation entirely.
+    expect(src).not.toMatch(/platform_fee_amount\s*\?\?\s*0/);
+    expect(src).not.toMatch(/payment_processing_fee_amount\s*\?\?\s*0/);
+    expect(src).not.toMatch(/if\s*\(expectedFees\s*>\s*0\.005\)/);
+  });
+
+  it("treats a payout row with no amount as a mismatch, not as zero", () => {
+    expect(src).not.toMatch(/payout\s+as\s+any\)\.amount\s*\?\?\s*0/);
+    expect(src).toMatch(/payoutAmount\s*==\s*null/);
+  });
+});
+
+describe("cart checkout invents nothing about someone else's goods", () => {
+  const src = stripComments(
+    fs.readFileSync(path.join(ROOT, "supabase/functions/cart-checkout/index.ts"), "utf8"),
+  );
+
+  it("takes the session currency from the products", () => {
+    expect(src).not.toMatch(CURRENCY_DEFAULT);
+    expect(src).toContain("mixed_currency_cart");
+    expect(src).toContain("currency_code: sessionCurrency");
+  });
+
+  it("fails closed on an unmapped condition or delivery method", () => {
+    expect(src).toMatch(/function mapCondition\([^)]*\):\s*string\s*\|\s*null/);
+    expect(src).toMatch(/function mapDeliveryMethod\([^)]*\):\s*string\s*\|\s*null/);
+    expect(src).toContain("condition_unmapped");
+    expect(src).toContain("delivery_method_unmapped");
+  });
+
+  it("sources the verification window and delivery estimate from real data", () => {
+    expect(src).not.toMatch(WINDOW_POSITIONAL);
+    expect(src).not.toMatch(DAYS_DEFAULT);
+    expect(src).toContain("verification_window_unresolved");
+    expect(src).toContain("delivery_estimate_missing");
   });
 });

@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { shareLinkExpiresAt } from "../_shared/share-links.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
@@ -29,14 +29,32 @@ function generateShareToken(): string {
   return result;
 }
 
-function mapCondition(c: string | null): string {
-  const m: Record<string, string> = { brand_new: "brand_new", like_new: "like_new", refurbished: "excellent", used_good: "good", used_fair: "fair" };
-  return m[c ?? ""] ?? "brand_new";
+/**
+ * FAIL CLOSED: an unmapped condition or delivery method is a fact about someone
+ * else's goods. We refuse the checkout rather than inventing "brand new" or
+ * "courier".
+ */
+const CONDITION_MAP: Record<string, string> = {
+  brand_new: "brand_new",
+  like_new: "like_new",
+  refurbished: "excellent",
+  used_good: "good",
+  used_fair: "fair",
+};
+function mapCondition(c: string | null): string | null {
+  return CONDITION_MAP[c ?? ""] ?? null;
 }
 
-function mapDeliveryMethod(d: string | null): string {
-  const m: Record<string, string> = { pickup: "pickup", delivery: "courier", courier_shipping: "courier", digital: "hand_delivery", hand_delivery: "hand_delivery", meetup: "meetup" };
-  return m[d ?? ""] ?? "courier";
+const DELIVERY_METHOD_MAP: Record<string, string> = {
+  pickup: "pickup",
+  delivery: "courier",
+  courier_shipping: "courier",
+  digital: "hand_delivery",
+  hand_delivery: "hand_delivery",
+  meetup: "meetup",
+};
+function mapDeliveryMethod(d: string | null): string | null {
+  return DELIVERY_METHOD_MAP[d ?? ""] ?? null;
 }
 
 Deno.serve(async (req) => {
@@ -219,7 +237,10 @@ Deno.serve(async (req) => {
     // effective threshold. We take the min threshold across seller groups so
     // the strictest vendor rule wins.
     for (const [sellerId, pricing] of sellerGroupPricings) {
-      const currency = sellerGroups.get(sellerId)?.[0]?.product.currency_code ?? "NGN";
+      const currency = sellerGroups.get(sellerId)?.[0]?.product.currency_code;
+      if (!currency) {
+        return json({ error: "currency_missing", reason: "A product in this checkout has no currency recorded." }, 409);
+      }
       const kyc = await checkIdVerificationRequirement(
         buyerId,
         sellerId,
@@ -229,12 +250,33 @@ Deno.serve(async (req) => {
       if (kyc) return json(kyc.body, kyc.status);
     }
 
+    // The session currency comes from the goods, exactly like transaction_pricing.
+    // Mixed currencies cannot be summed into one session total.
+    const sessionCurrencies = new Set(
+      cartItems
+        .map((ci: any) => productMap.get(ci.product_id)?.currency_code)
+        .filter((c: string | null | undefined) => !!c) as string[],
+    );
+    if (sessionCurrencies.size !== 1) {
+      return json(
+        {
+          error: sessionCurrencies.size === 0 ? "currency_missing" : "mixed_currency_cart",
+          reason:
+            sessionCurrencies.size === 0
+              ? "No currency is recorded on the products in this checkout."
+              : "This cart mixes currencies; check out each currency separately.",
+        },
+        409,
+      );
+    }
+    const sessionCurrency = [...sessionCurrencies][0];
+
     const { data: checkoutSession, error: csErr } = await admin
       .from("checkout_sessions")
       .insert({
         buyer_id: buyerId,
         status: "pending",
-        currency_code: "NGN",
+        currency_code: sessionCurrency,
         subtotal_amount: subtotalAmount,
         total_protection_fee: totalProtectionFee,
         total_amount: totalAmount,
@@ -382,26 +424,79 @@ Deno.serve(async (req) => {
         transactionId = newTx.id;
 
         // Create related records
-        const txItemInserts = items.map(({ cartItem, product }: any) => ({
-          transaction_id: transactionId,
-          title: product.title,
-          description: product.short_description || product.description || "",
-          quantity: cartItem.quantity,
-          condition_label: mapCondition(product.condition_label),
-          brand: product.brand,
-          model: product.model,
-        }));
+        const txItemInserts: any[] = [];
+        for (const { cartItem, product } of items as any[]) {
+          const condition = mapCondition(product.condition_label);
+          if (!condition) {
+            return json(
+              { error: "condition_unmapped", reason: `"${product.title}" has no recognised condition recorded.`, product_id: product.id },
+              409,
+            );
+          }
+          txItemInserts.push({
+            transaction_id: transactionId,
+            title: product.title,
+            description: product.short_description || product.description || "",
+            quantity: cartItem.quantity,
+            condition_label: condition,
+            brand: product.brand,
+            model: product.model,
+          });
+        }
 
         // Use the buyer's selection captured at validation time
         const firstProduct = items[0].product;
         const firstResolved = resolvedByCartItem.get(items[0].cartItem.id)!;
         const primaryDeliveryMethod = mapDeliveryMethod(firstResolved.rawMethod);
+        if (!primaryDeliveryMethod) {
+          return json(
+            { error: "delivery_method_unmapped", reason: `"${firstResolved.rawMethod}" is not a delivery method SafeDeal can record.` },
+            409,
+          );
+        }
         const needsAddress = firstResolved.rawMethod === "courier_shipping" || firstResolved.rawMethod === "delivery";
         const addr = firstResolved.address ?? {};
 
-        const deliveryDays = parseInt(firstProduct.estimated_delivery_days || "7", 10) || 7;
+        // The delivery estimate is the seller's own published figure, and the
+        // column is NOT NULL. With no figure there is no honest expected date,
+        // so we refuse rather than promising a week nobody agreed to.
+        const rawDeliveryDays = firstProduct.estimated_delivery_days;
+        const deliveryDays =
+          rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
+            ? null
+            : Number.parseInt(String(rawDeliveryDays), 10);
+        if (deliveryDays === null || !Number.isFinite(deliveryDays) || deliveryDays < 0) {
+          return json(
+            {
+              error: "delivery_estimate_missing",
+              reason: `"${firstProduct.title}" has no delivery estimate recorded, so no expected delivery date can be agreed.`,
+              product_id: firstProduct.id,
+            },
+            409,
+          );
+        }
         const expectedDate = new Date();
         expectedDate.setDate(expectedDate.getDate() + deliveryDays);
+
+        // The verification window is persisted, so it must come from the
+        // product or the vendor's effective settings — never a literal.
+        const productWindow =
+          firstProduct.verification_window_hours === null || firstProduct.verification_window_hours === undefined
+            ? null
+            : Number(firstProduct.verification_window_hours);
+        const verificationWindowHours =
+          productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
+            ? productWindow
+            : await resolveEffectiveTimeoutHours(sellerId, "buyer_verification_timeout");
+        if (verificationWindowHours === null) {
+          return json(
+            {
+              error: "verification_window_unresolved",
+              reason: "No buyer verification window is configured for this seller.",
+            },
+            409,
+          );
+        }
 
         await Promise.all([
           admin.from("transaction_items").insert(txItemInserts),
@@ -420,14 +515,13 @@ Deno.serve(async (req) => {
             transaction_id: transactionId,
             delivery_method: primaryDeliveryMethod,
             expected_delivery_date: expectedDate.toISOString().split("T")[0],
-            verification_window_hours: firstProduct.verification_window_hours
-              || await loadEffectiveTimeoutHours(sellerId, "buyer_verification_timeout", 48),
+            verification_window_hours: verificationWindowHours,
             delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
             delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,
             delivery_city: needsAddress ? (addr.city ?? null) : null,
             delivery_state: needsAddress ? (addr.state ?? null) : null,
             delivery_postal_code: needsAddress ? (addr.postal_code ?? null) : null,
-            delivery_country_code: needsAddress ? (addr.country_code ?? "NG") : null,
+            delivery_country_code: needsAddress ? (addr.country_code ?? null) : null,
           }),
           admin.from("transaction_participants").insert([
             {
@@ -534,7 +628,7 @@ Deno.serve(async (req) => {
         subtotal: subtotalAmount,
         total_protection_fee: totalProtectionFee,
         total_amount: totalAmount,
-        currency_code: "NGN",
+        currency_code: sessionCurrency,
       },
     });
   } catch (err) {
