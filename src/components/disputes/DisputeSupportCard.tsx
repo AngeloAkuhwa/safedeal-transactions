@@ -1,8 +1,10 @@
 import { LifeBuoy, MessageCircle } from "lucide-react";
+import { Link } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supportLink } from "@/lib/support/support-copy";
 
-export function DisputeSupportCard() {
+export function DisputeSupportCard({ reference }: { reference?: string | null } = {}) {
   return (
     <Card className="bg-primary/5 border-primary/20">
       <CardContent className="p-6 text-center space-y-3">
@@ -13,9 +15,11 @@ export function DisputeSupportCard() {
         <p className="text-sm text-muted-foreground">
           Our support team is available to help you understand the dispute process.
         </p>
-        <Button variant="outline" size="sm" className="w-full gap-2" disabled>
-          <MessageCircle className="h-4 w-4" />
-          Chat with Support
+        <Button asChild variant="outline" size="sm" className="w-full gap-2">
+          <Link to={supportLink(reference, "dispute")}>
+            <MessageCircle className="h-4 w-4" />
+            Contact support
+          </Link>
         </Button>
       </CardContent>
     </Card>
