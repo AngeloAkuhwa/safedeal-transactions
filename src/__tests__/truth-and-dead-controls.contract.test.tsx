@@ -15,7 +15,7 @@
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import fs from "node:fs";
 import path from "node:path";
@@ -98,7 +98,11 @@ const qc = () => new QueryClient({ defaultOptions: { queries: { retry: false } }
 function renderPage(node: React.ReactElement) {
   return render(
     <QueryClientProvider client={qc()}>
-      <MemoryRouter initialEntries={["/dashboard/transactions/tx-1"]}>{node}</MemoryRouter>
+      <MemoryRouter initialEntries={["/dashboard/transactions/tx-1"]}>
+        <Routes>
+          <Route path="/dashboard/transactions/:transactionId" element={node} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -160,9 +164,6 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     renderPage(<Page />);
-    await screen.findByText(/SD-2026-000123|Something went wrong|Test Seller/i).catch(() => {});
-    // eslint-disable-next-line no-console
-    console.log(document.body.innerHTML.slice(0, 2000));
     const notVerified = await screen.findAllByText("Not verified");
     // Desktop + mobile copies of the seller card.
     expect(notVerified.length).toBeGreaterThanOrEqual(2);
