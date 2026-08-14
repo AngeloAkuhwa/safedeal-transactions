@@ -336,7 +336,11 @@ export default function BuyerPaymentSummary() {
   // Cap facts come from the persisted snapshot only. A fee that merely looks
   // large is not evidence that a ceiling applied.
   const isFeeCapped = data.pricing?.is_total_service_fee_capped === true;
-  const appliedCap = appliedCapFromModelVersion(data.pricing?.pricing_model_version);
+  const appliedCap = resolveAppliedCap({
+    pricing_model_version: data.pricing?.pricing_model_version,
+    service_fee_amount: feeAmount,
+    safedeal_fee_amount: platformFeeAmount,
+  });
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
   const courierTracked = isTrackedDelivery(data.delivery?.delivery_method);
 
@@ -653,7 +657,7 @@ export default function BuyerPaymentSummary() {
                         total_amount: totalAmount,
                         is_floored: platformFeeAmount === DEFAULT_MIN_PLATFORM_FEE,
                         is_capped: isFeeCapped,
-                        capped_by: isFeeCapped ? "total_service_fee" : null,
+                        capped_by: isFeeCapped ? (appliedCap?.kind ?? null) : null,
                         applied_cap_amount: isFeeCapped ? (appliedCap?.amount ?? null) : null,
                         non_refundable: true,
                       },
