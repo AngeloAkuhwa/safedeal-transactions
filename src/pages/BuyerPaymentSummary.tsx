@@ -327,12 +327,56 @@ export default function BuyerPaymentSummary() {
     );
   }
 
-  const currencyCode = data.pricing?.currency_code || "NGN";
-  const totalAmount = data.pricing?.total_amount ?? 0;
-  const itemAmount = data.pricing?.item_amount ?? 0;
-  const feeAmount = data.pricing?.service_fee_amount ?? 0;
-  const feeRate = data.pricing?.service_fee_rate ?? 0;
-  const platformFeeAmount = data.pricing?.platform_fee_amount ?? 0;
+  // MONEY MUST NOT FAIL TO ZERO. Without a complete pricing snapshot we cannot
+  // prove what the buyer owes, so the payment screen is blocked with an honest
+  // error instead of rendering "Pay ₦0.00".
+  const snapshot = data.pricing;
+  const num = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null;
+  const currencyCode = snapshot?.currency_code || null;
+  const totalAmount = num(snapshot?.total_amount);
+  const itemAmount = num(snapshot?.item_amount);
+  const feeAmount = num(snapshot?.service_fee_amount);
+  const feeRate = num(snapshot?.service_fee_rate);
+  const platformFeeAmount = num(snapshot?.platform_fee_amount);
+  const pricingUnavailable =
+    !snapshot ||
+    !currencyCode ||
+    totalAmount === null ||
+    totalAmount <= 0 ||
+    itemAmount === null ||
+    feeAmount === null;
+
+  if (pricingUnavailable) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="max-w-md w-full text-center space-y-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">We can't show the amount for this payment</h1>
+            <p className="text-sm text-muted-foreground">
+              The priced agreement for transaction {data.transaction.transaction_code} is incomplete, so we cannot
+              confirm what you would be charged. Payment is blocked until the seller re-issues the agreement.
+              Nothing has been charged.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+              <Button variant="outline" onClick={() => navigate("/buyer/transactions")}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> My transactions
+              </Button>
+              <Button onClick={() => navigate("/contact")}>
+                <Headphones className="h-4 w-4 mr-2" /> Contact support
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   // Cap facts come from the persisted snapshot only. A fee that merely looks
   // large is not evidence that a ceiling applied.
   const isFeeCapped = data.pricing?.is_total_service_fee_capped === true;
