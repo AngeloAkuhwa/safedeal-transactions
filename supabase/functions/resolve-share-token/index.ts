@@ -131,6 +131,8 @@ Deno.serve(async (req) => {
       total_amount: number;
       seller_payout_amount: number | null;
       is_total_service_fee_capped: boolean;
+      /** Null when the snapshot does not record whether the fee floor bound. */
+      is_floored: boolean | null;
       pricing_model_version: string | null;
     } | null = null;
 
@@ -149,6 +151,9 @@ Deno.serve(async (req) => {
         // Cap facts travel with the snapshot so the UI never guesses which
         // ceiling applied or how large it was.
         is_total_service_fee_capped: Boolean((pricingRaw as any).is_total_service_fee_capped),
+        // The snapshot does not persist a floor flag, and it must not be
+        // re-derived by comparing the charged fee to a live constant.
+        is_floored: null,
         pricing_model_version: ((pricingRaw as any).pricing_model_version as string) ?? null,
       };
     } else {
@@ -159,6 +164,7 @@ Deno.serve(async (req) => {
         ...fallback,
         seller_payout_amount: null,
         is_total_service_fee_capped: fallback.is_capped,
+        is_floored: fallback.is_floored,
         pricing_model_version: null,
       };
     }
