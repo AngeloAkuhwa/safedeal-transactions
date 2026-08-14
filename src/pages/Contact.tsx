@@ -17,6 +17,11 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { submitContactMessage, type ContactTopic } from "@/services/contact.service";
+import {
+  SUPPORT_HOURS,
+  SUPPORT_RESPONSE_PROMISE,
+  SUPPORT_RESPONSE_TARGET,
+} from "@/lib/support/support-copy";
 
 const TITLE = "Contact SafeDeal Support";
 const DESCRIPTION =
@@ -57,6 +62,7 @@ export default function Contact() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   // Prefill identity for signed-in users so they don't retype it.
   useEffect(() => {
@@ -90,13 +96,14 @@ export default function Contact() {
     setErrors({});
     setSending(true);
     try {
-      await submitContactMessage({
+      const result = await submitContactMessage({
         full_name: parsed.data.full_name,
         email: parsed.data.email,
         topic,
         transaction_reference: parsed.data.transaction_reference || null,
         message: parsed.data.message,
       });
+      setAcknowledged(result.acknowledged);
       setSent(true);
       setMessage("");
       toast.success("Message sent. Our team has been notified.");
@@ -132,8 +139,9 @@ export default function Contact() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Message received</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Our support team has been notified and will reply to {email} within 1 business
-                    day.
+                    {acknowledged
+                      ? `We emailed a confirmation to ${email}. Support replies within ${SUPPORT_RESPONSE_TARGET} (${SUPPORT_HOURS}).`
+                      : `Our support team has been notified and will reply to ${email} within ${SUPPORT_RESPONSE_TARGET} (${SUPPORT_HOURS}).`}
                   </p>
                   <Button variant="outline" className="mt-3" onClick={() => setSent(false)}>
                     Send another message
@@ -230,10 +238,7 @@ export default function Contact() {
               <Clock className="mt-0.5 h-5 w-5 text-primary" />
               <div>
                 <h2 className="text-base font-semibold text-foreground">Response time</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  We reply within 1 business day. Support hours are Monday to Friday, 9am – 5pm WAT.
-                  Messages sent outside those hours are answered the next business day.
-                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{SUPPORT_RESPONSE_PROMISE}</p>
               </div>
             </div>
           </section>

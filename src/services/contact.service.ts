@@ -16,8 +16,16 @@ export interface ContactSubmission {
   message: string;
 }
 
+export interface ContactSubmissionResult {
+  id: string;
+  /** True when an acknowledgement email actually left the system. */
+  acknowledged: boolean;
+}
+
 /** Persists a support message and notifies admins. Throws on failure. */
-export const submitContactMessage = async (payload: ContactSubmission): Promise<string> => {
+export const submitContactMessage = async (
+  payload: ContactSubmission,
+): Promise<ContactSubmissionResult> => {
   const { data: { session } } = await supabase.auth.getSession();
   const { data, error } = await supabase.functions.invoke("submit-contact-message", {
     body: payload,
@@ -25,5 +33,5 @@ export const submitContactMessage = async (payload: ContactSubmission): Promise<
   });
   if (error) throw new Error(error.message || "Could not send your message");
   if (data?.error) throw new Error(data.error);
-  return data.id as string;
+  return { id: data.id as string, acknowledged: Boolean(data.acknowledged) };
 };
