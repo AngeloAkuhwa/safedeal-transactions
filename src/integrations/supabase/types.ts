@@ -6759,7 +6759,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
-          escrow_fee_rate?: number
+          escrow_fee_rate: number
           featured_placement?: boolean
           is_active?: boolean
           monthly_price_naira?: number
