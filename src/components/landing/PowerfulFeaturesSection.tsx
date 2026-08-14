@@ -21,7 +21,7 @@ import {
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { SnapCarousel } from "@/components/ui/snap-carousel";
 
-type Tone = "primary" | "success" | "warning" | "danger";
+type Tone = "primary" | "neutral";
 
 interface MiniStep {
   icon: LucideIcon;
@@ -43,7 +43,7 @@ const FEATURES: Feature[] = [
     icon: ShoppingBag,
     title: "Protected Marketplace",
     line: "Browse public listings where every deal can be escrow-protected.",
-    tone: "primary",
+    tone: "neutral",
     steps: [
       { icon: CircleCheck, label: "Verified" },
       { icon: ShieldCheck, label: "Protected" },
@@ -54,7 +54,7 @@ const FEATURES: Feature[] = [
     icon: Link2,
     title: "Direct Deal Links",
     line: "Create a private protected link for deals that start in chat, DMs, or email.",
-    tone: "success",
+    tone: "neutral",
     steps: [
       { icon: Link2, label: "Create link" },
       { icon: ChevronRight, label: "Share" },
@@ -65,7 +65,7 @@ const FEATURES: Feature[] = [
     icon: ShieldCheck,
     title: "Funds Held Securely",
     line: "Buyer payment stays safely held until verification or resolution.",
-    tone: "primary",
+    tone: "neutral",
     steps: [
       { icon: CircleCheck, label: "Paid in" },
       { icon: Lock, label: "In escrow" },
@@ -76,7 +76,7 @@ const FEATURES: Feature[] = [
     icon: Store,
     title: "Verified Seller Storefronts",
     line: "Buy from sellers with verified profiles, ratings, and completed deals.",
-    tone: "success",
+    tone: "neutral",
     steps: [
       { icon: UserCheck, label: "ID check" },
       { icon: Store, label: "Store OK" },
@@ -87,7 +87,7 @@ const FEATURES: Feature[] = [
     icon: Lock,
     title: "Locked Agreement",
     line: "Item details, price, and delivery terms are locked after payment.",
-    tone: "warning",
+    tone: "neutral",
     steps: [
       { icon: Check, label: "Price set" },
       { icon: Lock, label: "Locked" },
@@ -98,7 +98,7 @@ const FEATURES: Feature[] = [
     icon: Truck,
     title: "Delivery Tracking",
     line: "Sellers upload courier details, tracking numbers, and delivery proof.",
-    tone: "primary",
+    tone: "neutral",
     steps: [
       { icon: ShoppingBag, label: "Shipped" },
       { icon: Search, label: "Tracking" },
@@ -109,7 +109,7 @@ const FEATURES: Feature[] = [
     icon: CircleCheck,
     title: "Buyer Confirmation",
     line: "Funds release only after the buyer confirms the item matches.",
-    tone: "success",
+    tone: "neutral",
     steps: [
       { icon: Truck, label: "Received" },
       { icon: Search, label: "Reviewed" },
@@ -120,7 +120,7 @@ const FEATURES: Feature[] = [
     icon: Camera,
     title: "Evidence Uploads",
     line: "Photos, videos, receipts, and delivery proof support dispute reviews.",
-    tone: "warning",
+    tone: "neutral",
     steps: [
       { icon: Camera, label: "Photos" },
       { icon: Check, label: "Receipt" },
@@ -131,7 +131,7 @@ const FEATURES: Feature[] = [
     icon: Bot,
     title: "Smart Dispute Resolution Agent",
     line: "Automatically reviews claims, evidence, and missing proof to speed up fair resolutions.",
-    tone: "danger",
+    tone: "primary",
     hero: true,
     chips: [
       "Reviews evidence",
@@ -163,33 +163,17 @@ const toneMap: Record<
     iconWrap: "bg-primary/10",
     iconColor: "text-primary",
     iconHover: "group-hover:bg-primary group-hover:text-primary-foreground",
-    chipActive: "border-primary/40 bg-primary/15 text-primary ring-1 ring-primary/25",
-    chipDone: "border-primary/20 bg-primary/5 text-primary",
+    chipActive: "border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/25",
+    chipDone: "border-primary/20 bg-primary/5 text-foreground",
     border: "hover:border-primary/40",
   },
-  success: {
-    iconWrap: "bg-success/10",
-    iconColor: "text-success",
-    iconHover: "group-hover:bg-success group-hover:text-success-foreground",
-    chipActive: "border-success/40 bg-success/15 text-success ring-1 ring-success/25",
-    chipDone: "border-success/20 bg-success/5 text-success",
-    border: "hover:border-success/40",
-  },
-  warning: {
-    iconWrap: "bg-warning/10",
-    iconColor: "text-warning",
-    iconHover: "group-hover:bg-warning group-hover:text-warning-foreground",
-    chipActive: "border-warning/40 bg-warning/15 text-warning ring-1 ring-warning/25",
-    chipDone: "border-warning/20 bg-warning/5 text-warning",
-    border: "hover:border-warning/40",
-  },
-  danger: {
-    iconWrap: "bg-destructive/10",
-    iconColor: "text-destructive",
-    iconHover: "group-hover:bg-destructive group-hover:text-destructive-foreground",
-    chipActive: "border-destructive/40 bg-destructive/15 text-destructive ring-1 ring-destructive/25",
-    chipDone: "border-destructive/20 bg-destructive/5 text-destructive",
-    border: "hover:border-destructive/40",
+  neutral: {
+    iconWrap: "bg-muted",
+    iconColor: "text-muted-foreground",
+    iconHover: "group-hover:bg-primary group-hover:text-primary-foreground",
+    chipActive: "border-border bg-muted text-foreground ring-1 ring-border",
+    chipDone: "border-border bg-muted/60 text-muted-foreground",
+    border: "hover:border-primary/40",
   },
 };
 
@@ -339,7 +323,7 @@ function FeatureCard({
       tabIndex={0}
       className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-4 outline-none transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 ${
         f.hero
-          ? "border-2 border-destructive/30 bg-gradient-to-br from-destructive/5 via-card to-card shadow-md"
+          ? "border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card shadow-md"
           : t.border
       }`}
     >
@@ -350,7 +334,7 @@ function FeatureCard({
           className="sd-hero-glow pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(60% 80% at 20% 0%, hsl(var(--destructive)/0.12), transparent 60%), radial-gradient(50% 80% at 90% 100%, hsl(var(--primary)/0.10), transparent 60%)",
+              "radial-gradient(60% 80% at 20% 0%, hsl(var(--primary)/0.14), transparent 60%), radial-gradient(50% 80% at 90% 100%, hsl(var(--primary)/0.10), transparent 60%)",
           }}
         />
       )}
@@ -369,7 +353,7 @@ function FeatureCard({
                 {f.title}
               </h3>
               {f.hero && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-destructive">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary-foreground">
                   <Sparkles className="h-3 w-3" />
                   AI
                 </span>
@@ -386,7 +370,7 @@ function FeatureCard({
           <div className="mb-3 flex flex-wrap gap-1.5">
             {f.chips.map((c, i) => (
               <ChipReveal key={c} delay={i * 90}>
-                <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-xs font-semibold text-destructive">
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-semibold text-foreground">
                   <Check className="h-3 w-3" />
                   {c}
                 </span>
@@ -465,12 +449,12 @@ function ProtectionStrip() {
               key={it.label}
               className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 transition-all duration-500 ${
                 reached
-                  ? "border-success/30 bg-success/10 text-success"
+                  ? "border-border bg-muted/60 text-foreground"
                   : "border-border bg-muted/30 text-muted-foreground opacity-70"
               }`}
             >
               <span className="flex h-3 w-3 shrink-0 items-center justify-center">
-                {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                {reached ? <Check className="h-3 w-3 text-success" /> : <Icon className="h-3 w-3" />}
               </span>
               <span className="min-w-0 truncate text-xs font-bold sm:text-xs">
                 {it.label}
@@ -533,7 +517,7 @@ export function PowerfulFeaturesSection() {
         <div ref={headerRef} className="mb-6 text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Sparkles className="h-3 w-3 text-primary" />
-            <span className="text-xs font-semibold text-primary">Features</span>
+            <span className="text-xs font-semibold text-foreground">Features</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Powerful features for secure transactions
