@@ -142,6 +142,10 @@ function isProse(s: string): boolean {
   if (/\btracking-(?:wide|wider|widest|tight|tighter|normal)\b/.test(s)) return false;
   // Extractor noise: CSV header rows, HTML entities, truncated code fragments.
   if (/^[^ ]*,[^ ]*,/.test(s) || s.split(",").length > 4 && !/\s\w+\s/.test(s)) return false;
+  // CSV header/row fragments: comma-separated field names, no sentence
+  // punctuation, and usually a trailing comma. Never user-facing copy.
+  if (s.includes(",") && /,\s*$/.test(s)) return false;
+  if (s.split(",").length > 2 && !/[.!?:]/.test(s) && !/\b(?:and|or|the|your|you|we|is|are)\b/i.test(s)) return false;
   if (/&(?:amp|lt|gt|quot|#\d+);/.test(s)) return false;
   if (/^[…(]|[({[]\s*$|\$\{|\?\s*$|\bvendorId\b/.test(s)) return false;
   if (/^[a-z0-9:/[\]\-.,%() ]+$/.test(s) && /(?:^|\s)(?:text|bg|border|px|py|pt|pb|mt|mb|font|rounded|flex|grid|w|h|gap|space)-/.test(s)) return false;
@@ -256,9 +260,8 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/pages/SellerAnalytics.tsx", text: "Payout Verified", reason: "Tile label rendered from the stored payout account verification flag." },
   { file: "src/pages/SellerAnalytics.tsx", text: "Verified", reason: "Table cell rendered from a stored boolean verification column." },
   { file: "src/pages/SellerAnalytics.tsx", text: "In Escrow", reason: "Money bucket label for the seller's currently held escrow balance." },
-  { file: "src/pages/SellerAnalytics.tsx", text: "Summary,Funds Held in Escrow,", reason: "CSV header row of the seller analytics export, mirroring the on-screen bucket." },
   { file: "src/pages/SellerCreateTransaction.tsx", text: "Escrow on payment", reason: "Step label in the seller's flow: escrow happens at the payment step." },
-  { file: "src/pages/SellerCreateTransaction.tsx", text: "Delivery proof helps protect you against false disputes. Upload tracking numbers, delivery photos, or signed receipts when you fulfill this order.", reason: "Operational label backed by stored data." },
+  { file: "src/pages/SellerCreateTransaction.tsx", text: "Delivery proof helps protect you against false disputes. Upload tracking numbers, delivery photos, or signed receipts when you fulfill this order.", reason: "Tells the seller which delivery evidence to upload; it promises no dispute outcome." },
   { file: "src/pages/SellerPayouts.tsx", text: "Track released funds, pending releases, held escrow balances, and payout account activity.", reason: "Page description listing the payout buckets shown below, all ledger-derived." },
   { file: "src/pages/SellerPayouts.tsx", text: "Payment secured in escrow", reason: "Status label mirroring this payout's stored escrow-secured state." },
   { file: "src/pages/SellerProductCreate.tsx", text: "All transactions are protected by our escrow system", reason: "Note in the listing composer describing how storefront sales are settled." },
@@ -324,9 +327,9 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/admin/users/UsersTable.tsx", text: "Trusted Seller", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/agreement/AgreementHero.tsx", text: "Once payment is completed, this agreement becomes permanently locked. No party will be able to modify the agreed terms, price, item details, or delivery conditions. Your funds will be held securely in escrow.", reason: "Pre-payment warning that the agreement locks once payment completes." },
   { file: "src/components/agreement/AgreementHero.tsx", text: "This transaction is now immutable. No party can modify the agreed terms, price, item details, or delivery conditions. Your funds are held securely in escrow until delivery confirmation.", reason: "Post-lock statement rendered only after the agreement snapshot exists." },
-  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "Monitor your order status in real-time and receive notifications at every step until delivery confirmation.", reason: "Describes the realtime subscription that actually backs this view." },
-  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "View Transaction Tracking", reason: "Operational label backed by stored data." },
-  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "Track delivery progress with real-time updates", reason: "Describes the realtime subscription that actually backs this view." },
+  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "Monitor your order status in real-time and receive notifications at every step until delivery confirmation.", reason: "Points the buyer at the tracking screen, which is driven by stored delivery updates." },
+  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "View Transaction Tracking", reason: "Button label naming the tracking route it navigates to." },
+  { file: "src/components/agreement/AgreementNextSteps.tsx", text: "Track delivery progress with real-time updates", reason: "Describes the realtime delivery-update subscription that actually backs the tracking screen." },
   { file: "src/components/agreement/ImmutabilityExplanation.tsx", text: "Your transaction is now protected by SafeDeal's immutable agreement system", reason: "Names the immutable-agreement mechanic backed by the stored JSONB snapshot." },
   { file: "src/components/agreement/LockedSnapshotCard.tsx", text: "Funds held securely in escrow", reason: "Locked snapshot card line describing where the paid funds sit." },
   { file: "src/components/disputes/DeliveryProofSection.tsx", text: "Tracking Number", reason: "Evidence field label inside a dispute case file." },
@@ -380,8 +383,8 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee flat component", reason: "Settings-catalog name of the pricing.platform_fee_flat_ngn key." },
   { file: "src/lib/status-labels.ts", text: "Held in Escrow", reason: "Label for money_status = held; false whenever that state is not set." },
   { file: "src/lib/status-labels.ts", text: "Verified", reason: "Label for a stored verification status enum value, not a seller badge." },
-  { file: "src/services/departments.catalog.ts", text: "Escrow, payouts, refunds.", reason: "Service-layer catalog label naming a backend domain." },
-  { file: "src/services/permission-catalog.ts", text: "Escrow", reason: "Service-layer catalog label naming a backend domain." },
+  { file: "src/services/departments.catalog.ts", text: "Escrow, payouts, refunds.", reason: "Department catalog description listing the backend domains that team owns." },
+  { file: "src/services/permission-catalog.ts", text: "Escrow", reason: "Permission-catalog group name matching the escrow permission keys." },
   { file: "supabase/functions/_shared/financial-model.ts", text: "available escrow is negative", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/_shared/financial-model.ts", text: "frozen amount exceeds available escrow", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/_shared/flagged-users-engine.ts", text: "Escrow frozen pending review", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
@@ -506,14 +509,22 @@ describe("the trust-claim lock", () => {
     }
   });
 
-  it("does not lean on a canned justification on buyer- or money-facing surfaces", () => {
+  // Choice made in Phase 0i, stated plainly: we KEPT the internal-surface
+  // exemption (admin/back-office and edge-function operational copy may share a
+  // shape-describing reason) and set the limit on the remaining buyer- and
+  // money-facing set to `n > 1` — i.e. every justification on a surface a buyer
+  // can read must be written for that one string. The previous `n > 3` could
+  // not fail, because the maximum reuse in that set was 2. The alternative
+  // (dropping the exemption and hand-triaging 118 admin strings) buys nothing:
+  // none of those strings is a buyer promise.
+  it("uses a purpose-written justification for every buyer- or money-facing string", () => {
     const counts = new Map<string, number>();
     for (const e of PER_STRING_ALLOWLIST) {
       if (isInternalSurface(e.file)) continue;
       counts.set(e.reason, (counts.get(e.reason) ?? 0) + 1);
     }
-    const overused = [...counts].filter(([, n]) => n > 3).map(([r, n]) => `${n}x ${r}`);
-    expect(overused).toEqual([]);
+    const reused = [...counts].filter(([, n]) => n > 1).map(([r, n]) => `${n}x ${r}`);
+    expect(reused).toEqual([]);
   });
 
   for (const text of ALL_TRUST_CLAIM_TEXTS) {
