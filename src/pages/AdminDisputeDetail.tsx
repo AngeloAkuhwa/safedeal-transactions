@@ -1926,14 +1926,6 @@ function MessageItem({ m }: { m: CommMessage }) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button className="text-slate-500 hover:text-blue-400 text-xs inline-flex items-center gap-1">
-            <Reply className="w-3 h-3" /> Reply
-          </button>
-          <button className="text-slate-500 hover:text-slate-300 text-xs">
-            <MoreHorizontal className="w-3 h-3" />
-          </button>
-        </div>
       </div>
     </div>
   );
