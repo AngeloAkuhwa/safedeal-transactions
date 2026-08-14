@@ -127,12 +127,15 @@ d("live refund rail", () => {
     expect(nanOnly ? nanOnly.split("\n") : []).toEqual([]);
   });
 
-  it("keeps every public numeric column guarded against non-finite values", () => {
+  it("keeps every public money-typed column guarded against non-finite values", () => {
+    // numeric today, but float8/float4/money would be invisible to a
+    // numeric-only filter — the gap is vacuous now and latent later.
     const unguarded = psql(
       "select c.relname || '.' || a.attname from pg_class c" +
         " join pg_namespace n on n.oid = c.relnamespace" +
         " join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped" +
-        " where n.nspname = 'public' and c.relkind = 'r' and a.atttypid = 'numeric'::regtype" +
+        " where n.nspname = 'public' and c.relkind = 'r'" +
+        " and a.atttypid in ('numeric'::regtype,'float8'::regtype,'float4'::regtype,'money'::regtype)" +
         " and not exists (select 1 from pg_constraint k where k.conrelid = c.oid" +
         " and k.contype = 'c' and a.attnum = any(k.conkey)" +
         " and pg_get_constraintdef(k.oid) like '%Infinity%') order by 1",
@@ -143,7 +146,9 @@ d("live refund rail", () => {
   it("binds every multi-argument SECURITY DEFINER money helper by name", () => {
     const positional = psql(
       "with callees as (select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace" +
-        " where n.nspname='public' and p.prokind='f' and p.prosecdef and p.pronargs > 1" +
+        // No arity filter: the single-argument escrow balance helpers are
+        // exactly the ones a `pronargs > 1` filter silently excluded.
+        " where n.nspname='public' and p.prokind='f' and p.prosecdef" +
         " and (pg_get_functiondef(p.oid) ~" +
         " '\\m(escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing|dispute_outcomes|financial_remediations)\\M'" +
         " or p.proname in ('escrow_available_balance','escrow_uncommitted_available'," +
