@@ -64,6 +64,8 @@ describe("delivery method vocabulary", () => {
         // Only delivery-method operands: payment methods, verification
         // methods and typeof checks have their own vocabularies.
         if (!DELIVERY_OPERAND.test(operand)) continue;
+        // `typeof x.delivery_method === "string"` is a shape check, not a branch.
+        if (["string", "object", "number", "boolean", "undefined"].includes(literal)) continue;
         if (!/deliver|shipp|fulfil/i.test(file) && !/deliver|shipp|fulfil/i.test(operand)) continue;
         if (!VOCAB.has(literal)) {
           offenders.push(`${path.relative(ROOT, file)}: ${operand} === "${literal}"`);
