@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { VerificationData } from "@/services/verification.service";
 import { formatMoney } from "@/lib/format";
+import { supportLink, SUPPORT_RESPONSE_PROMISE } from "@/lib/support/support-copy";
 
 interface VerificationSidebarProps {
   data: VerificationData;
@@ -187,15 +188,18 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
           <h3 className="text-base font-bold">Need Help?</h3>
         </div>
         <p className="text-sm opacity-80 mb-4">
-          If you're unsure about verification or have questions about the dispute process, our
-          support team is here to help.
+          If you're unsure about verification or have questions about the dispute process, message
+          support. {SUPPORT_RESPONSE_PROMISE}
         </p>
         <Button
+          asChild
           variant="secondary"
           className="w-full bg-card text-primary font-bold py-3 rounded-xl hover:bg-card/90"
         >
-          <Headphones className="h-4 w-4 mr-2" />
-          Contact Support
+          <Link to={supportLink(transaction.transaction_code, "transaction")}>
+            <Headphones className="h-4 w-4 mr-2" />
+            Contact Support
+          </Link>
         </Button>
       </div>
     </div>
