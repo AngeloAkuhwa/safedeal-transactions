@@ -107,13 +107,31 @@ Deno.serve(async (req) => {
     }
 
     // Check for existing awaiting_payment transaction (idempotency)
-    const { data: existingTx } = await adminClient
+    const { data: existingCandidate } = await adminClient
       .from("transactions")
       .select("id, share_token, transaction_code, status")
       .eq("buyer_id", buyerId)
       .eq("source_product_id", productId)
       .eq("status", "awaiting_payment")
       .maybeSingle();
+
+    // Only ADOPT a complete transaction. An incomplete one (no pricing, no
+    // share link) would be handed back as a 200 whose review page has nothing
+    // to show and whose payment initiation fails.
+    let existingTx: typeof existingCandidate = null;
+    if (existingCandidate) {
+      const [{ count: pricingCount }, { count: linkCount }] = await Promise.all([
+        adminClient.from("transaction_pricing").select("transaction_id", { count: "exact", head: true })
+          .eq("transaction_id", existingCandidate.id),
+        adminClient.from("transaction_links").select("transaction_id", { count: "exact", head: true })
+          .eq("transaction_id", existingCandidate.id),
+      ]);
+      if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && existingCandidate.share_token) {
+        existingTx = existingCandidate;
+      } else {
+        console.warn(`storefront-checkout: ignoring incomplete transaction ${existingCandidate.id}; creating a fresh one`);
+      }
+    }
 
     // (Reuse handling moved below — needs product + pricing context to
     // reconcile quantity/pricing/reservation when the buyer changes intent.)
@@ -188,8 +206,26 @@ Deno.serve(async (req) => {
     const vendorConfig = await loadPricingConfig(product.seller_id);
     const pricing = computePricing(itemAmount, product.currency_code, "local", vendorConfig);
     const snapshot = buildPricingSnapshot(itemAmount, product.currency_code, vendorConfig);
-    const verificationWindowHours = product.verification_window_hours
-      || await loadEffectiveTimeoutHours(product.seller_id, "buyer_verification_timeout", 48);
+    // The verification window IS a commitment (the clock the buyer is held to),
+    // so it must come from the product or the vendor's effective settings —
+    // never a literal. Resolved before any write.
+    const productWindow =
+      product.verification_window_hours === null || product.verification_window_hours === undefined
+        ? null
+        : Number(product.verification_window_hours);
+    const verificationWindowHours =
+      productWindow !== null && Number.isFinite(productWindow) && productWindow > 0
+        ? productWindow
+        : await resolveEffectiveTimeoutHours(product.seller_id, "buyer_verification_timeout");
+    if (verificationWindowHours === null) {
+      return jsonResponse(
+        {
+          error: "verification_window_unresolved",
+          reason: "No buyer verification window is configured for this seller.",
+        },
+        409,
+      );
+    }
 
     // Gate: identity verification required above vendor/platform threshold
     const kyc = await checkIdVerificationRequirement(
@@ -235,11 +271,34 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "contact_phone is required for this delivery method" }, 400);
     }
     const primaryDeliveryMethod = mapDeliveryMethod(chosenRawMethod);
+    if (!primaryDeliveryMethod) {
+      return jsonResponse(
+        { error: "delivery_method_unmapped", reason: `'${chosenRawMethod}' is not a delivery method SafeDeal can record.` },
+        409,
+      );
+    }
+    const conditionLabel = mapCondition(product.condition_label);
+    if (!conditionLabel) {
+      return jsonResponse(
+        { error: "condition_unmapped", reason: `"${product.title}" has no recognised condition recorded.`, product_id: product.id },
+        409,
+      );
+    }
 
-    const deliveryDays = parseInt(product.estimated_delivery_days || "7", 10) || 7;
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() + deliveryDays);
-    const expectedDeliveryDate = expectedDate.toISOString().split("T")[0];
+    // The delivery estimate is NOT a commitment — it is optional seller-supplied
+    // information. Absent an estimate we carry `null` through and show none,
+    // rather than promising a week nobody agreed to or blocking the sale.
+    const rawDeliveryDays = product.estimated_delivery_days;
+    const parsedDays =
+      rawDeliveryDays === null || rawDeliveryDays === undefined || rawDeliveryDays === ""
+        ? null
+        : Number.parseInt(String(rawDeliveryDays), 10);
+    let expectedDeliveryDate: string | null = null;
+    if (parsedDays !== null && Number.isFinite(parsedDays) && parsedDays >= 0) {
+      const expectedDate = new Date();
+      expectedDate.setDate(expectedDate.getDate() + parsedDays);
+      expectedDeliveryDate = expectedDate.toISOString().split("T")[0];
+    }
 
     // ── Reuse path: existing awaiting_payment transaction ──
     // Reconcile quantity, pricing, delivery terms and stock reservation so
@@ -254,7 +313,7 @@ Deno.serve(async (req) => {
         title: product.title,
         description: product.short_description || product.description || "",
         quantity,
-        condition_label: mapCondition(product.condition_label),
+        condition_label: conditionLabel,
         brand: product.brand,
         model: product.model,
       });
@@ -283,7 +342,7 @@ Deno.serve(async (req) => {
         delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
         delivery_state: needsAddress ? (buyerAddress?.state ?? null) : null,
         delivery_postal_code: needsAddress ? (buyerAddress?.postal_code ?? null) : null,
-        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? "NG") : null,
+        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? null) : null,
       });
 
       // 4. Adjust product reservation by delta (may be 0, positive or negative)
@@ -352,7 +411,7 @@ Deno.serve(async (req) => {
         title: product.title,
         description: product.short_description || product.description || "",
         quantity,
-        condition_label: mapCondition(product.condition_label),
+        condition_label: conditionLabel,
         brand: product.brand,
         model: product.model,
       }),
@@ -381,7 +440,7 @@ Deno.serve(async (req) => {
         delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
         delivery_state: needsAddress ? (buyerAddress?.state ?? null) : null,
         delivery_postal_code: needsAddress ? (buyerAddress?.postal_code ?? null) : null,
-        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? "NG") : null,
+        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? null) : null,
       }),
 
       // Buyer participant
