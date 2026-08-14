@@ -11,7 +11,11 @@
  * hardcodes a cap: the applied ceiling is read back out of the stamp via
  * `appliedCapFromModelVersion`.
  *
- * Current stamp format: `NG_MVP_TSFCAP_<totalServiceFeeCap>_MIN_<floor>_T<hash>`.
+ * Current stamp format:
+ * `NG_MVP_TSFCAP_<totalServiceFeeCap>_PFCAP_<platformFeeCap>_MIN_<floor>_T<hash>`.
+ * Rows written before `PFCAP_` was added carry the total-service-fee ceiling
+ * only; the resolver below then declines to name a SafeDeal-fee cap rather
+ * than guessing.
  */
 export type PricingCapKind = "total_service_fee" | "safedeal_fee";
 
@@ -20,15 +24,49 @@ export interface AppliedFeeCap {
   amount: number;
 }
 
-/** Recover the total-service-fee ceiling that actually produced a stored row. */
-export function appliedCapFromModelVersion(
-  version: string | null | undefined,
-): AppliedFeeCap | null {
-  if (!version) return null;
-  const m = /TSFCAP_(\d+(?:\.\d+)?)/.exec(version);
-  if (!m) return null;
-  const amount = Number(m[1]);
-  return Number.isFinite(amount) ? { kind: "total_service_fee", amount } : null;
+/** Ceilings recoverable from a persisted pricing-model version stamp. */
+export interface PricingCaps {
+  total_service_fee: number | null;
+  safedeal_fee: number | null;
+}
+
+export function parsePricingCaps(version: string | null | undefined): PricingCaps {
+  const read = (re: RegExp): number | null => {
+    const m = version ? re.exec(version) : null;
+    if (!m) return null;
+    const n = Number(m[1]);
+    return Number.isFinite(n) ? n : null;
+  };
+  return {
+    total_service_fee: read(/TSFCAP_(\d+(?:\.\d+)?)/),
+    safedeal_fee: read(/PFCAP_(\d+(?:\.\d+)?)/),
+  };
+}
+
+/**
+ * Name the ceiling that actually bound a persisted breakdown, and its amount
+ * — the same two facts `describeFeeBreakdown` reports from `capped_by` /
+ * `applied_cap_amount`. Returns `null` when the binding ceiling cannot be
+ * identified, so the UI states that a cap applied without naming a number.
+ *
+ * The total-service-fee ceiling is applied last in `computePricing`, so when
+ * both could bind it is the one that produced the charged figure.
+ */
+export function resolveAppliedCap(input: {
+  pricing_model_version?: string | null;
+  service_fee_amount?: number | null;
+  safedeal_fee_amount?: number | null;
+}): AppliedFeeCap | null {
+  const caps = parsePricingCaps(input.pricing_model_version);
+  const service = input.service_fee_amount;
+  const safedeal = input.safedeal_fee_amount;
+  if (caps.total_service_fee != null && service != null && service >= caps.total_service_fee) {
+    return { kind: "total_service_fee", amount: caps.total_service_fee };
+  }
+  if (caps.safedeal_fee != null && safedeal != null && safedeal >= caps.safedeal_fee) {
+    return { kind: "safedeal_fee", amount: caps.safedeal_fee };
+  }
+  return null;
 }
 
 /**
