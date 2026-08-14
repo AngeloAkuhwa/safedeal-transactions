@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { uploadDeliveryEvidence, updateDeliveryStatus, type UploadedDeliveryFile } from "@/services/delivery.service";
-import { DeliveryMethodBadge, type DeliveryMethod } from "@/components/seller/DeliveryMethodBadge";
+import { DeliveryMethodBadge } from "@/components/seller/DeliveryMethodBadge";
+import { toTransactionDeliveryMethod } from "@/lib/delivery-methods";
 import { MissingTermsWarning } from "@/components/seller/MissingTermsWarning";
 import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
@@ -86,8 +87,16 @@ export default function SellerUpdateDelivery() {
   });
 
   const tx = data?.transaction;
-  const deliveryMethod = (tx?.delivery_method ?? "courier") as DeliveryMethod;
+  // Raw value straight from the transaction — passed to children untouched so
+  // each one fails closed on its own. Defaulting here made every child's
+  // fail-closed guard dead code.
+  const rawDeliveryMethod = tx?.delivery_method ?? null;
+  // This page's own branching uses the resolved enum, which is null when the
+  // method is missing or unrecognised.
+  const deliveryMethod = toTransactionDeliveryMethod(rawDeliveryMethod);
   const deliveryTerms = data?.delivery_terms;
+  // No invented 72: the window is agreement data. Absent means unknown.
+  const verificationWindowHours = deliveryTerms?.verification_window_hours ?? null;
   const termsMissing = !deliveryTerms;
 
   const allowedActions = useMemo<ActionKey[]>(() => {
@@ -273,7 +282,7 @@ export default function SellerUpdateDelivery() {
             <div className="space-y-2">
               <h1 className="text-2xl md:text-3xl font-bold">Update Delivery Status</h1>
               <p className="text-sm text-muted-foreground">Choose what's happening now and provide method-specific details.</p>
-              <DeliveryMethodBadge method={deliveryMethod} />
+              <DeliveryMethodBadge method={rawDeliveryMethod} />
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-blue-50 dark:bg-blue-950/30 px-4 py-2 rounded-lg border border-blue-100 dark:border-blue-900">
@@ -344,7 +353,7 @@ export default function SellerUpdateDelivery() {
                 </div>
                 <div>
                   <span className="text-muted-foreground text-xs font-medium uppercase">Verification window</span>
-                  <p className="font-medium">{deliveryTerms?.verification_window_hours ?? 72} hours</p>
+                  <p className="font-medium">{verificationWindowHours === null ? "—" : `${verificationWindowHours} hours`}</p>
                 </div>
               </div>
             </div>
@@ -355,7 +364,7 @@ export default function SellerUpdateDelivery() {
         <MissingTermsWarning show={termsMissing} />
 
         {/* Fulfillment guidance */}
-        <FulfillmentGuidance method={deliveryMethod} />
+        <FulfillmentGuidance method={rawDeliveryMethod} />
 
         {/* Transaction Progress */}
         <Card className="rounded-2xl shadow border p-6 md:p-8">
@@ -476,7 +485,7 @@ export default function SellerUpdateDelivery() {
             {selectedAction === "dispatched" && (
               <div className="pt-2">
                 <DispatchForm
-                  method={deliveryMethod}
+                  method={rawDeliveryMethod}
                   pickupAddress={deliveryTerms?.address ?? null}
                   state={dispatchState}
                   onChange={setDispatchState}
@@ -493,7 +502,7 @@ export default function SellerUpdateDelivery() {
                 {/* Delivered may also need tracking confirmation for courier */}
                 {deliveryMethod === "courier" && (
                   <DispatchForm
-                    method={deliveryMethod}
+                    method={rawDeliveryMethod}
                     pickupAddress={deliveryTerms?.address ?? null}
                     state={dispatchState}
                     onChange={setDispatchState}
@@ -650,7 +659,7 @@ export default function SellerUpdateDelivery() {
           <div className="space-y-3">
             {[
               { step: 1, title: "Buyer Will Be Notified", desc: "The buyer will receive notification that the item has been shipped/delivered." },
-              { step: 2, title: "Buyer Verification Window Begins", desc: `The buyer will have ${deliveryTerms?.verification_window_hours ?? 72} hours to confirm receipt and verify the item matches the agreement.` },
+              { step: 2, title: "Buyer Verification Window Begins", desc: `The buyer will have ${deliveryTerms?.verification_window_hours ?? "—"} hours to confirm receipt and verify the item matches the agreement.` },
               { step: 3, title: "Funds Remain in Escrow", desc: `Your payment (${fmt(itemAmount, currency)}) stays securely held by SafeDeal until buyer confirms or any dispute is resolved.` },
             ].map((s) => (
               <div key={s.step} className="bg-background border rounded-xl p-4 flex gap-4">

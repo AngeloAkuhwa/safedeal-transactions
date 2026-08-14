@@ -27,6 +27,7 @@ import {
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { computePricing } from "@/lib/pricing";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 import { methodNeedsAddress, methodNeedsPhone } from "@/lib/delivery-methods";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +36,8 @@ import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 
-const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
+/** Currency is required — a cart row always carries its own `currency_code`. */
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };
@@ -50,7 +52,7 @@ function getStockStatus(item: CartItem) {
     return { label: "Checkout in progress", variant: "warning" as const, canCheckout: true };
   }
   if (item.quantity > avail) return { label: `Only ${avail} left — reduce qty`, variant: "warning" as const, canCheckout: false };
-  if (avail <= 3) return { label: `Low Stock (${avail} left)`, variant: "warning" as const, canCheckout: true };
+  if (avail <= LOW_STOCK_THRESHOLD) return { label: `Low Stock (${avail} left)`, variant: "warning" as const, canCheckout: true };
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
 }
 

@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         item_condition: item?.condition_label ?? "brand_new",
         price: pricing?.item_amount ?? 0,
         currency_code: pricing?.currency_code ?? "NGN",
-        delivery_method: delivery?.delivery_method ?? "courier",
+        delivery_method: delivery?.delivery_method ?? null,
         expected_delivery_date: delivery?.expected_delivery_date ?? "",
         verification_window_hours: delivery?.verification_window_hours ?? 72,
         seller_notes: notes?.seller_notes ?? "",

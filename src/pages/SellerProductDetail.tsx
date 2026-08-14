@@ -106,7 +106,9 @@ const SellerProductDetail = () => {
       setVisibilityType(p.visibility_type || "public");
       setBrand(p.brand || "");
       setModelSku(p.sku || p.model || "");
-      setVerificationWindow(String(p.verification_window_hours || 48));
+      // Empty when unset — the seller picks a window rather than inheriting an
+      // invented one silently saved back on the next update.
+      setVerificationWindow(p.verification_window_hours ? String(p.verification_window_hours) : "");
     }
   }, [data]);
 
@@ -143,7 +145,7 @@ const SellerProductDetail = () => {
       visibility_type: visibilityType,
       brand,
       model: modelSku,
-      verification_window_hours: parseInt(verificationWindow),
+      verification_window_hours: verificationWindow ? parseInt(verificationWindow) : null,
     });
   };
 

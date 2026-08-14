@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle, ShieldCheck, ArrowRight, Pause } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { ConfirmReceiptDialog } from "./ConfirmReceiptDialog";
 import { DisputeForm } from "./DisputeForm";
 
@@ -8,7 +8,8 @@ interface VerificationActionsProps {
   transactionId: string;
   transactionCode: string;
   amount: number;
-  currency: string;
+  /** Null when the transaction's pricing row hasn't loaded — renders `—`. */
+  currency: string | null;
   autoOpenDispute?: boolean;
 }
 
@@ -26,7 +27,9 @@ export function VerificationActions({
     if (autoOpenDispute) setDisputeOpen(true);
   }, [autoOpenDispute]);
 
-  const formatted = formatMoney(amount, currency);
+  // No NGN fallback: labelling an unknown currency as Naira is a money claim
+  // we cannot support.
+  const formatted = currency ? formatMoneyOrDash(amount, currency) : "—";
 
   return (
     <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">

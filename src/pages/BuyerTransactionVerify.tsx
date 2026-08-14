@@ -223,7 +223,7 @@ const BuyerTransactionVerify = () => {
               transactionId={transaction.id}
               transactionCode={transaction.transaction_code}
               amount={pricing ? Number(pricing.buyer_total_amount) : 0}
-              currency={pricing?.currency_code || "NGN"}
+              currency={pricing?.currency_code ?? null}
               autoOpenDispute={searchParams.get("action") === "dispute"}
             />
             {windowHours !== null && <WhatHappensCard windowHours={windowHours} />}

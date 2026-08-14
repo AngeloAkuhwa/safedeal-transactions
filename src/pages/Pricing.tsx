@@ -83,7 +83,6 @@ export default function Pricing() {
           </p>
           <p className="mt-2 text-base text-muted-foreground">
             per completed deal — capped at {copy.safedealFeeCap}.
-            Nothing is charged if a deal is cancelled or refunded.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">{copy.feeDisclosure}</p>
           <p className="mt-2 text-sm text-muted-foreground">{copy.refundLine}</p>

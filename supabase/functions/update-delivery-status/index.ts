@@ -145,7 +145,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const deliveryMethod = terms?.delivery_method ?? "courier";
+    // Fail closed: an unset delivery method is not a courier shipment. We
+    // refuse the transition rather than demanding courier evidence.
+    const deliveryMethod = terms?.delivery_method ?? null;
     const verificationWindowHours = terms?.verification_window_hours ?? 72;
 
     // State transition validation
@@ -157,6 +159,14 @@ Deno.serve(async (req) => {
     }
 
     // ============= METHOD-AWARE VALIDATION =============
+    if (action === "dispatched" || action === "delivered") {
+      if (!deliveryMethod) {
+        return jsonResponse({
+          error: "This transaction has no delivery method set. Set the delivery terms before updating fulfilment.",
+        }, 400);
+      }
+    }
+
     if (action === "dispatched") {
       if (deliveryMethod === "courier") {
         if (!tracking_number?.trim()) {

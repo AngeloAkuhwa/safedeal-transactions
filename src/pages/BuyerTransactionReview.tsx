@@ -1015,7 +1015,9 @@ function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate
 }
 
 function ProtectionFeaturesCard({ data }: { data: ReviewData }) {
-  const window = data.delivery?.verification_window_hours ?? 72;
+  // The verification window is agreement data. Absent means unknown — never
+  // narrate an invented duration to the buyer.
+  const window = data.delivery?.verification_window_hours ?? null;
   return (
     <Card className="rounded-2xl shadow-lg">
       <CardContent className="p-6">
@@ -1027,7 +1029,7 @@ function ProtectionFeaturesCard({ data }: { data: ReviewData }) {
           {[
             { icon: Lock, title: "Funds Held in Escrow", desc: "Payment secured until you confirm receipt", color: "text-success", bg: "bg-success/10" },
             { icon: FileText, title: "Immutable Agreement", desc: "Terms locked after payment", color: "text-primary", bg: "bg-primary/10" },
-            { icon: Clock, title: `${window}-Hour Verification`, desc: "Time to inspect and confirm", color: "text-warning", bg: "bg-warning/10" },
+            { icon: Clock, title: window === null ? "Verification Window" : `${window}-Hour Verification`, desc: "Time to inspect and confirm", color: "text-warning", bg: "bg-warning/10" },
             { icon: Scale, title: "Dispute Resolution", desc: "Fair mediation if needed", color: "text-destructive", bg: "bg-destructive/10" },
           ].map((f) => (
             <div key={f.title} className="flex items-start gap-3">
