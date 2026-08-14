@@ -58,7 +58,7 @@ const WINDOW_PARAM_DEFAULT =
  * literal 48-hour verification window unnoticed.
  */
 const WINDOW_POSITIONAL =
-  /\b(?:loadEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
+  /\b(?:loadEffectiveTimeoutHours|resolveEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
 /**
  * A DELIVERY-ESTIMATE default — `estimated_delivery_days || "7"`, `days ?? 7`.
  * Not window-named, so the two rules above miss it, yet it invents a promise
@@ -498,10 +498,14 @@ const MONEY_ZERO_FALLBACK = new RegExp(
     // member access, optionally chained, on an identifier / call / cast /
     // index result: `x.amount ?? 0`, `x?.amount ?? 0`, `(p as any)?.fee ?? 0`.
     String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
-    // bare money-named identifier: `totalAmount ?? 0`.
-    String.raw`\b[A-Za-z_$][\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    // bare money-named identifier: `totalAmount ?? 0`, and one whose money
+    // noun starts at index 0 (`amountDue ?? 0`) — the old leading
+    // `[A-Za-z_$]` forced the noun to start at index >= 1.
+    String.raw`\b[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
     // bracket lookup on a money-named table: `LIMIT_BY_LEVEL[level] ?? 0`.
-    String.raw`\b[A-Za-z_$][\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
+    // Same leading-character fix: `LIMIT_BY_LEVEL` begins with its noun, so
+    // the rule could not see the very line its comment cites.
+    String.raw`\b[\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
   ].join("|"),
   "g",
 );
