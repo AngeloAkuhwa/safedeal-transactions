@@ -248,8 +248,15 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
     (f) => /\.tsx$/.test(f) && /(^|\/)(pages|components)\//.test(rel(f).replace(/\\/g, "/")),
   );
 
+  /**
+   * Controls that are permanently inert BY DESIGN. Each needs a reason.
+   * `disabled` alone is NOT an excuse: a `disabled={cond}` button with no
+   * handler renders as a live-looking dead button whenever `cond` is false.
+   */
+  const PERMANENTLY_INERT: Record<string, string> = {};
+
   const isDead = (tag: string, before: string) => {
-    if (/onClick|onSubmit|onPointerDown|type="submit"|disabled|asChild|href=|to=/.test(tag)) return false;
+    if (/onClick|onSubmit|onPointerDown|type="submit"|asChild|href=|to=/.test(tag)) return false;
     // Live without its own handler when a parent gives it behaviour:
     //  - `asChild` wrapper (DialogTrigger/DropdownMenuTrigger/Tooltip etc.)
     //  - wrapped directly in a <Link> / <a>
@@ -267,7 +274,8 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
       const src = fs.readFileSync(file, "utf8");
       for (const m of src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)) {
         const before = src.slice(Math.max(0, m.index! - 200), m.index!);
-        if (isDead(m[0], before)) dead.push(`${rel(file)}: ${m[0].slice(0, 80)}`);
+        const entry = `${rel(file)}: ${m[0].slice(0, 80)}`;
+        if (isDead(m[0], before) && !(entry in PERMANENTLY_INERT)) dead.push(entry);
       }
     }
     expect(dead).toEqual([]);
