@@ -33,6 +33,9 @@ const PRICING_KEYS = [
   "pricing.min_platform_fee_ngn",
   "pricing.max_total_service_fee_ngn",
   "pricing.tier_rates",
+  "pricing.platform_fee_rate",
+  "pricing.platform_fee_flat_ngn",
+  "pricing.max_platform_fee_ngn",
 ] as const;
 
 Deno.serve(async (req) => {
@@ -188,6 +191,9 @@ Deno.serve(async (req) => {
           min_platform_fee: Number(merged["pricing.min_platform_fee_ngn"]),
           max_total_service_fee: Number(merged["pricing.max_total_service_fee_ngn"]),
           tier_rates: merged["pricing.tier_rates"] as Array<{ upto: number | null; rate: number }>,
+          platform_fee_rate: merged["pricing.platform_fee_rate"] != null ? Number(merged["pricing.platform_fee_rate"]) : undefined,
+          platform_fee_flat: merged["pricing.platform_fee_flat_ngn"] != null ? Number(merged["pricing.platform_fee_flat_ngn"]) : undefined,
+          max_platform_fee: merged["pricing.max_platform_fee_ngn"] != null ? Number(merged["pricing.max_platform_fee_ngn"]) : undefined,
         };
         const verdict = checkPricingInvariant(
           candidate,

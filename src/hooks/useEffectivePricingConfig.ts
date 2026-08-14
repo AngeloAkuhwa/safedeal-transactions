@@ -18,6 +18,14 @@ function parseConfig(raw: Record<string, unknown>): PricingConfigOverride {
   if (typeof max === "number") cfg.max_total_service_fee = max;
   else if (typeof max === "string" && Number.isFinite(Number(max))) cfg.max_total_service_fee = Number(max);
   if (Array.isArray(tiers)) cfg.tier_rates = tiers as PricingConfigOverride["tier_rates"];
+  const numKey = (key: string, field: "platform_fee_rate" | "platform_fee_flat" | "max_platform_fee") => {
+    const v = raw[key];
+    if (typeof v === "number") cfg[field] = v;
+    else if (typeof v === "string" && Number.isFinite(Number(v))) cfg[field] = Number(v);
+  };
+  numKey("pricing.platform_fee_rate", "platform_fee_rate");
+  numKey("pricing.platform_fee_flat_ngn", "platform_fee_flat");
+  numKey("pricing.max_platform_fee_ngn", "max_platform_fee");
   return cfg;
 }
 

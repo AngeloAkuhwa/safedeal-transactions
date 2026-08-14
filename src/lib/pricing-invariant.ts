@@ -23,6 +23,9 @@ export const MIN_PLATFORM_MARGIN_NGN = 100;
 export interface PricingConfigLike {
   min_platform_fee?: number;
   max_total_service_fee?: number;
+  max_platform_fee?: number;
+  platform_fee_rate?: number;
+  platform_fee_flat?: number;
   tier_rates?: Array<{ upto: number | null; rate: number }>;
 }
 

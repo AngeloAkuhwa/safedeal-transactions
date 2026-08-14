@@ -13,6 +13,9 @@ const KEYS = [
   "pricing.min_platform_fee_ngn",
   "pricing.max_total_service_fee_ngn",
   "pricing.tier_rates",
+  "pricing.platform_fee_rate",
+  "pricing.platform_fee_flat_ngn",
+  "pricing.max_platform_fee_ngn",
   "fees.refund_policy",
 ];
 

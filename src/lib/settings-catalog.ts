@@ -61,6 +61,27 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
     writable: ["platform"],
   },
   {
+    key: "pricing.platform_fee_rate",
+    label: "Escrow fee rate",
+    help: "Percentage component of the SafeDeal fee (0.02 = 2%). Growth-plan vendors resolve to 1.5%.",
+    spec: { type: "number", min: 0, max: 0.2, step: 0.0005 },
+    writable: ["platform", "vendor"],
+  },
+  {
+    key: "pricing.platform_fee_flat_ngn",
+    label: "Escrow fee flat component",
+    help: "Flat NGN component added to the SafeDeal fee on every deal.",
+    spec: { type: "number", min: 0, max: 5_000, step: 50, unit: "NGN" },
+    writable: ["platform"],
+  },
+  {
+    key: "pricing.max_platform_fee_ngn",
+    label: "SafeDeal fee cap",
+    help: "Hard ceiling on the SafeDeal fee per completed deal (NGN).",
+    spec: { type: "number", min: 100, max: 50_000, step: 100, unit: "NGN" },
+    writable: ["platform"],
+  },
+  {
     key: "fees.refund_policy",
     label: "Refund policy",
     help: "Whether service fees are refundable.",
