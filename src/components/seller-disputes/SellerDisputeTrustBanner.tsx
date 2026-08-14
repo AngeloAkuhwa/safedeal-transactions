@@ -18,7 +18,7 @@ export function SellerDisputeTrustBanner() {
           {[
             { icon: Lock, label: "Locked Agreement Review", desc: "Terms frozen at payment time" },
             { icon: Scale, label: "Evidence-Based Decisions", desc: "Both sides considered fairly" },
-            { icon: Shield, label: "Payout Protection", desc: "Funds secured during review" },
+            { icon: Shield, label: "Payout Status", desc: "Release remains blocked during review" },
           ].map((item) => (
             <div key={item.label} className="flex flex-col items-center text-center gap-2">
               <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">

@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const items = [
-  { icon: CheckCircle, title: "Verified Information", description: "Verified information helps protect both buyers and sellers in all transactions." },
+  { icon: CheckCircle, title: "Identity Information", description: "Completed checks are recorded on the account and used where a workflow requires them." },
   { icon: Lock, title: "Secure Transactions", description: "Disputes and payouts may require completed verification to ensure security." },
-  { icon: Eye, title: "Protected Evidence", description: "SafeDeal uses locked agreements and evidence history during dispute handling." },
+  { icon: Eye, title: "Recorded Evidence", description: "SafeDeal uses locked agreements and evidence history during dispute handling." },
   { icon: FileText, title: "Transparent Timeline", description: "Every action is timestamped and recorded for complete transparency." },
 ];
 

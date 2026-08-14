@@ -14,8 +14,8 @@ export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsPr
   const indicators = [
     {
       icon: Lock,
-      title: "Payment Secured",
-      description: `${totalAmount} is safely held in escrow`,
+      title: "Payment recorded",
+      description: `${totalAmount} follows the transaction's recorded money state`,
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },
@@ -28,8 +28,8 @@ export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsPr
     },
     {
       icon: ShieldCheck,
-      title: "Dispute Ready",
-      description: "Full protection if item doesn't match",
+      title: "Dispute review available",
+      description: "Raise a dispute if the item does not match the locked terms",
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
     },

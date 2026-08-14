@@ -132,7 +132,7 @@ export function PublishSuccessModal({
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-foreground">Now Available to Customers</p>
-              <p className="text-[11px] text-muted-foreground">Protected by SafeDeal escrow on every transaction</p>
+              <p className="text-[11px] text-muted-foreground">Checkout uses SafeDeal's recorded payment and release flow</p>
             </div>
           </div>
 
