@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { shareLinkExpiresAt } from "../_shared/share-links.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
@@ -30,36 +30,32 @@ function generateShareToken(): string {
 }
 
 /**
- * Map product condition_label → transaction item_condition enum.
- * Products use strings like "brand_new", "used_good", "used_fair", "refurbished", "like_new".
- * Transaction items use enum: brand_new, like_new, excellent, good, fair, used.
+ * FAIL CLOSED (mirrors `cart-checkout`): an unmapped condition or delivery
+ * method is a fact about someone else's goods, persisted into the agreement
+ * the buyer is asked to accept. We refuse rather than invent "brand new" or
+ * "courier". Both maps must stay identical to the cart-checkout twin.
  */
-function mapCondition(productCondition: string | null): string {
-  const map: Record<string, string> = {
-    brand_new: "brand_new",
-    like_new: "like_new",
-    refurbished: "excellent",
-    used_good: "good",
-    used_fair: "fair",
-  };
-  return map[productCondition ?? ""] ?? "brand_new";
+const CONDITION_MAP: Record<string, string> = {
+  brand_new: "brand_new",
+  like_new: "like_new",
+  refurbished: "excellent",
+  used_good: "good",
+  used_fair: "fair",
+};
+function mapCondition(productCondition: string | null): string | null {
+  return CONDITION_MAP[productCondition ?? ""] ?? null;
 }
 
-/**
- * Map product delivery_method string → transaction delivery_method_type enum.
- * Product uses: pickup, delivery, courier_shipping, digital, hand_delivery, meetup
- * Transaction enum: courier, pickup, meetup, hand_delivery
- */
-function mapDeliveryMethod(productMethod: string | null): string {
-  const map: Record<string, string> = {
-    pickup: "pickup",
-    delivery: "courier",
-    courier_shipping: "courier",
-    digital: "hand_delivery",
-    hand_delivery: "hand_delivery",
-    meetup: "meetup",
-  };
-  return map[productMethod ?? ""] ?? "courier";
+const DELIVERY_METHOD_MAP: Record<string, string> = {
+  pickup: "pickup",
+  delivery: "courier",
+  courier_shipping: "courier",
+  digital: "hand_delivery",
+  hand_delivery: "hand_delivery",
+  meetup: "meetup",
+};
+function mapDeliveryMethod(productMethod: string | null): string | null {
+  return DELIVERY_METHOD_MAP[productMethod ?? ""] ?? null;
 }
 
 Deno.serve(async (req) => {
