@@ -15,7 +15,6 @@ import {
   Lightbulb,
   UserCheck,
   Check,
-  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -28,15 +27,27 @@ interface MiniStep {
   label: string;
 }
 
-interface Feature {
+interface FeatureBase {
   icon: LucideIcon;
   title: string;
   line: string;
   tone: Tone;
-  steps: MiniStep[];
-  hero?: boolean;
-  chips?: string[];
 }
+
+interface OrdinaryFeature extends FeatureBase {
+  hero?: false;
+  steps?: undefined;
+  chips?: undefined;
+}
+
+/** Only the hero (Dispute Agent) card renders a MiniFlow + chips. */
+interface HeroFeature extends FeatureBase {
+  hero: true;
+  steps: MiniStep[];
+  chips: string[];
+}
+
+type Feature = OrdinaryFeature | HeroFeature;
 
 const FEATURES: Feature[] = [
   {
@@ -44,88 +55,48 @@ const FEATURES: Feature[] = [
     title: "Protected Marketplace",
     line: "Browse public listings where every deal can be escrow-protected.",
     tone: "neutral",
-    steps: [
-      { icon: CircleCheck, label: "Verified" },
-      { icon: ShieldCheck, label: "Protected" },
-      { icon: ShoppingBag, label: "Checkout" },
-    ],
   },
   {
     icon: Link2,
     title: "Direct Deal Links",
     line: "Create a private protected link for deals that start in chat, DMs, or email.",
     tone: "neutral",
-    steps: [
-      { icon: Link2, label: "Create link" },
-      { icon: ChevronRight, label: "Share" },
-      { icon: UserCheck, label: "Opened" },
-    ],
   },
   {
     icon: ShieldCheck,
     title: "Funds Held Securely",
     line: "Buyer payment stays safely held until verification or resolution.",
     tone: "neutral",
-    steps: [
-      { icon: CircleCheck, label: "Paid in" },
-      { icon: Lock, label: "In escrow" },
-      { icon: Check, label: "Awaiting" },
-    ],
   },
   {
     icon: Store,
     title: "Verified Seller Storefronts",
     line: "Buy from sellers with verified profiles, ratings, and completed deals.",
     tone: "neutral",
-    steps: [
-      { icon: UserCheck, label: "ID check" },
-      { icon: Store, label: "Store OK" },
-      { icon: ShieldCheck, label: "Trusted" },
-    ],
   },
   {
     icon: Lock,
     title: "Locked Agreement",
     line: "Item details, price, and delivery terms are locked after payment.",
     tone: "neutral",
-    steps: [
-      { icon: Check, label: "Price set" },
-      { icon: Lock, label: "Locked" },
-      { icon: ShieldCheck, label: "No edits" },
-    ],
   },
   {
     icon: Truck,
     title: "Delivery Tracking",
     line: "Sellers upload courier details, tracking numbers, and delivery proof.",
     tone: "neutral",
-    steps: [
-      { icon: ShoppingBag, label: "Shipped" },
-      { icon: Search, label: "Tracking" },
-      { icon: Truck, label: "In transit" },
-    ],
   },
   {
     icon: CircleCheck,
     title: "Buyer Confirmation",
     line: "Funds release only after the buyer confirms the item matches.",
     tone: "neutral",
-    steps: [
-      { icon: Truck, label: "Received" },
-      { icon: Search, label: "Reviewed" },
-      { icon: CircleCheck, label: "Confirmed" },
-    ],
   },
   {
     icon: Camera,
     title: "Evidence Uploads",
     line: "Photos, videos, receipts, and delivery proof support dispute reviews.",
     tone: "neutral",
-    steps: [
-      { icon: Camera, label: "Photos" },
-      { icon: Check, label: "Receipt" },
-      { icon: ShieldCheck, label: "Proof" },
-    ],
   },
   {
     icon: Bot,
@@ -222,7 +193,7 @@ function MiniFlow({
   const wide = steps.length > 3;
   const smCols =
     wide || steps.length === 2
-      ? "sm:grid-cols-2"
+      ? "sm:grid-cols-4"
       : steps.length === 3
         ? "sm:grid-cols-3"
         : "sm:grid-cols-2";
@@ -274,22 +245,24 @@ function FeatureCard({
   index,
   isActive,
   forceHeroOnce,
+  className,
 }: {
   f: Feature;
   index: number;
   isActive: boolean;
   forceHeroOnce: boolean;
+  className?: string;
 }) {
   const ref = useScrollReveal<HTMLDivElement>({ delay: index * 70 });
   const { ref: inViewRef, seen } = useInView<HTMLDivElement>(0.35);
   const [hovered, setHovered] = useState(false);
   const [step, setStep] = useState(0);
-  const total = f.steps.length;
+  const total = f.steps?.length ?? 0;
 
   const shouldPlay = isActive || hovered || (f.hero && forceHeroOnce && seen);
 
   useEffect(() => {
-    if (!shouldPlay) {
+    if (!shouldPlay || total === 0) {
       setStep(0);
       return;
     }
@@ -321,7 +294,7 @@ function FeatureCard({
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
       tabIndex={0}
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-4 outline-none transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-4 outline-none transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 ${className ?? ""} ${
         f.hero
           ? "border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card shadow-md"
           : t.border
@@ -349,7 +322,7 @@ function FeatureCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h3 className="min-w-0 truncate text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+              <h3 className="min-w-0 text-balance text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
                 {f.title}
               </h3>
               {f.hero && (
@@ -380,7 +353,7 @@ function FeatureCard({
         )}
 
         {/* Mini-flow — hero (dispute agent) only */}
-        {f.hero && (
+        {f.hero && f.steps && (
           <div className="mt-auto rounded-xl border border-border/70 bg-muted/30 p-1.5">
             <MiniFlow steps={f.steps} step={step} shouldPlay={shouldPlay} tone={t} />
           </div>
@@ -551,8 +524,8 @@ export function PowerfulFeaturesSection() {
           </SnapCarousel>
         </div>
 
-        {/* Desktop — unchanged 9-card grid in original order */}
-        <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3">
+        {/* Desktop — even rows of ordinary cards, hero deliberately spans the full row */}
+        <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3.5 lg:grid-cols-4">
           {FEATURES.map((f, i) => (
             <FeatureCard
               key={f.title}
@@ -560,6 +533,7 @@ export function PowerfulFeaturesSection() {
               index={i}
               isActive={activeIndex === i}
               forceHeroOnce={seen}
+              className={f.hero ? "sm:col-span-2 lg:col-span-4" : undefined}
             />
           ))}
         </div>

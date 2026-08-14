@@ -67,7 +67,7 @@ export function FAQSection() {
       <div className="container-x mx-auto max-w-4xl">
         <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>
-          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-left text-muted-foreground sm:text-center">
             Tap to expand.
           </p>
         </div>

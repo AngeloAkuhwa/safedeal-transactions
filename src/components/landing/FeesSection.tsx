@@ -19,12 +19,12 @@ export function FeesSection() {
 
         <div
           ref={ref}
-          className="tap-press mx-auto max-w-xl rounded-2xl border bg-card p-4 text-center shadow-sm transition-shadow duration-300 hover:shadow-lg sm:p-8"
+          className="tap-press mx-auto max-w-xl rounded-2xl border bg-card p-4 text-left shadow-sm transition-shadow duration-300 hover:shadow-lg sm:p-8 sm:text-center"
         >
-          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="text-center text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             One simple fee
           </p>
-          <p className="mt-2 text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">
+          <p className="mt-2 text-center text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">
             2% + ₦100
           </p>
           <p className="mt-2 text-base text-muted-foreground">
