@@ -35,7 +35,7 @@ export function resolveMoneyLabel(key: PricingLineKey): string {
  *  on raw amounts in notification copy — always go through `formatMoney`. */
 export function formatMoney(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string,
 ): string {
   return fmtMoney(amount, currency);
 }
@@ -43,9 +43,9 @@ export function formatMoney(
 /** UI-aligned "missing money" fallback. */
 export function formatMoneyOrDash(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string | null | undefined,
 ): string {
-  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount)) || !currency) {
     return "—";
   }
   return fmtMoney(amount, currency);

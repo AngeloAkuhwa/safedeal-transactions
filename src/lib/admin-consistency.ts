@@ -27,6 +27,8 @@ export interface MonitorRowSnapshot {
   amount?: number | null;
   protectionFee?: number | null;
   sellerNetAmount?: number | null;
+  /** Needed to render money in the diff output without inventing a currency. */
+  currencyCode?: string | null;
   transactionStatus?: { key?: string; label?: string; raw?: string };
   moneyStatus?: { key?: string; label?: string; raw?: string };
   disputeStatus?: { key?: string; label?: string; raw?: string };
@@ -50,7 +52,12 @@ export interface DetailPayloadShape {
   };
   parties?: { buyer?: { name?: string | null } | null; seller?: { name?: string | null } | null };
   items?: Array<{ title?: string | null }>;
-  pricing?: { buyerTotal?: number | null; protectionFee?: number | null; sellerNet?: number | null } | null;
+  pricing?: {
+    buyerTotal?: number | null;
+    protectionFee?: number | null;
+    sellerNet?: number | null;
+    currencyCode?: string | null;
+  } | null;
   payment?: { provider?: string | null } | null;
   payout?: { status?: string | null } | null;
   escrow?: { state?: string | null } | null;
@@ -65,6 +72,8 @@ export function assertMonitorDetailConsistent(
   if (!monitor || !detail) return;
 
   const issues: Array<{ field: string; monitor: unknown; detail: unknown }> = [];
+  const monCur = monitor.currencyCode ?? "";
+  const detCur = detail.pricing?.currencyCode ?? "";
   const same = (a: unknown, b: unknown) =>
     a == null && b == null ? true : String(a ?? "") === String(b ?? "");
   const close = (a: number | null | undefined, b: number | null | undefined) => {
@@ -98,8 +107,8 @@ export function assertMonitorDetailConsistent(
   if (!close(monitor.amount, detail.pricing?.buyerTotal)) {
     issues.push({
       field: "totalAmount",
-      monitor: formatCurrencyNGN(monitor.amount ?? null),
-      detail: formatCurrencyNGN(detail.pricing?.buyerTotal ?? null),
+      monitor: formatCurrencyNGN(monitor.amount ?? null, monCur),
+      detail: formatCurrencyNGN(detail.pricing?.buyerTotal ?? null, detCur),
     });
   }
   // 7. protection fee — monitor sums platform + processing; detail exposes only platform
@@ -109,8 +118,8 @@ export function assertMonitorDetailConsistent(
     if (!okExact && monitor.protectionFee < detail.pricing.protectionFee) {
       issues.push({
         field: "protectionFee",
-        monitor: formatCurrencyNGN(monitor.protectionFee),
-        detail: formatCurrencyNGN(detail.pricing.protectionFee),
+        monitor: formatCurrencyNGN(monitor.protectionFee, monCur),
+        detail: formatCurrencyNGN(detail.pricing.protectionFee, detCur),
       });
     }
   }
@@ -118,8 +127,8 @@ export function assertMonitorDetailConsistent(
   if (!close(monitor.sellerNetAmount, detail.pricing?.sellerNet)) {
     issues.push({
       field: "sellerNetAmount",
-      monitor: formatCurrencyNGN(monitor.sellerNetAmount ?? null),
-      detail: formatCurrencyNGN(detail.pricing?.sellerNet ?? null),
+      monitor: formatCurrencyNGN(monitor.sellerNetAmount ?? null, monCur),
+      detail: formatCurrencyNGN(detail.pricing?.sellerNet ?? null, detCur),
     });
   }
   // 9-12. statuses — compare canonical keys (not labels), since monitor uses

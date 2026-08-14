@@ -25,7 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { describeFeeBreakdown } from "@/lib/pricing";
-import { methodNeedsAddress, methodNeedsPhone } from "@/lib/delivery-methods";
+import { methodNeedsAddress, methodNeedsPhone, deliveryCoordinationNoun } from "@/lib/delivery-methods";
+import { LAUNCH_REGION_COUNTRY_CODE } from "@/lib/launch-region";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { REFUND_BULLET } from "@/lib/payment/fee-policy";
@@ -151,7 +152,7 @@ const StorefrontCheckout = () => {
               city: addrCity.trim(),
               state: addrState.trim(),
               postal_code: addrPostal.trim() || undefined,
-              country_code: "NG",
+              country_code: LAUNCH_REGION_COUNTRY_CODE,
             }
           : null,
         contact_phone: needsPhone ? contactPhone.trim() : null,
@@ -342,7 +343,13 @@ const StorefrontCheckout = () => {
                     placeholder="+234…"
                     type="tel"
                   />
-                  <p className="text-xs text-muted-foreground">The seller will use this number to coordinate {activeMethod === "pickup" ? "pickup" : activeMethod === "meetup" ? "the meetup" : "hand delivery"}.</p>
+                  {deliveryCoordinationNoun(activeMethod) ? (
+                    <p className="text-xs text-muted-foreground">
+                      The seller will use this number to coordinate {deliveryCoordinationNoun(activeMethod)}.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">The seller will use this number to reach you about this order.</p>
+                  )}
                 </div>
               )}
               <div className="flex items-center gap-3 flex-wrap">

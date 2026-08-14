@@ -597,6 +597,30 @@ describe("the trust-claim lock", () => {
 
 /* ── the response-time promise, on edge functions too ── */
 
+/**
+ * KNOWN DEBT — literal day/hour windows surfaced by the widened rule above and
+ * NOT fixed in this pass. Shrink-only ratchet: a listed file that stops
+ * offending fails the staleness test below, so this list cannot rot.
+ *
+ *  - the 48h dispute-response and 6h critical-review windows are real
+ *    operational SLAs that belong in `system_settings`, not in copy;
+ *  - `SellerProductCreate` is an input PLACEHOLDER, not a promise;
+ *  - `AdminTransactionDetail` narrates an observed fact about one transaction.
+ */
+const SLA_WINDOW_DEBT = [
+  "src/pages/AdminTransactionDetail.tsx",
+  "src/pages/BuyerVerification.tsx",
+  "src/pages/SellerProductCreate.tsx",
+  "src/components/admin/flagged-users/FlaggedUsersTable.tsx",
+  "supabase/functions/_shared/flagged-users-engine.ts",
+  "supabase/functions/_shared/flagged-users-sql.ts",
+  "supabase/functions/transaction-verify/index.ts",
+];
+
+const SLA_WINDOW_LITERAL = (src: string) =>
+  /\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*business\s+(?:day|hour)/i.test(src) ||
+  /(?:within|in|after|over|for)\s+\d+\s*(?:-|–)?\s*\d*\s*(?:hours|hrs)\b/i.test(src);
+
 describe("no surface invents its own response time", () => {
   it("no app or edge-function file hardcodes the target or the hours", () => {
     const canonical = path.join(PROJECT, "supabase/functions/_shared/support-copy.ts");
@@ -608,14 +632,37 @@ describe("no surface invents its own response time", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("no surface states a bare 'within N business day(s)' or 'N business hours'", () => {
+  it("no surface states a settlement/response window as a literal", () => {
+    // Widened: the previous regex required the word "within", so
+    // "Usually settles in 1-3 business days" and "not received in 1-3 business
+    // days" both slipped through on the seller payouts page — while the same
+    // page already rendered the server's `typical_processing_time`, stating two
+    // different answers. Any literal day/hour window is now a defect; source it
+    // from the server value instead.
     const canonical = path.join(PROJECT, "supabase/functions/_shared/support-copy.ts");
     const offenders = SURFACES.filter((f) => {
       if (f === canonical) return false;
+      if (SLA_WINDOW_DEBT.includes(rel(f))) return false;
       const src = fs.readFileSync(f, "utf8");
-      return /within\s+\d+\s+business\s+day/i.test(src) || /\d+\s*business\s+hours/i.test(src);
+      return SLA_WINDOW_LITERAL(src);
     }).map(rel);
     expect(offenders).toEqual([]);
+  });
+
+  it("the SLA debt list cannot rot", () => {
+    const stale = SLA_WINDOW_DEBT.filter((r) => {
+      const full = path.join(PROJECT, r);
+      return !fs.existsSync(full) || !SLA_WINDOW_LITERAL(fs.readFileSync(full, "utf8"));
+    });
+    expect(stale).toEqual([]);
+  });
+
+  it("the seller payouts page quotes the server, not a literal window", () => {
+    const src = fs.readFileSync(path.join(PROJECT, "src/pages/SellerPayouts.tsx"), "utf8");
+    expect(src).not.toMatch(/1-3 business days/);
+    expect(src).not.toMatch(/over 24 hours/);
+    expect(src).toMatch(/typical_processing_time/);
+    expect(src).toMatch(/stuck_payout_threshold_hours/);
   });
 });
 

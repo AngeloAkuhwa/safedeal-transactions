@@ -459,8 +459,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Stuck Payouts (pending + never initiated + > 24h old) ──
-    const stuckCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    // ── Stuck Payouts (pending + never initiated + older than the threshold) ──
+    // This threshold is the ONLY definition of "stuck". The seller UI reads it
+    // back off the response rather than restating "24 hours" in copy.
+    const STUCK_PAYOUT_THRESHOLD_HOURS = 24;
+    // Settlement window quoted to sellers. Emitted as numbers so no surface has
+    // to hardcode the sentence.
+    const SETTLEMENT_WINDOW_MIN_DAYS = 1;
+    const SETTLEMENT_WINDOW_MAX_DAYS = 3;
+    const stuckCutoff = new Date(
+      now.getTime() - STUCK_PAYOUT_THRESHOLD_HOURS * 60 * 60 * 1000,
+    ).toISOString();
     const stuckPayoutsRaw = allPayouts.filter((p) => {
       const status = p.status as string;
       const initiatedAt = p.initiated_at as string | null;
@@ -523,6 +532,11 @@ Deno.serve(async (req) => {
       upcoming_releases: upcomingReleases,
       blocked_funds: blockedFunds,
       stuck_payouts: stuckPayouts,
+      stuck_payout_threshold_hours: STUCK_PAYOUT_THRESHOLD_HOURS,
+      settlement_window: {
+        min_days: SETTLEMENT_WINDOW_MIN_DAYS,
+        max_days: SETTLEMENT_WINDOW_MAX_DAYS,
+      },
       payout_account: (() => {
         const pa = (payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data)
           ? payoutAccountResult.value.data as Record<string, unknown>
@@ -540,7 +554,8 @@ Deno.serve(async (req) => {
           status: verificationStatus,
           recipient_code_present: recipientCodePresent,
           account_state: accountState,
-          typical_processing_time: "1-3 business days",
+          typical_processing_time:
+            `${SETTLEMENT_WINDOW_MIN_DAYS}-${SETTLEMENT_WINDOW_MAX_DAYS} business days`,
         };
       })(),
     });
