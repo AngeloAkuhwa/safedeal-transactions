@@ -344,7 +344,7 @@ const PublicProductDetail = () => {
           {/* Pricing card */}
           <div className={`${glassPanel} p-5 space-y-3`}>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">SafeDeal Escrow Price</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Amount held in escrow</p>
               <div className="flex items-baseline gap-3">
                 <p className="text-3xl font-bold text-foreground">
                   {formatPrice(product.unit_price, product.currency_code)}

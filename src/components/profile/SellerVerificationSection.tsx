@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SellerVerification, SellerPermissions } from "@/services/seller-profile.service";
 import { formatMoney } from "@/lib/format";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface Props {
   verification: SellerVerification;
@@ -35,7 +36,7 @@ const getItems = (v: SellerVerification) => {
   },
   {
     key: "phone_verified",
-    label: "Phone Verified",
+    label: TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text,
     icon: Phone,
     description: v.phone_verified ? "Verified" : "Phone verification required",
     verified: v.phone_verified,

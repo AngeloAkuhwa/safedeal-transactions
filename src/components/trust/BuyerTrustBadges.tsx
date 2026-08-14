@@ -1,5 +1,6 @@
 import { Mail, Phone, ShieldCheck, Info, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface BuyerTrustSignals {
   emailVerified?: boolean;
@@ -31,7 +32,7 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
     badges.push({
       key: "phone",
       icon: Phone,
-      label: "Phone Verified",
+      label: TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text,
       className: "bg-success/10 text-success border-success/20",
     });
   }
