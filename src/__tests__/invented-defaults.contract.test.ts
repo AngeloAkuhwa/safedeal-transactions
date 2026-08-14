@@ -120,7 +120,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/seller-analytics/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
   "supabase/functions/seller-dispute-detail/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-payouts/index.ts",
   "supabase/functions/seller-products/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
@@ -175,7 +174,6 @@ const CURRENCY_DEBT = [
 const WINDOW_DEBT = [
   "supabase/functions/create-transaction/index.ts",
   "supabase/functions/delivery-token-confirm/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-delivery-status/index.ts",
   // Newly VISIBLE under the positional + delivery-estimate rules added in this
@@ -583,7 +581,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/dispute-detail/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
   "supabase/functions/seller-dispute-detail/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
   "supabase/functions/seller-transactions/index.ts",
   // Newly VISIBLE after the bracket rule was fixed to allow a money noun at
