@@ -145,7 +145,7 @@ const SellerProductDetail = () => {
       visibility_type: visibilityType,
       brand,
       model: modelSku,
-      verification_window_hours: parseInt(verificationWindow),
+      verification_window_hours: verificationWindow ? parseInt(verificationWindow) : null,
     });
   };
 
