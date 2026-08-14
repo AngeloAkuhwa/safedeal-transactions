@@ -12,9 +12,9 @@ import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
   { label: "Marketplace", href: "/marketplace" },
-  { label: "How It Works", href: "#how-it-works" },
+  { label: "How It Works", href: "#protected-deal" },
   { label: "Protection", href: "#protection" },
-  { label: "Trust & Safety", href: "#trust" },
+  { label: "Pricing", href: "#fees" },
   { label: "FAQ", href: "#faq" },
 ];
 
