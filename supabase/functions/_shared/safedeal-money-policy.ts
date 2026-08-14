@@ -2,7 +2,9 @@
  * SafeDeal Money Policy — single source of truth for the Nigeria MVP.
  *
  * Rules (final, see plan.md):
- *  - Combined service-fee cap: ₦2,500 covers SafeDeal Fee + Payment Processing Fee.
+ *  - Combined service-fee cap: the `pricing.max_total_service_fee_ngn` platform
+ *    setting covers SafeDeal Fee + Payment Processing Fee. Never restate the
+ *    number here — it is configuration, not copy.
  *  - Provider (Paystack) fee is covered first inside the cap.
  *  - SafeDeal earns the remainder inside the cap.
  *  - Seller payout = item amount (no seller-side commission for MVP).
@@ -59,7 +61,7 @@ export interface PricingSnapshot {
   safedeal_fee_amount: number;
   /** Payment Processing Fee — provider (Paystack) fee, covered first inside the cap. */
   payment_processing_fee_amount: number;
-  /** Total Service Fee = safedeal_fee_amount + payment_processing_fee_amount, capped at ₦2,500. */
+  /** Total Service Fee = safedeal_fee_amount + payment_processing_fee_amount, capped by config. */
   service_fee_amount: number;
   /** Total Charged = item_amount + service_fee_amount. */
   total_amount: number;
@@ -178,7 +180,7 @@ export const PRICING_HELPER_COPY = {
   payment_processing_fee_amount:
     "Payment Processing Fee covers the cost of processing your online payment. This fee is non-refundable once payment has been processed.",
   service_fee_amount:
-    "SafeDeal keeps the total service fee capped at ₦2,500 for Nigeria MVP.",
+    "SafeDeal caps the total service fee. The cap that applied to this transaction is stamped on its pricing snapshot.",
 } as const;
 
 export const FORBIDDEN_LABELS = [

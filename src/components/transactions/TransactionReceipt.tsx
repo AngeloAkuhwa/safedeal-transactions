@@ -169,7 +169,7 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
                   {pricing.is_total_service_fee_capped ? (
                     <tr>
                       <td colSpan={2} style={{ color: "#94a3b8", fontSize: "10px", paddingTop: "4px" }}>
-                        Total service fee capped at ₦2,500.
+                        {PRICING_LINE_LABELS.service_fee_amount} capped for this transaction.
                       </td>
                     </tr>
                   ) : null}

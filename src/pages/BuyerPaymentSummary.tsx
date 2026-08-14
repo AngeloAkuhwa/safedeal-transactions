@@ -341,7 +341,8 @@ export default function BuyerPaymentSummary() {
     service_fee_amount: feeAmount,
     safedeal_fee_amount: platformFeeAmount,
   });
-  const verificationHours = data.delivery?.verification_window_hours ?? 72;
+  // No invented window: when the server has not set one, say nothing.
+  const verificationHours = data.delivery?.verification_window_hours ?? null;
   const courierTracked = isTrackedDelivery(data.delivery?.delivery_method);
 
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
@@ -563,9 +564,14 @@ export default function BuyerPaymentSummary() {
                   {
                     step: 4,
                     title: resolveClaim("DELIVERY_TRACKED", { deliveryMethod: courierTracked ? "courier" : null }) ?? "Delivery updates",
-                    desc: courierTracked
-                      ? `Courier details are required. After delivery, you have ${verificationHours} hours to inspect the item.`
-                      : `Follow the selected handover terms. After delivery, you have ${verificationHours} hours to inspect the item.`,
+                    desc: [
+                      courierTracked
+                        ? "Courier details are required."
+                        : "Follow the selected handover terms.",
+                      verificationHours
+                        ? `After delivery, you have ${verificationHours} hours to inspect the item.`
+                        : "After delivery, you can inspect the item before the payment is released.",
+                    ].join(" "),
                     bgClass: "bg-primary/10",
                     textClass: "text-primary",
                   },
@@ -960,7 +966,9 @@ export default function BuyerPaymentSummary() {
                 <ul className="space-y-3 text-sm">
                   {[
                     "Payment held until release conditions are met",
-                    `${verificationHours}-hour verification window`,
+                    verificationHours
+                      ? `${verificationHours}-hour verification window`
+                      : "Verification window applies after delivery",
                     "Dispute resolution available",
                     REFUND_BULLET,
                   ].map((item) => (

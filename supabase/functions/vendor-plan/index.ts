@@ -13,6 +13,7 @@
  */
 import { requireUser, authErrorResponse } from "../_shared/auth.ts";
 import { captureVendorPlanPayment } from "../_shared/vendor-plan-capture.ts";
+import { SACHETS } from "../_shared/sachet-catalog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,11 +22,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/** Sachet catalogue — one-off purchases, priced server-side. */
-export const SACHETS = {
-  photo_slots: { amount_naira: 1000, slots: 10, label: "+10 showcase slots" },
-  store_boost: { amount_naira: 1500, days: 7, label: "Boost my store — 7 days" },
-} as const;
+export { SACHETS };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

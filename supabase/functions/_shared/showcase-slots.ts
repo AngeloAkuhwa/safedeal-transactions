@@ -6,6 +6,7 @@
  * Server-side enforcement is authoritative; the seller UI only displays what
  * this module reports.
  */
+import { SACHETS } from "./sachet-catalog.ts";
 export interface SlotState {
   limit: number;
   used: number;
@@ -27,7 +28,11 @@ export async function loadSlotState(client: MinimalClient, userId: string): Prom
 }
 
 export function slotLimitMessage(limit: number): string {
-  return `You've used all ${limit} showcase slots on your current plan. Upgrade your plan to showcase more products, or add +10 slots for ₦1,000.`;
+  // Add-on price is read from the sachet catalogue that actually charges it —
+  // never restated here.
+  const sachet = SACHETS.photo_slots;
+  const price = `₦${sachet.amount_naira.toLocaleString("en-NG")}`;
+  return `You've used all ${limit} showcase slots on your current plan. Upgrade your plan to showcase more products, or add +${sachet.slots} slots for ${price}.`;
 }
 
 /**

@@ -846,7 +846,7 @@ export default function AdminTransactionDetail() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.protectionFee)}</div>
                   {data.pricing?.protectionFeeCapped && (
-                    <div className="text-[10px] text-muted-foreground mt-1">capped @ ₦2,500</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">cap applied</div>
                   )}
                 </div>
                 <div title="Payment vendor fee from Paystack, Flutterwave, or the active payment provider">

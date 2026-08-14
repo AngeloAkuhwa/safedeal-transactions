@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { uploadDispatchEvidence, type UploadedDeliveryFile } from "@/services/delivery.service";
+import { toTransactionDeliveryMethod } from "@/lib/delivery-methods";
 import type { DeliveryMethod } from "./DeliveryMethodBadge";
 
 const COURIERS = ["GIG Logistics", "DHL", "Sendbox", "Kwik", "FedEx", "UPS", "Other"] as const;
@@ -68,7 +69,9 @@ export function DispatchForm({
 }: DispatchFormProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const m = (method ?? "courier") as DeliveryMethod;
+  // Fail closed: an unknown, missing or listing-vocabulary method must never
+  // silently render the courier branch (same rule as `DeliveryMethodBadge`).
+  const m = toTransactionDeliveryMethod(method);
 
   const update = (patch: Partial<DispatchFormState>) => onChange({ ...state, ...patch });
 

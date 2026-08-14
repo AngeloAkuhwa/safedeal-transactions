@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { usePublicPricing } from "@/hooks/usePublicPricing";
 
 const POINTS = [
   "No listing fees",
@@ -9,6 +10,7 @@ const POINTS = [
 
 export function FeesSection() {
   const ref = useScrollReveal<HTMLDivElement>();
+  const { copy } = usePublicPricing();
 
   return (
     <section id="fees" className="section-y bg-muted/30">
@@ -22,14 +24,15 @@ export function FeesSection() {
           className="tap-press mx-auto max-w-xl rounded-2xl border bg-card p-4 text-left shadow-sm transition-shadow duration-300 hover:shadow-lg sm:p-8 sm:text-center"
         >
           <p className="text-center text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            One simple fee
+            The SafeDeal fee
           </p>
           <p className="mt-2 text-center text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">
-            2% + ₦100
+            {copy.safedealFeeHeadline}
           </p>
           <p className="mt-2 text-base text-muted-foreground">
-            when a deal completes — capped at ₦5,000.
+            when a deal completes — capped at {copy.safedealFeeCap}.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">{copy.feeDisclosure}</p>
           <p className="mt-2 text-xs text-muted-foreground">
             Nigeria pricing shown in ₦. Local pricing announced as each new region goes live.
           </p>
