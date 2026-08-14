@@ -9,6 +9,7 @@ import {
   TrendingUp, HelpCircle, Info, Scale, HandCoins,
   FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban, ChevronRight
 } from "lucide-react";
+import { supportLink } from "@/lib/support/support-copy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
