@@ -61,6 +61,13 @@ Deno.serve(async (req) => {
   if (!payout) return json(404, { error: "payout_not_found" });
   if (payout.status !== "failed") return json(409, { error: "payout_not_failed", status: payout.status });
   if (!payout.retry_allowed) return json(409, { error: "retry_exhausted" });
+  // Money never falls back to zero: `Number(null)` is 0, which would send a
+  // ₦0 Paystack transfer and tell the seller we are retrying "₦0.00".
+  const payoutAmount =
+    payout.amount != null && Number.isFinite(Number(payout.amount)) ? Number(payout.amount) : null;
+  if (payoutAmount === null || payoutAmount <= 0) {
+    return json(409, { error: "payout_amount_missing", payout_id: payout.id });
+  }
 
   const { data: tx, error: tErr } = await admin
     .from("transactions")
@@ -113,7 +120,7 @@ Deno.serve(async (req) => {
   const attempt = (payout.failed_attempt_count ?? 0) + 1;
   // Paystack rejects duplicate references — suffix retries so each attempt is unique.
   const reference = `payout_${payout.id}_r${attempt}`;
-  const amountKobo = nairaToKobo(Number(payout.amount));
+  const amountKobo = nairaToKobo(payoutAmount);
 
   let transfer;
   try {
@@ -135,7 +142,11 @@ Deno.serve(async (req) => {
       .select("setting_value")
       .eq("setting_key", "payout_max_retry_attempts")
       .maybeSingle();
-    const maxRetries = Number(maxRetriesSetting?.setting_value ?? 3);
+    // Fail closed: with no configured ceiling we do not invent one — zero
+    // further retries are allowed until an operator sets the setting.
+    const rawMaxRetries = maxRetriesSetting?.setting_value;
+    const maxRetries =
+      rawMaxRetries != null && Number.isFinite(Number(rawMaxRetries)) ? Number(rawMaxRetries) : 0;
     try {
       await admin.rpc("fail_payout_atomic", {
         p_payout_id: payout.id,
@@ -169,7 +180,7 @@ Deno.serve(async (req) => {
     actor_role: "admin",
     event_data: {
       description: `SafeDeal retry ${attempt} initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
-        Number(payout.amount),
+      payoutAmount,
         tx.currency_code,
       )}`,
       payout_id: payout.id,
@@ -185,7 +196,7 @@ Deno.serve(async (req) => {
     type: "payment_update",
     title: "Retrying your payout",
     message: `SafeDeal is retrying the bank transfer of ${formatMoney(
-      Number(payout.amount),
+      payoutAmount,
       tx.currency_code,
     )} (${PRICING_LINE_LABELS.seller_payout_amount}) for ${tx.transaction_code}.`,
     related_transaction_id: tx.id,

@@ -7,8 +7,10 @@
  *
  * A verbatim mirror of this file lives at
  *   supabase/functions/_shared/admin-mappers.ts
- * The two MUST stay in sync. A Deno test in the monitor function and
- * a Vitest in src/lib/__tests__/admin-mappers.test.ts both guard this.
+ * The two MUST stay in sync. This is guarded by exactly one test:
+ * src/lib/__tests__/admin-mappers.test.ts (Vitest), which compares the two
+ * files byte-for-byte after normalising comments and whitespace. There is no
+ * Deno mirror test in the monitor function.
  *
  * Resolution rule for monitor vs detail:
  *   - `short` is what the monitor's compact column shows (e.g. "Held").

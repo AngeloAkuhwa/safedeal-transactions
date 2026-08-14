@@ -105,9 +105,7 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/payout-watchdog/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
-  "supabase/functions/resolve-share-token/index.ts",
   "supabase/functions/seller-analytics/index.ts",
-  "supabase/functions/seller-confirm-completion/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
   "supabase/functions/seller-dispute-detail/index.ts",
   "supabase/functions/seller-drafts/index.ts",
@@ -543,5 +541,55 @@ describe("money never falls back to zero", () => {
       expect(src).toContain("MISSING_AMOUNT");
       expect(src).not.toMatch(/Number\.isNaN\([\s\S]{0,40}\)\s*\n?\s*\?\s*0/);
     }
+  });
+});
+
+/**
+ * MONEY NEVER FAILS TO ZERO — WRAPPED FORM.
+ *
+ * The rule above requires the money identifier to sit immediately next to
+ * `??`/`||`, so `Number(x) || 0` and `num(row.fee) ?? 0` were invisible. That
+ * is the exact shape that carried the payment-screen defect in
+ * `resolve-share-token`. This catches a wrapped call whose result defaults to
+ * zero when the ASSIGNMENT NAME is money-shaped.
+ */
+const MONEY_NAME = "(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held|net|Net|kobo|Kobo)";
+const MONEY_ZERO_WRAPPED = new RegExp(
+  String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+  "g",
+);
+
+/** Shrink-only ratchet. Entries may be removed, never added. */
+const MONEY_ZERO_WRAPPED_DEBT: string[] = [
+  "src/components/admin/transactions/ResolveDisputeDialog.tsx",
+  "supabase/functions/_shared/users-directory-engine.ts",
+  "supabase/functions/admin-export-worker/index.ts",
+  "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/transaction-agreement/index.ts",
+  "supabase/functions/verify-paystack-payment/index.ts",
+];
+
+describe("money never falls back to zero (wrapped calls)", () => {
+  it("has no un-recorded wrapped zero default on a money-named assignment", () => {
+    const offenders: string[] = [];
+    const debtSeen = new Set<string>();
+    for (const file of FILES) {
+      const r = relOf(file);
+      const src = stripComments(fs.readFileSync(file, "utf8"));
+      const hits = [...src.matchAll(MONEY_ZERO_WRAPPED)];
+      if (hits.length === 0) continue;
+      if (MONEY_ZERO_WRAPPED_DEBT.includes(r)) { debtSeen.add(r); continue; }
+      for (const m of hits) offenders.push(`${r}: ${m[0].trim()}`);
+    }
+    expect(offenders).toEqual([]);
+    expect(MONEY_ZERO_WRAPPED_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+  });
+
+  it("the buyer payment payload builder is clean in both forms", () => {
+    const src = stripComments(
+      fs.readFileSync(path.join(ROOT, "supabase/functions/resolve-share-token/index.ts"), "utf8"),
+    );
+    expect(src).not.toMatch(MONEY_ZERO_WRAPPED);
+    expect(src).not.toMatch(MONEY_ZERO_FALLBACK);
   });
 });

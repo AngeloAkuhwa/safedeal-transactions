@@ -17,7 +17,7 @@ import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { describeFeeBreakdown } from "@/lib/pricing";
+import { describeChargedFee } from "@/lib/pricing";
 import { resolveAppliedCap } from "@/types/payment-flow.types";
 import { ChevronDown } from "lucide-react";
 import { getBuyerProfile } from "@/services/profile.service";
@@ -704,23 +704,17 @@ export default function BuyerPaymentSummary() {
                     How this fee is calculated
                   </CollapsibleTrigger>
                   <CollapsibleContent className="text-[11px] text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
-                    {describeFeeBreakdown(
-                      { itemAmount },
-                      {
-                        currency_code: currencyCode,
-                        item_amount: itemAmount,
-                        paystack_fee_amount: 0,
-                        platform_fee_amount: platformFeeAmount,
-                        service_fee_amount: feeAmount,
-                        service_fee_rate: feeRate,
-                        total_amount: totalAmount,
-                        is_floored: data.pricing?.is_floored === true,
-                        is_capped: isFeeCapped,
-                        capped_by: isFeeCapped ? (appliedCap?.kind ?? null) : null,
-                        applied_cap_amount: isFeeCapped ? (appliedCap?.amount ?? null) : null,
-                        non_refundable: true,
-                      },
-                    )}
+                    {/* Narrated from the buyer's own snapshot — never from a
+                        live config rate that may differ from what was charged. */}
+                    {describeChargedFee({
+                      itemAmount,
+                      serviceFeeAmount: feeAmount,
+                      serviceFeeRate: feeRate,
+                      currencyCode,
+                      isCapped: isFeeCapped,
+                      appliedCapAmount: isFeeCapped ? (appliedCap?.amount ?? null) : null,
+                      cappedBy: isFeeCapped ? (appliedCap?.kind ?? null) : null,
+                    })}
                   </CollapsibleContent>
                 </Collapsible>
               </div>
