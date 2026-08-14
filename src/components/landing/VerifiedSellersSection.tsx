@@ -30,7 +30,7 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
     <div
       ref={ref}
       style={{ transitionDelay: `${index * 90}ms` }}
-      className="flex h-full flex-col rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
+      className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
     >
       <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${item.tone}`}>
         <item.icon className="h-5 w-5" />
@@ -43,12 +43,12 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
 
 export function VerifiedSellersSection() {
   return (
-    <section id="built-for-lagos" className="bg-background py-10 sm:py-12 lg:py-14">
+    <section id="built-for-lagos" className="bg-background py-12 sm:py-16">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
-            <Shield className="h-3.5 w-3.5 text-success" />
-            <span className="text-xs font-semibold text-success">Who it&apos;s for</span>
+            <Shield className="h-4 w-4 text-success" />
+            <span className="text-xs font-semibold text-success">For sellers</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">Built for Lagos vendors</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
@@ -63,20 +63,20 @@ export function VerifiedSellersSection() {
         </div>
 
         {/* Truthful trust strip — no invented numbers */}
-        <div className="mt-8 rounded-xl border bg-muted/40 p-4">
-          <ul className="flex flex-col items-center justify-center gap-2 text-center text-xs font-semibold text-muted-foreground sm:flex-row sm:gap-5 sm:text-[13px]">
+        <div className="mt-8 rounded-2xl border bg-muted/40 p-4">
+          <ul className="flex flex-col items-center justify-center gap-2 text-center text-sm font-semibold text-muted-foreground sm:flex-row sm:gap-5">
             <li className="inline-flex items-center gap-1.5">
-              <Lock className="h-3.5 w-3.5 text-primary" />
+              <Lock className="h-4 w-4 text-primary" />
               Payments secured by Paystack
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
-              <Shield className="h-3.5 w-3.5 text-warning" />
+              <Shield className="h-4 w-4 text-warning" />
               Funds held in secure escrow
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
-              <BadgeCheck className="h-3.5 w-3.5 text-success" />
+              <BadgeCheck className="h-4 w-4 text-success" />
               Verified sellers only
             </li>
           </ul>
