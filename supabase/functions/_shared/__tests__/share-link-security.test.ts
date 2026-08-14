@@ -89,7 +89,7 @@ describe("share link expiry", () => {
       // mention of the table.
       const sites = [...src.matchAll(/from\("transaction_links"\)/g)]
         .map((m) => src.slice(m.index!, m.index! + 400))
-        .filter((chunk) => /\.insert\(/.test(chunk));
+        .filter((chunk) => /\.(?:insert|upsert)\(/.test(chunk));
       expect(sites.length, `${fn} inserts a transaction_links row`).toBeGreaterThan(0);
       for (const chunk of sites) {
         expect(chunk).toMatch(/expires_at: shareLinkExpiresAt\(\)/);
