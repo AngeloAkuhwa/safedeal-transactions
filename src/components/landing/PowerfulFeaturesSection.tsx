@@ -246,7 +246,7 @@ function MiniFlow({
         return (
           <div
             key={s.label}
-            className={`flex min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1.5 transition-all duration-500 ${
+            className={`flex min-w-0 items-center justify-center gap-1 rounded-xl border px-2 py-1.5 transition-all duration-500 ${
               done
                 ? tone.chipDone
                 : current
@@ -255,11 +255,11 @@ function MiniFlow({
             }`}
             title={s.label}
           >
-            <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
               {done ? (
-                <Check className="h-3 w-3" />
+                <Check className="h-4 w-4" />
               ) : (
-                <StepIcon className="h-3 w-3" />
+                <StepIcon className="h-4 w-4" />
               )}
             </span>
             <span className="min-w-0 truncate text-xs font-bold leading-tight">
@@ -362,7 +362,7 @@ function FeatureCard({
               </h3>
               {f.hero && (
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-destructive">
-                  <Sparkles className="h-2.5 w-2.5" />
+                  <Sparkles className="h-4 w-4" />
                   AI
                 </span>
               )}
@@ -379,7 +379,7 @@ function FeatureCard({
             {f.chips.map((c, i) => (
               <ChipReveal key={c} delay={i * 90}>
                 <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-xs font-semibold text-destructive">
-                  <Check className="h-2.5 w-2.5" />
+                  <Check className="h-4 w-4" />
                   {c}
                 </span>
               </ChipReveal>
@@ -465,7 +465,7 @@ function ProtectionStrip() {
               }`}
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                {reached ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </span>
               <span className="min-w-0 truncate text-xs font-bold sm:text-xs">
                 {it.label}
@@ -527,7 +527,7 @@ export function PowerfulFeaturesSection() {
       <div className="container-x mx-auto max-w-6xl">
         <div ref={headerRef} className="mb-6 text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Features</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
