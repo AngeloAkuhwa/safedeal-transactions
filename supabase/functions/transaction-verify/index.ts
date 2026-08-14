@@ -813,8 +813,10 @@ async function raiseDispute(
     transactionId: transactionId,
     buyerId: userId,
     sellerId: tx.seller_id,
-    amount: (tx as any).total_amount ?? null,
-    currency: (tx as any).currency_code ?? "NGN",
+    // An amount is only forwarded when the transaction states its own currency;
+    // the queue must never display a figure in an assumed denomination.
+    amount: (tx as any).currency_code ? ((tx as any).total_amount ?? null) : null,
+    currency: (tx as any).currency_code ?? null,
     requiredPermissions: ["disputes.view", "disputes.resolve"],
     sourceEventKey: `dispute_opened:${dispute.id}`,
   });
