@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TwoFactorPrompt } from "@/components/security/TwoFactorPrompt";
+import { MobileTabBar } from "@/components/layout/MobileTabBar";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "next-themes";
@@ -223,6 +225,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          <MobileTabBar />
+          <InstallPrompt />
           </AppShell>
         </BrowserRouter>
       </TooltipProvider>
