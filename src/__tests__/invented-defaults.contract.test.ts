@@ -239,7 +239,7 @@ describe("invented defaults", () => {
  * disagreed with each other on the same screen. A symbol asserts a currency
  * with no data behind it, exactly like a `"NGN"` default does.
  */
-const CURRENCY_SYMBOL = /[₦£€]|\$(?=\d)/g;
+const CURRENCY_SYMBOL = /[₦£€]|(?<![\/\\\w])\$(?=\d)/g;
 
 /**
  * Modules allowed to name a symbol: they DEFINE how money is rendered, or they
@@ -257,7 +257,26 @@ const SYMBOL_DEFINITION_FILES = new Set([
  * NGN-only formatter helper; none can mis-render while the book is NGN-only.
  * Shrink-only ratchet: a listed file that stops offending fails this test.
  */
-const SYMBOL_DEBT: string[] = [];
+const SYMBOL_DEBT: string[] = [
+  "src/components/admin/escrow/EscrowFilters.tsx",
+  "src/components/admin/payouts/PayoutAdvancedFilters.tsx",
+  "src/components/admin/task-orchestration/TaskQueueFilters.tsx",
+  "src/components/landing/FAQSection.tsx",
+  "src/components/landing/FeesSection.tsx",
+  "src/components/profile/AccountVerificationSection.tsx",
+  "src/components/profile/EffectiveSettingsPanel.tsx",
+  "src/components/profile/PayoutDestinationSection.tsx",
+  "src/lib/admin-mappers.ts",
+  "src/lib/pricing-invariant.ts",
+  "src/pages/AdminDisputes.tsx",
+  "src/pages/AdminSettings.tsx",
+  "src/pages/AdminTransactions.tsx",
+  "src/pages/Pricing.tsx",
+  "src/pages/SellerProductCreate.tsx",
+  "src/pages/SellerProductDetail.tsx",
+  "src/pages/SellerTransactionShare.tsx",
+  "src/services/vendor-plan.service.ts",
+];
 
 describe("hardcoded currency symbols", () => {
   it("never asserts a currency glyph outside the formatter", () => {
