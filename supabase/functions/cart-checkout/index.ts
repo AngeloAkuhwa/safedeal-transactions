@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     const productMap = new Map((products || []).map((p: any) => [p.id, p]));
 
     // 3. Validate ALL items — block entire checkout if any fail
-    const errors: Array<{ product_id: string; error: string }> = [];
+    const errors: Array<{ product_id: string; error: string; code?: string }> = [];
     // Resolved selection per cart item, populated during validation
     const resolvedByCartItem = new Map<
       string,
