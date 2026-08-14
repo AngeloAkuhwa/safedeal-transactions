@@ -116,7 +116,7 @@ export default function TransactionCancelled() {
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20">
                       <ShieldCheck className="h-3 w-3 mr-1.5" />
-                      No Funds Released
+                      {moneyLabel}
                     </span>
                   </div>
                 </div>
@@ -143,17 +143,18 @@ export default function TransactionCancelled() {
               </div>
             </div>
 
-            {/* Your Account is Safe */}
+            {/* What happened to the money — read from the recorded state only. */}
             <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground mb-2">Your Account is Safe</h3>
+                  <h3 className="text-base font-semibold text-foreground mb-2">Where your money stands</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Since no payment was processed, no funds were held or released. Your account and payment methods
-                    remain secure. You can create a new transaction at any time.
+                    {neverCharged
+                      ? "This transaction was cancelled before payment, so nothing was charged. You can start a new transaction at any time."
+                      : `The recorded money status for this transaction is "${moneyLabel}". Open the transaction in your dashboard, or contact support, for the current position on any amount already paid.`}
                   </p>
                 </div>
               </div>
