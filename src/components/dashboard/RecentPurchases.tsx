@@ -100,7 +100,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
             <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm font-medium text-muted-foreground">No purchases yet</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Your protected purchases will appear here
+              Your purchases will appear here
             </p>
           </div>
         ) : (

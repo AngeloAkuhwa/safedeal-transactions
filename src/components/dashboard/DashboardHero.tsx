@@ -19,7 +19,7 @@ export function DashboardHero({ buyerName }: DashboardHeroProps) {
               <span className="sd-eyebrow">Buyer Dashboard</span>
             </div>
             <h1 className="sd-page-title">Welcome back, {firstName}</h1>
-            <p className="sd-page-sub">Your protected purchases at a glance</p>
+            <p className="sd-page-sub">Your purchases at a glance</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button asChild size="sm" className="h-8 text-xs gap-1.5">

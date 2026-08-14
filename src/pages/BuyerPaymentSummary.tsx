@@ -419,7 +419,7 @@ export default function BuyerPaymentSummary() {
                   <Shield className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Escrow Protection Active</h2>
+                  <h2 className="text-xl font-bold">Payment setup</h2>
                   <p className="text-primary-foreground/70 text-sm">Creating secure escrow transaction</p>
                 </div>
               </div>

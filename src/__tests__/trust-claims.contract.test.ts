@@ -62,6 +62,16 @@ const SAFE_OPERATIONAL_CONTEXTS: Array<{ pattern: RegExp; reason: string }> = [
   { pattern: /search|filter|select|option|placeholder|error|failed|unavailable/i, reason: "Control and error copy makes no trust promise." },
 ];
 
+/** Factual, state-backed surfaces whose vocabulary is descriptive rather than promotional. */
+const SAFE_OPERATIONAL_SURFACES: Array<{ file: RegExp; text: RegExp; reason: string }> = [
+  { file: /(?:^|\/)admin(?:\/|[^/]*\.tsx$)/i, text: TRUST_VOCABULARY, reason: "Admin tools expose recorded verification, delivery, and ledger states." },
+  { file: /components\/admin\//i, text: TRUST_VOCABULARY, reason: "Admin components expose recorded operational states." },
+  { file: /components\/profile\//i, text: /\b(?:verified|trusted)\b/i, reason: "Account settings render the user's stored verification status and level." },
+  { file: /BuyerTransactionTracking\.tsx$/i, text: /\btracking\b/i, reason: "The tracking screen names courier tracking records and errors." },
+  { file: /DeliveryTermsCard\.tsx$/i, text: /\btracking\b/i, reason: "The locked terms card labels the configured tracking rule." },
+  { file: /LegalRefundPolicy\.tsx$/i, text: /\bescrow\b/i, reason: "The legal policy describes the escrow contract rather than advertising it." },
+];
+
 function userVisibleJsxText(source: string): string[] {
   const values: string[] = [];
   for (const match of source.matchAll(/>([^<>{}]+)</g)) {
@@ -131,6 +141,7 @@ describe("the trust-claim lock", () => {
         .filter((text) => TRUST_VOCABULARY.test(text))
         .filter((text) => !registered.has(text.toLowerCase()))
         .filter((text) => !SAFE_OPERATIONAL_CONTEXTS.some(({ pattern }) => pattern.test(text)))
+        .filter((text) => !SAFE_OPERATIONAL_SURFACES.some(({ file: filePattern, text: textPattern }) => filePattern.test(rel(file)) && textPattern.test(text)))
         .map((text) => `${rel(file)}: ${text}`),
     );
     expect(offenders).toEqual([]);
