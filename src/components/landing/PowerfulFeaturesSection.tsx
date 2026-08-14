@@ -256,11 +256,11 @@ function MiniFlow({
             }`}
             title={s.label}
           >
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            <span className="flex h-3 w-3 shrink-0 items-center justify-center">
               {done ? (
-                <Check className="h-4 w-4" />
+                <Check className="h-3 w-3" />
               ) : (
-                <StepIcon className="h-4 w-4" />
+                <StepIcon className="h-3 w-3" />
               )}
             </span>
             <span className="min-w-0 truncate text-xs font-bold leading-tight">
@@ -363,7 +363,7 @@ function FeatureCard({
               </h3>
               {f.hero && (
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-destructive">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3 w-3" />
                   AI
                 </span>
               )}
@@ -380,7 +380,7 @@ function FeatureCard({
             {f.chips.map((c, i) => (
               <ChipReveal key={c} delay={i * 90}>
                 <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-xs font-semibold text-destructive">
-                  <Check className="h-4 w-4" />
+                  <Check className="h-3 w-3" />
                   {c}
                 </span>
               </ChipReveal>
@@ -449,10 +449,7 @@ function ProtectionStrip() {
       ref={setRefs}
       className="mx-auto mt-6 max-w-4xl rounded-2xl border bg-card/60 p-2 shadow-sm backdrop-blur"
     >
-      <div
-        className="grid items-stretch gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-      >
+      <div className="grid grid-cols-2 items-stretch gap-1.5 sm:grid-cols-4">
         {items.map((it, i) => {
           const reached = i <= step;
           const Icon = it.icon;
@@ -465,8 +462,8 @@ function ProtectionStrip() {
                   : "border-border bg-muted/30 text-muted-foreground opacity-70"
               }`}
             >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                {reached ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              <span className="flex h-3 w-3 shrink-0 items-center justify-center">
+                {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
               </span>
               <span className="min-w-0 truncate text-xs font-bold sm:text-xs">
                 {it.label}
@@ -528,7 +525,7 @@ export function PowerfulFeaturesSection() {
       <div className="container-x mx-auto max-w-6xl">
         <div ref={headerRef} className="mb-6 text-center sm:mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-3 w-3 text-primary" />
             <span className="text-xs font-semibold text-primary">Features</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
