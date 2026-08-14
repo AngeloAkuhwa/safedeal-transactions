@@ -99,12 +99,15 @@ Deno.serve(async (req) => {
         item_title: item?.title ?? "",
         item_description: item?.description ?? "",
         item_quantity: item?.quantity ?? 1,
-        item_condition: item?.condition_label ?? "brand_new",
-        price: pricing?.item_amount ?? 0,
-        currency_code: pricing?.currency_code ?? "NGN",
+        // No invented defaults: the wizard posts back what it is handed, so a
+        // fabricated condition / currency / window here re-enters the system as
+        // if the seller had chosen it. Missing means missing.
+        item_condition: item?.condition_label ?? null,
+        price: pricing?.item_amount ?? null,
+        currency_code: pricing?.currency_code ?? null,
         delivery_method: delivery?.delivery_method ?? null,
-        expected_delivery_date: delivery?.expected_delivery_date ?? "",
-        verification_window_hours: delivery?.verification_window_hours ?? 72,
+        expected_delivery_date: delivery?.expected_delivery_date ?? null,
+        verification_window_hours: delivery?.verification_window_hours ?? null,
         seller_notes: notes?.seller_notes ?? "",
         created_at: tx.created_at,
       };

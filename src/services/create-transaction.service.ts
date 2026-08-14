@@ -10,12 +10,13 @@ export interface DraftTransaction {
   item_title: string;
   item_description: string;
   item_quantity: number;
-  item_condition: string;
-  price: number;
-  currency_code: string;
-  delivery_method: string;
-  expected_delivery_date: string;
-  verification_window_hours: number;
+  /** Null when the seller never recorded it — never fabricated server-side. */
+  item_condition: string | null;
+  price: number | null;
+  currency_code: string | null;
+  delivery_method: string | null;
+  expected_delivery_date: string | null;
+  verification_window_hours: number | null;
   seller_notes: string;
   created_at: string;
 }

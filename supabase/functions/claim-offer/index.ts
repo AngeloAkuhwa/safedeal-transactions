@@ -51,8 +51,18 @@ const CONDITION_MAP: Record<string, string> = {
   used_good: "good",
   used_fair: "fair",
 };
+/**
+ * Legacy rows written before `create-transaction` was corrected carry the
+ * WIZARD vocabulary in `condition_summary` instead of the product vocabulary.
+ * They are already the value we persist, so accept them as themselves rather
+ * than refusing an offer whose condition is perfectly well known.
+ */
+const LEGACY_CONDITION_PASSTHROUGH = new Set(["brand_new", "like_new", "excellent", "good", "fair"]);
 function mapCondition(productCondition: string | null): string | null {
-  return CONDITION_MAP[productCondition ?? ""] ?? null;
+  const raw = productCondition ?? "";
+  if (CONDITION_MAP[raw]) return CONDITION_MAP[raw];
+  if (LEGACY_CONDITION_PASSTHROUGH.has(raw)) return raw;
+  return null;
 }
 
 const DELIVERY_METHOD_MAP: Record<string, string> = {
@@ -234,7 +244,11 @@ Deno.serve(async (req) => {
       // not to the act of inserting a row. Advancing a pre-existing draft to
       // `awaiting_payment` is that same act, so the platform kill switch and
       // the KYC threshold must be evaluated here too.
-      await buildOfferPlan(adminClient, offer, callerId);
+      // Use the plan, don't just run it for its gate side-effects: a seller may
+      // have edited price, currency, window or delivery method since the draft
+      // was minted, and the buyer must be advanced against current terms.
+      const reusePlan = await buildOfferPlan(adminClient, offer, callerId);
+      await rewriteTransactionTerms(adminClient, reusable.id, reusePlan);
       // Advance to awaiting_payment if still in draft / awaiting_buyer
       if (reusable.status === "draft" || reusable.status === "awaiting_buyer") {
         const { error: advErr } = await adminClient
@@ -566,7 +580,68 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
       { transaction_id: txId, share_token: shareToken, url: `/t/${shareToken}`, is_active: true, expires_at: shareLinkExpiresAt() },
       { onConflict: "transaction_id" },
     ),
+    // Both checkout twins create this row; without it an offer-funded
+    // transaction holds money that no admin escrow surface can see, because
+    // `record_payment_capture_atomic` only UPDATEs an existing row.
+    adminClient.from("escrow_states").insert({
+      transaction_id: txId,
+      state: "awaiting_payment",
+      held_amount: 0,
+    }),
   ]);
 
   return txId;
+}
+
+/**
+ * Re-persist the money and delivery commitments of an existing pre-payment
+ * transaction from a freshly-built plan. Mirrors the delete-and-reinsert the
+ * checkout twins perform on their reuse branches.
+ */
+async function rewriteTransactionTerms(
+  adminClient: any,
+  txId: string,
+  plan: Awaited<ReturnType<typeof buildOfferPlan>>,
+): Promise<void> {
+  const { deliveryMethod, conditionLabel, verificationWindow, expectedDeliveryDate, currencyCode, totalAmount, pricing, snapshot } = plan;
+
+  await adminClient.from("transaction_pricing").delete().eq("transaction_id", txId);
+  await adminClient.from("transaction_pricing").insert({
+    transaction_id: txId,
+    currency_code: currencyCode,
+    item_amount: totalAmount,
+    platform_fee_amount: pricing.platform_fee_amount,
+    buyer_total_amount: pricing.total_amount,
+    payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+    seller_payout_amount: snapshot.seller_payout_amount,
+    is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+    pricing_model_version: snapshot.pricing_model_version,
+  });
+
+  await adminClient.from("transaction_delivery_terms").delete().eq("transaction_id", txId);
+  await adminClient.from("transaction_delivery_terms").insert({
+    transaction_id: txId,
+    delivery_method: deliveryMethod,
+    expected_delivery_date: expectedDeliveryDate,
+    verification_window_hours: verificationWindow,
+  });
+
+  await adminClient
+    .from("transaction_items")
+    .update({ condition_label: conditionLabel })
+    .eq("transaction_id", txId);
+
+  // Escrow row may be absent on transactions minted before this was fixed.
+  const { data: escrow } = await adminClient
+    .from("escrow_states")
+    .select("id")
+    .eq("transaction_id", txId)
+    .maybeSingle();
+  if (!escrow) {
+    await adminClient.from("escrow_states").insert({
+      transaction_id: txId,
+      state: "awaiting_payment",
+      held_amount: 0,
+    });
+  }
 }

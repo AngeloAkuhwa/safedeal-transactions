@@ -173,18 +173,21 @@ const SellerCreateTransaction = () => {
   }, []);
 
   const loadDraft = (draft: DraftTransaction) => {
+    // The server no longer fabricates condition / currency / window / price on
+    // the load path. A missing value returns the field to its untouched wizard
+    // state so the seller must set it — it is never presented as their choice.
     setForm({
       buyer_name: draft.buyer_name,
       buyer_contact: draft.buyer_contact,
       item_title: draft.item_title,
       item_description: draft.item_description,
       item_quantity: draft.item_quantity,
-      item_condition: draft.item_condition,
-      price: draft.price,
-      currency_code: draft.currency_code,
-      delivery_method: draft.delivery_method,
-      expected_delivery_date: draft.expected_delivery_date,
-      verification_window_hours: draft.verification_window_hours,
+      item_condition: draft.item_condition ?? defaultForm.item_condition,
+      price: draft.price ?? defaultForm.price,
+      currency_code: draft.currency_code ?? defaultForm.currency_code,
+      delivery_method: draft.delivery_method ?? defaultForm.delivery_method,
+      expected_delivery_date: draft.expected_delivery_date ?? defaultForm.expected_delivery_date,
+      verification_window_hours: draft.verification_window_hours ?? defaultForm.verification_window_hours,
       seller_notes: draft.seller_notes,
     });
     setTransactionId(draft.transaction_id);

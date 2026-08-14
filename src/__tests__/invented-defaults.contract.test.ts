@@ -120,7 +120,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/seller-analytics/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
   "supabase/functions/seller-dispute-detail/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-payouts/index.ts",
   "supabase/functions/seller-products/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
@@ -175,7 +174,6 @@ const CURRENCY_DEBT = [
 const WINDOW_DEBT = [
   "supabase/functions/create-transaction/index.ts",
   "supabase/functions/delivery-token-confirm/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-delivery-status/index.ts",
   // Newly VISIBLE under the positional + delivery-estimate rules added in this
@@ -583,7 +581,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/dispute-detail/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
   "supabase/functions/seller-dispute-detail/index.ts",
-  "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
   "supabase/functions/seller-transactions/index.ts",
   // Newly VISIBLE after the bracket rule was fixed to allow a money noun at
@@ -829,5 +826,122 @@ describe("cart checkout session currency", () => {
   it("takes the session currency from the products", () => {
     expect(src).toContain("mixed_currency_cart");
     expect(src).toContain("currency_code: sessionCurrency");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The database is a writer too. Every rule above reads TypeScript, but triggers
+// and RPCs fabricate the same classes — `'courier'` enum defaults, `+ interval
+// '7 days'` estimates, hardcoded currency literals. Scanned over the migration
+// SQL, which is the authored source for every live `pg_proc` body.
+// Shrink-only ratchets: a listed file may stop offending, none may be added.
+// ─────────────────────────────────────────────────────────────────────────────
+function stripSqlComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
+}
+
+const SQL_FILES = [
+  ...(fs.existsSync(path.join(ROOT, "supabase/migrations"))
+    ? fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).map((f) => path.join(ROOT, "supabase/migrations", f))
+    : []),
+  ...(fs.existsSync(path.join(ROOT, "src/db/migrations"))
+    ? fs.readdirSync(path.join(ROOT, "src/db/migrations")).filter((f) => f.endsWith(".sql")).map((f) => path.join(ROOT, "src/db/migrations", f))
+    : []),
+].sort();
+
+const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
+  {
+    name: "hardcoded enum default",
+    pattern: /'(courier|brand_new)'/,
+    debt: [
+        "supabase/migrations/20260308083516_36f7be7a-972f-4467-934c-8b12858d0cf1.sql",
+        "supabase/migrations/20260419165835_75c559da-03a0-4412-9a4e-4a0987d8309d.sql",
+        "src/db/migrations/002_batch2_transaction_core.sql"
+  ],
+  },
+  {
+    name: "invented interval literal",
+    pattern: /interval\s+'\d+\s+day/i,
+    debt: [
+        "supabase/migrations/20260308102521_d299192f-2ecd-4095-b7df-aec585f187f9.sql",
+        "supabase/migrations/20260419165835_75c559da-03a0-4412-9a4e-4a0987d8309d.sql",
+        "supabase/migrations/20260613133755_de7f6587-0a8f-480b-86fd-5d128286a164.sql",
+        "supabase/migrations/20260613135229_a14c082f-f4b5-47e3-ac21-fbbc5bab7f0a.sql",
+        "supabase/migrations/20260719004818_0308a008-ea00-4578-aa96-cb0e2fa5d100.sql",
+        "supabase/migrations/20260719005115_c71d524b-4c69-4b4e-8830-9f4829965fcf.sql",
+        "supabase/migrations/20260719012714_53a8d5cc-51d5-459a-b792-c858e849e59b.sql",
+        "supabase/migrations/20260719013540_718b3c5b-5c61-4589-a817-36633f6e5f33.sql",
+        "supabase/migrations/20260719013717_86567b6d-7759-421f-b1fb-e3e5f495e664.sql",
+        "supabase/migrations/20260719013824_04fd041e-7471-4f2a-b5e2-29ecee2fff44.sql",
+        "supabase/migrations/20260719014554_5b8661c8-6131-4db7-9085-cd1c63895e83.sql",
+        "supabase/migrations/20260726031554_43ecedf8-310f-4404-9eee-78b530040827.sql",
+        "supabase/migrations/20260801163231_da82a446-47ed-4874-bdca-76e408baf1c5.sql",
+        "supabase/migrations/20260813230438_cf12244d-3c22-4bed-becf-2eee7ad1ab43.sql",
+        "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql",
+        "supabase/migrations/20260814180545_6c7ad9c6-944c-470f-9b9e-c98f10bbc3e3.sql"
+  ],
+  },
+  {
+    name: "hardcoded currency literal",
+    pattern: /'(NGN|USD|GBP|EUR)'/,
+    debt: [
+        "supabase/migrations/20260410185736_6fc7d507-0f0e-4a87-bd9e-7d9c903fc470.sql",
+        "supabase/migrations/20260414120858_048e0167-9527-49bd-8968-9346fa316cad.sql",
+        "supabase/migrations/20260418230142_81bfd8b9-f30e-4146-aa09-d788d3eb5d57.sql",
+        "supabase/migrations/20260501204743_8ab22c76-00e7-4209-8b45-9eccdc5cbd6b.sql",
+        "supabase/migrations/20260501215044_7d81d2a0-ae85-4a77-9a2a-5d00f136c49f.sql",
+        "supabase/migrations/20260501221644_f45234e6-cec8-4ceb-8a56-a4dc0479a1ef.sql",
+        "supabase/migrations/20260501221842_9f8d7bc8-c8e9-482c-a019-333f7689946e.sql",
+        "supabase/migrations/20260501222618_f951d9a5-da1c-418a-b88b-215f6a307cfd.sql",
+        "supabase/migrations/20260502120000_b6_refund_buyer.sql",
+        "supabase/migrations/20260502130000_b7_flag_review.sql",
+        "supabase/migrations/20260505225009_f96fc941-647e-48e6-8117-0ced2e974c9e.sql",
+        "supabase/migrations/20260506190234_c9e21a69-6e2a-432d-9fa2-fbe01ba7b53a.sql",
+        "supabase/migrations/20260507084642_c900262a-cba2-4c17-be72-e584f9e146d1.sql",
+        "supabase/migrations/20260509233611_5698e089-927b-41cc-989b-16eb12a191ad.sql",
+        "supabase/migrations/20260511163727_62f60405-a3cb-4b51-9516-a86725da8f0f.sql",
+        "supabase/migrations/20260512101225_cd59f8e7-04d5-449f-ae38-3a639d3fb6c3.sql",
+        "supabase/migrations/20260726034541_57d25129-8295-420b-8369-a794abdf946e.sql",
+        "supabase/migrations/20260801130434_3e4d701a-5165-4c3d-83c9-799d592fec28.sql",
+        "supabase/migrations/20260801154020_282c4d1a-14c7-44ef-b993-00f361033681.sql",
+        "supabase/migrations/20260801155710_1b6c35f5-91ca-4950-ab69-5f49c682e93b.sql",
+        "supabase/migrations/20260801162657_cac34865-e08d-41cb-a6bf-b8a522ce3a39.sql",
+        "supabase/migrations/20260801162850_18ce0df3-d528-485d-bbe9-ee86fe9d4716.sql",
+        "supabase/migrations/20260801165413_8a27c309-dafd-471e-af20-eb6d1954c481.sql",
+        "supabase/migrations/20260801170147_2d9fe0c5-9714-4421-a428-c0e7557a9280.sql",
+        "supabase/migrations/20260804090017_e35f7d2c-b6dc-4c05-9cb9-fae192f05122.sql",
+        "supabase/migrations/20260813222037_572828c2-b4d3-4742-ab0e-a98ea90e735d.sql",
+        "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql"
+  ],
+  },
+];
+
+describe("the database does not invent facts either", () => {
+  for (const rule of SQL_RULES) {
+    it(`no new SQL file introduces a ${rule.name}`, () => {
+      const offenders = SQL_FILES.filter((f) =>
+        rule.pattern.test(stripSqlComments(fs.readFileSync(f, "utf8"))),
+      ).map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
+      const added = offenders.filter((o) => !rule.debt.includes(o));
+      expect(added, `new ${rule.name} in SQL`).toEqual([]);
+    });
+
+    it(`the ${rule.name} debt list cannot rot`, () => {
+      const stale = rule.debt.filter(
+        (d) =>
+          !fs.existsSync(path.join(ROOT, d)) ||
+          !rule.pattern.test(stripSqlComments(fs.readFileSync(path.join(ROOT, d), "utf8"))),
+      );
+      expect(stale, "remove these from the debt list").toEqual([]);
+    });
+  }
+
+  it("the agreement-lock trigger never fabricates delivery terms", () => {
+    const migrations = SQL_FILES.map((f) => fs.readFileSync(f, "utf8"));
+    const latest = migrations.filter((s) => s.includes("FUNCTION public.ensure_delivery_terms_on_lock")).pop();
+    expect(latest, "ensure_delivery_terms_on_lock migration missing").toBeTruthy();
+    const bodySrc = stripSqlComments(latest as string);
+    expect(bodySrc).not.toMatch(/INSERT INTO public\.transaction_delivery_terms/i);
+    expect(bodySrc).toContain("flag_for_release_review");
   });
 });
