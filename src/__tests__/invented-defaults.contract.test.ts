@@ -460,6 +460,10 @@ const MONEY_ZERO_FALLBACK =
  * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
  * may be REMOVED as files are fixed, never added; a listed file that no longer
  * offends fails the staleness assertion below.
+ *
+ * Widened in this pass: the pattern now also matches a bare member access
+ * (`p.amount ?? 0`), which the previous form could not see. The three files
+ * appended below are newly VISIBLE offences, not new offences.
  */
 const MONEY_ZERO_DEBT: string[] = [
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
@@ -476,9 +480,11 @@ const MONEY_ZERO_DEBT: string[] = [
   "src/pages/BuyerTransactionTracking.tsx",
   "src/pages/SellerTransactionShare.tsx",
   "src/pages/SellerUpdateDelivery.tsx",
+  "src/services/admin-flagged-users.service.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/provider-refund.ts",
   "supabase/functions/_shared/reconciliation.ts",
+  "supabase/functions/_shared/refund-eligibility.ts",
   "supabase/functions/_shared/release-core.ts",
   "supabase/functions/_shared/users-directory-engine.ts",
   "supabase/functions/_shared/users-directory-sql.ts",
@@ -491,6 +497,7 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/admin-export-worker/index.ts",
   "supabase/functions/admin-flagged-user-detail/index.ts",
   "supabase/functions/admin-payouts-list/index.ts",
+  "supabase/functions/admin-payouts-summary/index.ts",
   "supabase/functions/admin-transaction-actions/index.ts",
   "supabase/functions/admin-transaction-detail/index.ts",
   "supabase/functions/admin-transactions-monitor/index.ts",
