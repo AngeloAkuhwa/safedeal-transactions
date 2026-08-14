@@ -378,7 +378,7 @@ const SellerTransactionDetail = () => {
                 signals={{
                   emailVerified: buyer.email_verified,
                   phoneVerified: buyer.phone_verified,
-                  verificationLevel: buyer.verification_level,
+                  identityVerified: buyer.identity_verified,
                 }}
                 compact
               />

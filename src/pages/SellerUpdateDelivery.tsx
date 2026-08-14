@@ -674,7 +674,7 @@ export default function SellerUpdateDelivery() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
           {[
             { icon: Lock, title: "Secure Process", desc: "Your data is encrypted end-to-end", bgColor: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" },
-            { icon: Headphones, title: "24/7 Support", desc: "Help available at any step", bgColor: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" },
+            { icon: Headphones, title: "Support", desc: "Reach the SafeDeal team from any transaction", bgColor: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" },
             { icon: ShieldCheck, title: "Evidence Protection", desc: "Media securely stored for disputes", bgColor: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" },
           ].map((t) => (
             <Card key={t.title} className="p-5 flex items-start gap-3 rounded-xl">

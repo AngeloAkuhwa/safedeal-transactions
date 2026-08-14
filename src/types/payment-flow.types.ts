@@ -4,8 +4,32 @@
  * `payout-eligibility.ts`, and `refund-eligibility.ts`. Keep these in sync.
  */
 
-export const PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
-export const MAX_TOTAL_SERVICE_FEE = 2500;
+/**
+ * Version stamps are produced by the backend
+ * (`supabase/functions/_shared/safedeal-money-policy.ts`) and persisted on
+ * every `transaction_pricing` row. The client never invents one, and never
+ * hardcodes a cap: the applied ceiling is read back out of the stamp via
+ * `appliedCapFromModelVersion`.
+ *
+ * Current stamp format: `NG_MVP_TSFCAP_<totalServiceFeeCap>_MIN_<floor>_T<hash>`.
+ */
+export type PricingCapKind = "total_service_fee" | "safedeal_fee";
+
+export interface AppliedFeeCap {
+  kind: PricingCapKind;
+  amount: number;
+}
+
+/** Recover the total-service-fee ceiling that actually produced a stored row. */
+export function appliedCapFromModelVersion(
+  version: string | null | undefined,
+): AppliedFeeCap | null {
+  if (!version) return null;
+  const m = /TSFCAP_(\d+(?:\.\d+)?)/.exec(version);
+  if (!m) return null;
+  const amount = Number(m[1]);
+  return Number.isFinite(amount) ? { kind: "total_service_fee", amount } : null;
+}
 
 /**
  * Canonical payout-account readiness states. Source of truth is the
@@ -32,6 +56,12 @@ export interface PricingSnapshotView {
   seller_payout_amount: number | null;
   currency: string;
   is_total_service_fee_capped: boolean;
+  /**
+   * The ceiling that actually bound this breakdown, and which ceiling it was.
+   * `null` when the applied cap is unknown (legacy rows with no version stamp)
+   * — the UI then states that a cap applied without inventing an amount.
+   */
+  applied_cap: AppliedFeeCap | null;
   is_estimate?: boolean;
 }
 
@@ -44,7 +74,7 @@ export interface PricingSnapshot {
   seller_payout_amount: number;
   currency: string;
   is_total_service_fee_capped: boolean;
-  pricing_model_version: typeof PRICING_MODEL_VERSION;
+  pricing_model_version: string | null;
 }
 
 export type PayoutGateId =

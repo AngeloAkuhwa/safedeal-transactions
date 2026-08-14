@@ -184,7 +184,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           <div className="mt-auto flex items-end justify-between">
             <div>
               <span className="text-[10px] text-muted-foreground">
-                {outOfStock ? "Last Price" : "Escrow Price"}
+                {outOfStock ? "Last price" : "Price"}
               </span>
               <p className="text-base font-bold text-foreground leading-tight">
                 {formatPrice(product.unit_price, product.currency_code)}

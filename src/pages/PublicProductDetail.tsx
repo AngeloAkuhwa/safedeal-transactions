@@ -211,7 +211,6 @@ const PublicProductDetail = () => {
   const sellerClaim = sellerVerificationClaim({
     identityVerified: seller.identity_verified,
   });
-  const hasTrackedDelivery = deliveryMethods.some(isTrackedDelivery);
   const trackedDeliveryClaim = resolveClaim("DELIVERY_TRACKED", {
     deliveryMethod: deliveryMethods.find(isTrackedDelivery) ?? null,
   });
@@ -377,10 +376,14 @@ const PublicProductDetail = () => {
                   <span className="text-xs font-medium text-foreground">{trackedDeliveryClaim}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
-                <Clock className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs font-medium text-foreground">{product.verification_window_hours}hr Verification</span>
-              </div>
+              {product.verification_window_hours ? (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
+                  <Clock className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">
+                    {product.verification_window_hours}hr inspection window
+                  </span>
+                </div>
+              ) : null}
             </div>
           </div>
 

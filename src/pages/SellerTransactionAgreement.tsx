@@ -83,7 +83,7 @@ export default function SellerTransactionAgreement() {
       <AgreementHero isLocked={isLocked} />
       <LockedSnapshotCard data={data} />
       <ImmutabilityExplanation />
-      <AgreementTrustIndicators pricing={data.pricing} />
+      <AgreementTrustIndicators pricing={data.pricing} lockedAt={data.transaction?.agreement_locked_at ?? null} />
       <Footer />
     </div>
   );

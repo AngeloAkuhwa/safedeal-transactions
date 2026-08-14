@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeliveryMethodBadge } from "@/components/seller/DeliveryMethodBadge";
 import { cn } from "@/lib/utils";
+import { isTrackedDelivery } from "@/lib/trust/trust-claims";
 
 export interface DeliveryTermsCardProps {
   /** Either the buyer-shape (full address columns) or the seller-shape (single address string) */
@@ -26,18 +27,25 @@ export interface DeliveryTermsCardProps {
   className?: string;
 }
 
-const TRACKING_RULE_BY_METHOD: Record<string, string> = {
-  courier: "Tracking number required for shipment",
-  courier_shipping: "Tracking number required for shipment",
-  shipping: "Tracking number required for shipment",
-  standard_delivery: "Tracking number required for shipment",
-  delivery: "Tracking number required for shipment",
+/**
+ * Evidence rule per delivery method. Keys are the live `delivery_method_type`
+ * enum members (courier / pickup / meetup / hand_delivery) — nothing else
+ * exists in the database. The tracked-delivery case is decided by
+ * `isTrackedDelivery` so this card and the trust registry can never disagree.
+ */
+const EVIDENCE_RULE_BY_METHOD: Record<string, string> = {
   pickup: "Handoff code required at pickup location",
   meetup: "Handoff code required at the meetup",
   hand_delivery: "Rider/courier name and dispatch evidence required",
-  digital: "Digital delivery evidence required",
-  digital_delivery: "Digital delivery evidence required",
 };
+
+function evidenceRuleFor(method: string): string {
+  if (isTrackedDelivery(method)) return "Tracking number required for shipment";
+  return (
+    EVIDENCE_RULE_BY_METHOD[method] ??
+    "No delivery evidence rule is configured for this method"
+  );
+}
 
 function getAddressLine(terms: DeliveryTermsCardProps["terms"]): string | null {
   if (!terms) return null;
@@ -61,7 +69,7 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
     ? format(new Date(terms.expected_delivery_date), "MMM d, yyyy")
     : "—";
   const window = terms.verification_window_hours ?? null;
-  const trackingRule = TRACKING_RULE_BY_METHOD[method] ?? "No delivery evidence rule is configured for this method";
+  const trackingRule = evidenceRuleFor(method);
   const address = getAddressLine(terms);
   const showHandoffNote = method === "pickup" || method === "meetup";
 

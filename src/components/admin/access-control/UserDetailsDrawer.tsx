@@ -68,12 +68,6 @@ export function UserDetailsDrawer({
     setTab(initialFocus === "history" ? "history" : "overview");
   }, [open, initialFocus, user?.id]);
 
-  if (!user) return null;
-
-  const canManageRoles     = canPerform(myPerms, "internal_users.manage");
-  const canManagePerms     = canPerform(myPerms, "internal_users.manage_permissions") || canManageRoles;
-  const canSuspend         = canPerform(myPerms, "internal_users.suspend") || canManageRoles;
-
   const signInEvents = useMemo(
     () => (audit ?? []).filter((a) => /sign_in|login|logout|session/i.test(a.action)).slice(0, 8),
     [audit],
@@ -82,6 +76,12 @@ export function UserDetailsDrawer({
     () => (audit ?? []).filter((a) => !/sign_in|login|logout|session/i.test(a.action)).slice(0, 12),
     [audit],
   );
+
+  if (!user) return null;
+
+  const canManageRoles     = canPerform(myPerms, "internal_users.manage");
+  const canManagePerms     = canPerform(myPerms, "internal_users.manage_permissions") || canManageRoles;
+  const canSuspend         = canPerform(myPerms, "internal_users.suspend") || canManageRoles;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

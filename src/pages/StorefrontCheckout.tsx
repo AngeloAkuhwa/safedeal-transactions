@@ -69,6 +69,15 @@ const StorefrontCheckout = () => {
     }
   }, [deliveryMethods, selectedMethod]);
 
+  // HOOK ORDER: these must run on the loading and error renders too, so they
+  // sit above every early return. `sellerId` is undefined until the query
+  // resolves; both hooks already tolerate that.
+  const sellerIdForHooks = data?.product?.seller_id ?? "";
+  const { config: vendorPricingConfig, loading: pricingConfigLoading } =
+    useEffectivePricingConfig(sellerIdForHooks);
+  const gate = useCommerceGate(sellerIdForHooks);
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -98,9 +107,6 @@ const StorefrontCheckout = () => {
 
   // Pricing
   const itemSubtotal = product.unit_price * quantity;
-  const { config: vendorPricingConfig, loading: pricingConfigLoading } = useEffectivePricingConfig(product.seller_id);
-  const gate = useCommerceGate(product.seller_id);
-  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
   const pricing = computePricing(itemSubtotal, product.currency_code, vendorPricingConfig);
   const isCapped = pricing.is_capped;
   const isFloored = pricing.is_floored;
@@ -216,10 +222,12 @@ const StorefrontCheckout = () => {
                       {product.category.name}
                     </Badge>
                   )}
-                  <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    In Stock
-                  </Badge>
+                  {typeof product.stock_quantity === "number" && product.stock_quantity > 0 ? (
+                    <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      {product.stock_quantity} in stock
+                    </Badge>
+                  ) : null}
                 </div>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-sm text-muted-foreground">Qty: {quantity}</span>
@@ -428,10 +436,11 @@ const StorefrontCheckout = () => {
               <ul className="space-y-2.5">
                 {[
                    "Payment held until release conditions are met",
-                  `${product.verification_window_hours || 48}-hour verification window after delivery`,
+                  typeof product.verification_window_hours === "number" && product.verification_window_hours > 0
+                    ? `${product.verification_window_hours}-hour verification window after delivery`
+                    : null,
                   REFUND_BULLET,
-                  "Dedicated dispute resolution support",
-                ].map((text, idx) => (
+                ].filter((t): t is string => Boolean(t)).map((text, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                     <span>{text}</span>

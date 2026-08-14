@@ -27,9 +27,9 @@ export function SellerTrustBanner() {
           <div className="bg-white/20 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
             <div className="flex items-center justify-center gap-1">
               <Clock className="h-4 w-4 text-white" />
-              <p className="text-2xl font-bold text-white">24/7</p>
+              <p className="text-2xl font-bold text-white">Timestamped</p>
             </div>
-            <p className="text-xs text-white/80">Monitoring</p>
+            <p className="text-xs text-white/80">Every status change</p>
           </div>
         </div>
       </div>

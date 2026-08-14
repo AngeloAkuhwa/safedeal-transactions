@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { getSellerProductDetail, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
@@ -90,7 +91,7 @@ const SellerProductPreview = () => {
 
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
-  const verificationLevel = dashData?.seller?.verification_level || "unverified";
+  const identityVerified = !!dashData?.seller?.identity_verified;
   const handleUnpublish = async (pid: string) => {
     setActionPending(true);
     try {
@@ -173,7 +174,7 @@ const SellerProductPreview = () => {
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
-        verificationLevel={verificationLevel}
+        identityVerified={identityVerified}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -381,26 +382,15 @@ const SellerProductPreview = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-base font-semibold text-foreground">{sellerName}</p>
-                        {(verificationLevel === "trusted_buyer" || verificationLevel === "high_trust_buyer") && (
+                        {sellerVerificationClaim({ identityVerified }) && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20">
                             <CheckCircle2 className="h-3 w-3" />
-                            Verified
-                          </span>
-                        )}
-                        {verificationLevel === "basic_verified" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Basic Verified
-                          </span>
-                        )}
-                        {verificationLevel === "unverified" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                            Unverified
+                            {sellerVerificationClaim({ identityVerified })}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {verificationLevel !== "unverified" ? "Trusted seller since" : "Member since"} {memberSince}
+                        Member since {memberSince}
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>

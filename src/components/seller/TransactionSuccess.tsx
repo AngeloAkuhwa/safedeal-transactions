@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 import { DEFAULT_MAX_TOTAL_FEE } from "@/lib/pricing";
+import { MISSING_MONEY } from "@/lib/payment/money-format";
 
 interface TransactionSuccessProps {
   publishedUrl: string;
@@ -54,10 +55,12 @@ export function TransactionSuccess({
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const fullUrl = `${window.location.origin}${publishedUrl}`;
-  const sellerNet = pricing ? pricing.seller_net_amount : form.price;
+  // With no pricing snapshot there is no fee truth to show. Render "—"
+  // rather than implying a 0% fee and a 100% payout.
+  const sellerNet = pricing ? pricing.seller_net_amount : null;
   const feePercent = pricing && form.price > 0
-    ? ((pricing.service_fee_amount / form.price) * 100).toFixed(1)
-    : "0";
+    ? `${((pricing.service_fee_amount / form.price) * 100).toFixed(1)}%`
+    : MISSING_MONEY;
 
   const formattedDate = form.expected_delivery_date
     ? new Date(form.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -180,17 +183,17 @@ export function TransactionSuccess({
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  {FEE_NAME} ({feePercent}%)
+                  {FEE_NAME} ({feePercent})
                   {pricing && pricing.service_fee_amount >= DEFAULT_MAX_TOTAL_FEE && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">capped</Badge>
                   )}
                 </span>
-                <span className="text-base font-semibold text-foreground">{fmt(pricing?.service_fee_amount ?? 0)}</span>
+                <span className="text-base font-semibold text-foreground">{pricing ? fmt(pricing.service_fee_amount) : MISSING_MONEY}</span>
               </div>
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-foreground">You'll Receive</span>
-                  <span className="text-2xl font-bold text-green-600">{fmt(sellerNet)}</span>
+                  <span className="text-2xl font-bold text-green-600">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</span>
                 </div>
               </div>
             </div>
@@ -379,7 +382,7 @@ export function TransactionSuccess({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-card rounded-lg p-3 border border-border">
                       <p className="text-xs text-muted-foreground mb-1">You'll receive</p>
-                      <p className="text-base font-bold text-green-600">{fmt(sellerNet)}</p>
+                      <p className="text-base font-bold text-green-600">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</p>
                     </div>
                     <div className="bg-card rounded-lg p-3 border border-border">
                       <p className="text-xs text-muted-foreground mb-1">After buyer confirms</p>

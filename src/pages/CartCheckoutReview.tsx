@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft, Lock, ShieldCheck, Package, Loader2, CheckCircle2, Shield,
   ChevronDown, ChevronUp, Info, Users, CreditCard, Truck, AlertCircle,
@@ -112,6 +112,23 @@ const CartCheckoutReview = () => {
   const gate = useCommerceGate();
   const gateBlocked = !gate.loading && !gate.checkoutEnabled;
 
+  // HOOK ORDER: every hook must run on every render, including the loading
+  // and error renders below. Grouping the items by seller here (rather than
+  // after the early returns) keeps the hook count constant.
+  const sellerGroups = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    for (const item of data?.items ?? []) {
+      const key = item.seller_id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    }
+    return groups;
+  }, [data?.items]);
+
+  const sellerIds = useMemo(() => Array.from(sellerGroups.keys()), [sellerGroups]);
+  const { configs: vendorConfigs, loading: pricingConfigLoading } =
+    useEffectivePricingConfigs(sellerIds);
+
   if (!sessionId) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -181,17 +198,8 @@ const CartCheckoutReview = () => {
 
   const { session, items, productMap, sellerMap } = data;
 
-  const sellerGroups = new Map<string, any[]>();
-  for (const item of items) {
-    const key = item.seller_id;
-    if (!sellerGroups.has(key)) sellerGroups.set(key, []);
-    sellerGroups.get(key)!.push(item);
-  }
-
   const totalItems = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
   const sellerCount = sellerGroups.size;
-  const { configs: vendorConfigs, loading: pricingConfigLoading } =
-    useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
 
   const handleConfirmPay = async () => {
     setIsSubmitting(true);

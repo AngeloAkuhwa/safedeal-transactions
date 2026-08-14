@@ -54,7 +54,7 @@ const RETIRED_CLAIMS = [
   "Verified Seller Trust Profile",
 ];
 
-const TRUST_VOCABULARY = /\b(?:verified|trusted|protected|tracking|real[- ]?time|guaranteed|insured|licensed|escrow)\b/i;
+const TRUST_VOCABULARY = /\b(?:verified|trusted|protected|tracking|real[- ]?time|guaranteed|insured|licensed|escrow|monitoring|24\/7)\b/i;
 
 /** Every banned superlative / scale form, one alternative per sample. */
 const SCALE_SAMPLES = [
@@ -68,9 +68,11 @@ const SCALE_SAMPLES = [
   "100% safe",
   "always safe with SafeDeal",
   "12,000+ buyers trust us",
+  "The escrow system means I always get paid",
+  "24/7 monitoring of every deal",
 ];
 const UNSUBSTANTIATED_SCALE =
-  /\b(?:most trusted|thousands of|millions of|best|guaranteed|always safe)\b|100\s*%|(?:#1|No\.\s*1)\b|\b\d[\d,]*\+?\s+(?:users|buyers|sellers|customers|merchants)\b/i;
+  /\b(?:most trusted|thousands of|millions of|best|guaranteed|always safe)\b|100\s*%|(?:#1|No\.\s*1)\b|\b\d[\d,]*\+?\s+(?:users|buyers|sellers|customers|merchants)\b|\balways\s+(?:get|gets|be|stay|stays)\s+\w+|\b(?:never|always)\s+(?:lose|lost|fail|fails)\b|\b24\/7\b/i;
 
 /**
  * Extracts strings a user can actually read: JSX text, four text-bearing
@@ -91,6 +93,7 @@ function userVisibleText(source: string): string[] {
   for (const m of source.matchAll(/\{\s*(?:"([^"]*)"|'([^']*)')\s*\}/g)) push(m[1] ?? m[2]);
   for (const m of source.matchAll(/`([^`\\]*)`/g)) { if (m[1].length < 300 && /\s/.test(m[1])) push(m[1]); }
   values.push(...ternaryCopyBranches(source));
+  values.push(...inlineJsxTernaryBranches(source));
   return values;
 }
 
@@ -113,6 +116,23 @@ export function ternaryCopyBranches(source: string): string[] {
   return out;
 }
 
+/**
+ * Inline JSX ternaries — `{cond ? "A" : "B"}` — render copy directly but match
+ * none of the property or `{"…"}` patterns above. Capture both branches.
+ */
+const INLINE_JSX_TERNARY = /\{\s*[^{}?]*\?\s*(?:"[^"]*"|'[^']*'|`[^`]*`)\s*:\s*(?:"[^"]*"|'[^']*'|`[^`]*`)\s*\}/g;
+
+export function inlineJsxTernaryBranches(source: string): string[] {
+  const out: string[] = [];
+  for (const m of source.match(INLINE_JSX_TERNARY) ?? []) {
+    for (const lit of m.match(/"([^"]*)"|'([^']*)'|`([^`]*)`/g) ?? []) {
+      const value = lit.slice(1, -1).trim();
+      if (value && isProse(value)) out.push(value);
+    }
+  }
+  return out;
+}
+
 /** Rejects source fragments and Tailwind class lists that are not user copy. */
 function isProse(s: string): boolean {
   if (s.length > 300) return false;
@@ -120,6 +140,10 @@ function isProse(s: string): boolean {
   // Source fragments and generated filenames are not user copy.
   if (/\) : \(|\?\s*\(|typeKey|\.csv\b|\.tsx?\b/.test(s)) return false;
   if (/\btracking-(?:wide|wider|widest|tight|tighter|normal)\b/.test(s)) return false;
+  // Extractor noise: CSV header rows, HTML entities, truncated code fragments.
+  if (/^[^ ]*,[^ ]*,/.test(s) || s.split(",").length > 4 && !/\s\w+\s/.test(s)) return false;
+  if (/&(?:amp|lt|gt|quot|#\d+);/.test(s)) return false;
+  if (/^[…(]|[({[]\s*$|\$\{|\?\s*$|\bvendorId\b/.test(s)) return false;
   if (/^[a-z0-9:/[\]\-.,%() ]+$/.test(s) && /(?:^|\s)(?:text|bg|border|px|py|pt|pb|mt|mb|font|rounded|flex|grid|w|h|gap|space)-/.test(s)) return false;
   return true;
 }
@@ -132,14 +156,13 @@ function isProse(s: string): boolean {
  * transaction.
  */
 /**
- * The only two justifications that may repeat freely: both cover surfaces no
- * buyer or seller ever sees (internal admin tooling and backend ops output).
- * Every buyer-facing or money-facing entry carries its own hand-written reason.
+ * Buyer-facing and money-facing surfaces are the ones a canned justification
+ * can hide a real promise behind, so the reuse limit is enforced there — and
+ * only there — with no exemption set. Internal admin/back-office and edge
+ * operations copy may share a shape-describing reason.
  */
-const BULK_APPROVED_REASONS = new Set([
-  "Admin/back-office label for a stored record, state, filter or permission flag.",
-  "Backend operations/alerting text naming stored escrow records and computed drift.",
-]);
+const isInternalSurface = (file: string) =>
+  /(?:^|\/)Admin[A-Z]|\/admin\/|supabase\/functions\//.test(file);
 
 const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }> = [
   { file: "src/pages/BuyerTransactionDetail.tsx", text: "Tracking:", reason: "Prefix for the courier tracking number recorded on this transaction." },
@@ -187,28 +210,28 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/pages/BuyerTransactionReview.tsx", text: "Payment held in escrow", reason: "Money-state row reflecting this transaction's escrow ledger balance." },
   { file: "src/pages/BuyerTransactionReview.tsx", text: "Funds Held in Escrow", reason: "Money-state heading rendered from the transaction's held escrow amount." },
   { file: "src/pages/BuyerTransactionReview.tsx", text: "SafeDeal holds your in a secure escrow account. The seller cannot access these funds yet.", reason: "Explains that the seller cannot draw the held escrow balance yet." },
-  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Could not load tracking info", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Delivery Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking Number", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking information will be available once the seller dispatches the item.", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Could not load tracking info", reason: "Error state shown when the courier tracking fetch fails; it promises nothing." },
+  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking", reason: "Tab label over the tracking panel; renders only when a tracking row exists." },
+  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Delivery Tracking", reason: "Section heading over the stored courier events for this transaction." },
+  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking Number", reason: "Field label for the tracking number the seller actually entered." },
+  { file: "src/pages/BuyerTransactionTracking.tsx", text: "Tracking information will be available once the seller dispatches the item.", reason: "States the precondition for tracking data instead of promising tracking exists." },
   { file: "src/pages/BuyerTransactionTracking.tsx", text: "Your payment of is securely held in escrow — funds will only release once you verify receipt.", reason: "Amount-specific line rendered only when escrow state is held." },
-  { file: "src/pages/BuyerVerification.tsx", text: "Submit your identity to unlock higher transaction limits and trusted buyer status", reason: "Names a stored internal trust tier, not a verification badge." },
+  { file: "src/pages/BuyerVerification.tsx", text: "Submit your identity to unlock higher transaction limits and trusted buyer status", reason: "Describes what identity submission changes on the account; no claim about the buyer." },
   { file: "src/pages/BuyerVerification.tsx", text: "Your Privacy is Protected", reason: "Privacy-section heading about identity data handling, not a transaction promise." },
   { file: "src/pages/BuyerVerification.tsx", text: "Get Verified", reason: "Call-to-action button starting the identity verification flow." },
-  { file: "src/pages/BuyerVerification.tsx", text: "Once approved, you unlock higher limits and trusted buyer status.", reason: "Names a stored internal trust tier, not a verification badge." },
+  { file: "src/pages/BuyerVerification.tsx", text: "Once approved, you unlock higher limits and trusted buyer status.", reason: "Conditional on approval and names the stored verification_level value." },
   { file: "src/pages/Contact.tsx", text: "Open a dispute from the transaction itself instead of emailing. A dispute freezes the held funds while the case is reviewed — email does not. You will find the option on the transaction while the money is still in escrow.", reason: "Support routing guidance: opening a dispute is what freezes held funds, email does not." },
   { file: "src/pages/Index.tsx", text: "SafeDeal — Escrow for every online deal", reason: "Page title naming the product category (escrow), not a guarantee." },
   { file: "src/pages/Index.tsx", text: "Escrow and transaction protection for online buyers and sellers.", reason: "Meta description naming what the product is; no scale or outcome claim." },
-  { file: "src/pages/LegalPrivacy.tsx", text: "We collect the information you provide when you create an account, verify your identity, list a product, or complete a protected transaction. This includes your name, email address, phone number, payout details, and any identity documents you submit for verification.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalPrivacy.tsx", text: "Information is used to operate escrow and transaction protection, verify participants, prevent fraud, resolve disputes, meet legal and regulatory obligations, and communicate with you about your transactions.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalPrivacy.tsx", text: "Transaction, escrow, and audit records are retained for the period required by applicable financial regulations. Identity documents are retained under a data minimisation policy and are masked wherever they are displayed.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalRefundPolicy.tsx", text: "1. How escrow protection works", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalRefundPolicy.tsx", text: "When a buyer pays for a protected transaction, the money is not sent to the seller. It is held by SafeDeal until the delivery and confirmation conditions agreed at checkout are met. Because the funds are held rather than forwarded, a refund does not depend on the seller agreeing to send money back.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalRefundPolicy.tsx", text: "After the buyer confirms receipt — or after the auto-release window passes with no dispute — the held funds are released to the seller and the transaction is closed. A closed transaction can no longer be refunded through escrow; any remaining claim is a matter between the buyer and the seller.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalTerms.tsx", text: "SafeDeal provides a transaction protection layer. Buyer funds are held in escrow and released to the seller only after the agreed delivery and confirmation conditions are met, or after a dispute is resolved.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalTerms.tsx", text: "A protection fee is applied to each protected transaction and is disclosed before payment. Delivery fees arranged directly between buyer and seller are external to the protection fee.", reason: "Legal policy text describing the escrow contract; not promotional." },
-  { file: "src/pages/LegalTerms.tsx", text: "The service may not be used for unlawful goods or services, fraudulent transactions, or to circumvent the escrow process once a transaction has been created.", reason: "Legal policy text describing the escrow contract; not promotional." },
+  { file: "src/pages/LegalPrivacy.tsx", text: "We collect the information you provide when you create an account, verify your identity, list a product, or complete a protected transaction. This includes your name, email address, phone number, payout details, and any identity documents you submit for verification.", reason: "Privacy notice listing collected data categories." },
+  { file: "src/pages/LegalPrivacy.tsx", text: "Information is used to operate escrow and transaction protection, verify participants, prevent fraud, resolve disputes, meet legal and regulatory obligations, and communicate with you about your transactions.", reason: "Privacy notice stating processing purposes." },
+  { file: "src/pages/LegalPrivacy.tsx", text: "Transaction, escrow, and audit records are retained for the period required by applicable financial regulations. Identity documents are retained under a data minimisation policy and are masked wherever they are displayed.", reason: "Privacy notice stating the retention and masking policy." },
+  { file: "src/pages/LegalRefundPolicy.tsx", text: "1. How escrow protection works", reason: "Numbered section heading in the refund policy." },
+  { file: "src/pages/LegalRefundPolicy.tsx", text: "When a buyer pays for a protected transaction, the money is not sent to the seller. It is held by SafeDeal until the delivery and confirmation conditions agreed at checkout are met. Because the funds are held rather than forwarded, a refund does not depend on the seller agreeing to send money back.", reason: "Refund policy describing how held funds behave on a paid transaction." },
+  { file: "src/pages/LegalRefundPolicy.tsx", text: "After the buyer confirms receipt — or after the auto-release window passes with no dispute — the held funds are released to the seller and the transaction is closed. A closed transaction can no longer be refunded through escrow; any remaining claim is a matter between the buyer and the seller.", reason: "Refund policy stating when refund eligibility ends." },
+  { file: "src/pages/LegalTerms.tsx", text: "SafeDeal provides a transaction protection layer. Buyer funds are held in escrow and released to the seller only after the agreed delivery and confirmation conditions are met, or after a dispute is resolved.", reason: "Terms clause defining the service and the release conditions." },
+  { file: "src/pages/LegalTerms.tsx", text: "A protection fee is applied to each protected transaction and is disclosed before payment. Delivery fees arranged directly between buyer and seller are external to the protection fee.", reason: "Terms clause on fees and the delivery-fee exclusion." },
+  { file: "src/pages/LegalTerms.tsx", text: "The service may not be used for unlawful goods or services, fraudulent transactions, or to circumvent the escrow process once a transaction has been created.", reason: "Terms clause listing prohibited uses." },
   { file: "src/pages/OfferClaimLanding.tsx", text: "Protected by SafeDeal escrow", reason: "Offer-link footer naming the escrow leg that every claimed offer routes through." },
   { file: "src/pages/Pricing.tsx", text: "Opening a store, listing products and taking protected payments costs nothing. We only earn when you get paid safely.", reason: "Plan pricing explainer: no fee is charged until a deal is paid." },
   { file: "src/pages/Pricing.tsx", text: "No listing fees. No setup fees. Cancel a paid plan anytime — it simply runs to the end of the period you paid for, then returns to the free Verified plan.", reason: "Plan cancellation terms; no protection claim." },
@@ -241,13 +264,11 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/pages/SellerProductCreate.tsx", text: "All transactions are protected by our escrow system", reason: "Note in the listing composer describing how storefront sales are settled." },
   { file: "src/pages/SellerProductDetail.tsx", text: "All transactions through your storefront are protected by SafeDeal escrow. Funds are held securely until buyers verify their purchase.", reason: "Seller-facing explanation of the settlement path for their own storefront." },
   { file: "src/pages/SellerProductPreview.tsx", text: "Buyer funds are held securely in escrow until the product is received and verified. Both parties are protected throughout the transaction.", reason: "Preview of buyer-facing copy on the seller's own listing preview screen." },
-  { file: "src/pages/SellerProductPreview.tsx", text: "Verified", reason: "Preview tile rendered from the seller's own stored verification flag." },
-  { file: "src/pages/SellerProductPreview.tsx", text: "Basic Verified", reason: "Preview label for the stored basic_verified tier, explicitly not a seller badge." },
   { file: "src/pages/SellerProductPreview.tsx", text: "All transactions through your storefront are protected by SafeDeal escrow. Funds are held securely until buyers verify their purchase.", reason: "Second instance of the same seller-facing settlement note in the preview layout." },
-  { file: "src/pages/SellerTransactionDetail.tsx", text: "View Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/pages/SellerTransactionDetail.tsx", text: "View Tracking", reason: "Button opening the seller's own submitted tracking record." },
   { file: "src/pages/SellerTransactions.tsx", text: "Monitor and manage all your protected transactions", reason: "Page subtitle naming the transaction type being listed." },
   { file: "src/pages/SellerTransactions.tsx", text: "Where the buyer's money currently sits in the SafeDeal escrow flow.", reason: "Tooltip explaining the escrow money-state column shown in the table." },
-  { file: "src/pages/SellerTransactions.tsx", text: "View Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/pages/SellerTransactions.tsx", text: "View Tracking", reason: "Row action on the seller list, shown only for dispatched courier rows." },
   { file: "src/pages/SellerUpdateDelivery.tsx", text: "Funds Held in Escrow", reason: "Money-state heading on the delivery update screen, shown from escrow state." },
   { file: "src/pages/SellerUpdateDelivery.tsx", text: "and loss of seller privileges. All evidence is verified and stored for dispute resolution.", reason: "Warning that submitted delivery evidence is checked during dispute review." },
   { file: "src/pages/SellerUpdateDelivery.tsx", text: "Funds Remain in Escrow", reason: "Tells the seller funds stay held until the buyer verifies receipt." },
@@ -261,7 +282,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/admin/dashboard/TrendCharts.tsx", text: "Escrow, Releases & Refunds", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/admin/escrow/ConfigureAlertsModal.tsx", text: "Configure Escrow Alerts", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/admin/escrow/ConfigureAlertsModal.tsx", text: "Thresholds used to flag frozen, overdue, stuck and mismatched escrow records.", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
-  { file: "src/components/admin/escrow/EscrowAlertsPanel.tsx", text: "Escrow Alerts &amp; Anomalies", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/admin/escrow/EscrowAlertsPanel.tsx", text: "Active operational alerts requiring attention • Updated real-time", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/admin/escrow/EscrowAlertsPanel.tsx", text: "Stuck Escrow", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
   { file: "src/components/admin/escrow/EscrowCharts.tsx", text: "Escrow Balance Trend", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
@@ -309,21 +329,20 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/agreement/AgreementNextSteps.tsx", text: "Track delivery progress with real-time updates", reason: "Describes the realtime subscription that actually backs this view." },
   { file: "src/components/agreement/ImmutabilityExplanation.tsx", text: "Your transaction is now protected by SafeDeal's immutable agreement system", reason: "Names the immutable-agreement mechanic backed by the stored JSONB snapshot." },
   { file: "src/components/agreement/LockedSnapshotCard.tsx", text: "Funds held securely in escrow", reason: "Locked snapshot card line describing where the paid funds sit." },
-  { file: "src/components/auth/AuthInfoPanel.tsx", text: "\"SafeDeal gave me the confidence to sell online. The escrow system means I always get paid, and my buyers feel safe too.\"", reason: "Attributed seller testimonial, presented as a quotation and not as a platform claim." },
-  { file: "src/components/disputes/DeliveryProofSection.tsx", text: "Tracking Number", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/components/disputes/DeliveryProofSection.tsx", text: "Tracking Number", reason: "Evidence field label inside a dispute case file." },
   { file: "src/components/landing/AnimatedTransactionCard.tsx", text: "Protected in escrow", reason: "Animated illustration label for the escrow stage of the demo transaction." },
   { file: "src/components/landing/Footer.tsx", text: "Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.", reason: "Footer summary of what the product does; no scale or outcome claim." },
   { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Protected Marketplace", reason: "Feature card naming the marketplace product surface." },
-  { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Delivery Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Delivery Tracking", reason: "Names the product capability of storing seller-entered tracking; no carrier promise." },
   { file: "src/components/notifications/NotificationSummaryCards.tsx", text: "Escrow Alerts", reason: "Admin notification bucket name for escrow-related alert records." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Verified", reason: "Tile state rendered from a stored per-signal verification boolean." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Not Verified", reason: "Negative tile state for an unset verification flag." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Complete phone verification and location to unlock: protected payments, disputes, and active purchases.", reason: "Lists the features that unlock once phone and location are stored." },
-  { file: "src/components/profile/AccountVerificationSection.tsx", text: "Next level: Trusted Buyer", reason: "Names a stored internal trust tier, not a verification badge." },
+  { file: "src/components/profile/AccountVerificationSection.tsx", text: "Next level: Trusted Buyer", reason: "Shows the next stored verification_level value on the user's own profile." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Basic Verified", reason: "Names the stored basic_verified account tier, not a seller badge." },
-  { file: "src/components/profile/AccountVerificationSection.tsx", text: "Trusted Buyer", reason: "Names a stored internal trust tier, not a verification badge." },
+  { file: "src/components/profile/AccountVerificationSection.tsx", text: "Trusted Buyer", reason: "Prints the account's own stored tier name to its owner, not to a counterparty." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Email Verified", reason: "Tile label for the stored email confirmation flag on the account." },
-  { file: "src/components/profile/NotificationPreferencesSection.tsx", text: "Tracking and delivery notifications", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/components/profile/NotificationPreferencesSection.tsx", text: "Tracking and delivery notifications", reason: "Name of a notification preference toggle the user controls." },
   { file: "src/components/profile/PayoutDestinationSection.tsx", text: "Verified", reason: "Payout destination state rendered from the stored bank verification flag." },
   { file: "src/components/profile/PayoutDestinationSection.tsx", text: "Your bank details are verified, but the secure payout link with our payment processor isn't complete yet. Re-enter your account number below to finish the link — you won't be charged.", reason: "Explains that bank details passed checks but the processor link is incomplete." },
   { file: "src/components/profile/PersonalInfoSection.tsx", text: "SafeDeal protected transactions are currently available only in Lagos during this launch phase. You can complete your profile, and we'll notify you when your area becomes active.", reason: "Region availability notice for the Lagos launch phase." },
@@ -333,8 +352,8 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/profile/SellerVerificationSection.tsx", text: "Not Verified", reason: "Negative seller tile state for an unset verification flag." },
   { file: "src/components/profile/SellerVerificationSection.tsx", text: "Email Verified", reason: "Seller tile label for the stored email confirmation flag." },
   { file: "src/components/profile/VendorPlanSection.tsx", text: "· % escrow fee", reason: "Plan card fee line naming the escrow rate for the selected plan." },
-  { file: "src/components/seller/DispatchForm.tsx", text: "Tracking Number", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/components/seller/DispatchForm.tsx", text: "Tracking URL", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/components/seller/DispatchForm.tsx", text: "Tracking Number", reason: "Input label on the seller dispatch form." },
+  { file: "src/components/seller/DispatchForm.tsx", text: "Tracking URL", reason: "Optional input label for the carrier link the seller pastes." },
   { file: "src/components/seller/SellerDashboardEmptyState.tsx", text: "Create a product listing or send a transaction link to a buyer. SafeDeal holds the payment in escrow until the buyer confirms the item.", reason: "Empty-state instructions describing how escrow holds the buyer's payment." },
   { file: "src/components/seller/SellerDashboardHero.tsx", text: "Manage your protected transactions and monitor payments", reason: "Dashboard subtitle naming the transaction type the seller manages." },
   { file: "src/components/seller/SellerDashboardHero.tsx", text: "Create Protected Transaction", reason: "Primary action button naming the transaction type being created." },
@@ -351,16 +370,16 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/seller-disputes/SellerPayoutImpactCard.tsx", text: "Escrow State", reason: "Field label for the stored escrow state of the disputed transaction." },
   { file: "src/components/seller-disputes/SellerPayoutImpactCard.tsx", text: "Held in Escrow", reason: "Money bucket label for the disputed transaction's held amount." },
   { file: "src/components/storefront/PublishSuccessModal.tsx", text: "— protected by SafeDeal escrow:", reason: "Share caption suffix naming the escrow leg of the published listing." },
-  { file: "src/components/transactions/DeliveryTermsCard.tsx", text: "Tracking rule:", reason: "Labels recorded courier tracking data on a courier transaction." },
+  { file: "src/components/transactions/DeliveryTermsCard.tsx", text: "Tracking rule:", reason: "Prefix for the evidence rule derived from isTrackedDelivery for this method." },
   { file: "src/components/transactions/TerminalTransactionScreen.tsx", text: "Funds for this transaction are already held in escrow. Open the agreement to track delivery and verification.", reason: "Terminal-state note pointing the user to the agreement for a funded deal." },
   { file: "src/components/transactions/TransactionFilters.tsx", text: "Funds Held in Escrow", reason: "Filter option matching transactions whose stored money state is held." },
   { file: "src/components/transactions/TransactionTable.tsx", text: "Verified", reason: "Table cell rendered from a stored verification boolean on the row." },
   { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Identity Verified", reason: "Badge label rendered only when identity_verified is true for the buyer." },
-  { file: "src/lib/dispute-display-status.ts", text: "Funds Held in Escrow", reason: "Canonical status/settings label mapped from stored backend values." },
-  { file: "src/lib/settings-catalog.ts", text: "Escrow fee rate", reason: "Canonical status/settings label mapped from stored backend values." },
-  { file: "src/lib/settings-catalog.ts", text: "Escrow fee flat component", reason: "Canonical status/settings label mapped from stored backend values." },
-  { file: "src/lib/status-labels.ts", text: "Held in Escrow", reason: "Canonical status/settings label mapped from stored backend values." },
-  { file: "src/lib/status-labels.ts", text: "Verified", reason: "Canonical status/settings label mapped from stored backend values." },
+  { file: "src/lib/dispute-display-status.ts", text: "Funds Held in Escrow", reason: "Display name of the escrow money_status value during a dispute." },
+  { file: "src/lib/settings-catalog.ts", text: "Escrow fee rate", reason: "Settings-catalog name of the pricing.platform_fee_rate key." },
+  { file: "src/lib/settings-catalog.ts", text: "Escrow fee flat component", reason: "Settings-catalog name of the pricing.platform_fee_flat_ngn key." },
+  { file: "src/lib/status-labels.ts", text: "Held in Escrow", reason: "Label for money_status = held; false whenever that state is not set." },
+  { file: "src/lib/status-labels.ts", text: "Verified", reason: "Label for a stored verification status enum value, not a seller badge." },
   { file: "src/services/departments.catalog.ts", text: "Escrow, payouts, refunds.", reason: "Service-layer catalog label naming a backend domain." },
   { file: "src/services/permission-catalog.ts", text: "Escrow", reason: "Service-layer catalog label naming a backend domain." },
   { file: "supabase/functions/_shared/financial-model.ts", text: "available escrow is negative", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
@@ -382,7 +401,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "supabase/functions/admin-dashboard/index.ts", text: "Escrow balance below threshold", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/admin-dashboard/index.ts", text: "Frozen Escrow", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/admin-dashboard/index.ts", text: "Escrow balance NGN is below threshold NGN .", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
-  { file: "supabase/functions/admin-escrow-alert-settings/index.ts", text: "Updated escrow alert thresholds (scope=${vendorId ?", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/admin-escrow-alert-settings/index.ts", text: "Cleared vendor escrow alert override (vendor=)", reason: "Backend operations/alerting text naming stored escrow records and computed drift." },
   { file: "supabase/functions/admin-payouts-detail/index.ts", text: "Seller payout account verified", reason: "Server response text describing the recorded state of a real transaction." },
   { file: "supabase/functions/admin-payouts-detail/index.ts", text: "— verified.", reason: "Server response text describing the recorded state of a real transaction." },
@@ -413,6 +431,16 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "supabase/functions/_shared/delivery-confirm.ts", text: "Delivery cannot be confirmed: the buyer's funds are not currently held in escrow for this transaction.", reason: "Guard error stating the negative escrow state that blocks confirmation." },
   { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Email confirmed", reason: "Neutral contactability label for the stored email confirmation flag." },
   { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Phone confirmed", reason: "Neutral contactability label for the stored phone confirmation flag." },
+  { file: "src/pages/AdminPayouts.tsx", text: "Eligible escrow will release automatically after the configured window.", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/pages/AdminUserDetail.tsx", text: "verified", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/pages/AdminUserDetail.tsx", text: "Verified", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/pages/BuyerTransactionReview.tsx", text: "Verified", reason: "Per-signal row value printed only when that stored signal is true; the alternative branch reads Pending." },
+  { file: "src/pages/SellerPayouts.tsx", text: "Verified", reason: "State of the seller's own bank payout account as returned by the payout provider." },
+  { file: "src/pages/SellerPayouts.tsx", text: "Not verified", reason: "Negative branch of the same payout-account state row." },
+  { file: "src/components/admin/flagged-users/FlaggedUserCard.tsx", text: "Escrow context", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/components/admin/flagged-users/FlaggedUserDrawer.tsx", text: "Escrow context", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/components/admin/flagged-users/FlaggedUsersTable.tsx", text: "Escrow context", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
+  { file: "src/components/admin/permission-matrix/RoleDetailPanel.tsx", text: "Protected roles cannot be reset", reason: "Admin/back-office label for a stored record, state, filter or permission flag." },
 ];
 
 const allowed = new Set(PER_STRING_ALLOWLIST.map((e) => `${e.file}\u0000${e.text}`));
@@ -454,6 +482,20 @@ describe("the trust-claim lock", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("never concatenates a resolved claim into a sentence", () => {
+    const offenders: string[] = [];
+    for (const file of CLAIM_CONSUMERS) {
+      const src = fs.readFileSync(file, "utf8");
+      for (const m of src.matchAll(/`[^`]*\$\{[^}]*\b(?:alwaysClaim|resolveClaim)\s*\([^`]*`/g)) {
+        offenders.push(`${rel(file)}: ${m[0].slice(0, 90)}`);
+      }
+      for (const m of src.matchAll(/(?:alwaysClaim|resolveClaim)\s*\([^)]*\)\s*(?:!|\?\?[^\n]*)?\s*\+|\+\s*(?:alwaysClaim|resolveClaim)\s*\(/g)) {
+        offenders.push(`${rel(file)}: ${m[0].slice(0, 90)}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("justifies every allowlisted string", () => {
     for (const e of PER_STRING_ALLOWLIST) {
       expect(e.reason.length, `${e.file}: ${e.text}`).toBeGreaterThan(20);
@@ -464,13 +506,13 @@ describe("the trust-claim lock", () => {
     }
   });
 
-  it("does not lean on a canned justification", () => {
+  it("does not lean on a canned justification on buyer- or money-facing surfaces", () => {
     const counts = new Map<string, number>();
     for (const e of PER_STRING_ALLOWLIST) {
-      if (BULK_APPROVED_REASONS.has(e.reason)) continue;
+      if (isInternalSurface(e.file)) continue;
       counts.set(e.reason, (counts.get(e.reason) ?? 0) + 1);
     }
-    const overused = [...counts].filter(([, n]) => n > 15).map(([r, n]) => `${n}x ${r}`);
+    const overused = [...counts].filter(([, n]) => n > 3).map(([r, n]) => `${n}x ${r}`);
     expect(overused).toEqual([]);
   });
 
