@@ -123,12 +123,19 @@ Deno.serve(async (req) => {
     const pricingRaw = pricingRes.data;
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
     let computedPricing: {
-      currency_code: string;
-      item_amount: number;
-      paystack_fee_amount: number;
-      platform_fee_amount: number;
-      service_fee_amount: number;
-      total_amount: number;
+      currency_code: string | null;
+      item_amount: number | null;
+      paystack_fee_amount: number | null;
+      platform_fee_amount: number | null;
+      service_fee_amount: number | null;
+      /**
+       * The rate this buyer was ACTUALLY charged, observed from the snapshot
+       * (service fee / item amount). Never a live config rate — the snapshot
+       * is the only evidence of what was agreed. Null when it cannot be
+       * observed, which blocks the payment screen rather than inventing one.
+       */
+      service_fee_rate: number | null;
+      total_amount: number | null;
       seller_payout_amount: number | null;
       is_total_service_fee_capped: boolean;
       /** Null when the snapshot does not record whether the fee floor bound. */
@@ -137,16 +144,25 @@ Deno.serve(async (req) => {
     } | null = null;
 
     if (pricingRaw) {
-      const processingFee = num((pricingRaw as any).payment_processing_fee_amount) ?? 0;
-      const platformFee = num((pricingRaw as any).platform_fee_amount) ?? 0;
-      const itemAmount = Number(pricingRaw.item_amount) || 0;
+      // Money never falls back to zero: an absent column stays null and the
+      // client blocks the screen instead of rendering a fabricated amount.
+      const processingFee = num((pricingRaw as any).payment_processing_fee_amount);
+      const platformFee = num((pricingRaw as any).platform_fee_amount);
+      const itemAmount = num(pricingRaw.item_amount);
+      const serviceFee =
+        processingFee !== null && platformFee !== null ? processingFee + platformFee : null;
+      const totalAmount = num((pricingRaw as any).buyer_total_amount);
       computedPricing = {
-        currency_code: pricingRaw.currency_code || "NGN",
+        currency_code: pricingRaw.currency_code || null,
         item_amount: itemAmount,
         paystack_fee_amount: processingFee,
         platform_fee_amount: platformFee,
-        service_fee_amount: processingFee + platformFee,
-        total_amount: num((pricingRaw as any).buyer_total_amount) ?? itemAmount + processingFee + platformFee,
+        service_fee_amount: serviceFee,
+        service_fee_rate:
+          serviceFee !== null && itemAmount !== null && itemAmount > 0
+            ? serviceFee / itemAmount
+            : null,
+        total_amount: totalAmount,
         seller_payout_amount: num((pricingRaw as any).seller_payout_amount),
         // Cap facts travel with the snapshot so the UI never guesses which
         // ceiling applied or how large it was.
