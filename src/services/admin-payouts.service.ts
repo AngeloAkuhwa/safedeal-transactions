@@ -123,7 +123,12 @@ export interface PayoutTimelineEntry {
 }
 
 export interface PayoutDetail {
-  payout: PayoutRow extends infer R ? Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing"> & { notes: string | null } : never;
+  payout: Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing" | "amount" | "currency"> & {
+    notes: string | null;
+    /** Null when the payout record carries no amount — never coerced to 0. */
+    amount: number | null;
+    currency: string | null;
+  };
   transaction: PayoutRow["transaction"] & { buyer_id: string; seller_id: string; created_at: string } | null;
   pricing: {
     item_total: number | null;

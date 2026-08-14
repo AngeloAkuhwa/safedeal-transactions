@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
       payment_processing_fee: paymentProcessingFee,
       total_charged: totalCharged,
       seller_payout: sellerPayout,
-      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : "payout_record",
+      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : null,
       recorded_payout_amount: recordedPayoutAmount,
       release_amount_mismatch: releaseAmountMismatch,
       currency: pricing?.currency_code ?? null,
