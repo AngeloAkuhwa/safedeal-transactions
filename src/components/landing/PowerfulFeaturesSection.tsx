@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { SnapCarousel } from "@/components/ui/snap-carousel";
 
 type Tone = "primary" | "success" | "warning" | "danger";
 
