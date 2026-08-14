@@ -233,11 +233,12 @@ function MiniFlow({
   tone: ReturnType<typeof toneMapGetter>;
 }) {
   // Use a CSS grid so columns share width evenly and content cannot overflow.
-  // Connectors are subtle dots between cells, not arrows that consume space.
+  // Four-step flows wrap to 2x2 on narrow cards so text-xs labels still fit.
+  const wide = steps.length > 3;
   return (
     <div
-      className="grid items-stretch gap-1"
-      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+      className={`grid items-stretch gap-1 ${wide ? "grid-cols-2" : ""}`}
+      style={wide ? undefined : { gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
     >
       {steps.map((s, i) => {
         const done = i < step;
