@@ -878,6 +878,8 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     name: "hardcoded currency literal",
     pattern: /'(NGN|USD|GBP|EUR)'/,
     debt: [
+        // ledger_write_guarded still COALESCEs its currency; tracked live in live-db.contract.test.ts.
+        "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260410185736_6fc7d507-0f0e-4a87-bd9e-7d9c903fc470.sql",
         "supabase/migrations/20260414120858_048e0167-9527-49bd-8968-9346fa316cad.sql",
         "supabase/migrations/20260418230142_81bfd8b9-f30e-4146-aa09-d788d3eb5d57.sql",
