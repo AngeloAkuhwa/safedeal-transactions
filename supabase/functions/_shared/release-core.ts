@@ -455,6 +455,7 @@ export async function refundBuyerCore(
     return { ok: false, status: 409, body: { error: "pricing_missing" } };
   }
   const refundAmount = Math.max(buyerTotal - processingFee, 0);
+  const isPartial = Number.isFinite(paymentAmount) && refundAmount < paymentAmount;
 
   if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
     return { ok: false, status: 409, body: { error: "invalid_refund_amount" } };
