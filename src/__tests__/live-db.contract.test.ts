@@ -252,6 +252,9 @@ function scanProcs(regex: string): string[] {
 }
 
 d("live pg_proc invented-defaults scan", () => {
+  // Ratchet, not an equality assertion: entries may be removed, never added.
+  const CURRENCY_DEFAULT_BASELINE: string[] = [];
+
   it("adds no literal currency default to a currency column", () => {
     const found = psql(
       "select c.relname || '.' || a.attname from pg_attrdef d" +
@@ -260,13 +263,8 @@ d("live pg_proc invented-defaults scan", () => {
         " where n.nspname='public' and a.attname ~ '(currency|currency_code)'" +
         " and pg_get_expr(d.adbin,d.adrelid) ~ '''[A-Z]{3}''' order by 1",
     );
-    expect(found ? found.split("\n") : []).toEqual([
-      "buyer_specific_offer_items.currency_code",
-      "checkout_sessions.currency_code",
-      "products.currency_code",
-      "release_review_queue.currency_code",
-      "vendor_plan_purchases.currency_code",
-    ]);
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((f) => !CURRENCY_DEFAULT_BASELINE.includes(f))).toEqual([]);
   });
 
   it("adds no new currency literal to a database function", () => {
