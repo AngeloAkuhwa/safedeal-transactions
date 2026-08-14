@@ -153,7 +153,9 @@ Deno.serve(async (req) => {
       const profile =
         profileResult.status === "fulfilled" && profileResult.value.data
           ? profileResult.value.data
-          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", state_name: null, city_name: null, is_region_eligible: false, created_at: "" };
+          // A missing profile row has NO recorded country. Filling in "NG"
+          // invents a fact about the user; carry null and let the UI ask.
+          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: null, state_name: null, city_name: null, is_region_eligible: false, created_at: "" };
 
       const preferences =
         prefsResult.status === "fulfilled" && prefsResult.value.data
@@ -268,7 +270,7 @@ Deno.serve(async (req) => {
             const { data: stateRows } = await adminClient
               .from("serviceable_regions")
               .select("id, city_name, is_active")
-              .eq("country_code", "NG")
+              .eq("country_code", LAUNCH_REGION_COUNTRY_CODE)
               .eq("state_name", effectiveState);
 
             if (!stateRows || stateRows.length === 0) {
