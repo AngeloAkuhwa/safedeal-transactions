@@ -533,7 +533,7 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
     // because `claim-offer` maps `condition_summary` through the product-keyed
     // condition table. Writing wizard vocabulary here made every non-new offer
     // permanently unclaimable.
-    condition_summary: cp.mappedCondition,
+    condition_summary: conditionByIndex[cp.index],
     quantity: Math.max(1, parseInt(cp.item.quantity) || 1),
     unit_price_snapshot: Number(cp.item.price),
     currency_code: cp.item.currency_code || currencyCode,
