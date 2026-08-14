@@ -88,12 +88,10 @@ const CURRENCY_DEFINITION_FILES = new Set([
  * shrink-only ratchet as the front-end list.
  */
 const EDGE_CURRENCY_DEBT: string[] = [
-  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/_shared/financial-model.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/flagged-users-sql.ts",
   "supabase/functions/_shared/money-copy.ts",
-  "supabase/functions/_shared/orchestration.ts",
   "supabase/functions/_shared/paystack.ts",
   "supabase/functions/_shared/safedeal-money-policy.ts",
   "supabase/functions/_shared/security-resolver.ts",
