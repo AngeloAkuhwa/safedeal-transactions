@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => ({
         globDirectory: "dist",
         globPatterns: ["**/*.{js,css,woff2}", "icons/*.png", "favicon.svg", "manifest.webmanifest"],
         // Admin surfaces are large and internal-only — never precached.
-        globIgnores: ["**/Admin*.js", "**/admin/**", "**/node_modules/**"],
+        globIgnores: ["**/*Admin*.js", "**/admin/**", "**/node_modules/**"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/admin/, /^\/functions\//],
         cleanupOutdatedCaches: true,
