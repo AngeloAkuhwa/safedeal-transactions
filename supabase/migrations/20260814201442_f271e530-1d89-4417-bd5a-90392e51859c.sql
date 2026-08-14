@@ -1,0 +1,1 @@
+ALTER TABLE public.transaction_delivery_terms ALTER COLUMN expected_delivery_date DROP NOT NULL;
