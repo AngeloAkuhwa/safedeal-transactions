@@ -454,7 +454,7 @@ function ProtectionStrip() {
   return (
     <div
       ref={setRefs}
-      className="mx-auto mt-6 max-w-4xl rounded-2xl border bg-card/60 p-2 shadow-sm backdrop-blur"
+      className="mx-auto mb-6 mt-6 max-w-4xl rounded-2xl border bg-card/60 p-2 shadow-sm backdrop-blur sm:mb-0"
     >
       <div className="grid grid-cols-2 items-stretch gap-1.5 sm:grid-cols-4">
         {items.map((it, i) => {
@@ -515,7 +515,7 @@ export function PowerfulFeaturesSection() {
   };
 
   return (
-    <section id="features" className="py-8 sm:py-12 lg:py-16 bg-muted/30">
+    <section id="features" className="pb-28 pt-8 sm:py-12 lg:py-16 bg-muted/30">
       <style>{`
         @keyframes sd-hero-glow-shift {
           0%, 100% { opacity: 0.85; transform: translate3d(0, 0, 0); }
