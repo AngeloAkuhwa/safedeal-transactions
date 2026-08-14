@@ -21,7 +21,9 @@ export type TrustCondition =
   /** The chosen/booked delivery method is courier-tracked. */
   | "DELIVERY_IS_TRACKED"
   /** The chosen/booked delivery method is confirmed by handover code. */
-  | "DELIVERY_IS_CODE_CONFIRMED";
+  | "DELIVERY_IS_CODE_CONFIRMED"
+  /** Funds for this transaction are currently held in escrow (post-payment). */
+  | "FUNDS_HELD_IN_ESCROW";
 
 export interface TrustClaim {
   /** The exact user-facing text. */
@@ -57,6 +59,28 @@ export const TRUST_CLAIMS = {
     "ALWAYS_TRUE",
     "Funds are held by SafeDeal escrow for every paid transaction.",
   ),
+  /** Present tense — only true once money is actually sitting in escrow. */
+  ESCROW_ACTIVE: claim(
+    "Escrow Protection Active",
+    "FUNDS_HELD_IN_ESCROW",
+    "transactions.payment_status === 'payment_secured' / funds_held_in_escrow — escrow_ledger_entries booked.",
+  ),
+  PAYMENT_PROTECTED_NOW: claim(
+    "Your payment is protected",
+    "FUNDS_HELD_IN_ESCROW",
+    "Funds are booked into escrow; release requires buyer confirmation or dispute resolution.",
+  ),
+  MONEY_PROTECTED_NOW: claim(
+    "Your money is protected",
+    "FUNDS_HELD_IN_ESCROW",
+    "Same basis as PAYMENT_PROTECTED_NOW — money wording.",
+  ),
+  /** Future tense — safe to show before payment because it describes what will happen. */
+  PAYMENT_WILL_BE_ESCROWED: claim(
+    "Your payment will be held in escrow until you confirm the item",
+    "ALWAYS_TRUE",
+    "Every payment routes into escrow before release; stated in the future tense pre-payment.",
+  ),
 
   SELLER_ID_VERIFIED: claim(
     "ID Verified Seller",
@@ -91,14 +115,14 @@ export const TRUST_CLAIMS = {
   ),
 } as const;
 
-/** Closed allowlist: unknown or missing methods never earn a tracking claim. */
-export const TRACKED_DELIVERY_METHODS = [
-  "courier",
-  "courier_shipping",
-  "shipping",
-  "standard_delivery",
-  "delivery",
-] as const;
+/**
+ * Closed allowlist: unknown or missing methods never earn a tracking claim.
+ * Verified against the live `delivery_method_type` enum, whose only members are
+ * courier / pickup / meetup / hand_delivery. `courier` is the only tracked one;
+ * the previously listed aliases (`shipping`, `standard_delivery`, `delivery`)
+ * are not storable values and `delivery` was ambiguous with hand delivery.
+ */
+export const TRACKED_DELIVERY_METHODS = ["courier"] as const;
 
 export function isTrackedDelivery(method?: string | null): boolean {
   if (!method) return false;
@@ -111,7 +135,6 @@ export function isTrackedDelivery(method?: string | null): boolean {
  */
 export function sellerVerificationClaim(input: {
   identityVerified?: boolean | null;
-  emailVerified?: boolean | null;
 }): TrustClaim | null {
   if (input.identityVerified) return TRUST_CLAIMS.SELLER_ID_VERIFIED;
   return null;

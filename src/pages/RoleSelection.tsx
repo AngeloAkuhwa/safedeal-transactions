@@ -29,7 +29,7 @@ const sellerFeatures = [
 const infoCards = [
   { icon: ArrowLeftRight, title: "Switch Anytime", description: "Change your role from dashboard settings whenever needed" },
   { icon: Users, title: "Dual Roles", description: "Use both buyer and seller features on the same account" },
-  { icon: Shield, title: "Always Protected", description: "SafeDeal protection applies to all your transactions" },
+  { icon: Shield, title: "Escrow on every deal", description: "Every SafeDeal transaction routes payment through escrow before release" },
 ];
 
 const RoleSelection = () => {

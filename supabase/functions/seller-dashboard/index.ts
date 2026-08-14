@@ -7,10 +7,13 @@ const corsHeaders = {
 };
 
 const VERIFICATION_LABEL_MAP: Record<string, string> = {
-  unverified: "Unverified Seller",
-  basic_verified: "Verified Seller",
-  trusted_buyer: "Trusted Seller",
-  high_trust_buyer: "Premium Seller",
+  // Account-tier names only. These describe the seller's own stored tier and are
+  // NOT verification badges — the identity-verified badge requires identity_verified and
+  // lives in src/lib/trust/trust-claims.ts.
+  unverified: "Unverified account",
+  basic_verified: "Contact details confirmed",
+  trusted_buyer: "Trusted tier",
+  high_trust_buyer: "Premium tier",
 };
 
 type Severity = "critical" | "action_required" | "informational";

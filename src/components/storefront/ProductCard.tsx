@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
 import { Package, ShieldCheck, AlertTriangle } from "lucide-react";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 import { getAvailableQuantity } from "@/lib/inventory";
 import { ProductImage } from "@/components/common/ProductImage";
@@ -34,17 +35,12 @@ interface ProductCardProps {
   sellerTrustSummary?: SellerTrustSummary;
 }
 
-function getTrustLabel(level: string) {
-  if (level === "trusted_buyer") return "Trusted Seller";
-  if (level === "basic_verified") return "Verified";
-  return null;
-}
-
 export function ProductCard({ product, onClick, showBadges = true, sellerName, sellerTrustSummary }: ProductCardProps) {
   const available = getAvailableQuantity(product);
   const isOutOfStock = available === 0;
   const isLowStock = available >= 1 && available <= 5;
-  const trustLabel = sellerTrustSummary ? getTrustLabel(sellerTrustSummary.verification_level) : null;
+  // Only a real identity verification earns a mark, and the mark always states its basis.
+  const trustClaim = sellerVerificationClaim({ identityVerified: sellerTrustSummary?.identity_verified });
 
   return (
     <Card
@@ -98,8 +94,11 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
         {sellerName && (
           <div className="flex items-center gap-1 mb-2">
             <p className="text-xs text-muted-foreground truncate">{sellerName}</p>
-            {trustLabel && (
-              <ShieldCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            {trustClaim && (
+              <span className="inline-flex items-center gap-1 text-xs text-primary flex-shrink-0">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {trustClaim.text}
+              </span>
             )}
           </div>
         )}

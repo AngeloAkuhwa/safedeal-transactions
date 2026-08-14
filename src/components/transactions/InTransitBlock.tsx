@@ -63,7 +63,9 @@ function HandoffCodeBlock({ code, prompt }: { code: string; prompt: string }) {
 }
 
 export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [], status }: InTransitBlockProps) {
-  const method = deliveryTerms?.delivery_method ?? "courier";
+  // Fail closed: with no recorded delivery terms we assert nothing about how
+  // the item moves — no courier tracking UI for what may be a meetup.
+  const method = deliveryTerms?.delivery_method ?? null;
   const handoffCode = tracking?.signature_name ?? null;
   const heading = status === "delivered_awaiting_verification" ? "Delivery Summary" : "What's happening with your package";
 
@@ -80,8 +82,14 @@ export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [],
     <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-base sm:text-lg font-bold text-foreground">{heading}</h2>
-        <DeliveryMethodBadge method={method} />
+        {method && <DeliveryMethodBadge method={method} />}
       </div>
+
+      {!method && (
+        <p className="text-sm text-muted-foreground">
+          No delivery method is recorded for this transaction yet. Details appear once the seller sets the delivery terms.
+        </p>
+      )}
 
       {/* Method-specific body */}
       {method === "courier" && (
