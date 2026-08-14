@@ -35,6 +35,12 @@ interface TransactionSuccessProps {
     service_fee_amount: number;
     seller_net_amount: number;
     total_amount: number;
+    /**
+     * Whether a ceiling actually bound THIS calculation, decided by the
+     * vendor's effective config upstream. Never re-derived here against a
+     * platform default — a vendor with a lower cap must still see the badge.
+     */
+    is_capped?: boolean;
   } | null;
   currSymbol: string;
   transactionCode: string;
@@ -184,7 +190,7 @@ export function TransactionSuccess({
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                   {FEE_NAME} ({feePercent})
-                  {pricing && pricing.service_fee_amount >= DEFAULT_MAX_TOTAL_FEE && (
+                  {pricing?.is_capped && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">capped</Badge>
                   )}
                 </span>

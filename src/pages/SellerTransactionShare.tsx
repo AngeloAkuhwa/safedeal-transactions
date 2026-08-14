@@ -72,6 +72,9 @@ const SellerTransactionShare = () => {
         service_fee_amount: pricing.service_fee_amount,
         seller_net_amount: pricing.seller_net_amount,
         total_amount: pricing.buyer_total_amount,
+        is_capped: Boolean(
+          (pricing as { is_total_service_fee_capped?: boolean }).is_total_service_fee_capped,
+        ),
       }
     : null;
 
