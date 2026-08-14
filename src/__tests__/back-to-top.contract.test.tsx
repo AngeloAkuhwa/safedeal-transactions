@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { render, screen, act, cleanup } from "@testing-library/react";
+import { render, act, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { BackToTop, SHOW_AFTER_Y, DIRECTION_HYSTERESIS } from "@/components/landing/BackToTop";
 
@@ -11,7 +11,9 @@ function scrollTo(y: number) {
 }
 
 function fab() {
-  return screen.getByRole("button", { name: "Back to top", hidden: true });
+  const el = document.querySelector<HTMLButtonElement>('button[aria-label="Back to top"]');
+  if (!el) throw new Error("FAB not rendered");
+  return el;
 }
 
 function isShown() {
