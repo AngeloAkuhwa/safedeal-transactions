@@ -13,10 +13,22 @@ import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { CommerceGateState } from "@/hooks/useCommerceGate";
 
+// Typed against the real CommerceGateState so drift breaks this file loudly
+// instead of silently mocking a shape the pages no longer read.
 vi.mock("@/hooks/useCommerceGate", () => ({
   useCommerceGate: () => {
-    const [state] = useState({ loading: false, checkoutEnabled: true, listingEnabled: true, reason: null });
+    const [state] = useState<CommerceGateState>({
+      loading: false,
+      checkoutEnabled: true,
+      addToCartEnabled: true,
+      disabledReason: "",
+      cartDisabledReason: "",
+      checkoutDisabledReason: "",
+      scope: "platform",
+      sources: {},
+    });
     return state;
   },
 }));

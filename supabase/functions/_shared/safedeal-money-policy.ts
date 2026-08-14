@@ -30,10 +30,11 @@ export const MAX_TOTAL_SERVICE_FEE_FALLBACK = 7000;
 
 /**
  * Compute a config-aware version stamp. Format:
- *   `NG_MVP_TSFCAP_<cap>_MIN_<floor>_T<tierHash>`
+ *   `NG_MVP_TSFCAP_<cap>_PFCAP_<platformCap>_MIN_<floor>_T<tierHash>`
  * where `tierHash` is a short deterministic digest of the effective tier
  * rates. Persisted alongside snapshots so audit tooling can detect the exact
- * pricing rules that produced any historical row.
+ * pricing rules that produced any historical row. Both ceilings are stamped so
+ * the UI can name *which* cap bound a charge (see `resolveAppliedCap`).
  */
 export function computePricingModelVersion(config?: PricingConfigOverride): string {
   if (!config) return PRICING_MODEL_VERSION_DEFAULT;
@@ -48,7 +49,7 @@ export function computePricingModelVersion(config?: PricingConfigOverride): stri
     hash = ((hash << 5) - hash + tiersJson.charCodeAt(i)) | 0;
   }
   const tierHash = (hash >>> 0).toString(36).padStart(6, "0").slice(0, 6);
-  return `NG_MVP_TSFCAP_${cap}_MIN_${min}_T${tierHash}`;
+  return `NG_MVP_TSFCAP_${cap}_PFCAP_${platformCap}_MIN_${min}_T${tierHash}`;
 }
 
 export interface PricingSnapshot {

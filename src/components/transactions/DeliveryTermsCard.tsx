@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeliveryMethodBadge } from "@/components/seller/DeliveryMethodBadge";
 import { cn } from "@/lib/utils";
 import { isTrackedDelivery } from "@/lib/trust/trust-claims";
+import { toTransactionDeliveryMethod } from "@/lib/delivery-methods";
 
 export interface DeliveryTermsCardProps {
   /** Either the buyer-shape (full address columns) or the seller-shape (single address string) */
@@ -96,7 +97,11 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
         {/* Method */}
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Method</span>
-          <DeliveryMethodBadge method={method} />
+          {toTransactionDeliveryMethod(method) ? (
+            <DeliveryMethodBadge method={method} />
+          ) : (
+            <span className="text-sm font-semibold text-muted-foreground">Not recorded</span>
+          )}
         </div>
 
         {/* Expected delivery */}

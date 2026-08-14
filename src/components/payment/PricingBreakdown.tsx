@@ -89,12 +89,15 @@ export function PricingBreakdown({ snapshot, audience = "buyer", className }: Pr
           </p>
         ) : snapshot?.is_total_service_fee_capped ? (
           <p className="text-xs text-muted-foreground pt-1">
+            {/* Name the ceiling that actually bound the charge, never a
+                different ceiling that happens to exist on the config. */}
             {snapshot.applied_cap
-              ? `${PRICING_LINE_LABELS.service_fee_amount} capped at ${formatMoneyOrDash(
-                  snapshot.applied_cap.amount,
-                  currency,
-                )}.`
-              : `${PRICING_LINE_LABELS.service_fee_amount} capped for this transaction.`}
+              ? `${
+                  snapshot.applied_cap.kind === "safedeal_fee"
+                    ? PRICING_LINE_LABELS.safedeal_fee_amount
+                    : PRICING_LINE_LABELS.service_fee_amount
+                } capped at ${formatMoneyOrDash(snapshot.applied_cap.amount, currency)}.`
+              : "A fee ceiling applied to this transaction."}
           </p>
         ) : null}
       </div>

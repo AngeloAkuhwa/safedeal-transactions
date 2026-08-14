@@ -7,6 +7,7 @@ import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveMoneyLabel } from "@/lib/status-labels";
 
 export default function TransactionCancelled() {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -30,6 +31,18 @@ export default function TransactionCancelled() {
   const transactionCode = data?.transaction?.transaction_code;
   const cancelledByRole: string | null = data?.transaction?.cancelled_by_role ?? null;
   const cancellationReason: string | null = data?.transaction?.cancellation_reason ?? null;
+  const moneyStatus: string | null = data?.transaction?.money_status ?? null;
+  const escrowState: string | null = data?.escrow?.state ?? data?.escrow?.escrow_state ?? null;
+
+  // A cancellation says nothing about money. Only these recorded states mean
+  // the buyer was never charged; anything else (or an unread record) must not
+  // be described as "no payment was processed".
+  const NEVER_CHARGED = new Set(["not_secured", "payment_pending"]);
+  const neverCharged =
+    moneyStatus != null && NEVER_CHARGED.has(moneyStatus) && escrowState !== "held";
+  const moneyLabel = moneyStatus
+    ? resolveMoneyLabel(moneyStatus, "buyer").label
+    : "Not available";
 
   // Only state what the record actually says. Never attribute a cancellation
   // to a party the transaction record does not identify.
@@ -43,7 +56,7 @@ export default function TransactionCancelled() {
           : "This transaction was cancelled";
   const reasonBody =
     cancellationReason?.trim() ||
-    "No payment was processed, and no funds were held or transferred.";
+    "No reason was recorded for this cancellation.";
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
@@ -103,7 +116,7 @@ export default function TransactionCancelled() {
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20">
                       <ShieldCheck className="h-3 w-3 mr-1.5" />
-                      No Funds Released
+                      {moneyLabel}
                     </span>
                   </div>
                 </div>
@@ -130,17 +143,18 @@ export default function TransactionCancelled() {
               </div>
             </div>
 
-            {/* Your Account is Safe */}
+            {/* What happened to the money — read from the recorded state only. */}
             <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground mb-2">Your Account is Safe</h3>
+                  <h3 className="text-base font-semibold text-foreground mb-2">Where your money stands</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Since no payment was processed, no funds were held or released. Your account and payment methods
-                    remain secure. You can create a new transaction at any time.
+                    {neverCharged
+                      ? "This transaction was cancelled before payment, so nothing was charged. You can start a new transaction at any time."
+                      : `The recorded money status for this transaction is "${moneyLabel}". Open the transaction in your dashboard, or contact support, for the current position on any amount already paid.`}
                   </p>
                 </div>
               </div>

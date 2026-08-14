@@ -27,6 +27,7 @@ import {
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { computePricing } from "@/lib/pricing";
+import { methodNeedsAddress, methodNeedsPhone } from "@/lib/delivery-methods";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,14 +63,6 @@ function parseEnabledMethods(raw: string | null | undefined): string[] {
   } catch {
     return [String(raw)];
   }
-}
-
-function methodNeedsAddress(m: string) {
-  return m === "courier_shipping" || m === "delivery";
-}
-
-function methodNeedsPhone(m: string) {
-  return m === "pickup" || m === "meetup" || m === "hand_delivery";
 }
 
 interface DeliveryDraft {
@@ -285,16 +278,25 @@ const BuyerCart = () => {
   // Compute selected totals
   const selectedItems = items.filter((i) => selected.has(i.id) && i.product);
   const selectedSubtotal = selectedItems.reduce((sum, i) => sum + (i.product!.unit_price * i.quantity), 0);
-  const sellerGroups = new Map<string, number>();
+  // Group by seller, carrying the row's own currency — never assume NGN.
+  const sellerGroups = new Map<string, { amount: number; currency: string }>();
   for (const item of selectedItems) {
     const sid = item.product!.seller_id;
-    sellerGroups.set(sid, (sellerGroups.get(sid) || 0) + item.product!.unit_price * item.quantity);
+    const prev = sellerGroups.get(sid);
+    sellerGroups.set(sid, {
+      amount: (prev?.amount || 0) + item.product!.unit_price * item.quantity,
+      currency: prev?.currency ?? item.product!.currency_code,
+    });
   }
   const { configs: vendorConfigs, loading: pricingConfigLoading } =
     useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
   let selectedFees = 0;
-  for (const [sellerId, amount] of sellerGroups) {
-    selectedFees += computePricing(amount, "NGN", vendorConfigs[sellerId]).service_fee_amount;
+  for (const [sellerId, group] of sellerGroups) {
+    selectedFees += computePricing(
+      group.amount,
+      group.currency,
+      vendorConfigs[sellerId],
+    ).service_fee_amount;
   }
   const selectedTotal = selectedSubtotal + selectedFees;
 
