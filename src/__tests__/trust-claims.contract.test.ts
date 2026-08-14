@@ -619,3 +619,36 @@ describe("no surface invents its own response time", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * BARE TRUST WORDS. The exact-text ban only catches registered claim strings,
+ * so `<p>Verified</p>` under every seller name on My Purchases sailed through
+ * thirteen rounds. A standalone trust adjective IS a claim: it must resolve
+ * from the registry with evidence, or not be rendered.
+ */
+const BARE_TRUST_WORDS = /^(?:verified|trusted|protected|guaranteed|insured)\b[.!]?$/i;
+
+describe("bare trust words", () => {
+  it("never renders a standalone trust adjective without evidence", () => {
+    const offenders: string[] = [];
+    for (const file of CLAIM_CONSUMERS) {
+      const src = fs.readFileSync(file, "utf8");
+      const f = rel(file);
+      for (const raw of userVisibleText(src)) {
+        const value = raw.trim();
+        if (!BARE_TRUST_WORDS.test(value)) continue;
+        if (allowed.has(`${f}\u0000${value}`)) continue;
+        offenders.push(`${f}: "${value}"`);
+      }
+    }
+    expect([...new Set(offenders)]).toEqual([]);
+  });
+
+  it("the buyer purchases table no longer labels every seller Verified", () => {
+    const src = fs.readFileSync(
+      path.join(PROJECT, "src/components/transactions/TransactionTable.tsx"),
+      "utf8",
+    );
+    expect(src).not.toMatch(/>\s*Verified\s*</);
+  });
+});
