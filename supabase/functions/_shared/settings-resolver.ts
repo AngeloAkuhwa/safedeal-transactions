@@ -7,7 +7,12 @@ import { checkPricingInvariant } from "./pricing-invariant.ts";
 export interface EffectivePricingConfig {
   min_platform_fee: number;
   max_total_service_fee: number;
+  max_platform_fee: number;
+  platform_fee_rate: number;
+  platform_fee_flat: number;
   tier_rates: Array<{ upto: number | null; rate: number }>;
+  /** Vendor plan whose escrow rate was applied ('verified' | 'starter' | 'growth'). */
+  vendor_plan_code?: string;
 }
 
 /**
@@ -50,6 +55,35 @@ async function guardPricingConfig(
   return DEFAULT_PRICING_CONFIG;
 }
 
+/**
+ * Vendor plans buy a cheaper escrow rate (Growth = 1.5% instead of 2%).
+ * The plan rate is applied ONLY when it improves on the resolved rate, and
+ * only for the flat (G3) fee model — legacy tiered configs are untouched.
+ */
+async function applyVendorPlanRate(
+  cfg: EffectivePricingConfig,
+  vendorId: string,
+): Promise<EffectivePricingConfig> {
+  try {
+    const client = admin();
+    const { data: planCode } = await client.rpc("effective_vendor_plan_code", { _user_id: vendorId });
+    const code = typeof planCode === "string" ? planCode : "verified";
+    if (!code || code === "verified") return { ...cfg, vendor_plan_code: "verified" };
+    const { data: plan } = await client
+      .from("vendor_plans")
+      .select("code, escrow_fee_rate")
+      .eq("code", code)
+      .maybeSingle();
+    const rate = plan?.escrow_fee_rate != null ? Number(plan.escrow_fee_rate) : NaN;
+    if (!Number.isFinite(rate) || rate <= 0 || rate >= cfg.platform_fee_rate) {
+      return { ...cfg, vendor_plan_code: code };
+    }
+    return { ...cfg, platform_fee_rate: rate, vendor_plan_code: code };
+  } catch (_e) {
+    return cfg;
+  }
+}
+
 function admin(): SupabaseClient {
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -69,6 +103,9 @@ export async function loadPricingConfig(vendorId: string | null | undefined): Pr
         "pricing.min_platform_fee_ngn",
         "pricing.max_total_service_fee_ngn",
         "pricing.tier_rates",
+        "pricing.platform_fee_rate",
+        "pricing.platform_fee_flat_ngn",
+        "pricing.max_platform_fee_ngn",
       ],
     });
     if (error || !data) return DEFAULT_PRICING_CONFIG;
@@ -79,11 +116,15 @@ export async function loadPricingConfig(vendorId: string | null | undefined): Pr
     const resolved: EffectivePricingConfig = {
       min_platform_fee: numOr(map["pricing.min_platform_fee_ngn"], DEFAULT_PRICING_CONFIG.min_platform_fee),
       max_total_service_fee: numOr(map["pricing.max_total_service_fee_ngn"], DEFAULT_PRICING_CONFIG.max_total_service_fee),
+      max_platform_fee: numOr(map["pricing.max_platform_fee_ngn"], DEFAULT_PRICING_CONFIG.max_platform_fee),
+      platform_fee_rate: numOr(map["pricing.platform_fee_rate"], DEFAULT_PRICING_CONFIG.platform_fee_rate),
+      platform_fee_flat: numOr(map["pricing.platform_fee_flat_ngn"], DEFAULT_PRICING_CONFIG.platform_fee_flat),
       tier_rates: Array.isArray(map["pricing.tier_rates"])
         ? (map["pricing.tier_rates"] as EffectivePricingConfig["tier_rates"])
         : DEFAULT_PRICING_CONFIG.tier_rates,
     };
-    return await guardPricingConfig(resolved, vendorId);
+    const withPlan = await applyVendorPlanRate(resolved, vendorId);
+    return await guardPricingConfig(withPlan, vendorId);
   } catch (_e) {
     return DEFAULT_PRICING_CONFIG;
   }

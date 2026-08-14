@@ -18,7 +18,7 @@ import { computePricing as computeRawPricing, type PricingResult as RawPricing, 
  * derives a version tag from the effective config so persisted rows remain
  * distinguishable across cap / floor / tier changes.
  */
-export const PRICING_MODEL_VERSION_DEFAULT = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
+export const PRICING_MODEL_VERSION_DEFAULT = "NG_G3_PLATFORM_FEE_2PCT_PLUS_100_CAP_5000_V1" as const;
 /** @deprecated Prefer {@link PRICING_MODEL_VERSION_DEFAULT}. Kept for source compat. */
 export const PRICING_MODEL_VERSION = PRICING_MODEL_VERSION_DEFAULT;
 /**
@@ -26,7 +26,7 @@ export const PRICING_MODEL_VERSION = PRICING_MODEL_VERSION_DEFAULT;
  * snapshot boolean. Runtime pricing math reads the effective cap from
  * `PricingConfigOverride` (see `_shared/pricing.ts`), not this constant.
  */
-export const MAX_TOTAL_SERVICE_FEE_FALLBACK = 2500;
+export const MAX_TOTAL_SERVICE_FEE_FALLBACK = 7000;
 
 /**
  * Compute a config-aware version stamp. Format:
@@ -39,7 +39,10 @@ export function computePricingModelVersion(config?: PricingConfigOverride): stri
   if (!config) return PRICING_MODEL_VERSION_DEFAULT;
   const cap = config.max_total_service_fee ?? MAX_TOTAL_SERVICE_FEE_FALLBACK;
   const min = config.min_platform_fee ?? 250;
-  const tiersJson = JSON.stringify(config.tier_rates ?? []);
+  const rate = config.platform_fee_rate ?? 0.02;
+  const flat = config.platform_fee_flat ?? 100;
+  const platformCap = config.max_platform_fee ?? 5000;
+  const tiersJson = JSON.stringify({ t: config.tier_rates ?? [], rate, flat, platformCap });
   let hash = 0;
   for (let i = 0; i < tiersJson.length; i++) {
     hash = ((hash << 5) - hash + tiersJson.charCodeAt(i)) | 0;
