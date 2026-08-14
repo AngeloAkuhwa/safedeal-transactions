@@ -207,8 +207,11 @@ Deno.serve(async (req) => {
       (pricing as any)?.seller_payout_amount != null
         ? Number((pricing as any).seller_payout_amount)
         : null;
-    const currency = pricing?.currency_code ?? "NGN";
-    if (!pricing || typeof sellerNet !== "number" || sellerNet <= 0) {
+    // A currency written into `payouts` / `release_review_queue` becomes a
+    // financial record. We never invent one: a snapshot without a currency is
+    // treated as missing pricing and routed to review with a null currency.
+    const snapshotCurrency = pricing?.currency_code ?? null;
+    if (!pricing || !snapshotCurrency || typeof sellerNet !== "number" || sellerNet <= 0) {
       await admin
         .from("transactions")
         .update({
@@ -224,7 +227,7 @@ Deno.serve(async (req) => {
         payout_id: null,
         seller_id: tx.seller_id,
         amount: null,
-        currency_code: currency,
+        currency_code: snapshotCurrency,
         queue_type: "pricing_missing",
         status: "pending",
         notes: "Seller confirmed but pricing row missing or invalid.",
@@ -250,6 +253,9 @@ Deno.serve(async (req) => {
         reason: "pricing_missing",
       });
     }
+
+    // Past the guard the snapshot currency is known and non-null.
+    const currency: string = snapshotCurrency;
 
     // ── Payout account safeguard ──────────────────────────────────────────
     const { data: payoutAccount } = await admin
