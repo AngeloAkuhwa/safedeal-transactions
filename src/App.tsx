@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TwoFactorPrompt } from "@/components/security/TwoFactorPrompt";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { LaunchGate } from "@/components/pwa/LaunchGate";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "next-themes";
@@ -119,7 +120,7 @@ const App = () => (
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<LaunchGate><Index /></LaunchGate>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/t/:shareToken" element={<BuyerTransactionReview />} />
             <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
