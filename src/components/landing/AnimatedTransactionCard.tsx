@@ -11,8 +11,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type Tone = "primary" | "success" | "warning";
-
 const STEPS: {
   title: string;
   subtitle: string;
