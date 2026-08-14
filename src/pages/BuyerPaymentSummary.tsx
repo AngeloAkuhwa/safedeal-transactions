@@ -17,7 +17,7 @@ import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { describeFeeBreakdown, DEFAULT_MIN_PLATFORM_FEE } from "@/lib/pricing";
+import { describeFeeBreakdown } from "@/lib/pricing";
 import { resolveAppliedCap } from "@/types/payment-flow.types";
 import { ChevronDown } from "lucide-react";
 import { getBuyerProfile } from "@/services/profile.service";
