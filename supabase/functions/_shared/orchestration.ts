@@ -34,6 +34,8 @@ export interface CreateTaskInput {
   transactionId?: string | null;
   buyerId?: string | null;
   sellerId?: string | null;
+  /** Optional. When set, `currency` is mandatory — the database rejects an
+   *  amount without its own currency rather than assuming one. */
   amount?: number | null;
   currency?: string | null;
   requiredPermissions?: string[];
@@ -50,6 +52,13 @@ export async function enqueueOrchestrationTask(
   admin: AdminClient,
   input: CreateTaskInput,
 ): Promise<string | null> {
+  // A task amount without a stated currency is not a number we can trust, so
+  // it is dropped rather than laundered through an invented NGN.
+  const currency = input.currency && input.currency.trim() !== "" ? input.currency.trim() : null;
+  const amount = currency ? (input.amount ?? null) : null;
+  if (input.amount != null && !currency) {
+    console.error("enqueueOrchestrationTask: amount supplied without a currency; amount dropped");
+  }
   try {
     const { data, error } = await admin.rpc("create_orchestration_task", {
       _type: input.type,
@@ -61,8 +70,8 @@ export async function enqueueOrchestrationTask(
       _transaction_id: input.transactionId ?? null,
       _buyer_id: input.buyerId ?? null,
       _seller_id: input.sellerId ?? null,
-      _amount: input.amount ?? null,
-      _currency: input.currency ?? "NGN",
+      _amount: amount,
+      _currency: currency,
       _required_permissions: input.requiredPermissions ?? [],
       _source_event_key: input.sourceEventKey,
     });
