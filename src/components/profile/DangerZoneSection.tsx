@@ -19,8 +19,8 @@ export function DangerZoneSection() {
               Temporarily disable your account. You can reactivate it anytime.
             </p>
           </div>
-          <Button variant="outline" size="sm" disabled className="text-muted-foreground">
-            Deactivate
+          <Button asChild variant="outline" size="sm" className="text-muted-foreground">
+            <Link to={supportLink(null, "account")}>Request deactivation</Link>
           </Button>
         </div>
 
@@ -31,8 +31,8 @@ export function DangerZoneSection() {
               Permanently delete your account and all data. This action cannot be undone.
             </p>
           </div>
-          <Button variant="outline" size="sm" disabled className="text-destructive border-destructive/30">
-            Delete Account
+          <Button asChild variant="outline" size="sm" className="text-destructive border-destructive/30">
+            <Link to={supportLink(null, "account")}>Request deletion</Link>
           </Button>
         </div>
       </CardContent>
