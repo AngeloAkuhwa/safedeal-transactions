@@ -93,10 +93,6 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                 className="pl-9 pr-4 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-52"
               />
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filter
-            </Button>
           </div>
         </div>
       </CardHeader>
@@ -259,7 +255,8 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             <Button variant="outline" size="icon" className="h-8 w-8" disabled>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="default" size="sm" className="h-8 w-8 p-0">1</Button>
+            {/* Current page indicator — static, not a control. */}
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground">1</span>
             <Button variant="outline" size="icon" className="h-8 w-8" disabled>
               <ChevronRight className="h-4 w-4" />
             </Button>
