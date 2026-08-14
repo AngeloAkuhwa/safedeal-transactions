@@ -30,6 +30,7 @@ import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
+import { supportLink } from "@/lib/support/support-copy";
 import {
   resolveTransactionLabel,
   resolveMoneyLabel,
@@ -503,7 +504,12 @@ const SellerTransactionDetail = () => {
                     ))}
                   </ul>
                 </div>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => navigate(`/seller/transactions/${transactionId}/agreement`)}
+                >
                   <Eye className="h-4 w-4" />
                   View Locked Agreement
                 </Button>
@@ -604,7 +610,10 @@ const SellerTransactionDetail = () => {
         {/* Quick Actions */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {["payment_secured", "seller_preparing_delivery"].includes(tx.status) && (
-            <button className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors">
+            <button
+              onClick={() => navigate(`/seller/transactions/${transactionId}/delivery`)}
+              className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
+            >
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                 <Truck className="h-5 w-5 text-primary" />
               </div>
@@ -635,7 +644,10 @@ const SellerTransactionDetail = () => {
               <span className="text-xs font-semibold text-foreground">Copy Buyer Link</span>
             </button>
           )}
-          <button className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors">
+          <button
+            onClick={() => navigate(supportLink(tx.transaction_code, "transaction"))}
+            className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
+          >
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
               <Headphones className="h-5 w-5 text-primary" />
             </div>
