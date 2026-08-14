@@ -22,14 +22,17 @@ const DECIMAL_2 = new Intl.NumberFormat("en-NG", {
   maximumFractionDigits: 2,
 });
 
+/** Money never falls back to zero — a missing amount renders as `—`. */
+export const MISSING_AMOUNT = "—";
+
 export function formatMoney(
   amount: number | null | undefined,
   currency: string,
 ): string {
-  const value =
-    amount === null || amount === undefined || Number.isNaN(amount)
-      ? 0
-      : Number(amount);
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+    return MISSING_AMOUNT;
+  }
+  const value = Number(amount);
   const code = (currency || "").trim().toUpperCase();
   if (code === "NGN") return NGN.format(value);
   const rendered = DECIMAL_2.format(value);
@@ -42,7 +45,7 @@ export function formatMoneyOrDash(
   currency: string | null | undefined,
 ): string {
   if (amount === null || amount === undefined || Number.isNaN(Number(amount)) || !currency) {
-    return "—";
+    return MISSING_AMOUNT;
   }
   return formatMoney(Number(amount), currency);
 }
