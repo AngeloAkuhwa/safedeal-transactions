@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
-import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen } from "lucide-react";
+import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -103,8 +103,16 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             </div>
           )}
 
+          {/* Featured placement (paid) */}
+          {product.is_featured && (
+            <Badge className="absolute left-2.5 top-2.5 border-none bg-primary/90 text-[11px] text-primary-foreground backdrop-blur-sm">
+              <Star className="h-3 w-3 fill-current" />
+              Featured
+            </Badge>
+          )}
+
           {/* Category badge */}
-          {categoryName && (
+          {categoryName && !product.is_featured && (
             <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none text-[11px]">
               {categoryName}
             </Badge>

@@ -13,6 +13,8 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const FEATURED_SLOTS = 4;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -93,6 +95,72 @@ Deno.serve(async (req) => {
     if (productsError) {
       console.error("Products query error:", productsError);
       return jsonResponse({ error: "Failed to load products" }, 500);
+    }
+
+    /**
+     * Paid featured placement. Sellers earn it either from a plan that includes
+     * `featured_placement` (Growth) or from an active "Boost my store" sachet
+     * (`featured_until`). It only re-orders the first page of the default sort —
+     * explicit price sorts and deeper pages stay untouched so the ordering the
+     * shopper asked for is never overridden.
+     */
+    const featuredIds = new Set<string>();
+    if (page === 1 && sort === "newest") {
+      const nowIso = new Date().toISOString();
+      const [{ data: boosted }, { data: featuredPlans }] = await Promise.all([
+        adminClient.from("profiles").select("id").gt("featured_until", nowIso),
+        adminClient.from("vendor_plans").select("code").eq("featured_placement", true).eq("is_active", true),
+      ]);
+      const planCodes = (featuredPlans || []).map((r: any) => r.code);
+      let planSellerIds: string[] = [];
+      if (planCodes.length > 0) {
+        const { data: planSellers } = await adminClient
+          .from("profiles")
+          .select("id")
+          .in("vendor_plan_code", planCodes)
+          .gt("vendor_plan_expires_at", nowIso);
+        planSellerIds = (planSellers || []).map((r: any) => r.id);
+      }
+      const featuredSellerIds = [
+        ...new Set([...(boosted || []).map((r: any) => r.id), ...planSellerIds]),
+      ];
+
+      if (featuredSellerIds.length > 0) {
+        let fq = adminClient
+          .from("products")
+          .select(
+            `id, title, slug, short_description, unit_price, currency_code, stock_quantity, reserved_quantity, condition_label, category_id, created_at,
+             seller_id,
+             product_media!inner ( file_id, is_primary, files!inner ( file_url ) )`,
+          )
+          .eq("status", "published")
+          .eq("visibility_type", "public")
+          .eq("is_active", true)
+          .in("seller_id", featuredSellerIds);
+        if (search) fq = fq.or(`title.ilike.%${search}%,short_description.ilike.%${search}%`);
+        if (category) fq = fq.eq("category_id", category);
+        if (priceMin != null && !isNaN(priceMin)) fq = fq.gte("unit_price", priceMin);
+        if (priceMax != null && !isNaN(priceMax)) fq = fq.lte("unit_price", priceMax);
+
+        const { data: featuredProducts } = await fq
+          .order("created_at", { ascending: false })
+          .limit(FEATURED_SLOTS);
+
+        for (const fp of featuredProducts || []) {
+          featuredIds.add(fp.id);
+        }
+        if ((featuredProducts || []).length > 0) {
+          const existing = new Set((products || []).map((p: any) => p.id));
+          const prepend = (featuredProducts || []).filter((p: any) => !existing.has(p.id));
+          (products as any[]).unshift(...prepend);
+          // Keep the page size stable — featured items replace the tail.
+          if (products!.length > pageSize) (products as any[]).length = pageSize;
+        }
+        // Re-order so featured items lead the page.
+        (products as any[]).sort(
+          (a: any, b: any) => Number(featuredIds.has(b.id)) - Number(featuredIds.has(a.id)),
+        );
+      }
     }
 
     // Collect unique seller IDs
@@ -198,6 +266,7 @@ Deno.serve(async (req) => {
         condition_label: p.condition_label,
         category_id: p.category_id || null,
         primary_image_url: primaryImageUrl,
+        is_featured: featuredIds.has(p.id),
         seller: sellerMap[p.seller_id] || {
           id: p.seller_id,
           full_name: "Unknown Seller",

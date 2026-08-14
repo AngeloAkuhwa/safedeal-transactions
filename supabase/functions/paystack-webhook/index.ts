@@ -5,6 +5,7 @@ import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { koboToNaira } from "../_shared/money.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
 import { verifyChargeAgainstSnapshot } from "../_shared/payment-capture-guard.ts";
+import { isVendorPlanReference, captureVendorPlanPayment } from "../_shared/vendor-plan-capture.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,6 +95,15 @@ Deno.serve(async (req) => {
     }
 
     // 3. Process charge.success
+    // 3a. Vendor plan / sachet purchases ride the same Paystack account but
+    //     are NOT escrow payments — capture them separately and stop.
+    if (eventType === "charge.success" && isVendorPlanReference(providerReference)) {
+      const paidKobo = typeof payload.data?.amount === "number" ? payload.data.amount : null;
+      const result = await captureVendorPlanPayment(supabase as any, providerReference!, paidKobo);
+      await updateWebhookLog(supabase, providerReference, result.ok, `vendor plan capture: ${result.reason}`);
+      return new Response("OK", { status: 200 });
+    }
+
     if (eventType === "charge.success" && providerReference) {
       try {
         const now = new Date().toISOString();

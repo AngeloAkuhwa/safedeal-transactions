@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkShowcaseCapacity } from "../_shared/showcase-slots.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -183,6 +184,21 @@ async function handleCreate(adminClient: any, userId: string, body: any) {
       if ((ownedFiles?.length ?? 0) !== fileIds.length) {
         return jsonResponse({ error: "One or more media files are not yours.", code: "media_ownership" }, 403);
       }
+    }
+  }
+
+  // Showcase-slot enforcement (vendor plan). Authoritative, server-side.
+  const incomingImages = Array.isArray(file_ids)
+    ? file_ids.filter((f: any) => (typeof f === "object" ? (f.media_type ?? "image") : "image") === "image").length
+    : 0;
+  if (incomingImages > 0) {
+    const capacity = await checkShowcaseCapacity(adminClient, userId, incomingImages);
+    if (!capacity.allowed) {
+      return jsonResponse({
+        error: capacity.message,
+        code: "showcase_slot_limit",
+        showcase_slots: capacity.state,
+      }, 403);
     }
   }
 

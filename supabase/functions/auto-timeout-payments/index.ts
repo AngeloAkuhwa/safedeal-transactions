@@ -34,14 +34,25 @@ Deno.serve(async (req) => {
       if (result.ok) updated += 1;
     }
 
+    // Vendor plans that ran past their paid period fall back to the free
+    // Verified plan. Idempotent and safe to run on every pass.
+    let plans_downgraded = 0;
+    const { data: expired, error: expireErr } = await client.rpc("expire_vendor_plans", {});
+    if (expireErr) {
+      errors.push({ id: "expire_vendor_plans", reason: expireErr.message });
+    } else {
+      plans_downgraded = Number(expired ?? 0);
+    }
+
     await logRun(client, SERVICE, {
       records_found: ids.length,
       records_updated: updated,
+      vendor_plans_downgraded: plans_downgraded,
       errors: errors.length,
       cutoff_iso: cutoffIso,
     });
 
-    return jsonResponse({ ok: true, found: ids.length, updated, errors });
+    return jsonResponse({ ok: true, found: ids.length, updated, plans_downgraded, errors });
   } catch (e) {
     const msg = (e as Error)?.message ?? String(e);
     await logRun(client, SERVICE, { error: msg }, "error", `auto-timeout-payments fatal: ${msg}`);

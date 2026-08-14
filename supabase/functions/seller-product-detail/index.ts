@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkShowcaseCapacity } from "../_shared/showcase-slots.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -396,6 +397,27 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
 
   // Handle media updates
   if (Array.isArray(body.file_ids)) {
+    // Showcase-slot enforcement (vendor plan). The images already attached to
+    // THIS product are freed by the edit, so they don't count against the cap.
+    const incomingImages = body.file_ids.filter(
+      (f: any) => (typeof f === "object" ? (f.media_type ?? "image") : "image") === "image",
+    ).length;
+    const { count: currentImages } = await adminClient
+      .from("product_media")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", productId)
+      .eq("media_type", "image");
+    if (incomingImages > 0) {
+      const capacity = await checkShowcaseCapacity(adminClient, userId, incomingImages, currentImages ?? 0);
+      if (!capacity.allowed) {
+        return jsonResponse({
+          error: capacity.message,
+          code: "showcase_slot_limit",
+          showcase_slots: capacity.state,
+        }, 403);
+      }
+    }
+
     // Delete existing media
     await adminClient.from("product_media").delete().eq("product_id", productId);
 

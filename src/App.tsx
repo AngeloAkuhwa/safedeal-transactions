@@ -80,6 +80,7 @@ const AdminSupport = lazy(() => import("./pages/AdminSupport"));
 const LegalPrivacy = lazy(() => import("./pages/LegalPrivacy"));
 const LegalTerms = lazy(() => import("./pages/LegalTerms"));
 const LegalRefundPolicy = lazy(() => import("./pages/LegalRefundPolicy"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 const Contact = lazy(() => import("./pages/Contact"));
 const DeliveryConfirm = lazy(() => import("./pages/DeliveryConfirm"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -133,6 +134,7 @@ const App = () => (
             <Route path="/legal/privacy" element={<LegalPrivacy />} />
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/refund-policy" element={<LegalRefundPolicy />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/contact" element={<Contact />} />
 
             {/* Protected: requires session */}

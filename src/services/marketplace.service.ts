@@ -27,6 +27,8 @@ export interface MarketplaceProduct {
   condition_label: string | null;
   category_id: string | null;
   primary_image_url: string | null;
+  /** Paid featured placement (Growth plan or an active store boost). */
+  is_featured?: boolean;
   seller: MarketplaceSeller;
 }
 

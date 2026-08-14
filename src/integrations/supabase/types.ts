@@ -4341,6 +4341,8 @@ export type Database = {
           default_region_id: string | null
           default_role: Database["public"]["Enums"]["user_role_type"]
           email: string
+          extra_photo_slots: number
+          featured_until: string | null
           full_name: string
           id: string
           is_region_eligible: boolean
@@ -4351,6 +4353,9 @@ export type Database = {
           status: Database["public"]["Enums"]["profile_status"]
           store_slug: string | null
           updated_at: string
+          vendor_plan_code: string
+          vendor_plan_expires_at: string | null
+          vendor_plan_period: string | null
           vendor_status: Database["public"]["Enums"]["vendor_status_type"]
           vendor_status_changed_at: string | null
           vendor_status_changed_by: string | null
@@ -4364,6 +4369,8 @@ export type Database = {
           default_region_id?: string | null
           default_role?: Database["public"]["Enums"]["user_role_type"]
           email: string
+          extra_photo_slots?: number
+          featured_until?: string | null
           full_name: string
           id: string
           is_region_eligible?: boolean
@@ -4374,6 +4381,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
           updated_at?: string
+          vendor_plan_code?: string
+          vendor_plan_expires_at?: string | null
+          vendor_plan_period?: string | null
           vendor_status?: Database["public"]["Enums"]["vendor_status_type"]
           vendor_status_changed_at?: string | null
           vendor_status_changed_by?: string | null
@@ -4387,6 +4397,8 @@ export type Database = {
           default_region_id?: string | null
           default_role?: Database["public"]["Enums"]["user_role_type"]
           email?: string
+          extra_photo_slots?: number
+          featured_until?: string | null
           full_name?: string
           id?: string
           is_region_eligible?: boolean
@@ -4397,6 +4409,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
           updated_at?: string
+          vendor_plan_code?: string
+          vendor_plan_expires_at?: string | null
+          vendor_plan_period?: string | null
           vendor_status?: Database["public"]["Enums"]["vendor_status_type"]
           vendor_status_changed_at?: string | null
           vendor_status_changed_by?: string | null
@@ -4409,6 +4424,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "serviceable_regions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_vendor_plan_code_fkey"
+            columns: ["vendor_plan_code"]
+            isOneToOne: false
+            referencedRelation: "vendor_plans"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "profiles_vendor_status_changed_by_fkey"
@@ -6600,6 +6622,116 @@ export type Database = {
           },
         ]
       }
+      vendor_plan_purchases: {
+        Row: {
+          activated_at: string | null
+          amount_naira: number
+          billing_period: string
+          created_at: string
+          currency_code: string
+          expires_at: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          plan_code: string | null
+          provider: string
+          provider_reference: string
+          purchase_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          amount_naira: number
+          billing_period?: string
+          created_at?: string
+          currency_code?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          plan_code?: string | null
+          provider?: string
+          provider_reference: string
+          purchase_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          amount_naira?: number
+          billing_period?: string
+          created_at?: string
+          currency_code?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          plan_code?: string | null
+          provider?: string
+          provider_reference?: string
+          purchase_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_plan_purchases_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "vendor_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      vendor_plans: {
+        Row: {
+          code: string
+          created_at: string
+          escrow_fee_rate: number
+          featured_placement: boolean
+          is_active: boolean
+          monthly_price_naira: number
+          name: string
+          photo_slots: number
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+          yearly_price_naira: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          escrow_fee_rate?: number
+          featured_placement?: boolean
+          is_active?: boolean
+          monthly_price_naira?: number
+          name: string
+          photo_slots?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+          yearly_price_naira?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          escrow_fee_rate?: number
+          featured_placement?: boolean
+          is_active?: boolean
+          monthly_price_naira?: number
+          name?: string
+          photo_slots?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+          yearly_price_naira?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_dispute_summary_view: {
@@ -6860,6 +6992,10 @@ export type Database = {
     Functions: {
       acquire_job_lease: {
         Args: { p_holder?: string; p_job_name: string; p_ttl_seconds?: number }
+        Returns: Json
+      }
+      activate_vendor_purchase: {
+        Args: { _provider_reference: string }
         Returns: Json
       }
       admin_correct_pricing: {
@@ -7227,6 +7363,10 @@ export type Database = {
         }
         Returns: Json
       }
+      effective_vendor_plan_code: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       ensure_platform_fee_reversal: {
         Args: {
           p_actor_user_id: string
@@ -7266,6 +7406,7 @@ export type Database = {
         Returns: number
       }
       expire_stale_offers: { Args: never; Returns: number }
+      expire_vendor_plans: { Args: never; Returns: number }
       fail_payout_atomic: {
         Args: { p_max_retries?: number; p_payout_id: string; p_reason: string }
         Returns: Json
@@ -7645,6 +7786,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      vendor_photo_slot_limit: { Args: { _user_id: string }; Returns: number }
+      vendor_photo_slot_usage: { Args: { _user_id: string }; Returns: number }
       verify_reconcile_cron_secret: {
         Args: { p_secret: string }
         Returns: boolean

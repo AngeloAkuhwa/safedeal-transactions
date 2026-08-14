@@ -5,8 +5,12 @@
  * Accepts an optional `PricingConfigOverride` so per-vendor overrides from
  * `system_settings` (resolved via the `pricing-config` edge function and the
  * `useEffectivePricingConfig` hook) flow into checkout previews. When no
- * config is provided the platform defaults below are used, keeping legacy
- * callers unchanged.
+ * config is provided the platform defaults below are used.
+ *
+ * Fee generation G3 ("free forever, paid to grow"):
+ *   platform fee = min(max_platform_fee, platform_fee_rate × item + platform_fee_flat)
+ * Legacy tiered configs (G2) are still honoured when `tier_rates` is supplied
+ * without `platform_fee_rate`.
  */
 
 /**
@@ -20,27 +24,36 @@
  * charging an *identical* price beats charging a silently different one.
  * They MUST equal the seeded platform rows — enforced by
  * `src/__tests__/pricing-fallback-parity.contract.test.ts` and mirrored in
- * `supabase/functions/_shared/settings-resolver.ts` (DEFAULT_PRICING_CONFIG).
+ * `supabase/functions/_shared/pricing.ts` (DEFAULT_PRICING_CONFIG).
  * See docs/pricing-source-of-truth.md.
  */
 export const FALLBACK_PRICING_CONFIG: Required<PricingConfigOverride> = {
-  min_platform_fee: 250,
-  max_total_service_fee: 2500,
-  tier_rates: [
-    { upto: 100_000, rate: 0.039 },
-    { upto: 500_000, rate: 0.035 },
-    { upto: 2_000_000, rate: 0.029 },
-    { upto: null, rate: 0.025 },
-  ],
+  min_platform_fee: 0,
+  // Absolute guardrail only: platform cap (5,000) + Paystack local cap (2,000).
+  max_total_service_fee: 7000,
+  max_platform_fee: 5000,
+  platform_fee_rate: 0.02,
+  platform_fee_flat: 100,
+  tier_rates: [],
 };
 
 /** Derived aliases kept for existing call sites; no independent definition. */
 export const DEFAULT_MIN_PLATFORM_FEE = FALLBACK_PRICING_CONFIG.min_platform_fee;
 export const DEFAULT_MAX_TOTAL_FEE = FALLBACK_PRICING_CONFIG.max_total_service_fee;
+export const DEFAULT_PLATFORM_FEE_RATE = FALLBACK_PRICING_CONFIG.platform_fee_rate;
+export const DEFAULT_PLATFORM_FEE_FLAT = FALLBACK_PRICING_CONFIG.platform_fee_flat;
+export const DEFAULT_MAX_PLATFORM_FEE = FALLBACK_PRICING_CONFIG.max_platform_fee;
 
 export interface PricingConfigOverride {
   min_platform_fee?: number;
   max_total_service_fee?: number;
+  /** G3: hard ceiling on the SafeDeal platform fee (₦). */
+  max_platform_fee?: number;
+  /** G3: percentage component of the platform fee (e.g. 0.02). */
+  platform_fee_rate?: number;
+  /** G3: flat component of the platform fee (₦). */
+  platform_fee_flat?: number;
+  /** G2 (legacy): tiered all-in rate table. */
   tier_rates?: Array<{ upto: number | null; rate: number }>;
 }
 
@@ -71,6 +84,13 @@ function tierRate(itemAmount: number, tiers: Array<{ upto: number | null; rate: 
   return tiers[tiers.length - 1]?.rate ?? 0.025;
 }
 
+/** A config is legacy-tiered when it names tiers but no flat-model rate. */
+export function isLegacyTieredConfig(config?: PricingConfigOverride): boolean {
+  return Boolean(
+    config && config.platform_fee_rate == null && Array.isArray(config.tier_rates) && config.tier_rates.length > 0,
+  );
+}
+
 export function computePricing(
   itemAmount: number,
   currencyCode: string = "NGN",
@@ -78,7 +98,6 @@ export function computePricing(
 ): PricingResult {
   const minPlatformFee = config?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
   const maxTotalFee = config?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
-  const tiers = config?.tier_rates ?? FALLBACK_PRICING_CONFIG.tier_rates;
   if (itemAmount <= 0) {
     return {
       currency_code: currencyCode,
@@ -95,15 +114,27 @@ export function computePricing(
   }
 
   const paystackFee = computePaystackLocalFee(itemAmount);
-  const rate = tierRate(itemAmount, tiers);
 
-  const rawPlatformFee = Math.max(minPlatformFee, Math.round(itemAmount * rate) - paystackFee);
+  let rawPlatformFee: number;
+  let platformCapBound = false;
+  if (isLegacyTieredConfig(config)) {
+    const rate = tierRate(itemAmount, config!.tier_rates!);
+    rawPlatformFee = Math.max(minPlatformFee, Math.round(itemAmount * rate) - paystackFee);
+  } else {
+    const rate = config?.platform_fee_rate ?? FALLBACK_PRICING_CONFIG.platform_fee_rate;
+    const flat = config?.platform_fee_flat ?? FALLBACK_PRICING_CONFIG.platform_fee_flat;
+    const platformCap = config?.max_platform_fee ?? FALLBACK_PRICING_CONFIG.max_platform_fee;
+    const uncapped = Math.max(minPlatformFee, Math.round(itemAmount * rate) + flat);
+    platformCapBound = uncapped > platformCap;
+    rawPlatformFee = Math.min(uncapped, platformCap);
+  }
+
   const rawServiceFee = paystackFee + rawPlatformFee;
   const serviceFeeAmount = Math.min(rawServiceFee, maxTotalFee);
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
   const is_floored = rawPlatformFee === minPlatformFee;
-  const is_capped = rawServiceFee > maxTotalFee;
+  const is_capped = platformCapBound || rawServiceFee > maxTotalFee;
 
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
@@ -128,23 +159,38 @@ export interface FeeBreakdownInput {
 
 /**
  * Produce a plain-language description of how a fee was derived, computed
- * from the actual tier rate, cap and floor inputs used by `computePricing`
- * (never hardcoded prose about rates/amounts).
+ * from the actual rate, flat component, cap and floor inputs used by
+ * `computePricing` (never hardcoded prose about rates/amounts).
  */
 export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingResult): string {
-  const minPlatformFee = input.config?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
-  const maxTotalFee = input.config?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
-  const tiers = input.config?.tier_rates ?? FALLBACK_PRICING_CONFIG.tier_rates;
-  const rate = tierRate(input.itemAmount, tiers);
-  const ratePct = (rate * 100).toFixed(1);
+  const cfg = input.config;
+  const minPlatformFee = cfg?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
+  const maxTotalFee = cfg?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
+
+  if (isLegacyTieredConfig(cfg)) {
+    const rate = tierRate(input.itemAmount, cfg!.tier_rates!);
+    const ratePct = (rate * 100).toFixed(1);
+    if (result.is_capped) {
+      return `This order's fee was capped at the maximum service fee of ${maxTotalFee.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% tier rate would have produced a higher amount, so the cap applied instead.`;
+    }
+    if (result.is_floored) {
+      return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because the calculated fee for this order amount fell below it.`;
+    }
+    return `A ${ratePct}% service fee rate applies to orders of this size, giving a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}.`;
+  }
+
+  const rate = cfg?.platform_fee_rate ?? FALLBACK_PRICING_CONFIG.platform_fee_rate;
+  const flat = cfg?.platform_fee_flat ?? FALLBACK_PRICING_CONFIG.platform_fee_flat;
+  const platformCap = cfg?.max_platform_fee ?? FALLBACK_PRICING_CONFIG.max_platform_fee;
+  const ratePct = (rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 1);
 
   if (result.is_capped) {
-    return `This order's fee was capped at the maximum service fee of ${maxTotalFee.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% tier rate would have produced a higher amount, so the cap applied instead.`;
+    return `SafeDeal's fee on this order was capped at ${platformCap.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} fee would have been higher, so the cap applied instead.`;
   }
 
   if (result.is_floored) {
-    return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because the calculated fee for this order amount fell below it.`;
+    return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on this order amount came to less than it.`;
   }
 
-  return `A ${ratePct}% service fee rate applies to orders of this size, giving a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}.`;
+  return `SafeDeal charges ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}, plus the payment processing fee — a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code}.`;
 }

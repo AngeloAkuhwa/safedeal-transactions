@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
@@ -12,6 +12,7 @@ import { getSellerProducts, getProductCategories, updateProduct, archiveProduct,
 import { setStockQuantity } from "@/services/inventory.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
+import { useVendorPlan } from "@/hooks/useVendorPlan";
 
 function getVerificationLabel(level: string) {
   switch (level) {
@@ -31,6 +32,8 @@ function getVerificationDotColor(level: string) {
 
 const SellerStorefront = () => {
   const navigate = useNavigate();
+  // Showcase-slot usage (display only; the server enforces the cap).
+  const { state: planState } = useVendorPlan();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialStatusFilter = (() => {
@@ -157,6 +160,15 @@ const SellerStorefront = () => {
           <div className="lg:ml-0 ml-12">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
+            {planState && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {planState.showcase_slots.used} of {planState.showcase_slots.limit} showcase slots used
+                {planState.showcase_slots.remaining === 0 ? " — " : " · "}
+                <Link to="/seller/profile?section=plan" className="text-primary hover:underline">
+                  {planState.showcase_slots.remaining === 0 ? "Add slots or upgrade" : "Manage plan"}
+                </Link>
+              </p>
+            )}
           </div>
           <Button
             onClick={() => navigate("/seller/storefront/new")}
