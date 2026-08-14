@@ -74,3 +74,27 @@ export function methodNeedsPhone(method: string | null | undefined): boolean {
   const resolved = toTransactionDeliveryMethod(method);
   return resolved === "pickup" || resolved === "meetup" || resolved === "hand_delivery";
 }
+
+/**
+ * What the seller and buyer will actually coordinate over the phone, keyed on
+ * the LISTING vocabulary — not the enum. `digital` collapses onto the
+ * `hand_delivery` enum member, so keying this off the enum told buyers of a
+ * digital product that the seller would coordinate "hand delivery".
+ *
+ * Returns `null` for anything unrecognised: callers must omit the sentence
+ * rather than narrate a handoff shape they cannot name.
+ */
+const COORDINATION_NOUN: Record<ProductDeliveryMethod, string> = {
+  pickup: "pickup",
+  meetup: "the meetup",
+  hand_delivery: "hand delivery",
+  digital: "delivery of your digital item",
+  delivery: "delivery",
+  courier_shipping: "the shipment",
+};
+
+export function deliveryCoordinationNoun(method: string | null | undefined): string | null {
+  if (isProductDeliveryMethod(method)) return COORDINATION_NOUN[method];
+  if (isTransactionDeliveryMethod(method)) return COORDINATION_NOUN[method as ProductDeliveryMethod] ?? null;
+  return null;
+}

@@ -134,19 +134,26 @@ export function mapRiskLevel(input: {
   return { level, ...meta[level] };
 }
 
-/* ---- NGN currency formatter ---- */
-export function formatCurrencyNGN(amount: number | null | undefined, currency = "NGN"): string {
+/* ---- Money formatter ---- */
+/**
+ * `currency` is REQUIRED. It used to default to "NGN", which invented a
+ * currency at every call site that omitted it. Renders `—` when the amount is
+ * missing, and a bare number when the code is blank — never a guessed symbol.
+ */
+export function formatCurrencyNGN(amount: number | null | undefined, currency: string): string {
   if (amount === null || amount === undefined || Number.isNaN(Number(amount))) return "—";
   const n = Number(amount);
+  const code = (currency || "").trim().toUpperCase();
+  if (!code) return n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   try {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
-      currency: currency || "NGN",
+      currency: code,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(n);
   } catch {
-    return `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${code} ${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 

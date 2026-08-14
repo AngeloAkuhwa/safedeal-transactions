@@ -62,12 +62,67 @@ const CURRENCY_DEFAULT =
  */
 const CURRENCY_DEFINITION_FILES = new Set([
   "src/lib/pricing.ts",
-  "src/lib/payment/money-format.ts",
-  "src/services/vendor-plan.service.ts",
   "src/lib/settings-catalog.ts", // declares the platform default-currency setting
   "src/pages/SellerCreateTransaction.tsx", // currency PICKER options, not a default
   "supabase/functions/_shared/pricing.ts",
 ]);
+
+/**
+ * KNOWN DEBT — `"NGN"` defaults inside edge functions. `supabase/functions/`
+ * was previously excluded from this rule entirely, which is how the edge
+ * formatter kept its `currency = "NGN"` signature for fourteen rounds. Same
+ * shrink-only ratchet as the front-end list.
+ */
+const EDGE_CURRENCY_DEBT: string[] = [
+  "supabase/functions/_shared/financial-model.ts",
+  "supabase/functions/_shared/flagged-users-engine.ts",
+  "supabase/functions/_shared/flagged-users-sql.ts",
+  "supabase/functions/_shared/money-copy.ts",
+  "supabase/functions/_shared/orchestration.ts",
+  "supabase/functions/_shared/payment-capture-guard.ts",
+  "supabase/functions/_shared/paystack.ts",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/_shared/security-resolver.ts",
+  "supabase/functions/_shared/share-meta.ts",
+  "supabase/functions/_shared/users-directory-engine.ts",
+  "supabase/functions/_shared/users-directory-sql.ts",
+  "supabase/functions/admin-agent-performance/index.ts",
+  "supabase/functions/admin-dashboard/index.ts",
+  "supabase/functions/admin-disputes-queue/index.ts",
+  "supabase/functions/admin-export-transaction-data/index.ts",
+  "supabase/functions/admin-flagged-user-detail/index.ts",
+  "supabase/functions/admin-payouts-detail/index.ts",
+  "supabase/functions/admin-payouts-list/index.ts",
+  "supabase/functions/admin-payouts-summary/index.ts",
+  "supabase/functions/admin-transaction-detail/index.ts",
+  "supabase/functions/admin-transactions-monitor/index.ts",
+  "supabase/functions/buyer-dashboard/index.ts",
+  "supabase/functions/buyer-transactions/index.ts",
+  "supabase/functions/cart-checkout/index.ts",
+  "supabase/functions/claim-offer/index.ts",
+  "supabase/functions/create-transaction/index.ts",
+  "supabase/functions/dispute-detail/index.ts",
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/payout-watchdog/index.ts",
+  "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/reconcile-escrow/index.ts",
+  "supabase/functions/resolve-share-token/index.ts",
+  "supabase/functions/seller-analytics/index.ts",
+  "supabase/functions/seller-confirm-completion/index.ts",
+  "supabase/functions/seller-dashboard/index.ts",
+  "supabase/functions/seller-dispute-detail/index.ts",
+  "supabase/functions/seller-drafts/index.ts",
+  "supabase/functions/seller-payouts/index.ts",
+  "supabase/functions/seller-products/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/seller-transactions/index.ts",
+  "supabase/functions/transaction-agreement/index.ts",
+  "supabase/functions/transaction-detail/index.ts",
+  "supabase/functions/transaction-verify/index.ts",
+  "supabase/functions/update-payout-account/index.ts",
+  "supabase/functions/vendor-plan/index.ts",
+  "supabase/functions/verify-paystack-payment/index.ts",
+];
 
 /**
  * KNOWN DEBT — pre-existing `"NGN"` defaults, recorded rather than hidden.
@@ -82,7 +137,6 @@ const CURRENCY_DEBT = [
   "src/components/admin/payouts/PayoutsTable.tsx",
   "src/components/payment/SellerPayoutLine.tsx",
   "src/components/seller/SellerConfirmCompletionCard.tsx",
-  "src/lib/admin-mappers.ts",
   "src/pages/AdminDisputeDetail.tsx",
   "src/pages/AdminTransactionDetail.tsx",
   "src/pages/BuyerDisputeDetail.tsx",
@@ -131,6 +185,7 @@ const CURRENCY_POSITIONAL =
  * same rules as the lists above.
  */
 const POSITIONAL_DEBT = [
+
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
   "src/components/admin/dashboard/KpiCards.tsx",
   "src/components/admin/dashboard/RecentActivity.tsx",
@@ -182,31 +237,31 @@ describe("invented defaults", () => {
     expect(WINDOW_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
   });
 
-  it("never defaults a currency in front-end code", () => {
+  it("never defaults a currency, front end or edge function", () => {
     const offenders: string[] = [];
     const debtSeen = new Set<string>();
-    // Scope: the front end, where a wrong currency is shown to a person.
-    // Edge functions are tracked separately (see Limitations in the report).
-    for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
+    // Scope: the WHOLE tree. Edge-function notification and receipt copy
+    // renders to a person exactly like a component does.
+    for (const file of FILES) {
       const rel = relOf(file);
       if (CURRENCY_DEFINITION_FILES.has(rel)) continue;
       const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_DEFAULT)];
       if (hits.length === 0) continue;
-      if (CURRENCY_DEBT.includes(rel)) {
+      if (CURRENCY_DEBT.includes(rel) || EDGE_CURRENCY_DEBT.includes(rel)) {
         debtSeen.add(rel);
         continue;
       }
       for (const m of hits) offenders.push(`${rel}: ${m[0].trim()}`);
     }
     expect(offenders).toEqual([]);
-    expect(CURRENCY_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+    expect([...CURRENCY_DEBT, ...EDGE_CURRENCY_DEBT].filter((f) => !debtSeen.has(f))).toEqual([]);
   });
 
   it("never passes a currency literal positionally", () => {
     const offenders: string[] = [];
     const debtSeen = new Set<string>();
-    for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
+    for (const file of FILES) {
       const rel = relOf(file);
       const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_POSITIONAL)];
@@ -252,7 +307,6 @@ const CURRENCY_SYMBOL = /[₦£€]|(?<![\/\\\w])\$(?=\d)/g;
 const SYMBOL_DEFINITION_FILES = new Set([
   "src/lib/format.ts", // the single rendering authority
   "src/pages/SellerCreateTransaction.tsx", // currency picker options
-  "supabase/functions/_shared/format.ts", // the edge-side rendering authority
 ]);
 
 /**
@@ -271,7 +325,6 @@ const SYMBOL_DEBT: string[] = [
   "src/components/profile/AccountVerificationSection.tsx",
   "src/components/profile/EffectiveSettingsPanel.tsx",
   "src/components/profile/PayoutDestinationSection.tsx",
-  "src/lib/admin-mappers.ts",
   "src/lib/pricing-invariant.ts",
   "src/pages/AdminDisputes.tsx",
   "src/pages/AdminSettings.tsx",
@@ -293,7 +346,6 @@ const EDGE_SYMBOL_DEBT: string[] = [
   "supabase/functions/create-transaction/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
-  "supabase/functions/_shared/admin-mappers.ts",
   "supabase/functions/_shared/pricing-invariant.ts",
   "supabase/functions/_shared/security-resolver.ts",
   "supabase/functions/_shared/share-meta.ts",
@@ -330,6 +382,64 @@ describe("hardcoded currency symbols", () => {
       const src = fs.readFileSync(path.join(ROOT, f), "utf8");
       expect(src, f).not.toMatch(/function fmtCompact/);
       expect(src, f).toMatch(/formatMoneyCompactOrDash/);
+    }
+  });
+});
+
+/**
+ * EXEMPTION STALENESS RATCHET.
+ *
+ * The debt lists are shrink-only, but the *definition* allowlists had no such
+ * check — an entry there was permanent and invisible. That is precisely how
+ * `supabase/functions/_shared/format.ts` was added to `SYMBOL_DEFINITION_FILES`
+ * and thereby escaped every currency rule at once.
+ *
+ * A definition-file exemption is only legitimate while the file actually still
+ * contains the pattern it is exempted from. The moment it stops, the entry must
+ * be deleted.
+ */
+describe("exemption lists cannot rot", () => {
+  const exists = (rel: string) => fs.existsSync(path.join(ROOT, rel));
+
+  it("every SYMBOL_DEFINITION_FILES entry exists and still needs the exemption", () => {
+    const stale: string[] = [];
+    for (const rel of SYMBOL_DEFINITION_FILES) {
+      if (!exists(rel)) {
+        stale.push(`${rel}: file no longer exists`);
+        continue;
+      }
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8")));
+      if (![...src.matchAll(CURRENCY_SYMBOL)].length) {
+        stale.push(`${rel}: no longer contains a currency glyph — drop the exemption`);
+      }
+    }
+    expect(stale).toEqual([]);
+  });
+
+  it("every CURRENCY_DEFINITION_FILES entry exists and still needs the exemption", () => {
+    const stale: string[] = [];
+    for (const rel of CURRENCY_DEFINITION_FILES) {
+      if (!exists(rel)) {
+        stale.push(`${rel}: file no longer exists`);
+        continue;
+      }
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8")));
+      if (![...src.matchAll(CURRENCY_DEFAULT)].length) {
+        stale.push(`${rel}: no longer names a currency literal — drop the exemption`);
+      }
+    }
+    expect(stale).toEqual([]);
+  });
+
+  it("the edge formatter no longer defaults its currency", () => {
+    for (const rel of [
+      "supabase/functions/_shared/format.ts",
+      "supabase/functions/_shared/admin-mappers.ts",
+    ]) {
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8")));
+      expect(src, rel).not.toMatch(/currency\s*(?::\s*string\s*)?=\s*["'`]NGN["'`]/);
+      expect(SYMBOL_DEFINITION_FILES.has(rel), `${rel} must not be blanket-exempt`).toBe(false);
+      expect(CURRENCY_DEFINITION_FILES.has(rel), `${rel} must not be blanket-exempt`).toBe(false);
     }
   });
 });

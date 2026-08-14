@@ -148,6 +148,12 @@ const SellerPayouts = () => {
 
   const { seller, summary, payout_history, pagination, upcoming_releases, blocked_funds, payout_account } = data;
   const stuckPayouts = data.stuck_payouts ?? [];
+  /**
+   * Settlement window and the "stuck" threshold are SERVER facts. Restating
+   * them as literals here produced two different answers on one page.
+   */
+  const settlementCopy = payout_account?.typical_processing_time?.trim() || null;
+  const stuckHours = data.stuck_payout_threshold_hours ?? null;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -186,7 +192,10 @@ const SellerPayouts = () => {
             iconColor="text-warning"
             badgeLabel="Pending"
             badgeBg="bg-warning/10 text-warning"
-            tooltip="Money the buyer has released to you but that hasn't been deposited to your bank account yet. Usually settles in 1-3 business days."
+            tooltip={
+              "Money the buyer has released to you but that hasn't been deposited to your bank account yet." +
+              (settlementCopy ? ` Usually settles in ${settlementCopy}.` : "")
+            }
           />
           <SummaryCard
             label="Held in Escrow"
@@ -372,11 +381,14 @@ const SellerPayouts = () => {
                   <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-warning">
-                      {stuckPayouts.length} payout{stuckPayouts.length > 1 ? "s" : ""} pending bank transfer for over 24 hours
+                      {stuckPayouts.length} payout{stuckPayouts.length > 1 ? "s" : ""} pending bank transfer
+                      {stuckHours != null ? ` for over ${stuckHours} hours` : " longer than expected"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Contact support if not received in 1-3 business days.
-                    </p>
+                    {settlementCopy && (
+                      <p className="text-xs text-muted-foreground">
+                        Contact support if not received in {settlementCopy}.
+                      </p>
+                    )}
                     <ul className="text-xs text-muted-foreground space-y-0.5 mt-1.5">
                       {stuckPayouts.slice(0, 3).map((sp) => (
                         <li key={sp.payout_id_full} className="flex items-center justify-between gap-2">

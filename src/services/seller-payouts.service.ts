@@ -85,6 +85,10 @@ export interface SellerPayoutsResponse {
   upcoming_releases: UpcomingRelease[];
   blocked_funds: BlockedFund[];
   stuck_payouts: StuckPayout[];
+  /** Server-side definition of "stuck". UI copy must quote this, not a literal. */
+  stuck_payout_threshold_hours?: number | null;
+  /** Settlement window, as numbers, so no surface hardcodes the sentence. */
+  settlement_window?: { min_days: number; max_days: number } | null;
   payout_account: PayoutAccount;
 }
 

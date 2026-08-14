@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import { getPayoutPill, getPayoutCaption, getAccountPresentation } from "@/lib/payout-presentation";
@@ -262,14 +263,20 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                       {detail.pricing.total_charged != null ? formatMoney(detail.pricing.total_charged, detail.pricing.currency) : "—"}
                     </span>
                   } />
-                  <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoney(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
+                  <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
                   {detail.pricing.release_amount_mismatch && (
                     <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
                       <p className="text-amber-300 text-xs font-semibold">Release amount mismatch</p>
                       <p className="text-amber-200/80 text-[11px] mt-1">
-                        Agreement snapshot says {formatMoney(detail.pricing.seller_payout, detail.pricing.currency)} but the payout
-                        record holds {formatMoney(detail.pricing.recorded_payout_amount ?? 0, detail.pricing.currency)}. The snapshot
-                        is authoritative — reconcile before releasing.
+                        Agreement snapshot says{" "}
+                        {detail.pricing.seller_payout != null
+                          ? formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)
+                          : "an amount that is not recorded"}{" "}
+                        but the payout record holds{" "}
+                        {detail.pricing.recorded_payout_amount != null
+                          ? formatMoneyOrDash(detail.pricing.recorded_payout_amount, detail.pricing.currency)
+                          : "no recorded amount"}
+                        . The snapshot is authoritative — reconcile before releasing.
                       </p>
                     </div>
                   )}

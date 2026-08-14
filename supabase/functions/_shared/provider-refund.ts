@@ -68,7 +68,7 @@ export async function executeProviderRefund(
 
     const { data: tx } = await admin
       .from("transactions")
-      .select("id, buyer_id, seller_id, transaction_code")
+      .select("id, buyer_id, seller_id, transaction_code, currency_code")
       .eq("id", transactionId)
       .maybeSingle();
 
@@ -138,7 +138,7 @@ export async function executeProviderRefund(
         user_id: (tx as any).buyer_id,
         type: "payment_update",
         title: "Refund on the way",
-        message: `SafeDeal has initiated a refund of ${formatMoney(refundAmount)} for ${(tx as any).transaction_code}.`,
+        message: `SafeDeal has initiated a refund of ${formatMoney(refundAmount, String((tx as any)?.currency_code ?? ""))} for ${(tx as any).transaction_code}.`,
         related_transaction_id: transactionId,
       });
     }

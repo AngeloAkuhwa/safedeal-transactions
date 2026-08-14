@@ -287,7 +287,7 @@ export async function releasePayoutCore(
     event_data: {
       description: `SafeDeal initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
         Number((payout as any).amount),
-        (payout as any).currency_code ?? "NGN",
+        String((payout as any).currency_code ?? (tx as any).currency_code ?? ""),
       )}`,
       payout_id: (payout as any).id,
       reference,
@@ -302,7 +302,7 @@ export async function releasePayoutCore(
     title: "Payout on the way",
     message: `Your ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
       Number((payout as any).amount),
-      (payout as any).currency_code ?? "NGN",
+      String((payout as any).currency_code ?? (tx as any).currency_code ?? ""),
     )} for ${(tx as any).transaction_code} is on its way to your bank.`,
     related_transaction_id: transaction_id,
   });
