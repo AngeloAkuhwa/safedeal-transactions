@@ -53,14 +53,9 @@ const WINDOW_DEFAULT =
 const WINDOW_PARAM_DEFAULT =
   /\b(?:verification_window_hours|verificationWindowHours|windowHours)\s*(?::\s*number\s*)?=\s*(\d+)\b/g;
 
-/**
- * `?? "NGN"`, `|| "NGN"`, `currency = "NGN"`, `currency: "NGN"` — and, since
- * this pass, a POSITIONAL argument: `computePricing(0, "NGN", ...)`. The
- * positional form is how `resolve-share-token` kept inventing a currency while
- * appearing clean to the ratchet.
- */
+/** `?? "NGN"`, `|| "NGN"`, `currency = "NGN"`, `currency: "NGN"`. */
 const CURRENCY_DEFAULT =
-  /(?:\?\?|\|\||(?<![=!<>])=|:|\(|,)\s*["'`](NGN|USD|GBP|EUR)["'`]/g;
+  /(?:\?\?|\|\||(?<![=!<>])=|:)\s*["'`](NGN|USD|GBP|EUR)["'`]/g;
 /**
  * Modules allowed to name a currency literally: they DEFINE the platform's
  * default currency or a provider's fixed settlement currency.
