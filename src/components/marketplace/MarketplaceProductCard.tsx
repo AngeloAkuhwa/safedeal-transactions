@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { MarketplaceProduct } from "@/services/marketplace.service";
 import { getAvailableQuantity } from "@/lib/inventory";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
+import { ProductImage } from "@/components/common/ProductImage";
 
 interface Props {
   product: MarketplaceProduct;
@@ -78,14 +79,15 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
         {/* Image */}
         <div className="relative aspect-square overflow-hidden bg-muted">
           {product.primary_image_url ? (
-            <img
-              src={product.primary_image_url}
+            <ProductImage
+              url={product.primary_image_url}
               alt={product.title}
+              rendition="card"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
               className={cn(
-                "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+                "transition-transform duration-300 group-hover:scale-105",
                 outOfStock && "grayscale"
               )}
-              loading="lazy"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

@@ -6,6 +6,7 @@ import {
 import { formatMoney } from "@/lib/format";
 import { getAvailableQuantity } from "@/lib/inventory";
 import {
+import { ProductImage } from "@/components/common/ProductImage";
   resolveProductStatusLabel,
   TONE_CLASSNAMES,
 } from "@/lib/status-labels";
@@ -73,11 +74,12 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
       {/* Image */}
       <div className="relative h-56 overflow-hidden bg-muted">
         {product.primary_image_url ? (
-          <img
-            src={product.primary_image_url}
+          <ProductImage
+            url={product.primary_image_url}
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
+            rendition="card"
+            sizes="(max-width: 640px) 100vw, 360px"
+            className="group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

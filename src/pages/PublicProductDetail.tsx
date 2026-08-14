@@ -25,6 +25,7 @@ import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
+import { ProductImage } from "@/components/common/ProductImage";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -295,10 +296,12 @@ const PublicProductDetail = () => {
         <div className="space-y-3">
           <div className={`${glassPanel} overflow-hidden aspect-square`}>
             {currentImage && !imgError ? (
-              <img
-                src={currentImage}
+              <ProductImage
+                url={currentImage}
                 alt={product.title}
-                className="w-full h-full object-cover"
+                rendition="zoom"
+                sizes="(max-width: 1024px) 100vw, 600px"
+                loading="eager"
                 onError={() => setImgError(true)}
               />
             ) : (
@@ -317,7 +320,7 @@ const PublicProductDetail = () => {
                     idx === selectedImage ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <img src={img.file_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <ProductImage url={img.file_url} alt="" rendition="thumb" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </button>
               ))}
               
