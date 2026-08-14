@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
+import { DEFAULT_MAX_TOTAL_FEE } from "@/lib/pricing";
 
 interface TransactionSuccessProps {
   publishedUrl: string;
@@ -180,7 +181,7 @@ export function TransactionSuccess({
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                   {FEE_NAME} ({feePercent}%)
-                  {pricing && pricing.service_fee_amount >= 2000 && (
+                  {pricing && pricing.service_fee_amount >= DEFAULT_MAX_TOTAL_FEE && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">capped</Badge>
                   )}
                 </span>

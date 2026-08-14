@@ -1,13 +1,16 @@
 import { PlusCircle, Store, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface SellerDashboardHeroProps {
   sellerName: string;
-  verificationLabel?: string;
+  /** Verification chrome renders only for a genuinely identity-verified seller. */
+  identityVerified?: boolean;
 }
 
-export function SellerDashboardHero({ sellerName, verificationLabel }: SellerDashboardHeroProps) {
+export function SellerDashboardHero({ sellerName, identityVerified }: SellerDashboardHeroProps) {
+  const verificationClaim = resolveClaim("SELLER_VERIFIED", { identityVerified });
   const navigate = useNavigate();
   const firstName = sellerName.split(" ")[0] || "Seller";
 
@@ -19,10 +22,10 @@ export function SellerDashboardHero({ sellerName, verificationLabel }: SellerDas
             <div className="flex items-center gap-1.5 mb-0.5">
               <Store className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Seller Dashboard</span>
-              {verificationLabel && (
+              {verificationClaim && (
                 <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full text-[10px] font-semibold bg-success/10 text-success">
                   <ShieldCheck className="h-2.5 w-2.5" />
-                  {verificationLabel}
+                  {verificationClaim}
                 </span>
               )}
             </div>

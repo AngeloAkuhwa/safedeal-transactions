@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { VerificationStatus, BuyerPermissions, VerificationLevel } from "@/services/profile.service";
 import { formatMoney } from "@/lib/format";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
   verification: VerificationStatus;
@@ -142,7 +142,7 @@ export function AccountVerificationSection({
     },
     {
       key: "phone",
-      label: TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text,
+      label: resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified: verification.phone_verified }) ?? "Phone number",
       icon: Phone,
       verified: verification.phone_verified,
       description: verification.phone_verified ? "Verified" : "Required for protected transactions",

@@ -1,6 +1,6 @@
 import { Mail, Phone, ShieldCheck, Info, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface BuyerTrustSignals {
   emailVerified?: boolean;
@@ -19,12 +19,14 @@ interface Props {
 export function BuyerTrustBadges({ signals, compact }: Props) {
   const badges = [];
 
+  // Email / phone confirmation is a contactability signal, not a trust claim:
+  // neutral styling, no shield, no "verified" wording.
   if (signals.emailVerified) {
     badges.push({
       key: "email",
       icon: Mail,
-      label: "Email Verified",
-      className: "bg-success/10 text-success border-success/20",
+      label: "Email confirmed",
+      className: "bg-muted text-muted-foreground border-border",
     });
   }
 
@@ -32,12 +34,13 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
     badges.push({
       key: "phone",
       icon: Phone,
-      label: TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text,
-      className: "bg-success/10 text-success border-success/20",
+      label: "Phone confirmed",
+      className: "bg-muted text-muted-foreground border-border",
     });
   }
 
-  if (signals.identityVerified) {
+  const identityClaim = resolveClaim("SELLER_ID_VERIFIED", { identityVerified: signals.identityVerified });
+  if (identityClaim) {
     badges.push({
       key: "identity",
       icon: ShieldCheck,
@@ -50,17 +53,6 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
       icon: Clock,
       label: "Identity Pending Review",
       className: "bg-warning/10 text-warning border-warning/20",
-    });
-  }
-
-  if (signals.verificationLevel === "basic_verified" || signals.verificationLevel === "trusted_buyer" || signals.verificationLevel === "high_trust_buyer") {
-    badges.push({
-      key: "verified_buyer",
-      icon: ShieldCheck,
-      label: signals.verificationLevel === "trusted_buyer" ? "Trusted Buyer" : "Basic Verified Buyer",
-      className: signals.verificationLevel === "trusted_buyer"
-        ? "bg-primary/10 text-primary border-primary/20"
-        : "bg-success/10 text-success border-success/20",
     });
   }
 

@@ -17,7 +17,7 @@ import { createStorefrontTransaction } from "@/services/storefront-checkout.serv
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
-import { TRUST_CLAIMS, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
+import { alwaysClaim, resolveClaim, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -252,7 +252,7 @@ const StorefrontCheckout = () => {
                   <h3 className="font-semibold text-foreground">{seller.full_name}</h3>
                    {sellerClaim && (
                      <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20">
-                       {sellerClaim.text}
+                       {sellerClaim}
                     </Badge>
                   )}
                 </div>
@@ -337,13 +337,12 @@ const StorefrontCheckout = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
                   <ShieldCheck className="h-3 w-3" />
-                  {TRUST_CLAIMS.ESCROW_PROTECTED.text}
+                  {alwaysClaim("ESCROW_PROTECTED")}
                 </Badge>
                 <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 gap-1">
                   <MapPin className="h-3 w-3" />
-                  {isTrackedDelivery(activeMethod)
-                    ? TRUST_CLAIMS.DELIVERY_TRACKED.text
-                    : TRUST_CLAIMS.DELIVERY_CODE_CONFIRMED.text}
+                  {resolveClaim("DELIVERY_TRACKED", { deliveryMethod: activeMethod })
+                    ?? resolveClaim("DELIVERY_CODE_CONFIRMED", { deliveryMethod: activeMethod })}
                 </Badge>
               </div>
             </div>

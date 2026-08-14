@@ -10,7 +10,7 @@ import {
   Headphones, Eye, RotateCcw, Check as CheckIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
+import { alwaysClaim, resolveClaim, isTrackedDelivery } from "@/lib/trust/trust-claims";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
@@ -553,7 +553,7 @@ export default function BuyerPaymentSummary() {
                   },
                   {
                     step: 4,
-                    title: courierTracked ? TRUST_CLAIMS.DELIVERY_TRACKED.text : "Delivery updates",
+                    title: resolveClaim("DELIVERY_TRACKED", { deliveryMethod: courierTracked ? "courier" : null }) ?? "Delivery updates",
                     desc: courierTracked
                       ? `Courier details are required. After delivery, you have ${verificationHours} hours to inspect the item.`
                       : `Follow the selected handover terms. After delivery, you have ${verificationHours} hours to inspect the item.`,
@@ -669,7 +669,7 @@ export default function BuyerPaymentSummary() {
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
                     {/* Pre-payment screen: future tense only — nothing is in escrow yet. */}
-                    <p className="text-sm font-bold text-foreground mb-1">{TRUST_CLAIMS.PAYMENT_WILL_BE_ESCROWED.text}</p>
+                    <p className="text-sm font-bold text-foreground mb-1">{alwaysClaim("PAYMENT_WILL_BE_ESCROWED")}</p>
                     <p className="text-xs text-muted-foreground">Once you pay, SafeDeal holds the money until you confirm the item has been received and matches the agreement. If something goes wrong, you can open a dispute and SafeDeal will review the case.</p>
                   </div>
                 </div>
@@ -932,8 +932,8 @@ export default function BuyerPaymentSummary() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">{data.seller.full_name}</p>
-                      {data.sellerVerification?.identity_verified && (
-                        <p className="text-xs text-muted-foreground">{TRUST_CLAIMS.SELLER_ID_VERIFIED.text}</p>
+                      {resolveClaim("SELLER_ID_VERIFIED", { identityVerified: data.sellerVerification?.identity_verified }) && (
+                        <p className="text-xs text-muted-foreground">{resolveClaim("SELLER_ID_VERIFIED", { identityVerified: data.sellerVerification?.identity_verified })}</p>
                       )}
                     </div>
                   </div>
