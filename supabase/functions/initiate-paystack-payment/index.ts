@@ -240,8 +240,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Gate 4: Concurrent active transaction cap
-    const maxConcurrent = CONCURRENT_BY_LEVEL[level] ?? 0;
+    // Gate 4: Concurrent active transaction cap.
+    // Same shape as the limit lookup above: an unrecognised level is a data
+    // fault, refused explicitly rather than silently collapsed to a 0 cap.
+    if (!Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level)) {
+      return jsonErr("verification_level_unknown", 409);
+    }
+    const maxConcurrent = CONCURRENT_BY_LEVEL[level];
     const { count: activeCount } = await supabase
       .from("transactions")
       .select("id", { count: "exact", head: true })
