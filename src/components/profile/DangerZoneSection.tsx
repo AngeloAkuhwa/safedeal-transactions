@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+import { supportLink } from "@/lib/support/support-copy";
 import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
