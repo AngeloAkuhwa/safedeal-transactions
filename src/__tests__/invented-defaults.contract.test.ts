@@ -174,7 +174,7 @@ const WINDOW_DEBT = [
  * escrow balances survived the previous pass.
  */
 const CURRENCY_POSITIONAL =
-  /\bformatMoney(?:Compact|Delta|OrDash)?\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
+  /\b(?:formatMoney(?:Compact|Delta|OrDash)?|computePricing|buildPricingSnapshot|toMinorUnits|fromMinorUnits)\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
 
 /**
  * KNOWN DEBT — pre-existing positional `"NGN"` arguments. Shrink-only ratchet,
