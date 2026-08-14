@@ -1,5 +1,6 @@
 import { Bell, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 
 export function TaskOrchestrationHeader({
@@ -24,14 +25,14 @@ export function TaskOrchestrationHeader({
               {autoAssignActive ? "Active" : "Off"}
             </span>
           </div>
-          <button
-            type="button"
+          <Link
+            to="/admin/notifications"
             className="relative hidden h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
             {unread > 0 && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-400" />}
-          </button>
+          </Link>
           <Button onClick={onExport} size="sm" className="rounded-full">
             <Download className="mr-2 h-4 w-4" /> Export Report
           </Button>
