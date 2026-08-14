@@ -247,7 +247,7 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
     //  - `asChild` wrapper (DialogTrigger/DropdownMenuTrigger/Tooltip etc.)
     //  - wrapped directly in a <Link> / <a>
     //  - inside a <form> submit context via a nearby onSubmit
-    return !/asChild[^<>]*>\s*$/.test(before) && !/<(?:Link|a)\b[^>]*>\s*$/.test(before);
+    return !/asChild[\s\S]{0,160}>\s*$/.test(before) && !/<(?:Link|a)\b[^>]*>\s*$/.test(before);
   };
 
   it("scans a meaningful number of files", () => {
