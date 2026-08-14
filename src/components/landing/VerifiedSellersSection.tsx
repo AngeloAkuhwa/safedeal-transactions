@@ -54,6 +54,9 @@ export function VerifiedSellersSection() {
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             If your customers find you in DMs, SafeDeal gives both sides a safe way to close the deal.
           </p>
+          <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-foreground">
+            Your own store link, free forever — we only earn when you get paid.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
