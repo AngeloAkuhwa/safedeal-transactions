@@ -788,7 +788,7 @@ export type Database = {
         Insert: {
           condition_summary?: string | null
           created_at?: string
-          currency_code?: string
+          currency_code: string
           id?: string
           offer_id: string
           position?: number
@@ -1050,7 +1050,7 @@ export type Database = {
         Insert: {
           buyer_id: string
           created_at?: string
-          currency_code?: string
+          currency_code: string
           id?: string
           payment_reference?: string | null
           status?: string
@@ -4298,7 +4298,7 @@ export type Database = {
           category_id?: string | null
           condition_label?: string | null
           created_at?: string
-          currency_code?: string
+          currency_code: string
           delivery_method?: string | null
           delivery_scope?: string | null
           description: string
@@ -6700,7 +6700,7 @@ export type Database = {
           amount_naira: number
           billing_period?: string
           created_at?: string
-          currency_code?: string
+          currency_code: string
           expires_at?: string | null
           id?: string
           metadata?: Json
