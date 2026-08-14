@@ -1075,6 +1075,7 @@ export type Database = {
       }
       contact_messages: {
         Row: {
+          admin_reply: string | null
           created_at: string
           email: string
           full_name: string
@@ -1082,12 +1083,16 @@ export type Database = {
           handled_by: string | null
           id: string
           message: string
+          replied_at: string | null
+          replied_by: string | null
+          reply_channel: string | null
           status: string
           topic: string
           transaction_reference: string | null
           user_id: string | null
         }
         Insert: {
+          admin_reply?: string | null
           created_at?: string
           email: string
           full_name: string
@@ -1095,12 +1100,16 @@ export type Database = {
           handled_by?: string | null
           id?: string
           message: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_channel?: string | null
           status?: string
           topic?: string
           transaction_reference?: string | null
           user_id?: string | null
         }
         Update: {
+          admin_reply?: string | null
           created_at?: string
           email?: string
           full_name?: string
@@ -1108,6 +1117,9 @@ export type Database = {
           handled_by?: string | null
           id?: string
           message?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_channel?: string | null
           status?: string
           topic?: string
           transaction_reference?: string | null

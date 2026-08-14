@@ -26,6 +26,36 @@ const TOPICS = new Set([
 const clean = (v: unknown, max: number) =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
 
+/** Sends the acknowledgement email. Returns true only when it actually left. */
+async function sendAcknowledgement(to: string, name: string, reference: string | null) {
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) return false;
+  const from = Deno.env.get("RESEND_FROM_EMAIL") || "SafeDeal <onboarding@resend.dev>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: "We received your SafeDeal support message",
+        html: `<p>Hi ${name},</p>
+<p>We have your message${reference ? ` about <strong>${reference}</strong>` : ""}. A support agent replies within 1 business day (Monday to Friday, 9am – 5pm WAT).</p>
+<p>If money is still held in escrow on a transaction, open a dispute from the transaction itself — that freezes the funds while the case is reviewed.</p>
+<p>— SafeDeal Support</p>`,
+      }),
+    });
+    if (!res.ok) {
+      console.error("[submit-contact-message] resend failed", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[submit-contact-message] resend threw", err);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -91,7 +121,9 @@ Deno.serve(async (req) => {
     });
     if (alertErr) console.error("[submit-contact-message] alert failed", alertErr.message);
 
-    return json({ ok: true, id: inserted.id, notified: !alertErr });
+    const acknowledged = await sendAcknowledgement(email, full_name, transaction_reference);
+
+    return json({ ok: true, id: inserted.id, notified: !alertErr, acknowledged });
   } catch (e) {
     console.error("[submit-contact-message] unexpected", e);
     return json({ error: "Unexpected error" }, 500);

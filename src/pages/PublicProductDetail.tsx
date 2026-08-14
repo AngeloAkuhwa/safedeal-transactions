@@ -354,10 +354,14 @@ const PublicProductDetail = () => {
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span className="text-xs font-medium text-foreground">Escrow Protected</span>
               </div>
-              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs font-medium text-foreground">Verified Seller</span>
-              </div>
+              {(seller.identity_verified || seller.email_verified) && (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">
+                    {seller.identity_verified ? "ID Verified Seller" : "Verified Seller"}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                 <Truck className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-xs font-medium text-foreground">Delivery Support</span>
