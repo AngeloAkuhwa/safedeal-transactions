@@ -91,7 +91,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-disputes-queue/index.ts",
   "supabase/functions/admin-export-transaction-data/index.ts",
   "supabase/functions/admin-flagged-user-detail/index.ts",
-  "supabase/functions/admin-payouts-detail/index.ts",
   "supabase/functions/admin-payouts-list/index.ts",
   "supabase/functions/admin-payouts-summary/index.ts",
   "supabase/functions/admin-transaction-detail/index.ts",
