@@ -67,11 +67,16 @@ Deno.serve(async (req) => {
     itemTitle = prod?.title ?? null;
   }
 
-  const MAX_PROTECTION_FEE = 2500;
   const hasPricing = !!pricing;
   const itemTotal = hasPricing && pricing!.item_amount != null ? Number(pricing!.item_amount) : null;
-  const rawProtection = hasPricing && pricing!.platform_fee_amount != null ? Number(pricing!.platform_fee_amount) : null;
-  const protectionFee = rawProtection != null ? Math.min(rawProtection, MAX_PROTECTION_FEE) : null;
+  // The protection fee was already charged and frozen into the snapshot. We
+  // display it verbatim — re-capping a charged amount from a duplicated
+  // constant would show the admin a figure the buyer never paid.
+  const protectionFee = hasPricing && pricing!.platform_fee_amount != null
+    ? Number(pricing!.platform_fee_amount)
+    : null;
+  // Cap facts come from the snapshot flag only, never re-derived.
+  const protectionFeeCapped = hasPricing ? pricing!.is_total_service_fee_capped === true : false;
   const paymentProcessingFee = hasPricing && pricing!.payment_processing_fee_amount != null
     ? Number(pricing!.payment_processing_fee_amount)
     : null;
@@ -86,10 +91,14 @@ Deno.serve(async (req) => {
   const snapshotSellerPayout = hasPricing && pricing!.seller_payout_amount != null
     ? Number(pricing!.seller_payout_amount)
     : null;
-  const recordedPayoutAmount = Number(payout.amount ?? 0);
-  const sellerPayout = snapshotSellerPayout ?? recordedPayoutAmount;
+  // No snapshot => no canonical release figure. Substituting the payout
+  // record's own amount would make a mismatch undetectable exactly when the
+  // evidence is missing.
+  const recordedPayoutAmount = payout.amount != null ? Number(payout.amount) : null;
+  const sellerPayout = snapshotSellerPayout;
   const releaseAmountMismatch =
     snapshotSellerPayout != null &&
+    recordedPayoutAmount != null &&
     Math.abs(snapshotSellerPayout - recordedPayoutAmount) > 0.005;
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
