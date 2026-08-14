@@ -117,3 +117,18 @@ export function monthsFreeOnYearly(plan: VendorPlan): number {
   const months = plan.yearly_price_naira / plan.monthly_price_naira;
   return Math.max(0, Math.round(12 - months));
 }
+
+/**
+ * Public plan catalogue for the marketing /pricing page (no auth required).
+ * Reads the same `vendor_plans` table the edge function charges from, so the
+ * page can never drift from what a seller is actually billed.
+ */
+export async function getPublicVendorPlans(): Promise<VendorPlan[]> {
+  const { data, error } = await supabase
+    .from("vendor_plans")
+    .select("code, name, tagline, monthly_price_naira, yearly_price_naira, photo_slots, escrow_fee_rate, featured_placement, sort_order")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as VendorPlan[];
+}
