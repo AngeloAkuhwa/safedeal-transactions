@@ -59,7 +59,9 @@ describe("delivery method vocabulary", () => {
       if (!MAP_KEYS.test(src)) continue;
       for (const m of src.matchAll(COMPARISON)) {
         const [, operand, literal] = m;
-        if (!/method/i.test(operand)) continue;
+        // Only delivery-method operands: payment methods, verification
+        // methods and typeof checks have their own vocabularies.
+        if (!/deliver|shipp|fulfil/i.test(operand)) continue;
         if (!VOCAB.has(literal)) {
           offenders.push(`${path.relative(ROOT, file)}: ${operand} === "${literal}"`);
         }
