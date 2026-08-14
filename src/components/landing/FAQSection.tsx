@@ -69,7 +69,7 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
 
 export function FAQSection() {
   return (
-    <section id="faq" className="bg-background py-12 sm:py-16">
+    <section id="faq" className="bg-background py-8 sm:py-12 lg:py-16">
       <div className="container-x mx-auto max-w-4xl">
         <div className="mb-5 text-center sm:mb-7">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">

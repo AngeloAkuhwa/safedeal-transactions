@@ -4,7 +4,7 @@ import { AnimatedTransactionCard } from "./AnimatedTransactionCard";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-12 sm:py-16">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-8 sm:py-12 lg:py-16">
       {/* Decorative blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute -top-10 left-0 h-44 w-44 rounded-full bg-primary/15 blur-3xl" />
@@ -35,7 +35,7 @@ export function HeroSection() {
               <Link
                 to="/auth?role=seller"
                 style={{ minHeight: "48px" }}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg sm:w-auto"
+                className="tap-press inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg sm:w-auto"
               >
                 <Store className="h-5 w-5" />
                 <span>Open your free store</span>

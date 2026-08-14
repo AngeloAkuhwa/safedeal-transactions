@@ -12,7 +12,7 @@ export function CTASection() {
   const ref = useScrollReveal<HTMLDivElement>();
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-12 sm:py-16">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-8 sm:py-12 lg:py-16">
       {/* Subtle animated gradient drift */}
       <style>{`
         @keyframes sd-cta-drift {
@@ -53,24 +53,24 @@ export function CTASection() {
           Browse protected listings or create your own deal in minutes.
         </p>
 
-        <div className="mb-6 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+        <div className="mb-6 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
           <Link
             to="/marketplace"
-            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-background px-4 py-2.5 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
+            className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-background px-4 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:h-11 sm:w-auto"
           >
             <Store className="h-4 w-4" />
             Browse Marketplace
           </Link>
           <Link
             to="/auth?role=seller"
-            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-bold text-success-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-success/90 hover:shadow-xl sm:text-sm"
+            className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-success px-4 text-sm font-bold text-success-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-success/90 hover:shadow-xl sm:h-11 sm:w-auto"
           >
             <Shield className="h-4 w-4" />
             Start Selling
           </Link>
           <Link
             to="/auth?role=seller&intent=create-transaction"
-            className="tap-target col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary-foreground/40 bg-primary-foreground/10 px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/20 sm:col-span-1 sm:text-sm"
+            className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-foreground/40 bg-primary-foreground/10 px-4 text-sm font-bold text-primary-foreground shadow-lg backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/20 sm:h-11 sm:w-auto"
           >
             <Handshake className="h-4 w-4" />
             Create Protected Transaction
