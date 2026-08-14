@@ -12,7 +12,7 @@ export function CTASection() {
   const ref = useScrollReveal<HTMLDivElement>();
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-10 sm:py-12">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-12 sm:py-16">
       {/* Subtle animated gradient drift */}
       <style>{`
         @keyframes sd-cta-drift {
@@ -41,7 +41,7 @@ export function CTASection() {
       <div ref={ref} className="container-x relative mx-auto max-w-4xl text-center">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1 backdrop-blur">
           <Rocket className="h-3.5 w-3.5 text-primary-foreground" />
-          <span className="text-[11px] font-semibold text-primary-foreground sm:text-xs">
+          <span className="text-xs font-semibold text-primary-foreground">
             Get Started Today
           </span>
         </div>
@@ -56,21 +56,21 @@ export function CTASection() {
         <div className="mb-6 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
           <Link
             to="/marketplace"
-            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-background px-4 py-2.5 text-[13px] font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
+            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-background px-4 py-2.5 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
           >
             <Store className="h-4 w-4" />
             Browse Marketplace
           </Link>
           <Link
             to="/auth?role=seller"
-            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-2.5 text-[13px] font-bold text-success-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-success/90 hover:shadow-xl sm:text-sm"
+            className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-bold text-success-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-success/90 hover:shadow-xl sm:text-sm"
           >
             <Shield className="h-4 w-4" />
             Start Selling
           </Link>
           <Link
             to="/auth?role=seller&intent=create-transaction"
-            className="tap-target col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary-foreground/40 bg-primary-foreground/10 px-4 py-2.5 text-[13px] font-bold text-primary-foreground shadow-lg backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/20 sm:col-span-1 sm:text-sm"
+            className="tap-target col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary-foreground/40 bg-primary-foreground/10 px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/20 sm:col-span-1 sm:text-sm"
           >
             <Handshake className="h-4 w-4" />
             Create Protected Transaction
@@ -81,7 +81,7 @@ export function CTASection() {
           {trustStats.map((stat, i) => (
             <ChipReveal key={stat.label} index={i}>
               <stat.icon className="h-4 w-4 shrink-0 text-primary-foreground" />
-              <span className="text-[11px] font-semibold text-primary-foreground sm:text-xs">
+              <span className="text-xs font-semibold text-primary-foreground">
                 {stat.label}
               </span>
             </ChipReveal>

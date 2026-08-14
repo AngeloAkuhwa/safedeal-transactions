@@ -27,11 +27,11 @@ export function FeaturedDealsSection() {
   const ref = useScrollReveal<HTMLDivElement>();
 
   return (
-    <section id="protected-deal" className="bg-background py-10 sm:py-12 lg:py-14">
+    <section id="protected-deal" className="bg-background py-12 sm:py-16">
       <div className="container-x mx-auto max-w-4xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
-            <Shield className="h-3.5 w-3.5 text-success" />
+            <Shield className="h-4 w-4 text-success" />
             <span className="text-xs font-semibold text-success">Escrow in action</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">See a protected deal happen</h2>
