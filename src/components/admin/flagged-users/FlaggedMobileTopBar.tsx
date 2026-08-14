@@ -1,4 +1,4 @@
-import { Menu, Flag, ShieldAlert } from "lucide-react";
+import { Menu, Flag } from "lucide-react";
 
 interface Props {
   onOpenMenu: () => void;
@@ -25,9 +25,6 @@ export function FlaggedMobileTopBar({ onOpenMenu, activeFlags }: Props) {
             </div>
           </div>
         </div>
-        <button type="button" className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-lg shadow-lg shadow-red-600/20" aria-label="Fraud detection">
-          <ShieldAlert className="h-4 w-4" />
-        </button>
       </div>
     </header>
   );
