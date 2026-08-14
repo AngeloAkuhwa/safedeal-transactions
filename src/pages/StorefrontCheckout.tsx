@@ -347,7 +347,7 @@ const StorefrontCheckout = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
                   <ShieldCheck className="h-3 w-3" />
-                  Insured Delivery
+                  Protected Delivery
                 </Badge>
                 <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 gap-1">
                   <MapPin className="h-3 w-3" />
