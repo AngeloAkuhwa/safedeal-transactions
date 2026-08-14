@@ -234,3 +234,35 @@ export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingRe
 
   return `SafeDeal charges ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}, plus the payment processing fee — a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code}.`;
 }
+
+/**
+ * Narrate a fee using ONLY the persisted snapshot's own numbers.
+ *
+ * `describeFeeBreakdown` reads rates from the caller's config and falls back to
+ * `FALLBACK_PRICING_CONFIG` when none is supplied — which tells a buyer on a
+ * 1.5% vendor plan that they were charged 2%. This variant states the rate that
+ * was actually applied to this order (service fee ÷ item amount) and never
+ * consults live configuration.
+ */
+export function describeChargedFee(input: {
+  itemAmount: number;
+  serviceFeeAmount: number;
+  serviceFeeRate: number;
+  currencyCode: string;
+  isCapped: boolean;
+  appliedCapAmount: number | null;
+  cappedBy: "safedeal_fee" | "total_service_fee" | null;
+}): string {
+  const money = (n: number) => `${n.toLocaleString()} ${input.currencyCode}`;
+  const ratePct = (input.serviceFeeRate * 100).toFixed(2).replace(/\.?0+$/, "");
+  if (input.isCapped) {
+    const capLabel = input.cappedBy === "safedeal_fee" ? "SafeDeal Fee" : "Total Service Fee";
+    const cap = input.appliedCapAmount != null ? ` of ${money(input.appliedCapAmount)}` : "";
+    return `This order's total service fee was capped by the maximum ${capLabel}${cap}. You were charged ${money(
+      input.serviceFeeAmount,
+    )} on an item amount of ${money(input.itemAmount)}.`;
+  }
+  return `You were charged a total service fee of ${money(input.serviceFeeAmount)} on an item amount of ${money(
+    input.itemAmount,
+  )} — ${ratePct}% of the item amount, covering the SafeDeal fee and payment processing.`;
+}
