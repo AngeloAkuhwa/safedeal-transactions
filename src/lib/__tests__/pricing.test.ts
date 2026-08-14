@@ -1,32 +1,50 @@
 import { describe, it, expect } from "vitest";
-import { computePricing, type PricingConfigOverride } from "../pricing";
+import { computePricing, FALLBACK_PRICING_CONFIG, type PricingConfigOverride } from "../pricing";
 
-/** Default config that mirrors the constants baked into `computePricing`. */
+/**
+ * G3 fee model: platform fee = 2% + ₦100, capped at ₦5,000, on top of the
+ * Paystack processing cost (itself capped at ₦2,000), for an absolute total
+ * service-fee ceiling of ₦7,000.
+ *
+ * DEFAULT_MIRROR is written out literally rather than spread from the
+ * fallback so this test detects drift instead of trivially passing.
+ */
 const DEFAULT_MIRROR: PricingConfigOverride = {
-  min_platform_fee: 250,
-  max_total_service_fee: 2500,
-  tier_rates: [
-    { upto: 100_000, rate: 0.039 },
-    { upto: 500_000, rate: 0.035 },
-    { upto: 2_000_000, rate: 0.029 },
-    { upto: null, rate: 0.025 },
-  ],
+  min_platform_fee: 0,
+  max_total_service_fee: 7_000,
+  max_platform_fee: 5_000,
+  platform_fee_rate: 0.02,
+  platform_fee_flat: 100,
+  tier_rates: [],
 };
 
 const AMOUNTS = [1_000, 25_000, 100_000, 450_000, 1_500_000, 5_000_000];
 
-describe("computePricing — platform defaults", () => {
-  it("floors small transactions to min platform fee", () => {
-    const r = computePricing(1_000);
-    expect(r.is_floored).toBe(true);
-    expect(r.platform_fee_amount).toBe(250);
+describe("computePricing — platform defaults (G3)", () => {
+  it("mirrors the shipped fallback config", () => {
+    expect(FALLBACK_PRICING_CONFIG).toEqual(DEFAULT_MIRROR);
   });
 
-  it("caps large transactions to the service-fee cap", () => {
+  it("charges rate + flat on small transactions", () => {
+    const r = computePricing(1_000);
+    // 2% of 1,000 = 20, + ₦100 flat = ₦120 platform fee.
+    expect(r.platform_fee_amount).toBe(120);
+    expect(r.is_capped).toBe(false);
+  });
+
+  it("caps the platform fee at ₦5,000 on large transactions", () => {
     const r = computePricing(1_000_000);
     expect(r.is_capped).toBe(true);
-    expect(r.service_fee_amount).toBe(2500);
-    expect(r.total_amount).toBe(1_002_500);
+    expect(r.platform_fee_amount).toBe(5_000);
+    // Paystack local fee is capped at ₦2,000 → ₦7,000 total service fee.
+    expect(r.service_fee_amount).toBe(7_000);
+    expect(r.total_amount).toBe(1_007_000);
+  });
+
+  it("never exceeds the ₦5,000 platform cap at any amount", () => {
+    for (const amount of [...AMOUNTS, 50_000_000]) {
+      expect(computePricing(amount).platform_fee_amount).toBeLessThanOrEqual(5_000);
+    }
   });
 
   it("returns zeroed result for non-positive input", () => {
@@ -45,12 +63,19 @@ describe("computePricing — snapshot parity (no config == mirrored default conf
 });
 
 describe("computePricing — vendor override", () => {
-  it("respects a vendor cap raised to 5000", () => {
-    const cfg: PricingConfigOverride = { max_total_service_fee: 5000 };
+  it("applies a reduced vendor plan rate (Growth 1.5%)", () => {
+    const cfg: PricingConfigOverride = { platform_fee_rate: 0.015 };
+    const r = computePricing(100_000, "NGN", cfg);
+    // 1.5% of 100,000 = 1,500 + ₦100 flat.
+    expect(r.platform_fee_amount).toBe(1_600);
+    expect(r.platform_fee_amount).toBeLessThan(computePricing(100_000).platform_fee_amount);
+  });
+
+  it("respects a lowered vendor platform-fee cap", () => {
+    const cfg: PricingConfigOverride = { max_platform_fee: 2_000 };
     const r = computePricing(1_000_000, "NGN", cfg);
-    // Base tier at 1M is 2.9% = 29,000 → capped to 5000, not 2500
-    expect(r.service_fee_amount).toBeLessThanOrEqual(5000);
-    expect(r.service_fee_amount).toBeGreaterThan(2500);
+    expect(r.platform_fee_amount).toBe(2_000);
+    expect(r.is_capped).toBe(true);
   });
 
   it("respects a vendor min platform fee floor raised to 500", () => {
@@ -60,13 +85,14 @@ describe("computePricing — vendor override", () => {
     expect(r.is_floored).toBe(true);
   });
 
-  it("respects vendor tier_rates override", () => {
+  it("still honours legacy tiered snapshots (G2 historical transactions)", () => {
     const cfg: PricingConfigOverride = {
-      tier_rates: [{ upto: null, rate: 0.01 }],
+      min_platform_fee: 250,
+      max_total_service_fee: 2_500,
+      tier_rates: [{ upto: null, rate: 0.039 }],
     };
-    const r = computePricing(100_000, "NGN", cfg);
-    // 1% of 100k = 1000 → but Paystack fee ~1600 pushes service fee higher than min floor
-    // Ensure service fee reflects the flat 1% target (or floor), never the default 3.9%
-    expect(r.service_fee_amount).toBeLessThan(computePricing(100_000).service_fee_amount);
+    const r = computePricing(50_000, "NGN", cfg);
+    // Legacy model is all-in: 3.9% of 50,000 = 1,950 total service fee.
+    expect(r.service_fee_amount).toBe(1_950);
   });
 });
