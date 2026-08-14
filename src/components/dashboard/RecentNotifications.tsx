@@ -118,16 +118,12 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{notif.message}</p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {route ? (
+                      {route && (
                         <Button
                           size="sm"
                           className={`${style.buttonClass} h-7 text-xs`}
                           onClick={() => navigate(route)}
                         >
-                          {style.actionLabel}
-                        </Button>
-                      ) : (
-                        <Button size="sm" className={`${style.buttonClass} h-7 text-xs`} disabled>
                           {style.actionLabel}
                         </Button>
                       )}
