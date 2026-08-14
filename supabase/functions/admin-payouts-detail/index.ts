@@ -67,11 +67,16 @@ Deno.serve(async (req) => {
     itemTitle = prod?.title ?? null;
   }
 
-  const MAX_PROTECTION_FEE = 2500;
   const hasPricing = !!pricing;
   const itemTotal = hasPricing && pricing!.item_amount != null ? Number(pricing!.item_amount) : null;
-  const rawProtection = hasPricing && pricing!.platform_fee_amount != null ? Number(pricing!.platform_fee_amount) : null;
-  const protectionFee = rawProtection != null ? Math.min(rawProtection, MAX_PROTECTION_FEE) : null;
+  // The protection fee was already charged and frozen into the snapshot. We
+  // display it verbatim — re-capping a charged amount from a duplicated
+  // constant would show the admin a figure the buyer never paid.
+  const protectionFee = hasPricing && pricing!.platform_fee_amount != null
+    ? Number(pricing!.platform_fee_amount)
+    : null;
+  // Cap facts come from the snapshot flag only, never re-derived.
+  const protectionFeeCapped = hasPricing ? pricing!.is_total_service_fee_capped === true : false;
   const paymentProcessingFee = hasPricing && pricing!.payment_processing_fee_amount != null
     ? Number(pricing!.payment_processing_fee_amount)
     : null;
@@ -86,10 +91,14 @@ Deno.serve(async (req) => {
   const snapshotSellerPayout = hasPricing && pricing!.seller_payout_amount != null
     ? Number(pricing!.seller_payout_amount)
     : null;
-  const recordedPayoutAmount = Number(payout.amount ?? 0);
-  const sellerPayout = snapshotSellerPayout ?? recordedPayoutAmount;
+  // No snapshot => no canonical release figure. Substituting the payout
+  // record's own amount would make a mismatch undetectable exactly when the
+  // evidence is missing.
+  const recordedPayoutAmount = payout.amount != null ? Number(payout.amount) : null;
+  const sellerPayout = snapshotSellerPayout;
   const releaseAmountMismatch =
     snapshotSellerPayout != null &&
+    recordedPayoutAmount != null &&
     Math.abs(snapshotSellerPayout - recordedPayoutAmount) > 0.005;
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
@@ -209,8 +218,8 @@ Deno.serve(async (req) => {
     payout: {
       id: payout.id,
       status: payout.status,
-      amount: Number(payout.amount ?? 0),
-      currency: payout.currency_code ?? "NGN",
+      amount: payout.amount != null ? Number(payout.amount) : null,
+      currency: payout.currency_code ?? null,
       release_blocked: !!payout.release_blocked,
       payout_blocked_reason: payout.payout_blocked_reason ?? null,
       retry_allowed: !!payout.retry_allowed,
@@ -253,15 +262,15 @@ Deno.serve(async (req) => {
     pricing: {
       item_total: itemTotal,
       protection_fee: protectionFee,
-      protection_fee_raw: rawProtection,
-      protection_fee_capped: rawProtection != null && rawProtection > MAX_PROTECTION_FEE,
+      protection_fee_raw: protectionFee,
+      protection_fee_capped: protectionFeeCapped,
       payment_processing_fee: paymentProcessingFee,
       total_charged: totalCharged,
       seller_payout: sellerPayout,
-      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : "payout_record",
+      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : null,
       recorded_payout_amount: recordedPayoutAmount,
       release_amount_mismatch: releaseAmountMismatch,
-      currency: pricing?.currency_code ?? "NGN",
+      currency: pricing?.currency_code ?? null,
       has_pricing_snapshot: hasPricing,
     },
     seller: profile ? {

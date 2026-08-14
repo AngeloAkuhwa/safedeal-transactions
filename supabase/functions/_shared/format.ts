@@ -22,14 +22,17 @@ const DECIMAL_2 = new Intl.NumberFormat("en-NG", {
   maximumFractionDigits: 2,
 });
 
+/** Money never falls back to zero — a missing amount renders as `—`. */
+export const MISSING_AMOUNT = "—";
+
 export function formatMoney(
   amount: number | null | undefined,
   currency: string,
 ): string {
-  const value =
-    amount === null || amount === undefined || Number.isNaN(amount)
-      ? 0
-      : Number(amount);
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+    return MISSING_AMOUNT;
+  }
+  const value = Number(amount);
   const code = (currency || "").trim().toUpperCase();
   if (code === "NGN") return NGN.format(value);
   const rendered = DECIMAL_2.format(value);
@@ -42,16 +45,19 @@ export function formatMoneyOrDash(
   currency: string | null | undefined,
 ): string {
   if (amount === null || amount === undefined || Number.isNaN(Number(amount)) || !currency) {
-    return "—";
+    return MISSING_AMOUNT;
   }
   return formatMoney(Number(amount), currency);
 }
 
-/** CSV-safe variant: no currency symbol, just `1234.50` (still 2 dp). */
+/**
+ * CSV-safe variant: no currency symbol, just `1234.50` (still 2 dp).
+ * A missing amount yields an EMPTY cell — writing `0.00` would state, in a
+ * file someone reconciles against, that the figure was zero.
+ */
 export function formatMoneyCsv(amount: number | null | undefined): string {
-  const value =
-    amount === null || amount === undefined || Number.isNaN(amount)
-      ? 0
-      : Number(amount);
-  return value.toFixed(2);
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+    return "";
+  }
+  return Number(amount).toFixed(2);
 }

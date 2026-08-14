@@ -28,6 +28,8 @@ export interface ReviewData {
     total_amount: number;
     /** Persisted cap flag from `transaction_pricing` — never re-derived client side. */
     is_total_service_fee_capped?: boolean;
+    /** Server-stated floor flag; null when unknown. Never re-derived client side. */
+    is_floored?: boolean | null;
     /** Version stamp encoding the ceiling that actually applied. */
     pricing_model_version?: string | null;
   } | null;

@@ -201,7 +201,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 <div className="flex items-center justify-center py-4">
                   <div className="text-center">
                     <p className="text-slate-400 text-sm mb-2">Amount</p>
-                    <p className="text-white text-4xl font-bold">{formatMoney(p!.amount, p!.currency)}</p>
+                    <p className="text-white text-4xl font-bold">{formatMoneyOrDash(p!.amount, p!.currency)}</p>
                     <p className="text-slate-400 text-sm mt-1">{detail.seller?.name ?? "Seller"}</p>
                   </div>
                 </div>
@@ -254,13 +254,13 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               <div className="space-y-3">
                 <h4 className="text-white font-semibold text-sm">Pricing breakdown</h4>
                 <div className="bg-slate-800 rounded-lg p-4 space-y-2">
-                  <Row label="Item Total" value={detail.pricing.item_total != null ? formatMoney(detail.pricing.item_total, detail.pricing.currency) : "—"} />
-                  <Row label="Protection Fee" value={detail.pricing.protection_fee != null ? formatMoney(detail.pricing.protection_fee, detail.pricing.currency) : "—"} />
-                  <Row label="Payment Processing Fee" value={detail.pricing.payment_processing_fee != null ? formatMoney(detail.pricing.payment_processing_fee, detail.pricing.currency) : "—"} />
+                  <Row label="Item Total" value={formatMoneyOrDash(detail.pricing.item_total, detail.pricing.currency)} />
+                  <Row label="Protection Fee" value={formatMoneyOrDash(detail.pricing.protection_fee, detail.pricing.currency)} />
+                  <Row label="Payment Processing Fee" value={formatMoneyOrDash(detail.pricing.payment_processing_fee, detail.pricing.currency)} />
                   <div className="border-t border-slate-700 my-2" />
                   <Row label="Total Charged" value={
                     <span className="font-semibold text-white">
-                      {detail.pricing.total_charged != null ? formatMoney(detail.pricing.total_charged, detail.pricing.currency) : "—"}
+                      {formatMoneyOrDash(detail.pricing.total_charged, detail.pricing.currency)}
                     </span>
                   } />
                   <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
@@ -440,7 +440,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
             <div className="space-y-1 text-sm py-2">
               <Row label="Seller" value={detail.seller?.name ?? "—"} />
               <Row label="Bank" value={`${detail.payout_account?.bank_name ?? "—"} ${detail.payout_account?.masked_account ?? ""}`} />
-              <Row label="Amount" value={formatMoney(detail.payout.amount, detail.payout.currency)} />
+              <Row label="Amount" value={formatMoneyOrDash(detail.payout.amount, detail.payout.currency)} />
               <Row label="Transaction" value={detail.transaction?.code} />
             </div>
           )}

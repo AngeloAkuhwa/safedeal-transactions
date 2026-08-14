@@ -91,7 +91,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-disputes-queue/index.ts",
   "supabase/functions/admin-export-transaction-data/index.ts",
   "supabase/functions/admin-flagged-user-detail/index.ts",
-  "supabase/functions/admin-payouts-detail/index.ts",
   "supabase/functions/admin-payouts-list/index.ts",
   "supabase/functions/admin-payouts-summary/index.ts",
   "supabase/functions/admin-transaction-detail/index.ts",
@@ -140,7 +139,6 @@ const CURRENCY_DEBT = [
   "src/pages/AdminDisputeDetail.tsx",
   "src/pages/AdminTransactionDetail.tsx",
   "src/pages/BuyerDisputeDetail.tsx",
-  "src/pages/BuyerPaymentSummary.tsx",
   "src/pages/BuyerPrivateOffers.tsx",
   "src/pages/BuyerTransactionReview.tsx",
   "src/pages/OfferClaimLanding.tsx",
@@ -440,6 +438,110 @@ describe("exemption lists cannot rot", () => {
       expect(src, rel).not.toMatch(/currency\s*(?::\s*string\s*)?=\s*["'`]NGN["'`]/);
       expect(SYMBOL_DEFINITION_FILES.has(rel), `${rel} must not be blanket-exempt`).toBe(false);
       expect(CURRENCY_DEFINITION_FILES.has(rel), `${rel} must not be blanket-exempt`).toBe(false);
+    }
+  });
+});
+
+
+/**
+ * MONEY NEVER FAILS TO ZERO.
+ *
+ * `?? 0` / `|| 0` on a monetary value is the most dangerous invented default
+ * in the codebase: it is silent, it type-checks, and it renders as a real
+ * amount. It is how the buyer payment screen could say "Pay ₦0.00" and how an
+ * admin release drawer could claim an agreement snapshot recorded ₦0.00.
+ *
+ * A missing amount must reach `formatMoneyOrDash` and render `—`, or block the
+ * screen. Scope is the whole tree — edge functions compose receipts and
+ * notification copy that a person reads.
+ */
+const MONEY_ZERO_FALLBACK =
+  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
+
+/**
+ * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
+ * may be REMOVED as files are fixed, never added; a listed file that no longer
+ * offends fails the staleness assertion below.
+ */
+const MONEY_ZERO_DEBT: string[] = [
+  "src/components/admin/transactions/AgreementPreviewDialog.tsx",
+  "src/components/admin/transactions/MoneyStatus.ts",
+  "src/components/admin/transactions/ResolveDisputeDialog.tsx",
+  "src/components/seller/SellerMetricsCards.tsx",
+  "src/lib/admin-active-state.ts",
+  "src/lib/dispute-display-status.ts",
+  "src/pages/AdminDisputeDetail.tsx",
+  "src/pages/AdminPermissionMatrix.tsx",
+  "src/pages/AdminTransactionDetail.tsx",
+  "src/pages/BuyerPrivateOffers.tsx",
+  "src/pages/BuyerTransactionReview.tsx",
+  "src/pages/BuyerTransactionTracking.tsx",
+  "src/pages/SellerTransactionShare.tsx",
+  "src/pages/SellerUpdateDelivery.tsx",
+  "supabase/functions/_shared/flagged-users-engine.ts",
+  "supabase/functions/_shared/provider-refund.ts",
+  "supabase/functions/_shared/reconciliation.ts",
+  "supabase/functions/_shared/release-core.ts",
+  "supabase/functions/_shared/users-directory-engine.ts",
+  "supabase/functions/_shared/users-directory-sql.ts",
+  "supabase/functions/admin-agent-performance/index.ts",
+  "supabase/functions/admin-dashboard/index.ts",
+  "supabase/functions/admin-disputes-queue/index.ts",
+  "supabase/functions/admin-escrow-detail/index.ts",
+  "supabase/functions/admin-escrow-export/index.ts",
+  "supabase/functions/admin-escrow-overview/index.ts",
+  "supabase/functions/admin-export-worker/index.ts",
+  "supabase/functions/admin-flagged-user-detail/index.ts",
+  "supabase/functions/admin-payouts-list/index.ts",
+  "supabase/functions/admin-transaction-actions/index.ts",
+  "supabase/functions/admin-transaction-detail/index.ts",
+  "supabase/functions/admin-transactions-monitor/index.ts",
+  "supabase/functions/admin-user-detail-export/index.ts",
+  "supabase/functions/admin-user-detail/index.ts",
+  "supabase/functions/dispute-detail/index.ts",
+  "supabase/functions/seller-dashboard/index.ts",
+  "supabase/functions/seller-dispute-detail/index.ts",
+  "supabase/functions/seller-drafts/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/seller-transactions/index.ts",
+];
+
+describe("money never falls back to zero", () => {
+  it("has no un-recorded `?? 0` on a monetary value", () => {
+    const offenders: string[] = [];
+    const debtSeen = new Set<string>();
+    for (const file of FILES) {
+      const r = relOf(file);
+      const src = stripComments(fs.readFileSync(file, "utf8"));
+      const hits = [...src.matchAll(MONEY_ZERO_FALLBACK)];
+      if (hits.length === 0) continue;
+      if (MONEY_ZERO_DEBT.includes(r)) { debtSeen.add(r); continue; }
+      for (const m of hits) offenders.push(`${r}: ${m[0].trim()}`);
+    }
+    expect(offenders).toEqual([]);
+    expect(MONEY_ZERO_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+  });
+
+  it("keeps the surfaces fixed in this pass clean", () => {
+    for (const f of [
+      "src/pages/BuyerPaymentSummary.tsx",
+      "src/components/admin/payouts/PayoutDetailDrawer.tsx",
+      "src/components/admin/escrow/EscrowRecordDrawer.tsx",
+      "src/components/admin/payouts/PayoutSummaryCards.tsx",
+      "supabase/functions/admin-payouts-detail/index.ts",
+    ]) {
+      expect(MONEY_ZERO_DEBT).not.toContain(f);
+      expect(stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"))).not.toMatch(
+        MONEY_ZERO_FALLBACK,
+      );
+    }
+  });
+
+  it("the money formatters do not coerce a missing amount to zero", () => {
+    for (const f of ["src/lib/format.ts", "supabase/functions/_shared/format.ts"]) {
+      const src = fs.readFileSync(path.join(ROOT, f), "utf8");
+      expect(src).toContain("MISSING_AMOUNT");
+      expect(src).not.toMatch(/Number\.isNaN\([\s\S]{0,40}\)\s*\n?\s*\?\s*0/);
     }
   });
 });

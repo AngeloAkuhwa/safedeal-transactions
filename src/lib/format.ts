@@ -40,9 +40,15 @@ function decimalFormatter(currency: string): Intl.NumberFormat {
   return f;
 }
 
-function safe(amount: number | null | undefined): number {
-  if (amount === null || amount === undefined || Number.isNaN(amount)) return 0;
-  return Number(amount);
+/**
+ * Rendered when an amount is absent. Money NEVER falls back to zero: a missing
+ * figure must look missing, because `₦0.00` reads as a real, provable amount to
+ * whoever is about to move money.
+ */
+export const MISSING_AMOUNT = "—";
+
+function isMissing(amount: number | null | undefined): boolean {
+  return amount === null || amount === undefined || Number.isNaN(Number(amount));
 }
 
 /**
@@ -65,7 +71,8 @@ export function formatMoney(
   amount: number | null | undefined,
   currency: string,
 ): string {
-  const value = safe(amount);
+  if (isMissing(amount)) return MISSING_AMOUNT;
+  const value = Number(amount);
   const code = normalizeCurrency(currency);
   if (code === "NGN") {
     return NGN_FORMATTER.format(value);
@@ -83,7 +90,8 @@ export function formatMoneyCompact(
   amount: number | null | undefined,
   currency: string,
 ): string {
-  const value = safe(amount);
+  if (isMissing(amount)) return MISSING_AMOUNT;
+  const value = Number(amount);
   const code = normalizeCurrency(currency);
   const abs = Math.abs(value);
   if (abs < 1_000_000) {
@@ -105,7 +113,8 @@ export function formatMoneyDelta(
   amount: number | null | undefined,
   currency: string,
 ): string {
-  const value = safe(amount);
+  if (isMissing(amount)) return MISSING_AMOUNT;
+  const value = Number(amount);
   if (value === 0) return formatMoney(0, currency);
   const sign = value > 0 ? "+" : "−";
   return `${sign}${formatMoney(Math.abs(value), currency)}`;

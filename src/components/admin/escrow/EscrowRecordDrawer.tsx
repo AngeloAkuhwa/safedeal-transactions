@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ExternalLink, FileText, X, AlertCircle, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { fetchEscrowDetail, type EscrowDetail } from "@/services/admin-escrow.service";
 
@@ -24,9 +25,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/**
+ * Explicit pricing field list. A generic `Object.entries` dump rendered every
+ * numeric column as money, so a rate like 0.03 printed as ₦0.03. Each field
+ * declares how it is rendered; unknown columns are not shown at all.
+ */
+const PRICING_MONEY_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "item_amount", label: "Item amount" },
+  { key: "platform_fee_amount", label: "Protection fee" },
+  { key: "payment_processing_fee_amount", label: "Payment processing fee" },
+  { key: "buyer_total_amount", label: "Buyer total" },
+  { key: "seller_payout_amount", label: "Seller payout" },
+];
+
 function Body({ d }: { d: EscrowDetail }) {
   const nav = useNavigate();
   const pricing = (d.pricing ?? {}) as Record<string, unknown>;
+  const pricingCurrency = typeof pricing.currency_code === "string" ? pricing.currency_code : null;
+  const num = (v: unknown): number | null => (typeof v === "number" ? v : null);
   return (
     <div className="space-y-4 pb-8">
       <Section title="Transaction">
@@ -48,15 +64,24 @@ function Body({ d }: { d: EscrowDetail }) {
 
       {d.pricing && (
         <Section title="Pricing snapshot">
-          {Object.entries(pricing)
-            .filter(([k]) => !["id", "transaction_id", "created_at", "updated_at"].includes(k))
-            .map(([k, v]) => (
-              <Row
-                key={k}
-                label={k.replace(/_/g, " ")}
-                value={typeof v === "number" ? formatMoney(v, "NGN") : String(v ?? "—")}
-              />
-            ))}
+          <Row label="Currency" value={pricingCurrency ?? "—"} />
+          {PRICING_MONEY_FIELDS.map((f) => (
+            <Row
+              key={f.key}
+              label={f.label}
+              value={formatMoneyOrDash(num(pricing[f.key]), pricingCurrency)}
+            />
+          ))}
+          <Row
+            label="Total service fee capped"
+            value={typeof pricing.is_total_service_fee_capped === "boolean"
+              ? (pricing.is_total_service_fee_capped ? "Yes" : "No")
+              : "—"}
+          />
+          <Row
+            label="Pricing model version"
+            value={typeof pricing.pricing_model_version === "string" ? pricing.pricing_model_version : "—"}
+          />
         </Section>
       )}
 

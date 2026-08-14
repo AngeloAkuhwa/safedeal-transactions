@@ -123,7 +123,12 @@ export interface PayoutTimelineEntry {
 }
 
 export interface PayoutDetail {
-  payout: PayoutRow extends infer R ? Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing"> & { notes: string | null } : never;
+  payout: Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing" | "amount" | "currency"> & {
+    notes: string | null;
+    /** Null when the payout record carries no amount — never coerced to 0. */
+    amount: number | null;
+    currency: string | null;
+  };
   transaction: PayoutRow["transaction"] & { buyer_id: string; seller_id: string; created_at: string } | null;
   pricing: {
     item_total: number | null;
@@ -132,12 +137,12 @@ export interface PayoutDetail {
     protection_fee_capped: boolean;
     payment_processing_fee: number | null;
     total_charged: number | null;
-    seller_payout: number;
+    seller_payout: number | null;
     /** Where the release figure came from — snapshot is canonical. */
-    seller_payout_source?: "pricing_snapshot" | "payout_record";
-    recorded_payout_amount?: number;
+    seller_payout_source?: "pricing_snapshot" | null;
+    recorded_payout_amount?: number | null;
     release_amount_mismatch?: boolean;
-    currency: string;
+    currency: string | null;
     has_pricing_snapshot?: boolean;
   };
   seller: { id: string; name: string; email: string | null; avatar_url: string | null } | null;

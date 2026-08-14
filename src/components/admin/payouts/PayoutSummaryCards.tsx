@@ -64,7 +64,13 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
   const pendingDelta = s.pending_release.delta_24h;
   const processingDelta = s.processing.delta_24h;
   const failedDelta = s.failed.delta_24h;
-  const fmtDelta = (n?: number) => `+${typeof n === "number" ? n : 0}`;
+  // Absent data is not "+0", and a negative delta is not "+-3": render the
+  // sign the number actually has, and nothing at all when there is no number.
+  const fmtDelta = (n?: number): string | null => {
+    if (typeof n !== "number" || Number.isNaN(n)) return null;
+    if (n === 0) return "0";
+    return n > 0 ? `+${n}` : `−${Math.abs(n)}`;
+  };
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
       <Tile icon={FaClock} tone="orange"
