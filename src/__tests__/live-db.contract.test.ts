@@ -99,7 +99,7 @@ d("live refund rail", () => {
         " and p.proname in ('start_refund_atomic','complete_payout_atomic','complete_refund_atomic'," +
         "'reverse_payout_atomic','resolve_dispute_atomic','apply_financial_remediation_atomic'," +
         "'record_completion_release_intent_atomic','ledger_write_guarded')" +
-        " and pg_get_functiondef(p.oid) !~ 'invalid_(money|refund|reversal|adjustment|commitment)_amount'" +
+        " and pg_get_functiondef(p.oid) !~ 'invalid_(money|refund|payout|reversal|adjustment|commitment)_amount'" +
         " order by 1",
     );
     expect(unguarded ? unguarded.split("\n") : []).toEqual([]);
