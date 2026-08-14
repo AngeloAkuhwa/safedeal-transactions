@@ -206,10 +206,6 @@ export function BuyerSidebar() {
               <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {buyerName}
               </p>
-              <div className="flex items-center gap-1">
-                <Shield className="h-3 w-3 text-primary" />
-                <span className="text-[11px] text-primary">Verified Buyer</span>
-              </div>
             </div>
           </div>
         )}
@@ -219,7 +215,14 @@ export function BuyerSidebar() {
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-center">
             <HelpCircle className="mx-auto h-5 w-5 text-muted-foreground mb-1" />
             <p className="text-xs font-medium text-sidebar-foreground">Need Help?</p>
-            <p className="text-[11px] text-muted-foreground">support@safedeal.com</p>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-[11px]"
+              onClick={() => navigate(supportLink())}
+            >
+              Message support
+            </Button>
           </div>
         )}
       </div>
