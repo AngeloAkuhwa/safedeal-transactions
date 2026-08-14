@@ -7554,6 +7554,7 @@ export type Database = {
           privilege: string
         }[]
       }
+      internal_access_active: { Args: { _user_id: string }; Returns: boolean }
       internal_actor_rank: { Args: { _user_id: string }; Returns: number }
       internal_effective_access_level: {
         Args: { _user_id: string }
