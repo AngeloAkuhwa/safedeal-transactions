@@ -14,7 +14,22 @@ import { execFileSync } from "node:child_process";
  * the suite still runs offline.
  */
 const HAS_DB = Boolean(process.env.PGHOST);
+// The gate is LOUD by default: a run without a database does not silently
+// skip the only checks that execute real money code. Set ALLOW_SKIP_LIVE_DB=1
+// to opt out explicitly (offline sandboxes), and say so in the report.
+const ALLOW_SKIP = process.env.ALLOW_SKIP_LIVE_DB === "1";
 const d = HAS_DB ? describe : describe.skip;
+
+describe("live database gate", () => {
+  it("has database credentials, or an explicit opt-out", () => {
+    if (HAS_DB) return;
+    expect(
+      ALLOW_SKIP,
+      "PGHOST is unset, so every live money check below is SKIPPED, not passing. " +
+        "Set ALLOW_SKIP_LIVE_DB=1 to acknowledge an offline run.",
+    ).toBe(true);
+  });
+});
 
 function psql(sql: string): string {
   return execFileSync("psql", ["-At", "-c", sql], { encoding: "utf8" }).trim();
@@ -40,18 +55,30 @@ d("live refund rail", () => {
       expect.arrayContaining([
         "capture_ok",
         "escrow_held",
+        "escrow_hold_balance_after",
         "refund_created",
         "fee_reversal_written",
         "balance_after_set",
         "refund_is_idempotent",
+        "refund_currency_from_snapshot",
         "capture_refuses_missing_escrow",
         "freeze_refuses_missing_escrow",
         "unfreeze_refuses_missing_escrow",
         "complete_payout_refuses_missing_escrow",
         "complete_refund_refuses_missing_escrow",
         "reverse_payout_refuses_missing_escrow",
+        // Sign/magnitude: a negative refund inverted into an escrow credit.
+        "negative_refund_refused",
+        "refunds_check_constraint_rejects_negative",
+        // Dispute rail, executed rather than asserted.
+        "resolve_dispute_refund_buyer_executes",
+        "dispute_refund_has_buyer",
+        "dispute_unwinds_frozen_escrow",
+        // Class-level structural rules.
+        "all_escrow_writes_guarded",
         "ledger_write_guarded_single_overload",
-        "no_positional_ledger_binding",
+        "ensure_platform_fee_reversal_single_overload",
+        "no_positional_money_binding",
       ]),
     );
   });
@@ -63,6 +90,27 @@ d("live refund rail", () => {
         " + (select count(*) from payments where provider_reference like 'selftest%')",
     );
     expect(Number(counts)).toBe(0);
+  });
+
+  it("keeps every money amount sign-guarded at the database boundary", () => {
+    const unguarded = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef" +
+        " and p.proname in ('start_refund_atomic','complete_payout_atomic','complete_refund_atomic'," +
+        "'reverse_payout_atomic','resolve_dispute_atomic','apply_financial_remediation_atomic'," +
+        "'record_completion_release_intent_atomic','ledger_write_guarded')" +
+        " and pg_get_functiondef(p.oid) !~ 'invalid_(money|refund|reversal|adjustment|commitment)_amount'" +
+        " order by 1",
+    );
+    expect(unguarded ? unguarded.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps refunds.refund_amount positive at the schema level", () => {
+    const n = psql(
+      "select count(*) from pg_constraint where conrelid = 'public.refunds'::regclass" +
+        " and conname = 'refunds_refund_amount_positive'",
+    );
+    expect(Number(n)).toBe(1);
   });
 
   it("keeps ledger_write_guarded unambiguous (one overload only)", () => {
