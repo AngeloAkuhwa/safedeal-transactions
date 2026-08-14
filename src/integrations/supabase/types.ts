@@ -7584,41 +7584,23 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
-      ledger_write_guarded:
-        | {
-            Args: {
-              p_amount: number
-              p_correlation_id?: string
-              p_created_by: string
-              p_currency: string
-              p_entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
-              p_idempotency_key: string
-              p_metadata: Json
-              p_notes: string
-              p_payload: Json
-              p_reference_id: string
-              p_reference_type: string
-              p_transaction_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_correlation_id?: string
-              p_created_by?: string
-              p_currency?: string
-              p_entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
-              p_idempotency_key: string
-              p_metadata?: Json
-              p_notes?: string
-              p_payload: Json
-              p_reference_id?: string
-              p_reference_type?: string
-              p_transaction_id: string
-            }
-            Returns: Json
-          }
+      ledger_write_guarded: {
+        Args: {
+          p_amount: number
+          p_correlation_id?: string
+          p_created_by: string
+          p_currency: string
+          p_entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
+          p_idempotency_key: string
+          p_metadata: Json
+          p_notes: string
+          p_payload: Json
+          p_reference_id: string
+          p_reference_type: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       my_mfa_recovery_status: {
         Args: never
         Returns: {
@@ -7784,6 +7766,7 @@ export type Database = {
         }
         Returns: Json
       }
+      selftest_refund_rail: { Args: { p_currency: string }; Returns: Json }
       set_permission_template_items: {
         Args: { _keys: string[]; _template_id: string }
         Returns: {

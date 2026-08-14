@@ -116,18 +116,36 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     // Only ADOPT a complete transaction. An incomplete one (no pricing, no
-    // share link) would be handed back as a 200 whose review page has nothing
-    // to show and whose payment initiation fails.
+    // share link, no escrow row) would be handed back as a 200 whose review
+    // page has nothing to show, whose payment initiation fails, or — worse —
+    // which funds with no escrow row and is invisible to every admin escrow
+    // surface. The escrow probe matters for records created before the escrow
+    // insert existed on this path.
     let existingTx: typeof existingCandidate = null;
     if (existingCandidate) {
-      const [{ count: pricingCount }, { count: linkCount }] = await Promise.all([
+      const [{ count: pricingCount }, { count: linkCount }, { count: escrowCount }] = await Promise.all([
         adminClient.from("transaction_pricing").select("transaction_id", { count: "exact", head: true })
           .eq("transaction_id", existingCandidate.id),
         adminClient.from("transaction_links").select("transaction_id", { count: "exact", head: true })
           .eq("transaction_id", existingCandidate.id),
+        adminClient.from("escrow_states").select("transaction_id", { count: "exact", head: true })
+          .eq("transaction_id", existingCandidate.id),
       ]);
-      if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && existingCandidate.share_token) {
+      if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && (escrowCount ?? 0) > 0 && existingCandidate.share_token) {
         existingTx = existingCandidate;
+      } else if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && existingCandidate.share_token) {
+        // Everything else is present — backfill the missing escrow row rather
+        // than orphaning the record (parity with `claim-offer`'s reuse path).
+        const { error: escrowErr } = await adminClient.from("escrow_states").insert({
+          transaction_id: existingCandidate.id,
+          state: "awaiting_payment",
+          held_amount: 0,
+        });
+        if (escrowErr) {
+          console.warn(`storefront-checkout: could not backfill the protection record for ${existingCandidate.id}; creating a fresh transaction`, escrowErr);
+        } else {
+          existingTx = existingCandidate;
+        }
       } else {
         console.warn(`storefront-checkout: ignoring incomplete transaction ${existingCandidate.id}; creating a fresh one`);
       }

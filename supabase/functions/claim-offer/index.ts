@@ -51,17 +51,9 @@ const CONDITION_MAP: Record<string, string> = {
   used_good: "good",
   used_fair: "fair",
 };
-/**
- * Legacy rows written before `create-transaction` was corrected carry the
- * WIZARD vocabulary in `condition_summary` instead of the product vocabulary.
- * They are already the value we persist, so accept them as themselves rather
- * than refusing an offer whose condition is perfectly well known.
- */
-const LEGACY_CONDITION_PASSTHROUGH = new Set(["brand_new", "like_new", "excellent", "good", "fair"]);
 function mapCondition(productCondition: string | null): string | null {
   const raw = productCondition ?? "";
   if (CONDITION_MAP[raw]) return CONDITION_MAP[raw];
-  if (LEGACY_CONDITION_PASSTHROUGH.has(raw)) return raw;
   return null;
 }
 

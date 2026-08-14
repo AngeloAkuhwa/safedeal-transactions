@@ -118,13 +118,27 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    // Verification window
     const { data: terms } = await admin
       .from("transaction_delivery_terms")
       .select("verification_window_hours")
       .eq("transaction_id", tx.id)
       .maybeSingle();
-    const verificationWindowHours = terms?.verification_window_hours ?? 72;
+    // FAIL CLOSED. The lock trigger no longer fabricates delivery terms, so a
+    // missing verification window is a real unknown — inventing 72h here would
+    // hand the buyer a release deadline nobody agreed to and then notify both
+    // parties about it. Refuse; the transaction is already flagged for review.
+    const rawWindow = terms?.verification_window_hours;
+    const verificationWindowHours =
+      rawWindow != null && Number.isFinite(Number(rawWindow)) && Number(rawWindow) > 0
+        ? Number(rawWindow)
+        : null;
+    if (!alreadyDone && verificationWindowHours === null) {
+      return jsonResponse({
+        error:
+          "This transaction has no agreed verification window. SafeDeal support must set the delivery terms before delivery can be confirmed.",
+        code: "verification_window_unresolved",
+      }, 409);
+    }
 
     if (!alreadyDone) {
       // Auto-walk state machine: payment_secured → preparing → dispatched → delivered_awaiting_verification
@@ -149,7 +163,7 @@ Deno.serve(async (req) => {
         }
 
         // Final transition to delivered — optimistic lock on the expected current state.
-        const verificationDeadline = new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString();
+        const verificationDeadline = new Date(Date.now() + verificationWindowHours! * 60 * 60 * 1000).toISOString();
         const { data: finalUpdated, error: finalErr } = await admin
           .from("transactions")
           .update({

@@ -88,6 +88,7 @@ const CURRENCY_DEFINITION_FILES = new Set([
  * shrink-only ratchet as the front-end list.
  */
 const EDGE_CURRENCY_DEBT: string[] = [
+  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/_shared/financial-model.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/flagged-users-sql.ts",
@@ -111,7 +112,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-transactions-monitor/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/dispute-detail/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/payout-watchdog/index.ts",
@@ -126,7 +126,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/seller-transactions/index.ts",
   "supabase/functions/transaction-agreement/index.ts",
   "supabase/functions/transaction-detail/index.ts",
-  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-payout-account/index.ts",
   "supabase/functions/vendor-plan/index.ts",
   "supabase/functions/verify-paystack-payment/index.ts",
@@ -172,13 +171,8 @@ const CURRENCY_DEBT = [
  * `system_settings`. Same ratchet rules as above.
  */
 const WINDOW_DEBT = [
-  "supabase/functions/create-transaction/index.ts",
-  "supabase/functions/delivery-token-confirm/index.ts",
-  "supabase/functions/transaction-verify/index.ts",
-  "supabase/functions/update-delivery-status/index.ts",
   // Newly VISIBLE under the positional + delivery-estimate rules added in this
   // pass. Recorded, not narrowed away.
-  "supabase/functions/_shared/settings-resolver.ts",
 ];
 
 /**
@@ -194,10 +188,10 @@ const CURRENCY_POSITIONAL =
  * same rules as the lists above.
  */
 const POSITIONAL_DEBT = [
+  "supabase/functions/_shared/settings-resolver.ts",
 
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
   "supabase/functions/_shared/safedeal-money-policy.ts",
-  "supabase/functions/_shared/settings-resolver.ts",
   "supabase/functions/admin-system-settings/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
@@ -525,6 +519,7 @@ function isCountName(match: string): boolean {
 }
 
 const MONEY_ZERO_DEBT: string[] = [
+  "supabase/functions/create-transaction/index.ts",
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
   "src/components/agreement/LockedSnapshotCard.tsx",
   "src/hooks/useSellerUnreadCounts.ts",
@@ -537,7 +532,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/admin-users-directory-export/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
   "supabase/functions/_shared/safedeal-money-policy.ts",
@@ -677,7 +671,6 @@ const MONEY_ZERO_WRAPPED_DEBT: string[] = [
   "supabase/functions/admin-flagged-user-detail/index.ts",
   "supabase/functions/buyer-disputes/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
@@ -885,6 +878,8 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     name: "hardcoded currency literal",
     pattern: /'(NGN|USD|GBP|EUR)'/,
     debt: [
+        // ledger_write_guarded still COALESCEs its currency; tracked live in live-db.contract.test.ts.
+        "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260410185736_6fc7d507-0f0e-4a87-bd9e-7d9c903fc470.sql",
         "supabase/migrations/20260414120858_048e0167-9527-49bd-8968-9346fa316cad.sql",
         "supabase/migrations/20260418230142_81bfd8b9-f30e-4146-aa09-d788d3eb5d57.sql",
