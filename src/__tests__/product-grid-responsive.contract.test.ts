@@ -24,11 +24,13 @@ describe("buyer-facing grids render 2 columns on mobile", () => {
     });
   }
 
-  it("FeaturedDealsSection is 2-up on mobile and uses object-cover", () => {
-    const src = read("src/components/landing/FeaturedDealsSection.tsx");
-    expect(src).toContain("grid grid-cols-2 gap-4");
-    expect(src).toContain("object-cover");
-    expect(src).not.toContain("object-contain p-3");
+  it("the landing page ships no fabricated demo catalogue", () => {
+    const featured = read("src/components/landing/FeaturedDealsSection.tsx");
+    const sellers = read("src/components/landing/VerifiedSellersSection.tsx");
+    for (const src of [featured, sellers]) {
+      expect(src).not.toContain("demo-data");
+      expect(src).not.toContain("uxpilot");
+    }
   });
 });
 

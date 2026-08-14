@@ -61,7 +61,7 @@ export function NeedHelpSection() {
             icon={HelpCircle}
             title="Frequently Asked Questions"
             desc="Find answers to common questions about SafeDeal marketplace, transactions, and protection."
-            note="100+ questions"
+            note="Common questions"
             rightIcon={BookOpen}
             tone="primary"
           />

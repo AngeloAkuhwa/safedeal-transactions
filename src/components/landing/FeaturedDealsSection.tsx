@@ -1,167 +1,59 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
-import { Shield, Star, ArrowRight, BadgeCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Shield, Lock, Truck, CircleCheck } from "lucide-react";
+import { AnimatedTransactionCard } from "./AnimatedTransactionCard";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { DEMO_PRODUCTS, formatNaira, type DemoProduct } from "./demo-data";
 
-function ProductImage({ product }: { product: DemoProduct }) {
-  const [errored, setErrored] = useState(false);
-  if (errored) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-muted to-success/10">
-        <Shield className="h-16 w-16 text-primary/40" />
-      </div>
-    );
-  }
-  return (
-    <img
-      src={product.imageUrl}
-      alt={product.title}
-      loading="lazy"
-      onError={() => setErrored(true)}
-      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-    />
-  );
-}
-
-function ProductCard({ product, index }: { product: DemoProduct; index: number }) {
-  const ref = useScrollReveal<HTMLDivElement>();
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [glowed, setGlowed] = useState(false);
-
-  // Attach the scroll-reveal ref AND keep our own ref to drive a one-time badge glow.
-  const setRefs = (node: HTMLDivElement | null) => {
-    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    cardRef.current = node;
-  };
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el || glowed) return;
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setGlowed(true);
-            io.disconnect();
-            break;
-          }
-        }
-      },
-      { threshold: 0.3 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [glowed]);
-
-  return (
-    <div
-      ref={setRefs}
-      style={{ transitionDelay: `${index * 80}ms` }}
-      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl"
-    >
-      {/* Image area */}
-      <div className="relative h-40 overflow-hidden bg-muted/40 sm:h-44 lg:h-48">
-        <ProductImage product={product} />
-
-        {/* Protected badge — soft one-time glow on reveal, bolder on hover */}
-        <span
-          style={
-            glowed
-              ? {
-                  animation: "pulse 1.4s ease-out 1",
-                  boxShadow: "0 0 0 0 hsl(var(--success) / 0.0)",
-                }
-              : undefined
-          }
-          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-[0_0_0_4px_hsl(var(--success)/0.15)] transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-success/40"
-        >
-          <Shield className="h-3 w-3" />
-          Protected
-        </span>
-
-        {/* In Stock chip */}
-        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-background/95 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-sm backdrop-blur">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          In Stock
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="mb-1 line-clamp-1 text-base font-bold text-foreground">
-          {product.title}
-        </h3>
-        <div className="mb-2.5 text-xl font-bold text-primary">{formatNaira(product.price)}</div>
-
-        {/* Seller row */}
-        <div className="mb-2.5 flex items-center justify-between border-t border-border pt-2.5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-              {product.sellerName[0]}
-            </div>
-            <div className="leading-tight">
-              <p className="text-[12px] font-semibold text-foreground">{product.sellerName}</p>
-              <div className="flex items-center gap-1 text-[11px] text-warning">
-                <Star className="h-3 w-3 fill-current" />
-                <span className="font-semibold">{product.sellerRating}</span>
-              </div>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
-            <BadgeCheck className="h-3 w-3" />
-            Verified
-          </span>
-        </div>
-
-        <Button
-          asChild
-          className="tap-target mt-auto w-full rounded-xl text-sm font-semibold shadow-sm transition-all hover:shadow-md"
-        >
-          <Link to="/marketplace">
-            View Product
-            <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
+const BULLETS = [
+  {
+    icon: Lock,
+    title: "Money held safely",
+    line: "The buyer pays SafeDeal, not the seller. Funds sit in escrow.",
+    tone: "bg-primary/10 text-primary",
+  },
+  {
+    icon: Truck,
+    title: "Seller delivers",
+    line: "The seller ships or hands over the item against locked terms.",
+    tone: "bg-warning/10 text-warning",
+  },
+  {
+    icon: CircleCheck,
+    title: "Buyer confirms, funds released",
+    line: "Once the buyer confirms the item matches, the seller gets paid.",
+    tone: "bg-success/10 text-success",
+  },
+] as const;
 
 export function FeaturedDealsSection() {
+  const ref = useScrollReveal<HTMLDivElement>();
+
   return (
-    <section id="featured-deals" className="bg-background py-10 sm:py-12 lg:py-14">
-      <div className="container-x mx-auto max-w-6xl">
+    <section id="protected-deal" className="bg-background py-10 sm:py-12 lg:py-14">
+      <div className="container-x mx-auto max-w-4xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-3.5 w-3.5 text-success" />
-            <span className="text-xs font-semibold text-success">Featured</span>
+            <span className="text-xs font-semibold text-success">Escrow in action</span>
           </div>
-          <h2 className="h-section mb-2 font-bold text-foreground">Featured protected deals</h2>
+          <h2 className="h-section mb-2 font-bold text-foreground">See a protected deal happen</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Top picks from verified sellers, protected by SafeDeal escrow.
+            Every SafeDeal transaction follows the same protected path — from payment to payout.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-5">
-          {DEMO_PRODUCTS.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
+        <div ref={ref} className="mx-auto w-full max-w-md">
+          <AnimatedTransactionCard />
         </div>
 
-        <div className="mt-6 text-center">
-          <Button
-            asChild
-            className="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md hover:shadow-lg"
-          >
-            <Link to="/marketplace">
-              Browse Full Marketplace
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {BULLETS.map((b) => (
+            <div key={b.title} className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${b.tone}`}>
+                <b.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mb-1 text-sm font-bold text-foreground">{b.title}</h3>
+              <p className="text-sm text-muted-foreground">{b.line}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

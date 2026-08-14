@@ -1,125 +1,85 @@
 import { Link } from "react-router";
-import { useEffect, useRef, useState } from "react";
-import { Shield, Star, MapPin, ArrowRight, BadgeCheck, ShoppingBag } from "lucide-react";
+import { Instagram, Briefcase, Store, Shield, ArrowRight, BadgeCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { DEMO_SELLERS, formatCount, type DemoSeller } from "./demo-data";
 
-function RevealPulse({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const ref = useRef<HTMLSpanElement | null>(null);
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || shown) return;
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setShown(true);
-            io.disconnect();
-            break;
-          }
-        }
-      },
-      { threshold: 0.4 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [shown]);
-  return (
-    <span ref={ref} className={`${className ?? ""} ${shown ? "sd-pulse-once" : ""}`}>
-      {children}
-    </span>
-  );
-}
+const AUDIENCES = [
+  {
+    icon: Instagram,
+    title: "Instagram & WhatsApp vendors",
+    line: "Selling through DMs and status updates? Send a protected link instead of your account number.",
+    tone: "bg-primary/10 text-primary",
+  },
+  {
+    icon: Briefcase,
+    title: "Side hustlers",
+    line: "Building a business after work hours. Take payments safely without a website or storefront rent.",
+    tone: "bg-warning/10 text-warning",
+  },
+  {
+    icon: Store,
+    title: "Small shops",
+    line: "Serving walk-in and online customers. Give remote buyers a reason to trust you before they pay.",
+    tone: "bg-success/10 text-success",
+  },
+] as const;
 
-function SellerCard({ seller, index }: { seller: DemoSeller; index: number }) {
+function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index: number }) {
   const ref = useScrollReveal<HTMLDivElement>();
   return (
     <div
       ref={ref}
       style={{ transitionDelay: `${index * 90}ms` }}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl"
+      className="flex h-full flex-col rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
     >
-      {/* Banner */}
-      <div className={`h-10 bg-gradient-to-br ${seller.bannerGradient}`} />
-
-      {/* Body */}
-      <div className="-mt-6 flex flex-1 flex-col px-4 pb-4">
-        {/* Avatar */}
-        <div className="relative mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
-          <div
-            className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br text-base font-bold text-primary-foreground ${seller.initialsGradient}`}
-          >
-            {seller.initials}
-          </div>
-        </div>
-
-        {/* Name + verified pill */}
-        <div className="mb-2.5 text-center">
-          <h3 className="mb-1 truncate text-sm font-bold text-foreground">{seller.name}</h3>
-          <RevealPulse className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-            <BadgeCheck className="h-3 w-3" />
-            Verified Seller
-          </RevealPulse>
-        </div>
-
-        {/* Compact stats row — rating · deals · location */}
-        <div className="mb-3 flex items-center justify-center gap-2.5 border-t pt-2.5 text-[11px] font-semibold">
-          <span className="inline-flex items-center gap-1 text-warning">
-            <Star className="h-3 w-3 fill-current" />
-            {seller.rating}
-          </span>
-          <span className="h-3 w-px bg-border" />
-          <span className="inline-flex items-center gap-1 text-foreground">
-            <ShoppingBag className="h-3 w-3 text-primary" />
-            {formatCount(seller.completed)}
-          </span>
-          <span className="h-3 w-px bg-border" />
-          <span className="inline-flex items-center gap-1 text-muted-foreground">
-            <MapPin className="h-3 w-3" />
-            {seller.location}
-          </span>
-        </div>
-
-        <Button asChild size="sm" className="mt-auto h-9 w-full text-[13px]">
-          <Link to={`/store/${seller.slug}`}>
-            View Store
-            <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </Button>
+      <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${item.tone}`}>
+        <item.icon className="h-5 w-5" />
       </div>
+      <h3 className="mb-1.5 text-base font-bold text-foreground">{item.title}</h3>
+      <p className="text-sm text-muted-foreground">{item.line}</p>
     </div>
   );
 }
 
 export function VerifiedSellersSection() {
   return (
-    <section id="verified-sellers" className="bg-background py-10 sm:py-12 lg:py-14">
+    <section id="built-for-lagos" className="bg-background py-10 sm:py-12 lg:py-14">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-3.5 w-3.5 text-success" />
-            <span className="text-xs font-semibold text-success">Trusted Sellers</span>
+            <span className="text-xs font-semibold text-success">Who it&apos;s for</span>
           </div>
-          <h2 className="h-section mb-2 font-bold text-foreground">Shop from verified sellers</h2>
+          <h2 className="h-section mb-2 font-bold text-foreground">Built for Lagos vendors</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Verified profiles. Real ratings. Completed deals.
+            If your customers find you in DMs, SafeDeal gives both sides a safe way to close the deal.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {DEMO_SELLERS.map((s, i) => (
-            <SellerCard key={s.id} seller={s} index={i} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {AUDIENCES.map((a, i) => (
+            <AudienceCard key={a.title} item={a} index={i} />
           ))}
+        </div>
+
+        {/* Truthful trust strip — no invented numbers */}
+        <div className="mt-8 rounded-xl border bg-muted/40 p-4">
+          <ul className="flex flex-col items-center justify-center gap-2 text-center text-xs font-semibold text-muted-foreground sm:flex-row sm:gap-5 sm:text-[13px]">
+            <li className="inline-flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5 text-primary" />
+              Payments secured by Paystack
+            </li>
+            <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+            <li className="inline-flex items-center gap-1.5">
+              <Shield className="h-3.5 w-3.5 text-warning" />
+              Funds held in licensed escrow
+            </li>
+            <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+            <li className="inline-flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5 text-success" />
+              Verified sellers only
+            </li>
+          </ul>
         </div>
 
         <div className="mt-6 text-center">
@@ -128,8 +88,8 @@ export function VerifiedSellersSection() {
             variant="outline"
             className="group gap-2 rounded-xl border-2 px-5 py-2.5 text-sm font-semibold"
           >
-            <Link to="/marketplace">
-              View all verified sellers
+            <Link to="/auth?role=seller">
+              Open your free store
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>

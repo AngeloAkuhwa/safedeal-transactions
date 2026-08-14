@@ -19,20 +19,19 @@ type Tone = "primary" | "success" | "warning" | "danger";
 interface Category {
   slug: string;
   name: string;
-  count: string;
   icon: LucideIcon;
   tone: Tone;
 }
 
 const categories: Category[] = [
-  { slug: "phones-tablets", name: "Phones & Tablets", count: "2,847 listings", icon: Smartphone, tone: "primary" },
-  { slug: "computing", name: "Laptops", count: "1,523 listings", icon: Laptop, tone: "success" },
-  { slug: "fashion", name: "Fashion & Sneakers", count: "3,142 listings", icon: Shirt, tone: "warning" },
-  { slug: "electronics", name: "Electronics", count: "1,967 listings", icon: Headphones, tone: "primary" },
-  { slug: "home", name: "Home & Living", count: "892 listings", icon: Sofa, tone: "success" },
-  { slug: "gaming", name: "Gaming", count: "1,234 listings", icon: Gamepad2, tone: "danger" },
-  { slug: "beauty", name: "Beauty & Accessories", count: "2,156 listings", icon: SprayCan, tone: "warning" },
-  { slug: "services", name: "Services", count: "567 listings", icon: Wrench, tone: "primary" },
+  { slug: "phones-tablets", name: "Phones & Tablets", icon: Smartphone, tone: "primary" },
+  { slug: "computing", name: "Laptops", icon: Laptop, tone: "success" },
+  { slug: "fashion", name: "Fashion & Sneakers", icon: Shirt, tone: "warning" },
+  { slug: "electronics", name: "Electronics", icon: Headphones, tone: "primary" },
+  { slug: "home", name: "Home & Living", icon: Sofa, tone: "success" },
+  { slug: "gaming", name: "Gaming", icon: Gamepad2, tone: "danger" },
+  { slug: "beauty", name: "Beauty & Accessories", icon: SprayCan, tone: "warning" },
+  { slug: "services", name: "Services", icon: Wrench, tone: "primary" },
 ];
 
 const toneMap: Record<Tone, { wrap: string; icon: string; hover: string; arrow: string }> = {
@@ -86,7 +85,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
             className={`h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:translate-x-1 ${t.arrow}`}
           />
         </div>
-        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{cat.count}</p>
+        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">Protected deals</p>
       </div>
     </Link>
   );
