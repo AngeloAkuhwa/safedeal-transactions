@@ -110,19 +110,17 @@ function StepRow({
   const Icon = step.icon;
   const isDone = index < active;
   const isActive = index === active;
-  const tone = TONE_STYLES[step.tone];
-
   let wrapClass = "border bg-muted/30 opacity-50";
   let iconWrapClass = "bg-muted text-muted-foreground";
   let titleClass = "text-muted-foreground";
 
   if (isDone) {
-    wrapClass = "border-success/30 bg-success/10";
-    iconWrapClass = "bg-success text-success-foreground";
+    wrapClass = "border border-border bg-muted/50";
+    iconWrapClass = "bg-muted text-muted-foreground";
     titleClass = "text-foreground";
   } else if (isActive) {
-    wrapClass = `${tone.activeWrap} scale-[1.02] shadow-sm`;
-    iconWrapClass = tone.activeIcon;
+    wrapClass = `${ACTIVE_WRAP} scale-[1.02] shadow-sm`;
+    iconWrapClass = ACTIVE_ICON;
     titleClass = "text-foreground";
   }
 
