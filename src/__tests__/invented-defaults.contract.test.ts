@@ -111,7 +111,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-transactions-monitor/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/claim-offer/index.ts",
   "supabase/functions/create-transaction/index.ts",
   "supabase/functions/dispute-detail/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
@@ -182,7 +181,6 @@ const WINDOW_DEBT = [
   // Newly VISIBLE under the positional + delivery-estimate rules added in this
   // pass. Recorded, not narrowed away.
   "supabase/functions/_shared/settings-resolver.ts",
-  "supabase/functions/claim-offer/index.ts",
 ];
 
 /**
@@ -595,8 +593,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "src/pages/SellerTransactionDetail.tsx",
   "supabase/functions/admin-audit-logs/index.ts",
   "supabase/functions/buyer-disputes/index.ts",
-  "supabase/functions/buyer-profile/index.ts",
-  "supabase/functions/seller-profile/index.ts",
 ];
 
 describe("money never falls back to zero", () => {

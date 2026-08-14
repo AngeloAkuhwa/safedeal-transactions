@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, loadEffectiveTimeoutHours, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -239,7 +239,7 @@ const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
   high_trust_buyer: Number.MAX_SAFE_INTEGER,
 };
 
-function mapConditionToProduct(c: string): string {
+function mapConditionToProduct(c: string | null | undefined): string | null {
   const map: Record<string, string> = {
     brand_new: "brand_new",
     like_new: "like_new",
@@ -248,17 +248,17 @@ function mapConditionToProduct(c: string): string {
     fair: "used_fair",
     used: "used_good",
   };
-  return map[c] ?? "brand_new";
+  return map[c ?? ""] ?? null;
 }
 
-function mapDeliveryToProduct(m: string): string {
+function mapDeliveryToProduct(m: string | null | undefined): string | null {
   const map: Record<string, string> = {
     courier: "courier_shipping",
     pickup: "pickup",
     meetup: "meetup",
     hand_delivery: "hand_delivery",
   };
-  return map[m] ?? "courier_shipping";
+  return map[m ?? ""] ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -333,7 +333,45 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   const notes = notesRes.data;
   const mediaFiles = mediaFilesRes.data || [];
   const buyerEmail = (draft.buyer_contact_email || "").trim().toLowerCase() || null;
-  const currencyCode = pricingRes.data?.currency_code || "NGN";
+  // The currency is a fact recorded on the draft's pricing row. Publishing a
+  // product in a currency nobody chose would mis-price every later offer.
+  const currencyCode = pricingRes.data?.currency_code || null;
+  if (!currencyCode) {
+    return jsonResponse(
+      { error: "currency_missing", reason: "This draft has no currency recorded. Reopen it and set the price again." },
+      409,
+    );
+  }
+
+  // Resolved BEFORE any product/offer insert so a refusal cannot strand rows.
+  const productDeliveryMethod = mapDeliveryToProduct(delivery.delivery_method);
+  if (!productDeliveryMethod) {
+    return jsonResponse(
+      {
+        error: "delivery_method_unmapped",
+        reason: `'${delivery.delivery_method}' is not a delivery method SafeDeal can publish.`,
+      },
+      409,
+    );
+  }
+  const rawPublishWindow =
+    delivery.verification_window_hours === null || delivery.verification_window_hours === undefined
+      ? null
+      : Number(delivery.verification_window_hours);
+  const publishWindowHours =
+    rawPublishWindow !== null && Number.isFinite(rawPublishWindow) && rawPublishWindow > 0
+      ? rawPublishWindow
+      : await resolveEffectiveTimeoutHours(userId, "buyer_verification_timeout");
+  if (publishWindowHours === null) {
+    return jsonResponse(
+      { error: "verification_window_unresolved", reason: "No buyer verification window is configured for your account." },
+      409,
+    );
+  }
+  // The delivery estimate is optional seller information, never a default.
+  const publishEstimatedDays = delivery.expected_delivery_date
+    ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
+    : null;
 
   // Build items list. Either from request (multi-item) or fallback to draft single item.
   let items: any[] = Array.isArray(body.items) && body.items.length > 0
@@ -384,6 +422,23 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   }
   const offerStatus = linkedBuyerId ? "linked" : "pending_claim";
 
+  // Validate every item's condition BEFORE the first product insert, so a
+  // refusal cannot leave half an offer's products published.
+  const conditionByIndex: string[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const mappedCondition = mapConditionToProduct(items[i].condition);
+    if (!mappedCondition) {
+      return jsonResponse(
+        {
+          error: "condition_unmapped",
+          reason: `"${items[i].title || `Item ${i + 1}`}" has no recognised condition. Set the item condition and publish again.`,
+        },
+        409,
+      );
+    }
+    conditionByIndex.push(mappedCondition);
+  }
+
   // ── Create products first, then offer with first product as anchor ──
   const createdProducts: { id: string; item: any; index: number }[] = [];
   for (let i = 0; i < items.length; i++) {
@@ -397,19 +452,17 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
         slug,
         description: it.description || it.title,
         short_description: (it.description || "").substring(0, 200),
-        condition_label: mapConditionToProduct(it.condition || "brand_new"),
+        condition_label: conditionByIndex[i],
         currency_code: it.currency_code || currencyCode,
         unit_price: Number(it.price),
         stock_quantity: Math.max(1, parseInt(it.quantity) || 1),
         visibility_type: "buyer_specific",
         status: "published",
         is_active: true,
-        delivery_method: JSON.stringify([mapDeliveryToProduct(delivery.delivery_method)]),
-        verification_window_hours: delivery.verification_window_hours || 72,
+        delivery_method: JSON.stringify([productDeliveryMethod]),
+        verification_window_hours: publishWindowHours,
         seller_notes: notes?.seller_notes || null,
-        estimated_delivery_days: delivery.expected_delivery_date
-          ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
-          : "7",
+        estimated_delivery_days: publishEstimatedDays,
         published_at: new Date().toISOString(),
       })
       .select("id")

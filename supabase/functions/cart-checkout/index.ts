@@ -115,6 +115,11 @@ Deno.serve(async (req) => {
     if (pErr) throw pErr;
     const productMap = new Map((products || []).map((p: any) => [p.id, p]));
 
+    // Buyer profile is needed DURING validation (phone fallback), so it is
+    // fetched before the validation loop rather than after it.
+    const { data: buyerProfile } = await admin.from("profiles").select("id, full_name, email, phone").eq("id", buyerId).single();
+    if (!buyerProfile) return json({ error: "Buyer profile not found" }, 404);
+
     // 3. Validate ALL items — block entire checkout if any fail
     const errors: Array<{ product_id: string; error: string; code?: string }> = [];
     // Resolved selection per cart item, populated during validation
@@ -180,8 +185,12 @@ Deno.serve(async (req) => {
           continue;
         }
       }
-      // Phone fallback to buyer profile is checked later; not blocking here
-      void needsPhone;
+      // In-person handoffs need a reachable number. Mirrors `storefront-checkout`:
+      // the selection's phone, else the buyer's profile phone, else refuse.
+      if (needsPhone && !sel?.contact_phone?.trim() && !buyerProfile.phone) {
+        errors.push({ product_id: ci.product_id, error: "Contact phone required for this delivery method" });
+        continue;
+      }
 
       // FAIL CLOSED, BEFORE ANY WRITE: an unmapped condition or delivery
       // method is a fact about someone else's goods. Both are validated here
@@ -209,7 +218,7 @@ Deno.serve(async (req) => {
         mappedMethod,
         condition,
         address: sel?.delivery_address ?? null,
-        phone: sel?.contact_phone ?? null,
+        phone: sel?.contact_phone?.trim() || buyerProfile.phone || null,
       });
     }
 
@@ -217,10 +226,7 @@ Deno.serve(async (req) => {
       return json({ error: "Some items need attention", validation_errors: errors }, 400);
     }
 
-    // 4. Fetch buyer + seller profiles
-    const { data: buyerProfile } = await admin.from("profiles").select("id, full_name, email, phone").eq("id", buyerId).single();
-    if (!buyerProfile) return json({ error: "Buyer profile not found" }, 404);
-
+    // 4. Fetch seller profiles
     const sellerIds = [...new Set(cartItems.map((ci: any) => productMap.get(ci.product_id)?.seller_id).filter(Boolean))];
     const { data: sellerProfiles } = await admin.from("profiles").select("id, full_name, email, phone").in("id", sellerIds);
     const sellerMap = new Map((sellerProfiles || []).map((s: any) => [s.id, s]));
@@ -445,6 +451,30 @@ Deno.serve(async (req) => {
         await admin.from("transaction_items").delete().eq("transaction_id", transactionId);
         if (newItemRows.length > 0) {
           await admin.from("transaction_items").insert(newItemRows);
+        }
+
+        // Reconcile delivery terms with the buyer's latest selection, exactly
+        // like the `storefront-checkout` twin. Without this a retry after a
+        // change of method or address persists the OLD terms on the agreement
+        // while the response reports the new ones.
+        {
+          const firstResolved = resolvedByCartItem.get(items[0].cartItem.id)!;
+          const needsAddress =
+            firstResolved.rawMethod === "courier_shipping" || firstResolved.rawMethod === "delivery";
+          const addr = firstResolved.address ?? {};
+          await admin.from("transaction_delivery_terms").delete().eq("transaction_id", transactionId);
+          await admin.from("transaction_delivery_terms").insert({
+            transaction_id: transactionId,
+            delivery_method: firstResolved.mappedMethod,
+            expected_delivery_date: expectedDateBySeller.get(sellerId) ?? null,
+            verification_window_hours: verificationWindowBySeller.get(sellerId)!,
+            delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
+            delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,
+            delivery_city: needsAddress ? (addr.city ?? null) : null,
+            delivery_state: needsAddress ? (addr.state ?? null) : null,
+            delivery_postal_code: needsAddress ? (addr.postal_code ?? null) : null,
+            delivery_country_code: needsAddress ? (addr.country_code ?? null) : null,
+          });
         }
 
         // Reconcile reserved_quantity per product for THIS transaction.

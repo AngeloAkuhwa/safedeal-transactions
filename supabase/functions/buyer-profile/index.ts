@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { LAUNCH_REGION_COUNTRY_CODE } from "../_shared/launch-region.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,8 +73,15 @@ async function computePermissions(
     // default 0
   }
 
-  const maxConcurrent = CONCURRENT_BY_LEVEL[level] ?? 0;
-  const transactionLimit = LIMIT_BY_LEVEL[level] ?? 0;
+  // An unrecognised verification level is a data fault, not a zero allowance.
+  // We surface it as `null` so the UI shows "unavailable" rather than telling
+  // the buyer their limit is ₦0 — the enforcement path (initiate-paystack-
+  // payment) refuses the payment outright for the same reason.
+  const knownLevel =
+    Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level) &&
+    Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level);
+  const maxConcurrent = knownLevel ? CONCURRENT_BY_LEVEL[level] : null;
+  const transactionLimit = knownLevel ? LIMIT_BY_LEVEL[level] : null;
 
   // Explicit triple-check: phone + location + level must all pass
   const canAct = phoneVerified && hasLocation && level !== "unverified";
@@ -153,7 +161,9 @@ Deno.serve(async (req) => {
       const profile =
         profileResult.status === "fulfilled" && profileResult.value.data
           ? profileResult.value.data
-          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", state_name: null, city_name: null, is_region_eligible: false, created_at: "" };
+          // A missing profile row has NO recorded country. Filling in "NG"
+          // invents a fact about the user; carry null and let the UI ask.
+          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: null, state_name: null, city_name: null, is_region_eligible: false, created_at: "" };
 
       const preferences =
         prefsResult.status === "fulfilled" && prefsResult.value.data
@@ -268,7 +278,7 @@ Deno.serve(async (req) => {
             const { data: stateRows } = await adminClient
               .from("serviceable_regions")
               .select("id, city_name, is_active")
-              .eq("country_code", "NG")
+              .eq("country_code", LAUNCH_REGION_COUNTRY_CODE)
               .eq("state_name", effectiveState);
 
             if (!stateRows || stateRows.length === 0) {

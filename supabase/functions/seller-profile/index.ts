@@ -196,7 +196,8 @@ Deno.serve(async (req) => {
       };
 
       // ── Compute seller permissions ──
-      const level = (verificationData.verification_level as string) || "unverified";
+      const level =
+        ((verificationData as Record<string, unknown>).verification_level as string | undefined) || "unverified";
       let activeTransactionCount = 0;
       try {
         const { count } = await adminClient
@@ -209,14 +210,20 @@ Deno.serve(async (req) => {
         // default 0
       }
 
+      // An unrecognised verification level is a data fault, not a zero
+      // allowance. Report it as null rather than showing a ₦0 limit.
+      const knownLevel =
+        Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level) &&
+        Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level);
       const permissions = {
         verificationLevel: level,
         verificationLabel: VERIFICATION_LABEL_MAP[level] ?? VERIFICATION_LABEL_MAP.unverified,
-        transactionLimitNaira: LIMIT_BY_LEVEL[level] ?? 0,
-        maxConcurrentActiveTransactions: CONCURRENT_BY_LEVEL[level] ?? 0,
+        transactionLimitNaira: knownLevel ? LIMIT_BY_LEVEL[level] : null,
+        maxConcurrentActiveTransactions: knownLevel ? CONCURRENT_BY_LEVEL[level] : null,
         activeTransactionCount,
         canPublishTransaction: level !== "unverified",
-        canCreateAnotherActiveTransaction: level !== "unverified" && activeTransactionCount < (CONCURRENT_BY_LEVEL[level] ?? 0),
+        canCreateAnotherActiveTransaction:
+          level !== "unverified" && knownLevel && activeTransactionCount < CONCURRENT_BY_LEVEL[level],
         requiresIdentityVerification: level !== "trusted_buyer" && level !== "high_trust_buyer",
       };
 

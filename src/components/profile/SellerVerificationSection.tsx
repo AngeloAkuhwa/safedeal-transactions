@@ -112,12 +112,12 @@ export function SellerVerificationSection({ verification, permissions, isLoading
           <div className="grid grid-cols-2 gap-3 mb-2">
             <div className="bg-muted rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Transaction Limit</p>
-              <p className="text-sm font-bold text-foreground">{formatNaira(permissions.transactionLimitNaira)}</p>
+              <p className="text-sm font-bold text-foreground">{permissions.transactionLimitNaira === null ? "—" : formatNaira(permissions.transactionLimitNaira)}</p>
             </div>
             <div className="bg-muted rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Active Transactions</p>
               <p className="text-sm font-bold text-foreground">
-                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions}
+                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions ?? "—"}
               </p>
             </div>
           </div>
