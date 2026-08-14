@@ -425,7 +425,9 @@ export async function refundBuyerCore(
 
   // SafeDeal MVP rule: Payment Processing Fee is non-refundable once payment
   // has been processed. Refund = buyer_total - payment_processing_fee.
-  // Legacy rows missing the snapshot columns fall back to a full refund.
+  // A missing snapshot is the same missing fact that makes the release rail
+  // refuse, so the refund rail refuses and flags too — it must not silently
+  // return the full charged amount.
   const { data: pricingRow } = await admin
     .from("transaction_pricing")
     .select("buyer_total_amount, payment_processing_fee_amount")
@@ -439,12 +441,20 @@ export async function refundBuyerCore(
       : null;
 
   const paymentAmount = Number((payment as any).amount);
-  const refundAmount =
-    Number.isFinite(buyerTotal) && Number.isFinite(processingFee as number)
-      ? Math.max(buyerTotal - (processingFee as number), 0)
-      : paymentAmount; // legacy fallback
-  const isPartial =
-    Number.isFinite(buyerTotal) && Number.isFinite(processingFee as number) && refundAmount < paymentAmount;
+  if (!Number.isFinite(buyerTotal) || processingFee === null || !Number.isFinite(processingFee)) {
+    try {
+      await admin.rpc("flag_for_release_review", {
+        p_transaction_id: transaction_id,
+        p_reason: "pricing_missing",
+        p_actor_user_id: actor_user_id,
+        p_notes: "No pricing snapshot: cannot establish the refundable amount (buyer total minus non-refundable processing fee).",
+      });
+    } catch (e) {
+      console.error("refundBuyerCore: flag_for_release_review failed", e);
+    }
+    return { ok: false, status: 409, body: { error: "pricing_missing" } };
+  }
+  const refundAmount = Math.max(buyerTotal - processingFee, 0);
 
   if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
     return { ok: false, status: 409, body: { error: "invalid_refund_amount" } };
