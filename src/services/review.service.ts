@@ -18,14 +18,22 @@ export interface ReviewData {
     model: string | null;
     warranty_terms: string | null;
   } | null;
+  /**
+   * Emitted by `supabase/functions/resolve-share-token`. Every amount is
+   * nullable on purpose: a missing snapshot column must reach the UI as null
+   * so the payment screen can block, never as a fabricated zero. The shape is
+   * pinned by `src/__tests__/review-payload-shape.contract.test.ts`.
+   */
   pricing: {
-    currency_code: string;
-    item_amount: number;
-    paystack_fee_amount: number;
-    platform_fee_amount: number;
-    service_fee_amount: number;
-    service_fee_rate: number;
-    total_amount: number;
+    currency_code: string | null;
+    item_amount: number | null;
+    paystack_fee_amount: number | null;
+    platform_fee_amount: number | null;
+    service_fee_amount: number | null;
+    /** Rate actually charged, observed from the snapshot. Null when unknown. */
+    service_fee_rate: number | null;
+    total_amount: number | null;
+    seller_payout_amount?: number | null;
     /** Persisted cap flag from `transaction_pricing` — never re-derived client side. */
     is_total_service_fee_capped?: boolean;
     /** Server-stated floor flag; null when unknown. Never re-derived client side. */
