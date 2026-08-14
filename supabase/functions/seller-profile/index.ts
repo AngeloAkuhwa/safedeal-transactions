@@ -196,7 +196,8 @@ Deno.serve(async (req) => {
       };
 
       // ── Compute seller permissions ──
-      const level = (verificationData.verification_level as string) || "unverified";
+      const level =
+        ((verificationData as Record<string, unknown>).verification_level as string | undefined) || "unverified";
       let activeTransactionCount = 0;
       try {
         const { count } = await adminClient
