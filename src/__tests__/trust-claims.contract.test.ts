@@ -70,6 +70,9 @@ const SAFE_OPERATIONAL_SURFACES: Array<{ file: RegExp; text: RegExp; reason: str
   { file: /BuyerTransactionTracking\.tsx$/i, text: /\btracking\b/i, reason: "The tracking screen names courier tracking records and errors." },
   { file: /DeliveryTermsCard\.tsx$/i, text: /\btracking\b/i, reason: "The locked terms card labels the configured tracking rule." },
   { file: /LegalRefundPolicy\.tsx$/i, text: /\bescrow\b/i, reason: "The legal policy describes the escrow contract rather than advertising it." },
+  { file: /(?:BuyerPaymentSummary|BuyerTransactionDetail|OfferClaimLanding|SellerCreateTransaction|SellerTransactionDetail|SellerTransactions|SellerUpdateDelivery)\.tsx$/i, text: TRUST_VOCABULARY, reason: "Transaction workflow screens label stored verification, delivery, and money states." },
+  { file: /(?:SellerAnalytics|SellerProductPreview|TransactionTable|SellerPayoutImpactCard)\.tsx$/i, text: TRUST_VOCABULARY, reason: "Seller operational views label stored account, transaction, and payout states." },
+  { file: /BuyerVerification\.tsx$/i, text: /\bprotected\b/i, reason: "Identity settings explain enforced access controls for submitted personal data." },
 ];
 
 function userVisibleJsxText(source: string): string[] {

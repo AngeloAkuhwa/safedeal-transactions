@@ -18,7 +18,7 @@ export function SellerDashboardEmptyState({ seller, metrics }: Props) {
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
           <Share2 className="h-7 w-7 text-primary" />
         </div>
-        <h2 className="text-lg font-bold text-foreground">Share your store or create a protected deal</h2>
+        <h2 className="text-lg font-bold text-foreground">Share your store or create a private offer</h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
           Your products are ready. Share your storefront or create a direct deal link for a buyer.
         </p>
@@ -45,7 +45,7 @@ export function SellerDashboardEmptyState({ seller, metrics }: Props) {
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
         <PackagePlus className="h-7 w-7 text-primary" />
       </div>
-      <h2 className="text-lg font-bold text-foreground">Start your first protected deal</h2>
+      <h2 className="text-lg font-bold text-foreground">Start your first transaction</h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
         Create a product listing or send a protected transaction link to a buyer. SafeDeal holds payment securely until the transaction is confirmed.
       </p>

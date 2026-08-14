@@ -147,7 +147,7 @@ export function InstallPrompt() {
             Add SafeDeal to your Home Screen
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Open your protected deals in one tap.
+            Open your transactions in one tap.
           </p>
           <div className="mt-3 flex gap-2">
             <Button size="sm" className="tap-press h-10 flex-1 rounded-xl" onClick={install}>
