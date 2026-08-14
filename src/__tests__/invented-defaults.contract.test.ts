@@ -864,7 +864,7 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
   },
   {
     name: "invented interval literal",
-    pattern: /interval\\s+'\\d+\\s+day/i,
+    pattern: /interval\s+'\d+\s+day/i,
     debt: [
         "supabase/migrations/20260308102521_d299192f-2ecd-4095-b7df-aec585f187f9.sql",
         "supabase/migrations/20260419165835_75c559da-03a0-4412-9a4e-4a0987d8309d.sql",
