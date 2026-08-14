@@ -376,7 +376,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/transactions/DeliveryTermsCard.tsx", text: "Tracking rule:", reason: "Prefix for the evidence rule derived from isTrackedDelivery for this method." },
   { file: "src/components/transactions/TerminalTransactionScreen.tsx", text: "Funds for this transaction are already held in escrow. Open the agreement to track delivery and verification.", reason: "Terminal-state note pointing the user to the agreement for a funded deal." },
   { file: "src/components/transactions/TransactionFilters.tsx", text: "Funds Held in Escrow", reason: "Filter option matching transactions whose stored money state is held." },
-  { file: "src/components/transactions/TransactionTable.tsx", text: "Verified", reason: "Table cell rendered from a stored verification boolean on the row." },
   { file: "src/lib/dispute-display-status.ts", text: "Funds Held in Escrow", reason: "Display name of the escrow money_status value during a dispute." },
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee rate", reason: "Settings-catalog name of the pricing.platform_fee_rate key." },
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee flat component", reason: "Settings-catalog name of the pricing.platform_fee_flat_ngn key." },
