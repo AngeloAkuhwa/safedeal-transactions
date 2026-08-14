@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
       disputeResult,
       agreementResult,
       deliveryConfResult,
+      sellerVerificationResult,
     ] = await Promise.allSettled([
       adminClient.from("transaction_items").select("title, description, quantity, condition_label, brand, model").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_pricing").select("item_amount, currency_code, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", transactionId).single(),
@@ -124,6 +125,7 @@ Deno.serve(async (req) => {
       adminClient.from("disputes").select("id, status, reason, opened_at, description").eq("transaction_id", transactionId).maybeSingle(),
       adminClient.from("transaction_agreement_snapshots").select("locked_at").eq("transaction_id", transactionId).maybeSingle(),
       adminClient.from("delivery_confirmations").select("seller_marked_delivered_at, buyer_acknowledged_delivery_at, system_delivery_marked_at").eq("transaction_id", transactionId).maybeSingle(),
+      adminClient.from("account_verifications").select("identity_verified, payout_verified, email_verified, phone_verified").eq("user_id", tx.seller_id).maybeSingle(),
     ]);
 
     const item = itemResult.status === "fulfilled" ? itemResult.value.data : null;
@@ -143,6 +145,10 @@ Deno.serve(async (req) => {
     const dispute = disputeResult.status === "fulfilled" ? disputeResult.value.data : null;
     const agreement = agreementResult.status === "fulfilled" ? agreementResult.value.data : null;
     const deliveryConf = deliveryConfResult.status === "fulfilled" ? deliveryConfResult.value.data : null;
+    const sellerVerification =
+      sellerVerificationResult.status === "fulfilled" ? sellerVerificationResult.value.data : null;
+    // A seller is only shown as "Verified" when identity verification actually passed.
+    const sellerIsVerified = sellerVerification?.identity_verified === true;
 
     // Use the stored snapshot as the source of truth; fall back to computed
     // values only when the snapshot is missing (pre-payment) or columns are null.
@@ -321,7 +327,14 @@ Deno.serve(async (req) => {
             mime_type: f.mime_type ?? null,
           };
         }),
-      seller: seller ? { full_name: seller.full_name, avatar_url: seller.avatar_url, member_since: seller.created_at } : null,
+      seller: seller
+        ? {
+            full_name: seller.full_name,
+            avatar_url: seller.avatar_url,
+            member_since: seller.created_at,
+            is_verified: sellerIsVerified,
+          }
+        : null,
       escrow: escrow,
       status_history: statusHistory,
       money_history: moneyHistory,

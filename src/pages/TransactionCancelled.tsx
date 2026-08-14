@@ -1,8 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router";
-import { useState } from "react";
 import {
-  Ban, ShieldCheck, Info, Lightbulb, Home, Headphones, ChevronDown, ChevronUp,
-  Clock, Shield, RotateCcw, Check,
+  Ban, ShieldCheck, Info, Lightbulb, Home, Headphones, Clock, Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/landing/Footer";
@@ -13,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 export default function TransactionCancelled() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
-  const [reasonOpen, setReasonOpen] = useState(false);
 
   // Optionally fetch transaction info for display
   const { data } = useQuery({
@@ -31,6 +28,22 @@ export default function TransactionCancelled() {
   });
 
   const transactionCode = data?.transaction?.transaction_code;
+  const cancelledByRole: string | null = data?.transaction?.cancelled_by_role ?? null;
+  const cancellationReason: string | null = data?.transaction?.cancellation_reason ?? null;
+
+  // Only state what the record actually says. Never attribute a cancellation
+  // to a party the transaction record does not identify.
+  const reasonTitle =
+    cancelledByRole === "buyer"
+      ? "Cancelled by the buyer"
+      : cancelledByRole === "seller"
+        ? "Cancelled by the seller"
+        : cancelledByRole === "system"
+          ? "Cancelled automatically by SafeDeal"
+          : "This transaction was cancelled";
+  const reasonBody =
+    cancellationReason?.trim() ||
+    "No payment was processed, and no funds were held or transferred.";
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
@@ -110,45 +123,11 @@ export default function TransactionCancelled() {
                     <Clock className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-foreground mb-2">Buyer Declined Transaction</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      This transaction was cancelled because the buyer chose not to proceed with the payment.
-                      No payment was processed, and no funds were held or transferred.
-                    </p>
+                    <h3 className="text-base font-semibold text-foreground mb-2">{reasonTitle}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{reasonBody}</p>
                   </div>
                 </div>
               </div>
-
-              {/* Collapsible other reasons */}
-              <div className="mt-4">
-                <button
-                  onClick={() => setReasonOpen((v) => !v)}
-                  className="w-full bg-card rounded-lg border border-border px-5 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors text-left"
-                >
-                  <span className="text-sm font-medium text-foreground">Other possible reasons</span>
-                  {reasonOpen
-                    ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  }
-                </button>
-                {reasonOpen && (
-                  <div className="bg-muted/30 border border-border border-t-0 rounded-b-lg px-5 py-4 space-y-3">
-                    {[
-                      { title: "Seller cancelled before payment:", desc: "The seller chose to cancel the transaction before the buyer completed payment." },
-                      { title: "Buyer abandoned payment:", desc: "The buyer started but did not complete the payment process." },
-                      { title: "System cancelled due to timeout:", desc: "The transaction expired because no action was taken within the allowed timeframe." },
-                    ].map((r) => (
-                      <div key={r.title} className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-2 shrink-0" />
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">{r.title}</span> {r.desc}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Your Account is Safe */}
             <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
@@ -180,7 +159,11 @@ export default function TransactionCancelled() {
                 variant="outline"
                 className="flex-1 py-6 rounded-xl text-base font-semibold border-2"
                 size="lg"
-                onClick={() => window.open("mailto:support@safedeal.com", "_blank")}
+                onClick={() =>
+                  navigate(
+                    `/contact?topic=transaction${transactionCode ? `&ref=${encodeURIComponent(transactionCode)}` : ""}`,
+                  )
+                }
               >
                 <Headphones className="h-5 w-5" />
                 Contact Support

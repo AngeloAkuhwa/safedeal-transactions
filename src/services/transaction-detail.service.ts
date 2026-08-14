@@ -70,6 +70,8 @@ export interface TransactionDetailSeller {
   full_name: string;
   avatar_url: string | null;
   member_since: string;
+  /** True only when the seller's identity verification actually passed. */
+  is_verified: boolean;
 }
 
 export interface TransactionDetailEscrow {

@@ -1073,6 +1073,48 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          message: string
+          status: string
+          topic: string
+          transaction_reference: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message: string
+          status?: string
+          topic?: string
+          transaction_reference?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message?: string
+          status?: string
+          topic?: string
+          transaction_reference?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       delivery_confirmation_tokens: {
         Row: {
           buyer_id: string

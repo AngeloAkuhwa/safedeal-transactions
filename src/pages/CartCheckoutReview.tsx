@@ -21,6 +21,7 @@ import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
+import { FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -426,7 +427,7 @@ const CartCheckoutReview = () => {
                     <div className="flex justify-between text-sm">
                       <div>
                         <span className="text-primary font-medium">{PRICING_LINE_LABELS.service_fee_amount}</span>
-                        <p className="text-[10px] text-muted-foreground">Non-refundable</p>
+                        <p className="text-[10px] text-muted-foreground">{FEE_CAPTION}</p>
                       </div>
                       <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee))}</span>
                     </div>
@@ -446,7 +447,7 @@ const CartCheckoutReview = () => {
                     {[
                       "Separate escrow per seller",
                       "Independent fulfillment tracking",
-                      "Full refund if items don't match",
+                      REFUND_BULLET,
                       "Dispute resolution support",
                     ].map((t, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">

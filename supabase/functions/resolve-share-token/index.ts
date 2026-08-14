@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       await Promise.all([
         supabase
           .from("transactions")
-          .select("id, transaction_code, status, money_status, created_at, agreement_locked_at, seller_id, source_offer_id, source_product_id")
+          .select("id, transaction_code, status, money_status, created_at, agreement_locked_at, seller_id, buyer_id, source_offer_id, source_product_id, cancelled_at, cancellation_reason")
           .eq("id", txId)
           .single(),
         supabase
@@ -188,6 +188,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Who actually cancelled — derived from the recorded status-history actor.
+    let cancelledByRole: "buyer" | "seller" | "system" | null = null;
+    if (tx.status === "cancelled") {
+      const { data: hist } = await supabase
+        .from("transaction_status_history")
+        .select("changed_by_user_id, new_status, changed_at")
+        .eq("transaction_id", txId)
+        .eq("new_status", "cancelled")
+        .order("changed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const actor = hist?.changed_by_user_id ?? null;
+      if (!actor) cancelledByRole = "system";
+      else if (actor === tx.buyer_id) cancelledByRole = "buyer";
+      else if (actor === tx.seller_id) cancelledByRole = "seller";
+    }
+
     const response = {
       transaction: {
         id: tx.id,
@@ -196,6 +213,10 @@ Deno.serve(async (req) => {
         money_status: tx.money_status,
         created_at: tx.created_at,
         agreement_locked_at: tx.agreement_locked_at,
+        cancelled_at: tx.cancelled_at ?? null,
+        // Real reason as recorded on the transaction — never inferred.
+        cancellation_reason: tx.cancellation_reason ?? null,
+        cancelled_by_role: cancelledByRole,
       },
       item: itemRes.data
         ? {

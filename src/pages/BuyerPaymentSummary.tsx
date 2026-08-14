@@ -24,6 +24,7 @@ import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { formatMoney } from "@/lib/format";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
+import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 
 declare global {
   interface Window {
@@ -607,14 +608,14 @@ export default function BuyerPaymentSummary() {
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm text-muted-foreground">SafeDeal Protection Fee</span>
+                    <span className="text-sm text-muted-foreground">{FEE_NAME}</span>
                     {feeAmount >= 2500 && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
                     )}
                   </div>
                   <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Non-refundable · Covers escrow, buyer protection & dispute resolution</p>
+                <p className="text-xs text-muted-foreground -mt-1 pl-0.5">{FEE_CAPTION}</p>
                 <Collapsible>
                   <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors pl-0.5">
                     <ChevronDown className="h-3 w-3" />
@@ -931,7 +932,7 @@ export default function BuyerPaymentSummary() {
                     `Payment held in escrow until verification`,
                     `${verificationHours}-hour verification window`,
                     "Dispute resolution available",
-                    "Full refund if item doesn't match",
+                    REFUND_BULLET,
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <Check className="h-4 w-4 mt-0.5 shrink-0" />
@@ -1161,6 +1162,11 @@ export default function BuyerPaymentSummary() {
                       </>
                     )}
                     <button
+                      onClick={() =>
+                        navigate(
+                          `/contact?topic=payment&ref=${encodeURIComponent(data.transaction.transaction_code)}`,
+                        )
+                      }
                       className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
                     >
                       <Headphones className="h-3.5 w-3.5" />
@@ -1186,8 +1192,15 @@ export default function BuyerPaymentSummary() {
                 <div className="text-center pt-2 border-t">
                   <p className="text-[10px] text-muted-foreground">
                     Need help?{" "}
-                    <button className="text-primary font-semibold hover:text-primary/80">
-                      Visit our Help Center
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/contact?topic=payment&ref=${encodeURIComponent(data.transaction.transaction_code)}`,
+                        )
+                      }
+                      className="text-primary font-semibold hover:text-primary/80"
+                    >
+                      Contact support
                     </button>
                   </p>
                 </div>
