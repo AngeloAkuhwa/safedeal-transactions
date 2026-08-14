@@ -8,6 +8,9 @@ export interface ReviewData {
     money_status: string;
     created_at: string;
     agreement_locked_at: string | null;
+    cancelled_at: string | null;
+    cancellation_reason: string | null;
+    cancelled_by_role: "buyer" | "seller" | "system" | null;
   };
   item: {
     title: string;
@@ -57,7 +60,7 @@ export interface ReviewData {
     id: string;
     file_id: string;
     media_type: string;
-    display_order: number;
+    sort_order: number;
     files: {
       file_url: string;
       secure_url: string | null;
@@ -65,10 +68,14 @@ export interface ReviewData {
       original_file_name: string | null;
     } | null;
   }>;
+  /**
+   * Share links are pre-authentication surfaces, so the server deliberately
+   * withholds the seller's email. Declaring it here would be a field the
+   * payload never carries. Pinned by `review-payload-shape.contract.test.ts`.
+   */
   seller: {
     full_name: string;
     avatar_url: string | null;
-    email: string;
     member_since: string;
   } | null;
   sellerVerification: {

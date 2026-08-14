@@ -306,6 +306,20 @@ Deno.serve(async (req) => {
     const amountInKobo = charge.amount_kobo;
     const channels = paymentMethod === "bank" ? ["bank_transfer"] : ["card"];
 
+    // Snapshot fees travel to Paystack as evidence. A missing column must stay
+    // null on the charge metadata — coercing it to 0 would record a fee that
+    // was never charged against a real payment.
+    const numOrNull = (v: unknown) =>
+      v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v);
+    const snapPlatformFee = numOrNull((pricingRow as Record<string, unknown> | null)?.platform_fee_amount);
+    const snapProcessingFee = numOrNull(
+      (pricingRow as Record<string, unknown> | null)?.payment_processing_fee_amount,
+    );
+    const snapServiceFee =
+      snapPlatformFee !== null && snapProcessingFee !== null
+        ? snapPlatformFee + snapProcessingFee
+        : null;
+
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -324,18 +338,11 @@ Deno.serve(async (req) => {
           buyer_user_id: userId,
           item_amount: itemAmount,
           service_fee_amount:
-            charge.source === "snapshot"
-              ? (Number(pricingRow.platform_fee_amount) || 0) +
-                (Number(pricingRow.payment_processing_fee_amount) || 0)
-              : pricing.service_fee_amount,
+            charge.source === "snapshot" ? snapServiceFee : pricing.service_fee_amount,
           paystack_fee_amount:
-            charge.source === "snapshot"
-              ? Number(pricingRow.payment_processing_fee_amount) || 0
-              : pricing.paystack_fee_amount,
+            charge.source === "snapshot" ? snapProcessingFee : pricing.paystack_fee_amount,
           platform_fee_amount:
-            charge.source === "snapshot"
-              ? Number(pricingRow.platform_fee_amount) || 0
-              : pricing.platform_fee_amount,
+            charge.source === "snapshot" ? snapPlatformFee : pricing.platform_fee_amount,
           pricing_source: charge.source,
         },
       }),

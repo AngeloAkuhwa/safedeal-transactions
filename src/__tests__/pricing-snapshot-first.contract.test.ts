@@ -18,16 +18,28 @@ const SNAPSHOT_FIRST_FILES = [
   "verify-paystack-payment/index.ts",
   "paystack-webhook/index.ts",
   "transaction-agreement/index.ts",
-  "resolve-share-token/index.ts",
   "transaction-detail/index.ts",
   "seller-transaction-detail/index.ts",
 ];
+
+/**
+ * Stronger than snapshot-first: these paths must not call computePricing at
+ * all. With no snapshot there is no evidence of what was agreed, so they emit
+ * nulls and let the screen block rather than recompute a display price.
+ */
+const NO_COMPUTE_FILES = ["resolve-share-token/index.ts"];
 
 function readSource(relPath: string): string {
   return readFileSync(join(ROOT, relPath), "utf-8");
 }
 
 describe("pricing snapshot-first contract", () => {
+  it.each(NO_COMPUTE_FILES)("%s never recomputes pricing for display", (relPath) => {
+    const src = readSource(relPath);
+    expect(src.indexOf('.from("transaction_pricing")')).toBeGreaterThan(-1);
+    expect(src).not.toMatch(/computePricing\(/);
+  });
+
   it.each(SNAPSHOT_FIRST_FILES)(
     "%s reads a transaction_pricing snapshot before any computePricing call",
     (relPath) => {

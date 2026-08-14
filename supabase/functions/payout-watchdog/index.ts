@@ -54,6 +54,13 @@ Deno.serve(async (req) => {
     for (const p of stuck as any[]) {
       const ageHours = Math.round(payoutAgeHours(p, now) * 10) / 10;
       const severity = ageHours >= thresholdHours * 4 ? "critical" : "high";
+      // A null payout amount is itself the anomaly ops must see. Rendering it
+      // as "0" would page them about a zero-value payout that does not exist.
+      const amountValue: number | null =
+        p.amount === null || p.amount === undefined || Number.isNaN(Number(p.amount))
+          ? null
+          : Number(p.amount);
+      const amountText = amountValue === null ? "amount not recorded" : amountValue.toLocaleString();
 
       await client.from("system_logs").insert({
         level: severity === "critical" ? "error" : "warn",
@@ -63,7 +70,7 @@ Deno.serve(async (req) => {
           payout_id: p.id,
           transaction_id: p.transaction_id,
           seller_id: p.seller_id,
-          amount: Number(p.amount ?? 0),
+          amount: amountValue,
           currency: p.currency_code ?? "NGN",
           status: p.status,
           stuck_hours: ageHours,
@@ -77,7 +84,7 @@ Deno.serve(async (req) => {
         type: "security_alert",
         title: "Stuck payout detected",
         message:
-          `Payout ${p.id} (${p.currency_code ?? "NGN"} ${Number(p.amount ?? 0).toLocaleString()}) ` +
+          `Payout ${p.id} (${p.currency_code ?? "NGN"} ${amountText}) ` +
           `has been '${p.status}' for ${ageHours}h with no Paystack reference. Investigate before releasing again.`,
         related_transaction_id: p.transaction_id ?? null,
         metadata: {
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
           severity,
           payout_id: p.id,
           transaction_id: p.transaction_id,
-          amount: Number(p.amount ?? 0),
+          amount: amountValue,
           currency: p.currency_code ?? "NGN",
           stuck_hours: ageHours,
           threshold_hours: thresholdHours,

@@ -174,7 +174,7 @@ const WINDOW_DEBT = [
  * escrow balances survived the previous pass.
  */
 const CURRENCY_POSITIONAL =
-  /\bformatMoney(?:Compact|Delta|OrDash)?\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
+  /\b(?:formatMoney(?:Compact|Delta|OrDash)?|computePricing|buildPricingSnapshot|toMinorUnits|fromMinorUnits)\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
 
 /**
  * KNOWN DEBT — pre-existing positional `"NGN"` arguments. Shrink-only ratchet,
@@ -183,6 +183,12 @@ const CURRENCY_POSITIONAL =
 const POSITIONAL_DEBT = [
 
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/_shared/settings-resolver.ts",
+  "supabase/functions/admin-system-settings/index.ts",
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/transaction-agreement/index.ts",
   "src/components/admin/dashboard/KpiCards.tsx",
   "src/components/admin/dashboard/RecentActivity.tsx",
   "src/components/admin/escrow/EscrowAlertsPanel.tsx",
@@ -262,6 +268,8 @@ describe("invented defaults", () => {
       const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_POSITIONAL)];
       if (hits.length === 0) continue;
+      // The two pricing engines DEFINE the platform default currency.
+      if (CURRENCY_DEFINITION_FILES.has(rel)) continue;
       if (POSITIONAL_DEBT.includes(rel)) {
         debtSeen.add(rel);
         continue;
@@ -454,12 +462,16 @@ describe("exemption lists cannot rot", () => {
  * notification copy that a person reads.
  */
 const MONEY_ZERO_FALLBACK =
-  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
+  /\b[A-Za-z_$][\w$]*(?:\.[\w$]+)*\.?(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held)\s*(?:\?\?|\|\|)\s*0\b/g;
 
 /**
  * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
  * may be REMOVED as files are fixed, never added; a listed file that no longer
  * offends fails the staleness assertion below.
+ *
+ * Widened in this pass: the pattern now also matches a bare member access
+ * (`p.amount ?? 0`), which the previous form could not see. The three files
+ * appended below are newly VISIBLE offences, not new offences.
  */
 const MONEY_ZERO_DEBT: string[] = [
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
@@ -476,9 +488,11 @@ const MONEY_ZERO_DEBT: string[] = [
   "src/pages/BuyerTransactionTracking.tsx",
   "src/pages/SellerTransactionShare.tsx",
   "src/pages/SellerUpdateDelivery.tsx",
+  "src/services/admin-flagged-users.service.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/provider-refund.ts",
   "supabase/functions/_shared/reconciliation.ts",
+  "supabase/functions/_shared/refund-eligibility.ts",
   "supabase/functions/_shared/release-core.ts",
   "supabase/functions/_shared/users-directory-engine.ts",
   "supabase/functions/_shared/users-directory-sql.ts",
@@ -491,6 +505,7 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/admin-export-worker/index.ts",
   "supabase/functions/admin-flagged-user-detail/index.ts",
   "supabase/functions/admin-payouts-list/index.ts",
+  "supabase/functions/admin-payouts-summary/index.ts",
   "supabase/functions/admin-transaction-actions/index.ts",
   "supabase/functions/admin-transaction-detail/index.ts",
   "supabase/functions/admin-transactions-monitor/index.ts",
@@ -555,18 +570,62 @@ describe("money never falls back to zero", () => {
  */
 const MONEY_NAME = "(?:amount|Amount|payout|Payout|fee|Fee|price|Price|total|Total|balance|Balance|charged|Charged|refund|Refund|payable|Payable|held|Held|net|Net|kobo|Kobo)";
 const MONEY_ZERO_WRAPPED = new RegExp(
-  String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+  [
+    // `const totalAmount = Number(x) || 0;` — money-named declaration.
+    String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    // `amount: Number(x) ?? 0,` / `this.fee = num(x) || 0` — money-named
+    // object-literal property or assignment target.
+    String.raw`\b[\w$.]*${MONEY_NAME}[\w$]*\s*[:=]\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    // `Number(pricingRow.platform_fee_amount) || 0` anywhere — call argument,
+    // return expression, nested property. The money noun is inside the call.
+    String.raw`\([^()\n]*${MONEY_NAME}[^()\n]*\)\s*(?:\?\?|\|\|)\s*0\b`,
+  ].join("|"),
   "g",
 );
 
-/** Shrink-only ratchet. Entries may be removed, never added. */
+/**
+ * Shrink-only ratchet. Entries may be removed, never added.
+ *
+ * The pattern was widened in this pass to cover object-literal values, call
+ * arguments and return expressions — not only `const`/`let` declarations. The
+ * 18 files appended below were always offending; the previous regex could not
+ * see them. They are recorded rather than narrowed away.
+ */
 const MONEY_ZERO_WRAPPED_DEBT: string[] = [
   "src/components/admin/transactions/ResolveDisputeDialog.tsx",
+  "src/services/payment-flow.service.ts",
+  "supabase/functions/_shared/money-copy.ts",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/_shared/share-meta.ts",
   "supabase/functions/_shared/users-directory-engine.ts",
+  "supabase/functions/admin-dashboard/index.ts",
+  "supabase/functions/admin-escrow-overview/index.ts",
   "supabase/functions/admin-export-worker/index.ts",
+  "supabase/functions/admin-flagged-user-detail/index.ts",
+  "supabase/functions/buyer-disputes/index.ts",
+  "supabase/functions/buyer-transactions/index.ts",
+  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/reconcile-escrow/index.ts",
+  "supabase/functions/seller-dashboard/index.ts",
+  "supabase/functions/seller-disputes/index.ts",
+  "supabase/functions/seller-payouts/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/seller-transactions/index.ts",
+  "supabase/functions/share-meta/index.ts",
   "supabase/functions/transaction-agreement/index.ts",
+  "supabase/functions/transaction-detail/index.ts",
   "supabase/functions/verify-paystack-payment/index.ts",
+];
+
+/**
+ * Fixed in this pass and pinned clean under the WIDENED patterns — these two
+ * were invisible to the old rules and are now proven to carry no zero
+ * fabrication at all.
+ */
+const MONEY_ZERO_FIXED_THIS_PASS = [
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/payout-watchdog/index.ts",
 ];
 
 describe("money never falls back to zero (wrapped calls)", () => {
@@ -589,6 +648,13 @@ describe("money never falls back to zero (wrapped calls)", () => {
     const src = stripComments(
       fs.readFileSync(path.join(ROOT, "supabase/functions/resolve-share-token/index.ts"), "utf8"),
     );
+    for (const f of MONEY_ZERO_FIXED_THIS_PASS) {
+      const s = stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"));
+      expect(s, `${f}: base rule`).not.toMatch(MONEY_ZERO_FALLBACK);
+      expect(s, `${f}: wrapped rule`).not.toMatch(MONEY_ZERO_WRAPPED);
+      expect(MONEY_ZERO_DEBT).not.toContain(f);
+      expect(MONEY_ZERO_WRAPPED_DEBT).not.toContain(f);
+    }
     expect(src).not.toMatch(MONEY_ZERO_WRAPPED);
     expect(src).not.toMatch(MONEY_ZERO_FALLBACK);
   });
