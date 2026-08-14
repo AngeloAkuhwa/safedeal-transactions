@@ -62,7 +62,7 @@ export function VerifiedSellersSection() {
           </p>
         </div>
 
-        <SnapCarousel ariaLabel="Who SafeDeal is built for" className="sm:[&>div]:grid-cols-3">
+        <SnapCarousel ariaLabel="Who SafeDeal is built for" trackClassName="sm:grid-cols-3">
           {AUDIENCES.map((a, i) => (
             <AudienceCard key={a.title} item={a} index={i} />
           ))}

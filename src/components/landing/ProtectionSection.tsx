@@ -95,7 +95,8 @@ export function ProtectionSection() {
         {/* Dispute promise */}
         <SnapCarousel
           ariaLabel="How SafeDeal handles disputes"
-          className="mt-6 sm:mt-8 sm:[&>div]:grid-cols-3"
+          className="mt-6 sm:mt-8"
+          trackClassName="sm:grid-cols-3"
         >
           {DISPUTE_PROMISE.map((d) => (
             <div

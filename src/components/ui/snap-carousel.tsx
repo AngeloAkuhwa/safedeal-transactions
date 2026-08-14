@@ -26,6 +26,8 @@ interface SnapCarouselProps {
   /** Accessible label for the scrollable region. */
   ariaLabel: string;
   className?: string;
+  /** Extra classes for the scroll track (e.g. a different grid at desktop). */
+  trackClassName?: string;
   /** Breakpoint from which the carousel becomes a normal grid. */
   asGridFrom?: Breakpoint;
 }
@@ -40,6 +42,7 @@ export function SnapCarousel({
   children,
   ariaLabel,
   className,
+  trackClassName,
   asGridFrom = "sm",
 }: SnapCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -83,6 +86,7 @@ export function SnapCarousel({
           "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 scroll-px-4",
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           TRACK_GRID[asGridFrom],
+          trackClassName,
         )}
       >
         {items.map((child, index) => (
