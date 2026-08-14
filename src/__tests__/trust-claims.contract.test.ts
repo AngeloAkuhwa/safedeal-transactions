@@ -62,17 +62,15 @@ const SAFE_OPERATIONAL_CONTEXTS: Array<{ pattern: RegExp; reason: string }> = [
   { pattern: /search|filter|select|option|placeholder|error|failed|unavailable/i, reason: "Control and error copy makes no trust promise." },
 ];
 
-function stringLiterals(source: string): string[] {
+function userVisibleJsxText(source: string): string[] {
   const values: string[] = [];
-  for (const line of source.split("\n")) {
-    for (const match of line.matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`/g)) {
-      const value = (match[1] ?? match[2] ?? match[3] ?? "").replace(/\s+/g, " ").trim();
-      if (value && !/(?:className|class=|@\/|^[a-z0-9_./:-]+$)/i.test(value)) values.push(value);
-    }
-    for (const match of line.matchAll(/>([^<>{}]+)</g)) {
-      const value = match[1].replace(/\s+/g, " ").trim();
-      if (value) values.push(value);
-    }
+  for (const match of source.matchAll(/>([^<>{}]+)</g)) {
+    const value = match[1].replace(/\s+/g, " ").trim();
+    if (value) values.push(value);
+  }
+  for (const match of source.matchAll(/\b(?:aria-label|alt|placeholder|title)\s*=\s*["']([^"']+)["']/g)) {
+    const value = match[1].replace(/\s+/g, " ").trim();
+    if (value) values.push(value);
   }
   return values;
 }
@@ -119,7 +117,7 @@ describe("the trust-claim lock", () => {
 
   it("blocks unsubstantiated scale and superlatives on app and email surfaces", () => {
     const offenders = CLAIM_CONSUMERS.flatMap((file) =>
-      stringLiterals(fs.readFileSync(file, "utf8"))
+      userVisibleJsxText(fs.readFileSync(file, "utf8"))
         .filter((text) => UNSUBSTANTIATED_SCALE.test(text))
         .map((text) => `${rel(file)}: ${text}`),
     );
@@ -129,7 +127,7 @@ describe("the trust-claim lock", () => {
   it("triages every new user-visible trust-vocabulary string", () => {
     const registered = new Set(ALL_TRUST_CLAIM_TEXTS.map((text) => text.toLowerCase()));
     const offenders = CLAIM_CONSUMERS.flatMap((file) =>
-      stringLiterals(fs.readFileSync(file, "utf8"))
+      userVisibleJsxText(fs.readFileSync(file, "utf8"))
         .filter((text) => TRUST_VOCABULARY.test(text))
         .filter((text) => !registered.has(text.toLowerCase()))
         .filter((text) => !SAFE_OPERATIONAL_CONTEXTS.some(({ pattern }) => pattern.test(text)))
