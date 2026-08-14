@@ -3242,7 +3242,7 @@ export type Database = {
           assignment_reason: string | null
           buyer_id: string | null
           created_at: string
-          currency: string
+          currency: string | null
           description: string | null
           dispute_id: string | null
           due_at: string | null
@@ -3281,7 +3281,7 @@ export type Database = {
           assignment_reason?: string | null
           buyer_id?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description?: string | null
           dispute_id?: string | null
           due_at?: string | null
@@ -3320,7 +3320,7 @@ export type Database = {
           assignment_reason?: string | null
           buyer_id?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description?: string | null
           dispute_id?: string | null
           due_at?: string | null
@@ -7578,6 +7578,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      is_finite_money: { Args: { p_amount: number }; Returns: boolean }
       is_internal_admin: { Args: { _user_id: string }; Returns: boolean }
       is_transaction_party: {
         Args: { _transaction_id: string; _user_id: string }

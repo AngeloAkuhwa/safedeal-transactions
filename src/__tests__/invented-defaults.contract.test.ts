@@ -88,12 +88,10 @@ const CURRENCY_DEFINITION_FILES = new Set([
  * shrink-only ratchet as the front-end list.
  */
 const EDGE_CURRENCY_DEBT: string[] = [
-  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/_shared/financial-model.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/flagged-users-sql.ts",
   "supabase/functions/_shared/money-copy.ts",
-  "supabase/functions/_shared/orchestration.ts",
   "supabase/functions/_shared/paystack.ts",
   "supabase/functions/_shared/safedeal-money-policy.ts",
   "supabase/functions/_shared/security-resolver.ts",
@@ -875,7 +873,12 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     name: "hardcoded currency literal",
     pattern: /'(NGN|USD|GBP|EUR)'/,
     debt: [
-        // ledger_write_guarded still COALESCEs its currency; tracked live in live-db.contract.test.ts.
+        // Contains 'NGN' only as the search half of the rewrite that DELETES
+        // COALESCE(_currency,'NGN') from create_orchestration_task.
+        "supabase/migrations/20260814230108_938157fd-2f94-403b-853d-e67c253dd1d7.sql",
+        // Historical migration text only. The live money primitives no longer
+        // COALESCE a currency — that is asserted against pg_proc in
+        // live-db.contract.test.ts, not against this file list.
         "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260410185736_6fc7d507-0f0e-4a87-bd9e-7d9c903fc470.sql",
         "supabase/migrations/20260414120858_048e0167-9527-49bd-8968-9346fa316cad.sql",
