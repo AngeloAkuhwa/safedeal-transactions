@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
           held_amount: 0,
         });
         if (escrowErr) {
-          console.warn(`storefront-checkout: escrow backfill failed for ${existingCandidate.id}; creating a fresh transaction`, escrowErr);
+          console.warn(`storefront-checkout: could not backfill the protection record for ${existingCandidate.id}; creating a fresh transaction`, escrowErr);
         } else {
           existingTx = existingCandidate;
         }
