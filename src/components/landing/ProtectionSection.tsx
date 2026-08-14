@@ -25,7 +25,7 @@ const ESCROW_STATES: {
   icon: LucideIcon;
   tone: "success" | "warning" | "primary";
 }[] = [
-  { title: "Payment Secured", subtitle: "₦1,850,000 received", icon: CheckCircle, tone: "success" },
+  { title: "Payment Secured", subtitle: "Buyer payment received", icon: CheckCircle, tone: "success" },
   { title: "Funds Held", subtitle: "Locked in escrow", icon: ShieldCheck, tone: "warning" },
   { title: "Delivery in Progress", subtitle: "Expected: Dec 28", icon: Truck, tone: "primary" },
   { title: "Buyer Verification", subtitle: "Awaiting confirmation", icon: CircleCheck, tone: "primary" },
@@ -133,8 +133,8 @@ function AnimatedEscrowCard() {
       {/* Header */}
       <div className="mb-3 flex items-center justify-between border-b pb-3">
         <div>
-          <p className="text-sm font-bold text-foreground">Transaction #SD-8472</p>
-          <p className="text-xs text-muted-foreground">iPhone 15 Pro Max</p>
+          <p className="text-sm font-bold text-foreground">Example protected transaction</p>
+          <p className="text-xs text-muted-foreground">Illustration · not a real deal</p>
         </div>
         <span className="rounded-full bg-success/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success">
           Protected
@@ -163,7 +163,7 @@ function AnimatedEscrowCard() {
 
       {/* Protected amount */}
       <div className="rounded-2xl bg-primary p-3 text-center">
-        <p className="text-lg font-bold text-primary-foreground sm:text-xl">₦1,850,000</p>
+        <p className="text-lg font-bold text-primary-foreground sm:text-xl">Buyer's full payment</p>
         <p className="text-[11px] font-medium text-primary-foreground/80">
           Protected in Escrow
         </p>
