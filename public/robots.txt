@@ -13,4 +13,7 @@ Allow: /
 User-agent: *
 Allow: /
 
+# Dynamic sitemap (storefronts + published products, generated from live data)
+Sitemap: https://cfkdasmhlqswpunugbkf.supabase.co/functions/v1/sitemap
+# Static fallback
 Sitemap: https://trust-link-secure.lovable.app/sitemap.xml
