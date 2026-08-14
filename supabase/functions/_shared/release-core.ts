@@ -108,7 +108,8 @@ export async function releasePayoutCore(
   const snapshotAmount = (pricingSnap as any)?.seller_payout_amount != null
     ? Number((pricingSnap as any).seller_payout_amount)
     : null;
-  const payoutAmount = Number((payout as any).amount ?? 0);
+  const rawPayoutAmount = (payout as any)?.amount;
+  const payoutAmount = rawPayoutAmount == null ? null : Number(rawPayoutAmount);
   // No snapshot → no agreed net figure. Refuse rather than transferring an
   // unverified (potentially gross) number, which is what produced the
   // historical gross `payout_debit` rows.
@@ -125,13 +126,13 @@ export async function releasePayoutCore(
     }
     return { ok: false, status: 409, body: { error: "pricing_missing" } };
   }
-  if (snapshotAmount != null && Math.abs(snapshotAmount - payoutAmount) > 0.005) {
+  if (payoutAmount == null || !Number.isFinite(payoutAmount) || Math.abs(snapshotAmount - payoutAmount) > 0.005) {
     try {
       await admin.rpc("flag_for_release_review", {
         p_transaction_id: transaction_id,
         p_reason: "release_amount_mismatch",
         p_actor_user_id: actor_user_id,
-        p_notes: `Payout record holds ${payoutAmount} but the agreement snapshot says ${snapshotAmount}.`,
+        p_notes: `Payout record holds ${payoutAmount ?? "no amount"} but the agreement snapshot says ${snapshotAmount}.`,
       });
     } catch (e) {
       console.error("releasePayoutCore: flag_for_release_review failed", e);
@@ -153,10 +154,29 @@ export async function releasePayoutCore(
   //   payment_credit = payout_debit + fee_record, since payout_debit is NET).
   // Releasing on a broken chain is what forced the Fix 2 remediations, so we
   // refuse and flag instead of moving money.
-  const expectedFees =
-    Number((pricingSnap as any)?.platform_fee_amount ?? 0) +
-    Number((pricingSnap as any)?.payment_processing_fee_amount ?? 0);
-  if (expectedFees > 0.005) {
+  // FAIL CLOSED: a null fee column must never silently zero the expectation and
+  // skip the reconciliation — that would let an unreconciled transfer through.
+  const rawPlatformFee = (pricingSnap as any)?.platform_fee_amount;
+  const rawProcessingFee = (pricingSnap as any)?.payment_processing_fee_amount;
+  if (rawPlatformFee == null || rawProcessingFee == null) {
+    try {
+      await admin.rpc("flag_for_release_review", {
+        p_transaction_id: transaction_id,
+        p_reason: "manual_hold",
+        p_actor_user_id: actor_user_id,
+        p_notes:
+          "fee_chain_unverifiable: the pricing snapshot is missing a platform or processing fee, so the ledger fee chain cannot be reconciled before release.",
+      });
+    } catch (e) {
+      console.error("releasePayoutCore: flag_for_release_review failed", e);
+    }
+    return { ok: false, status: 409, body: { error: "fee_chain_unverifiable" } };
+  }
+  const expectedFees = Number(rawPlatformFee) + Number(rawProcessingFee);
+  if (!Number.isFinite(expectedFees)) {
+    return { ok: false, status: 409, body: { error: "fee_chain_unverifiable" } };
+  }
+  {
     const { data: feeRows } = await admin
       .from("escrow_ledger_entries")
       .select("amount")

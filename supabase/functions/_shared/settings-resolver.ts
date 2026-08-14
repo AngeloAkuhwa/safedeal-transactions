@@ -140,20 +140,33 @@ export async function loadEffectiveTimeoutHours(
   ruleType: "seller_fulfillment_timeout" | "buyer_verification_timeout",
   fallbackHours: number,
 ): Promise<number> {
-  if (!vendorId) return fallbackHours;
+  const resolved = await resolveEffectiveTimeoutHours(vendorId, ruleType);
+  return resolved ?? fallbackHours;
+}
+
+/**
+ * Strict form: resolves the configured timeout or returns `null` when no
+ * effective setting can be read. Callers that PERSIST a window (rather than
+ * narrate one) must use this and fail closed instead of inventing a number.
+ */
+export async function resolveEffectiveTimeoutHours(
+  vendorId: string | null | undefined,
+  ruleType: "seller_fulfillment_timeout" | "buyer_verification_timeout",
+): Promise<number | null> {
+  if (!vendorId) return null;
   if ((Deno.env.get("SETTINGS_RESOLVER_ENABLED") ?? "true").toLowerCase() === "false") {
-    return fallbackHours;
+    return null;
   }
   try {
     const { data, error } = await admin().rpc("get_effective_timeout", {
       _vendor_id: vendorId,
       _rule: ruleType,
     });
-    if (error || data == null) return fallbackHours;
+    if (error || data == null) return null;
     const n = typeof data === "string" ? Number(data) : (data as number);
-    return Number.isFinite(n) && n > 0 ? n : fallbackHours;
+    return Number.isFinite(n) && n > 0 ? n : null;
   } catch (_e) {
-    return fallbackHours;
+    return null;
   }
 }
 

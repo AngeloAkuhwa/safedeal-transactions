@@ -177,11 +177,15 @@ Deno.serve(async (req) => {
           paystack_fee_amount: number;
           platform_fee_amount: number;
           service_fee_amount: number;
+          /** Derived (service fee ÷ item amount); null when it cannot be derived. */
+          service_fee_rate: number | null;
           total_amount: number;
         };
         if (pricingRow) {
-          const processingFee = numW(pricingRow.payment_processing_fee_amount) ?? 0;
-          const platformFee = numW(pricingRow.platform_fee_amount) ?? 0;
+          const rawProcessingFee = numW(pricingRow.payment_processing_fee_amount);
+          const rawPlatformFee = numW(pricingRow.platform_fee_amount);
+          const processingFee = rawProcessingFee ?? 0;
+          const platformFee = rawPlatformFee ?? 0;
           const itemAmount = Number(pricingRow.item_amount) || 0;
           pricing = {
             currency_code: pricingRow.currency_code || "NGN",
@@ -189,17 +193,30 @@ Deno.serve(async (req) => {
             paystack_fee_amount: processingFee,
             platform_fee_amount: platformFee,
             service_fee_amount: processingFee + platformFee,
+            service_fee_rate:
+              rawProcessingFee !== null && rawPlatformFee !== null && itemAmount > 0
+                ? (rawProcessingFee + rawPlatformFee) / itemAmount
+                : null,
             total_amount: numW(pricingRow.buyer_total_amount) ?? itemAmount + processingFee + platformFee,
           };
         } else {
           // FALLBACK: no snapshot row exists (should not happen). Recompute
           // using the seller's vendor config for display only.
-          pricing = computePricing(
+          const recomputed = computePricing(
             koboToNaira(psData.amount) || 0,
             psData.currency || "NGN",
             "local",
             await loadPricingConfig(tx.seller_id),
           );
+          pricing = {
+            currency_code: recomputed.currency_code,
+            item_amount: recomputed.item_amount,
+            paystack_fee_amount: recomputed.paystack_fee_amount,
+            platform_fee_amount: recomputed.platform_fee_amount,
+            service_fee_amount: recomputed.service_fee_amount,
+            service_fee_rate: recomputed.service_fee_rate,
+            total_amount: recomputed.total_amount,
+          };
         }
 
         // Payment capture goes through the same guarded routine the verify path

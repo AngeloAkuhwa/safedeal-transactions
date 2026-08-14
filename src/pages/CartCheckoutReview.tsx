@@ -310,7 +310,14 @@ const CartCheckoutReview = () => {
                 const gradient = GRADIENT_COLORS[idx % GRADIENT_COLORS.length];
 
                 const sellerSubtotal = sellerItems.reduce((sum: number, i: any) => sum + Number(i.line_total), 0);
-                const sellerPricing = computePricing(sellerSubtotal, currency, vendorConfigs[sellerId]);
+                // Guard the lookup: an absent vendor config means we do not yet
+                // know this seller's effective rates, and platform defaults must
+                // never be presented as that vendor's fees.
+                const vendorConfig = Object.prototype.hasOwnProperty.call(vendorConfigs, sellerId)
+                  ? vendorConfigs[sellerId]
+                  : undefined;
+                const feesKnown = !pricingConfigLoading && vendorConfig !== undefined;
+                const sellerPricing = computePricing(sellerSubtotal, currency, vendorConfig);
                 const groupItemCount = sellerItems.reduce((sum: number, i: any) => sum + i.quantity, 0);
                 const isOpen = openBreakdowns[sellerId] ?? false;
 
@@ -397,7 +404,7 @@ const CartCheckoutReview = () => {
                            {FEE_NAME} Breakdown
                         </span>
                         <div className="flex items-center gap-2">
-                          {pricingConfigLoading
+                          {!feesKnown
                             ? <Skeleton className="h-4 w-20" />
                             : <span className="font-semibold text-primary">{formatPrice(sellerPricing.service_fee_amount, currency)}</span>}
                           {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -405,6 +412,13 @@ const CartCheckoutReview = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="px-5 pb-4 pt-2 bg-muted/30">
+                          {!feesKnown ? (
+                            <div className="space-y-2 py-1">
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-2/3" />
+                              <Skeleton className="h-4 w-1/2" />
+                            </div>
+                          ) : (
                           <PricingBreakdown
                             snapshot={viewFromRow(
                               {
@@ -419,6 +433,7 @@ const CartCheckoutReview = () => {
                             )}
                             audience="buyer"
                           />
+                          )}
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
