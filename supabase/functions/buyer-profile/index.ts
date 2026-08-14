@@ -73,8 +73,15 @@ async function computePermissions(
     // default 0
   }
 
-  const maxConcurrent = CONCURRENT_BY_LEVEL[level] ?? 0;
-  const transactionLimit = LIMIT_BY_LEVEL[level] ?? 0;
+  // An unrecognised verification level is a data fault, not a zero allowance.
+  // We surface it as `null` so the UI shows "unavailable" rather than telling
+  // the buyer their limit is ₦0 — the enforcement path (initiate-paystack-
+  // payment) refuses the payment outright for the same reason.
+  const knownLevel =
+    Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level) &&
+    Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level);
+  const maxConcurrent = knownLevel ? CONCURRENT_BY_LEVEL[level] : null;
+  const transactionLimit = knownLevel ? LIMIT_BY_LEVEL[level] : null;
 
   // Explicit triple-check: phone + location + level must all pass
   const canAct = phoneVerified && hasLocation && level !== "unverified";
