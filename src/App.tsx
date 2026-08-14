@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,80 +7,80 @@ import { TwoFactorPrompt } from "@/components/security/TwoFactorPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "next-themes";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import AcceptInvite from "./pages/AcceptInvite";
-import RoleSelection from "./pages/RoleSelection";
-import Dashboard from "./pages/Dashboard";
-import BuyerMarketplace from "./pages/BuyerMarketplace";
-import BuyerTransactions from "./pages/BuyerTransactions";
-import BuyerNotifications from "./pages/BuyerNotifications";
-import BuyerDisputes from "./pages/BuyerDisputes";
-import BuyerDisputeDetail from "./pages/BuyerDisputeDetail";
-import BuyerProfileSettings from "./pages/BuyerProfileSettings";
-import BuyerVerification from "./pages/BuyerVerification";
-import BuyerTransactionVerify from "./pages/BuyerTransactionVerify";
-import BuyerTransactionDetail from "./pages/BuyerTransactionDetail";
-import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
-import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
-import BuyerTransactionReview from "./pages/BuyerTransactionReview";
-import BuyerPaymentSummary from "./pages/BuyerPaymentSummary";
-import TransactionCancelled from "./pages/TransactionCancelled";
-import SellerDashboard from "./pages/SellerDashboard";
-import SellerTransactions from "./pages/SellerTransactions";
-import SellerCreateTransaction from "./pages/SellerCreateTransaction";
-import SellerTransactionDetail from "./pages/SellerTransactionDetail";
-import SellerTransactionShare from "./pages/SellerTransactionShare";
-import SellerUpdateDelivery from "./pages/SellerUpdateDelivery";
-import SellerPayouts from "./pages/SellerPayouts";
-import SellerProfileSettings from "./pages/SellerProfileSettings";
-import SellerDisputes from "./pages/SellerDisputes";
-import SellerDisputeDetail from "./pages/SellerDisputeDetail";
-import SellerTransactionAgreement from "./pages/SellerTransactionAgreement";
-import SellerStorefront from "./pages/SellerStorefront";
-import SellerPrivateOffers from "./pages/SellerPrivateOffers";
-import SellerOfferDetail from "./pages/SellerOfferDetail";
-import SellerNotifications from "./pages/SellerNotifications";
-import SellerAnalytics from "./pages/SellerAnalytics";
-import SellerProductCreate from "./pages/SellerProductCreate";
-import SellerProductDetail from "./pages/SellerProductDetail";
-import SellerProductPreview from "./pages/SellerProductPreview";
-import PublicStorefront from "./pages/PublicStorefront";
-import PublicProductDetail from "./pages/PublicProductDetail";
-import StorefrontCheckout from "./pages/StorefrontCheckout";
-import BuyerCart from "./pages/BuyerCart";
-import BuyerSavedProducts from "./pages/BuyerSavedProducts";
-import CartCheckoutReview from "./pages/CartCheckoutReview";
-import OfferClaimLanding from "./pages/OfferClaimLanding";
-import BuyerPrivateOffers from "./pages/BuyerPrivateOffers";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminTransactions from "./pages/AdminTransactions";
-import AdminTransactionDetail from "./pages/AdminTransactionDetail";
-import AdminDisputes from "./pages/AdminDisputes";
-import AdminDisputeDetail from "./pages/AdminDisputeDetail";
-import AdminPayouts from "./pages/AdminPayouts";
-import AdminReconciliation from "./pages/AdminReconciliation";
-import AdminEscrow from "./pages/AdminEscrow";
-import AdminFlaggedUsers from "./pages/AdminFlaggedUsers";
-import AdminIdentity from "./pages/AdminIdentity";
-import AdminUsers from "./pages/AdminUsers";
-import AdminUserDetail from "./pages/AdminUserDetail";
-import AdminNotifications from "./pages/AdminNotifications";
-import AdminSettings from "./pages/AdminSettings";
-import AdminAuditLogs from "./pages/AdminAuditLogs";
-import AdminAccessControl from "./pages/AdminAccessControl";
-import AdminPermissionMatrix from "./pages/AdminPermissionMatrix";
-import AdminAccessApprovals from "./pages/AdminAccessApprovals";
-import AdminTaskOrchestration from "./pages/AdminTaskOrchestration";
-import AdminAgentPerformance from "./pages/AdminAgentPerformance";
-import AdminSupport from "./pages/AdminSupport";
-import LegalPrivacy from "./pages/LegalPrivacy";
-import LegalTerms from "./pages/LegalTerms";
-import LegalRefundPolicy from "./pages/LegalRefundPolicy";
-import Contact from "./pages/Contact";
-import DeliveryConfirm from "./pages/DeliveryConfirm";
-import NotFound from "./pages/NotFound";
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+const RoleSelection = lazy(() => import("./pages/RoleSelection"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const BuyerMarketplace = lazy(() => import("./pages/BuyerMarketplace"));
+const BuyerTransactions = lazy(() => import("./pages/BuyerTransactions"));
+const BuyerNotifications = lazy(() => import("./pages/BuyerNotifications"));
+const BuyerDisputes = lazy(() => import("./pages/BuyerDisputes"));
+const BuyerDisputeDetail = lazy(() => import("./pages/BuyerDisputeDetail"));
+const BuyerProfileSettings = lazy(() => import("./pages/BuyerProfileSettings"));
+const BuyerVerification = lazy(() => import("./pages/BuyerVerification"));
+const BuyerTransactionVerify = lazy(() => import("./pages/BuyerTransactionVerify"));
+const BuyerTransactionDetail = lazy(() => import("./pages/BuyerTransactionDetail"));
+const BuyerTransactionAgreement = lazy(() => import("./pages/BuyerTransactionAgreement"));
+const BuyerTransactionTracking = lazy(() => import("./pages/BuyerTransactionTracking"));
+const BuyerTransactionReview = lazy(() => import("./pages/BuyerTransactionReview"));
+const BuyerPaymentSummary = lazy(() => import("./pages/BuyerPaymentSummary"));
+const TransactionCancelled = lazy(() => import("./pages/TransactionCancelled"));
+const SellerDashboard = lazy(() => import("./pages/SellerDashboard"));
+const SellerTransactions = lazy(() => import("./pages/SellerTransactions"));
+const SellerCreateTransaction = lazy(() => import("./pages/SellerCreateTransaction"));
+const SellerTransactionDetail = lazy(() => import("./pages/SellerTransactionDetail"));
+const SellerTransactionShare = lazy(() => import("./pages/SellerTransactionShare"));
+const SellerUpdateDelivery = lazy(() => import("./pages/SellerUpdateDelivery"));
+const SellerPayouts = lazy(() => import("./pages/SellerPayouts"));
+const SellerProfileSettings = lazy(() => import("./pages/SellerProfileSettings"));
+const SellerDisputes = lazy(() => import("./pages/SellerDisputes"));
+const SellerDisputeDetail = lazy(() => import("./pages/SellerDisputeDetail"));
+const SellerTransactionAgreement = lazy(() => import("./pages/SellerTransactionAgreement"));
+const SellerStorefront = lazy(() => import("./pages/SellerStorefront"));
+const SellerPrivateOffers = lazy(() => import("./pages/SellerPrivateOffers"));
+const SellerOfferDetail = lazy(() => import("./pages/SellerOfferDetail"));
+const SellerNotifications = lazy(() => import("./pages/SellerNotifications"));
+const SellerAnalytics = lazy(() => import("./pages/SellerAnalytics"));
+const SellerProductCreate = lazy(() => import("./pages/SellerProductCreate"));
+const SellerProductDetail = lazy(() => import("./pages/SellerProductDetail"));
+const SellerProductPreview = lazy(() => import("./pages/SellerProductPreview"));
+const PublicStorefront = lazy(() => import("./pages/PublicStorefront"));
+const PublicProductDetail = lazy(() => import("./pages/PublicProductDetail"));
+const StorefrontCheckout = lazy(() => import("./pages/StorefrontCheckout"));
+const BuyerCart = lazy(() => import("./pages/BuyerCart"));
+const BuyerSavedProducts = lazy(() => import("./pages/BuyerSavedProducts"));
+const CartCheckoutReview = lazy(() => import("./pages/CartCheckoutReview"));
+const OfferClaimLanding = lazy(() => import("./pages/OfferClaimLanding"));
+const BuyerPrivateOffers = lazy(() => import("./pages/BuyerPrivateOffers"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminTransactions = lazy(() => import("./pages/AdminTransactions"));
+const AdminTransactionDetail = lazy(() => import("./pages/AdminTransactionDetail"));
+const AdminDisputes = lazy(() => import("./pages/AdminDisputes"));
+const AdminDisputeDetail = lazy(() => import("./pages/AdminDisputeDetail"));
+const AdminPayouts = lazy(() => import("./pages/AdminPayouts"));
+const AdminReconciliation = lazy(() => import("./pages/AdminReconciliation"));
+const AdminEscrow = lazy(() => import("./pages/AdminEscrow"));
+const AdminFlaggedUsers = lazy(() => import("./pages/AdminFlaggedUsers"));
+const AdminIdentity = lazy(() => import("./pages/AdminIdentity"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminUserDetail = lazy(() => import("./pages/AdminUserDetail"));
+const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
+const AdminAccessControl = lazy(() => import("./pages/AdminAccessControl"));
+const AdminPermissionMatrix = lazy(() => import("./pages/AdminPermissionMatrix"));
+const AdminAccessApprovals = lazy(() => import("./pages/AdminAccessApprovals"));
+const AdminTaskOrchestration = lazy(() => import("./pages/AdminTaskOrchestration"));
+const AdminAgentPerformance = lazy(() => import("./pages/AdminAgentPerformance"));
+const AdminSupport = lazy(() => import("./pages/AdminSupport"));
+const LegalPrivacy = lazy(() => import("./pages/LegalPrivacy"));
+const LegalTerms = lazy(() => import("./pages/LegalTerms"));
+const LegalRefundPolicy = lazy(() => import("./pages/LegalRefundPolicy"));
+const Contact = lazy(() => import("./pages/Contact"));
+const DeliveryConfirm = lazy(() => import("./pages/DeliveryConfirm"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PermissionRoute from "./components/auth/PermissionRoute";
 import { AdminPermissionsProvider } from "./context/AdminPermissionsContext";
@@ -87,6 +89,13 @@ import { useSessionIdleTimeout } from "./hooks/useSessionIdleTimeout";
 import { TestModeBanner } from "./components/TestModeBanner";
 
 const queryClient = new QueryClient();
+
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background" role="status" aria-live="polite">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+    <span className="sr-only">Loading page…</span>
+  </div>
+);
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
   usePresenceHeartbeat();
@@ -104,6 +113,7 @@ const App = () => (
           <TestModeBanner />
           <TwoFactorPrompt />
           <AppShell>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -212,6 +222,7 @@ const App = () => (
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </AppShell>
         </BrowserRouter>
       </TooltipProvider>

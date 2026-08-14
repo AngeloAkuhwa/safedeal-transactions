@@ -72,7 +72,7 @@ export function VerifiedSellersSection() {
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
               <Shield className="h-3.5 w-3.5 text-warning" />
-              Funds held in licensed escrow
+              Funds held in secure escrow
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">

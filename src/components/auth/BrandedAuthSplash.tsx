@@ -1,4 +1,4 @@
-import logo from "@/assets/safedeal-logo.png";
+import logo from "@/assets/safedeal-logo.svg";
 
 interface BrandedAuthSplashProps {
   label?: string;
