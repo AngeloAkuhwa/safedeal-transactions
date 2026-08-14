@@ -87,6 +87,16 @@ const CURRENCY_DEBT = [
   "src/pages/SellerDisputeDetail.tsx",
   "src/pages/SellerOfferDetail.tsx",
   "src/pages/SellerPrivateOffers.tsx",
+  "src/pages/SellerProductDetail.tsx",
+  "src/pages/SellerProductPreview.tsx",
+  "src/pages/SellerTransactionDetail.tsx",
+  "src/pages/SellerTransactionShare.tsx",
+  "src/pages/SellerUpdateDelivery.tsx",
+  "src/services/admin-disputes.service.ts",
+  "src/services/admin-transactions-monitor.service.ts",
+  "src/services/admin-users-directory.service.ts",
+  "src/services/payment-flow.service.ts",
+  "src/services/seller-analytics.service.ts",
 ];
 
 /**

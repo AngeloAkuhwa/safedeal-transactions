@@ -36,7 +36,8 @@ import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 
-const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
+/** Currency is required — a cart row always carries its own `currency_code`. */
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };
