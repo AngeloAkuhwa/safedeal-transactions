@@ -128,6 +128,7 @@ export default function TransactionCancelled() {
                   </div>
                 </div>
               </div>
+            </div>
 
             {/* Your Account is Safe */}
             <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
