@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { getSellerProductDetail, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
@@ -320,7 +321,7 @@ const SellerProductPreview = () => {
                   <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
                     <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">SafeDeal Escrow Protection</p>
+                      <p className="text-sm font-semibold text-foreground">{TRUST_CLAIMS.ESCROW_PROTECTION_HEADING.text}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Buyer funds are held securely in escrow until the product is received and verified. Both parties are protected throughout the transaction.
                       </p>

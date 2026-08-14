@@ -7,6 +7,7 @@ import {
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -158,7 +159,7 @@ function friendlyPayoutId(r: PayoutRow): string {
 function sellerTierLabel(r: PayoutRow): string {
   const s = r.seller as unknown as { tier_label?: string; is_verified?: boolean; verified?: boolean };
   if (s?.tier_label) return s.tier_label;
-  if (s?.is_verified || s?.verified) return "Verified Seller";
+  if (s?.is_verified || s?.verified) return TRUST_CLAIMS.SELLER_VERIFIED.text;
   return "Seller";
 }
 

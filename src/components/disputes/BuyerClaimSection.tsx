@@ -204,11 +204,6 @@ export function BuyerClaimSection({ reasonLabel, claim }: BuyerClaimSectionProps
             <p className="text-sm text-muted-foreground italic">No evidence submitted yet.</p>
           )}
         </CardContent>
-        <CardFooter className="border-t border-border">
-          <Button variant="outline" size="sm" className="w-full" disabled>
-            Upload Additional Evidence
-          </Button>
-        </CardFooter>
       </Card>
 
       <EvidenceViewer

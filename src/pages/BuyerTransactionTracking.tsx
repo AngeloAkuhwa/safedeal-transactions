@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatMoney } from "@/lib/format";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -196,7 +197,7 @@ const BuyerTransactionTracking = () => {
               ? `Your payment of ${formatMoney(escrow.held_amount, pricing.currency_code)} is securely held in escrow — funds will only release once you verify receipt.`
               : escrow?.state === "released"
                 ? "Transaction completed. Funds have been released to the seller."
-                : "SafeDeal Escrow Protection is active on this transaction."}
+                : `${TRUST_CLAIMS.ESCROW_PROTECTION_HEADING.text} is active on this transaction.`}
           </p>
         </div>
       </div>

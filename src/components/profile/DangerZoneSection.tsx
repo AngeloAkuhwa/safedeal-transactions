@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+import { supportLink } from "@/lib/support/support-copy";
 import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +21,8 @@ export function DangerZoneSection() {
               Temporarily disable your account. You can reactivate it anytime.
             </p>
           </div>
-          <Button variant="outline" size="sm" disabled className="text-muted-foreground">
-            Deactivate
+          <Button asChild variant="outline" size="sm" className="text-muted-foreground">
+            <Link to={supportLink(null, "account")}>Request deactivation</Link>
           </Button>
         </div>
 
@@ -31,8 +33,8 @@ export function DangerZoneSection() {
               Permanently delete your account and all data. This action cannot be undone.
             </p>
           </div>
-          <Button variant="outline" size="sm" disabled className="text-destructive border-destructive/30">
-            Delete Account
+          <Button asChild variant="outline" size="sm" className="text-destructive border-destructive/30">
+            <Link to={supportLink(null, "account")}>Request deletion</Link>
           </Button>
         </div>
       </CardContent>

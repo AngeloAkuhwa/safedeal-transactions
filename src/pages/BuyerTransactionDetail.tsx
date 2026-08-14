@@ -651,7 +651,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Seller Information (desktop, scrolls normally) ── */}
             {seller && (
-              <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <div data-testid="seller-card-desktop" className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
                 <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <BadgeCheck className="h-5 w-5 text-primary" />
                   Seller Information
@@ -727,7 +727,7 @@ const BuyerTransactionDetail = () => {
             {/* Mobile Seller + Payment */}
             <div className="lg:hidden space-y-6">
               {seller && (
-                <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+                <div data-testid="seller-card-mobile" className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
                   <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                     <BadgeCheck className="h-5 w-5 text-primary" />
                     Seller Information

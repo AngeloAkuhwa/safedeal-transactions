@@ -25,6 +25,7 @@ import {
   CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -511,7 +512,6 @@ const BuyerCart = () => {
                                     ) : (
                                       <span className="font-medium text-foreground">{item.product?.seller_name || "Seller"}</span>
                                     )}
-                                    <CheckCircle2 className="h-3 w-3 text-primary" />
                                   </div>
                                   {/* Stock badge */}
                                   <Badge
@@ -780,8 +780,8 @@ const BuyerCart = () => {
                     {/* Trust indicators */}
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                       {[
-                        { icon: ShieldCheck, label: "Escrow Protected", desc: "Funds held securely until you confirm" },
-                        { icon: UserCheck, label: "Verified Sellers", desc: "All sellers undergo verification" },
+                        { icon: ShieldCheck, label: TRUST_CLAIMS.ESCROW_PROTECTED.text, desc: "Funds held securely until you confirm" },
+                        { icon: UserCheck, label: "Seller Verification", desc: "Each seller's verification status is shown on their product page" },
                         { icon: Clock, label: "Confirmation Window", desc: "Time to verify before release" },
                       ].map((t, i) => (
                         <div key={i} className="flex items-start gap-3">

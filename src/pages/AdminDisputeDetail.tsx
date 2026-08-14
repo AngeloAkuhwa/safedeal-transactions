@@ -1127,21 +1127,6 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
   );
 }
 
-function ContactBtn({ icon, label, disabled, tip, className }: { icon: React.ReactNode; label: string; disabled?: boolean; tip?: string; className?: string }) {
-  const btn = (
-    <Button size="sm" variant="outline" disabled={disabled} className={cn("gap-1.5", className)}>
-      {icon} {label}
-    </Button>
-  );
-  if (!disabled || !tip) return btn;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild><span className={className?.includes("flex-1") ? "flex-1" : undefined}>{btn}</span></TooltipTrigger>
-      <TooltipContent>{tip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function Tag({ children, tone }: { children: React.ReactNode; tone: "emerald" | "blue" | "red" | "orange" | "slate" }) {
   const map = {
     emerald: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",

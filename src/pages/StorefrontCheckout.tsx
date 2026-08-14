@@ -17,6 +17,7 @@ import { createStorefrontTransaction } from "@/services/storefront-checkout.serv
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
+import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -340,11 +341,13 @@ const StorefrontCheckout = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
                   <ShieldCheck className="h-3 w-3" />
-                  Protected Delivery
+                  {TRUST_CLAIMS.ESCROW_PROTECTED.text}
                 </Badge>
                 <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 gap-1">
                   <MapPin className="h-3 w-3" />
-                  Real-time Tracking
+                  {isTrackedDelivery(activeMethod)
+                    ? TRUST_CLAIMS.DELIVERY_TRACKED.text
+                    : TRUST_CLAIMS.DELIVERY_CODE_CONFIRMED.text}
                 </Badge>
               </div>
             </div>

@@ -8,6 +8,7 @@ import type { UserDirectoryRow } from "@/services/admin-users-directory.service"
 import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { PresenceDot } from "./PresenceDot";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -154,7 +155,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     <div className="space-y-1.5">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"}`}>
                         <ShieldCheck className="h-3 w-3" />
-                        {r.verification.level === "fully" ? "Fully Verified" : r.verification.level === "id" ? "ID Verified" : r.verification.level === "phone" ? "Phone Verified" : r.verification.level === "email" ? "Email Only" : "Unverified"}
+                        {r.verification.level === "fully" ? "Fully Verified" : r.verification.level === "id" ? "ID Verified" : r.verification.level === "phone" ? TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text : r.verification.level === "email" ? "Email Only" : "Unverified"}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className={`w-5 h-5 rounded flex items-center justify-center border ${r.verification.email ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-slate-700/40 border-slate-600/30 text-slate-500"}`} title="Email"><Mail className="h-3 w-3" /></span>

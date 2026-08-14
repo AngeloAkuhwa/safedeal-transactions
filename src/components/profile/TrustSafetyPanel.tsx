@@ -1,4 +1,5 @@
 import { Shield, CheckCircle, Lock, Eye, FileText } from "lucide-react";
+import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -30,8 +31,8 @@ export function TrustSafetyPanel() {
             </div>
           </div>
         ))}
-        <Button variant="outline" className="w-full mt-2 text-primary border-primary/30" disabled>
-          Learn More
+        <Button asChild variant="outline" className="w-full mt-2 text-primary border-primary/30">
+          <Link to="/legal/terms">Read the terms</Link>
         </Button>
       </CardContent>
     </Card>

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { sendPhoneOtp, verifyPhoneOtp } from "@/services/profile.service";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface Props {
   open: boolean;
@@ -217,7 +218,7 @@ export function PhoneVerificationModal({ open, onOpenChange, currentPhone }: Pro
             <div className="h-16 w-16 bg-success/10 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <h3 className="text-xl font-bold text-foreground">Phone Verified!</h3>
+            <h3 className="text-xl font-bold text-foreground">{TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text}!</h3>
             <p className="text-sm text-muted-foreground">
               Your phone number has been successfully verified.
             </p>

@@ -1,6 +1,7 @@
 import { Shield, CheckCircle2, Mail, Phone, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 interface PublicStorefrontHeaderProps {
   seller: {
@@ -27,7 +28,7 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
     seller.verification_level === "trusted_buyer"
       ? "Trusted Seller"
       : seller.verification_level === "basic_verified"
-      ? "Verified Seller"
+      ? TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text
       : "Seller";
 
   return (

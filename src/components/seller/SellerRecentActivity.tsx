@@ -251,16 +251,6 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
           <p className="text-sm text-muted-foreground">
             Showing 1-{filtered.length} of {activity.length}
           </p>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {/* Current page indicator — static, not a control. */}
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground">1</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

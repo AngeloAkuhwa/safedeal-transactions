@@ -25,6 +25,7 @@ import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 import { ProductImage } from "@/components/common/ProductImage";
+import { TRUST_CLAIMS, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -207,6 +208,13 @@ const PublicProductDetail = () => {
 
   const featureHighlights: Array<{ title: string; description: string }> = product.feature_highlights || [];
 
+  const sellerClaim = sellerVerificationClaim({
+    identityVerified: seller.identity_verified,
+    emailVerified: seller.email_verified,
+  });
+  const hasTrackedDelivery =
+    deliveryMethods.length > 0 ? deliveryMethods.some(isTrackedDelivery) : true;
+
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
 
   const originalPrice = product.original_price && product.original_price > product.unit_price ? product.original_price : null;
@@ -336,7 +344,7 @@ const PublicProductDetail = () => {
           {/* Pricing card */}
           <div className={`${glassPanel} p-5 space-y-3`}>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">SafeDeal Escrow Price</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Amount held in escrow</p>
               <div className="flex items-baseline gap-3">
                 <p className="text-3xl font-bold text-foreground">
                   {formatPrice(product.unit_price, product.currency_code)}
@@ -352,20 +360,22 @@ const PublicProductDetail = () => {
             <div className="grid grid-cols-2 gap-2">
               <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span className="text-xs font-medium text-foreground">Escrow Protected</span>
+                <span className="text-xs font-medium text-foreground">{TRUST_CLAIMS.ESCROW_PROTECTED.text}</span>
               </div>
-              {(seller.identity_verified || seller.email_verified) && (
+              {sellerClaim && (
                 <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                   <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-xs font-medium text-foreground">
-                    {seller.identity_verified ? "ID Verified Seller" : "Verified Seller"}
+                    {sellerClaim.text}
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
-                <Truck className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs font-medium text-foreground">Delivery Support</span>
-              </div>
+              {hasTrackedDelivery && (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
+                  <Truck className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">{TRUST_CLAIMS.DELIVERY_TRACKED.text}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                 <Clock className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-xs font-medium text-foreground">{product.verification_window_hours || 48}hr Verification</span>
@@ -468,7 +478,7 @@ const PublicProductDetail = () => {
                 <div className="flex items-center gap-1.5">
                   {seller.email_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
                   <span className="text-xs text-muted-foreground">
-                    {seller.identity_verified ? "ID Verified Seller" : seller.email_verified ? "Verified Seller" : "Seller"}
+                    {sellerClaim ? sellerClaim.text : "Seller"}
                   </span>
                 </div>
               </div>
@@ -600,9 +610,9 @@ const PublicProductDetail = () => {
                   <div>
                     <p className="text-sm font-semibold text-foreground">{resolveDeliveryMethod(method)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {method === "hand_delivery" || method === "meetup"
-                        ? "Confirmed with a delivery code at handover"
-                        : "Courier tracking required before funds release"}
+                      {isTrackedDelivery(method)
+                        ? TRUST_CLAIMS.DELIVERY_TRACKED.text
+                        : TRUST_CLAIMS.DELIVERY_CODE_CONFIRMED.text}
                     </p>
                   </div>
                 </div>
@@ -614,7 +624,7 @@ const PublicProductDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
-                  <p className="text-xs text-muted-foreground">Courier tracking required before funds release</p>
+                  <p className="text-xs text-muted-foreground">{TRUST_CLAIMS.DELIVERY_TRACKED.text}</p>
                 </div>
               </div>
             )}
@@ -631,8 +641,8 @@ const PublicProductDetail = () => {
               <span className="text-sm font-semibold text-foreground">{product.estimated_delivery_days || "Contact seller"}</span>
             </div>
             <div className="flex justify-between items-center px-4 py-3">
-              <span className="text-sm text-muted-foreground">Handled By</span>
-              <span className="text-sm font-semibold text-foreground">SafeDeal Escrow</span>
+              <span className="text-sm text-muted-foreground">{TRUST_CLAIMS.ESCROW_HANDLER_LABEL.text}</span>
+              <span className="text-sm font-semibold text-foreground">{TRUST_CLAIMS.ESCROW_HANDLER_VALUE.text}</span>
             </div>
           </div>
         </div>

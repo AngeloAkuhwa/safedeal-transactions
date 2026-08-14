@@ -10,6 +10,7 @@ import {
   FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban, ChevronRight
 } from "lucide-react";
 import { supportLink } from "@/lib/support/support-copy";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -580,7 +581,7 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
             <div className="flex flex-wrap gap-2">
               {v?.identity_verified && (
                 <Badge className="bg-success/10 text-success border-success/30 hover:bg-success/10">
-                  <CheckCircle className="h-3 w-3 mr-1" /> Verified Seller
+                  <CheckCircle className="h-3 w-3 mr-1" /> {TRUST_CLAIMS.SELLER_ID_VERIFIED.text}
                 </Badge>
               )}
             </div>
@@ -593,7 +594,7 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
             <div className="w-8 h-8 bg-success rounded-lg flex items-center justify-center">
               <ShieldCheck className="h-4 w-4 text-success-foreground" />
             </div>
-            <h4 className="text-base font-bold text-foreground">Verified Seller Trust Profile</h4>
+            <h4 className="text-base font-bold text-foreground">{TRUST_CLAIMS.SELLER_TRUST_PROFILE_HEADING.text}</h4>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <VerificationTile
@@ -818,7 +819,7 @@ function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; curren
         <div className="w-10 h-10 bg-success-foreground/20 rounded-lg flex items-center justify-center">
           <Shield className="h-5 w-5" />
         </div>
-        <h3 className="text-xl font-bold">SafeDeal Escrow Protection</h3>
+        <h3 className="text-xl font-bold">{TRUST_CLAIMS.ESCROW_PROTECTION_HEADING.text}</h3>
       </div>
       <div className="space-y-4 mb-6">
         {[

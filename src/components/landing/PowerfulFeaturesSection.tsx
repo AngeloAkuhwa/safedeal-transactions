@@ -70,8 +70,8 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Store,
-    title: "Verified Seller Storefronts",
-    line: "Buy from sellers with verified profiles, ratings, and completed deals.",
+    title: "Seller Storefronts",
+    line: "Every seller gets a storefront, with their real verification status shown on each listing.",
     tone: "neutral",
   },
   {

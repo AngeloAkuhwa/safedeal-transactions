@@ -171,29 +171,24 @@ const detailFixture = {
   completion_event: null,
 };
 
-// The fixture must satisfy the real service contract, or these render tests
-// prove nothing about the real screen.
-const _fixtureMatchesContract: TransactionDetailResponse = {
-  ...detailFixture,
-  seller: { full_name: "Test Seller", avatar_url: null, member_since: "2025-01-01T00:00:00Z", is_verified: false },
-};
-void _fixtureMatchesContract;
-
 vi.mock("@/hooks/useBuyerIdentity", () => ({
   useBuyerIdentity: () => ({ buyerName: "Test Buyer", avatarUrl: null }),
 }));
 
 vi.mock("@/services/transaction-detail.service", () => ({
-  getTransactionDetail: vi.fn(async () => ({
-    ...detailFixture,
-    seller: {
-      id: "seller-1",
-      full_name: "Test Seller",
-      avatar_url: null,
-      is_verified: sellerVerified,
-      member_since: "2025-01-01T00:00:00Z",
-    },
-  })),
+  // Typed against the real contract, so any drift in TransactionDetailResponse
+  // breaks this mock loudly instead of silently rendering a stale shape.
+  getTransactionDetail: vi.fn(
+    async (): Promise<TransactionDetailResponse> => ({
+      ...detailFixture,
+      seller: {
+        full_name: "Test Seller",
+        avatar_url: null,
+        is_verified: sellerVerified,
+        member_since: "2025-01-01T00:00:00Z",
+      },
+    }),
+  ),
 }));
 
 vi.mock("@/components/dashboard/BuyerNav", () => ({ BuyerNav: () => <nav /> }));
@@ -203,25 +198,37 @@ vi.mock("@/components/transactions/MessageThread", () => ({ MessageThread: () =>
 afterEach(() => cleanup());
 
 describe("BuyerTransactionDetail renders verification state truthfully", () => {
+  /** The desktop and mobile seller cards, as two independent scopes. */
+  const sellerCards = (container: HTMLElement) => {
+    const desktop = container.querySelector<HTMLElement>('[data-testid="seller-card-desktop"]');
+    const mobile = container.querySelector<HTMLElement>('[data-testid="seller-card-mobile"]');
+    expect(desktop, "desktop seller card").toBeTruthy();
+    expect(mobile, "mobile seller card").toBeTruthy();
+    return { desktop: within(desktop!), mobile: within(mobile!) };
+  };
+
   it("renders NO Verified badge or tick when the seller is not verified", async () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     const { container } = renderPage(<Page />);
-    const scope = within(container);
-    const notVerified = await scope.findAllByText("Not verified");
-    // Desktop + mobile copies of the seller card.
-    expect(notVerified.length).toBeGreaterThanOrEqual(2);
-    expect(scope.queryAllByText("Verified")).toEqual([]);
+    await within(container).findAllByText("Not verified");
+    const { desktop, mobile } = sellerCards(container);
+    for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
+      expect(scope.getAllByText("Not verified").length, name).toBe(1);
+      expect(scope.queryAllByText("Verified"), name).toEqual([]);
+    }
   });
 
   it("renders the Verified badge on BOTH the desktop and mobile card when verified", async () => {
     sellerVerified = true;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     const { container } = renderPage(<Page />);
-    const scope = within(container);
-    const verified = await scope.findAllByText("Verified");
-    expect(verified.length).toBeGreaterThanOrEqual(2);
-    expect(scope.queryAllByText("Not verified")).toEqual([]);
+    await within(container).findAllByText("Verified");
+    const { desktop, mobile } = sellerCards(container);
+    for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
+      expect(scope.getAllByText("Verified").length, name).toBe(1);
+      expect(scope.queryAllByText("Not verified"), name).toEqual([]);
+    }
   });
 
   it("labels the receipt control by what it actually does", async () => {
@@ -241,8 +248,15 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
     (f) => /\.tsx$/.test(f) && /(^|\/)(pages|components)\//.test(rel(f).replace(/\\/g, "/")),
   );
 
+  /**
+   * Controls that are permanently inert BY DESIGN. Each needs a reason.
+   * `disabled` alone is NOT an excuse: a `disabled={cond}` button with no
+   * handler renders as a live-looking dead button whenever `cond` is false.
+   */
+  const PERMANENTLY_INERT: Record<string, string> = {};
+
   const isDead = (tag: string, before: string) => {
-    if (/onClick|onSubmit|onPointerDown|type="submit"|disabled|asChild|href=|to=/.test(tag)) return false;
+    if (/onClick|onSubmit|onPointerDown|type="submit"|asChild|href=|to=/.test(tag)) return false;
     // Live without its own handler when a parent gives it behaviour:
     //  - `asChild` wrapper (DialogTrigger/DropdownMenuTrigger/Tooltip etc.)
     //  - wrapped directly in a <Link> / <a>
@@ -258,9 +272,23 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
     const dead: string[] = [];
     for (const file of SURFACES) {
       const src = fs.readFileSync(file, "utf8");
-      for (const m of src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)) {
+      for (const m of src.matchAll(/<(?:button|Button)\b/g)) {
+        // Walk to the real end of the tag: `>` inside {…} or "…" is not a close.
+        let i = m.index! + m[0].length;
+        let brace = 0;
+        let quote: string | null = null;
+        for (; i < src.length; i++) {
+          const ch = src[i];
+          if (quote) { if (ch === quote) quote = null; continue; }
+          if (ch === '"' || ch === "'" || ch === "`") { quote = ch; continue; }
+          if (ch === "{") brace++;
+          else if (ch === "}") brace--;
+          else if (ch === ">" && brace === 0) break;
+        }
+        const tag = src.slice(m.index!, i + 1);
         const before = src.slice(Math.max(0, m.index! - 200), m.index!);
-        if (isDead(m[0], before)) dead.push(`${rel(file)}: ${m[0].slice(0, 80)}`);
+        const entry = `${rel(file)}: ${tag.replace(/\s+/g, " ").slice(0, 90)}`;
+        if (isDead(tag, before) && !(entry in PERMANENTLY_INERT)) dead.push(entry);
       }
     }
     expect(dead).toEqual([]);
@@ -371,9 +399,8 @@ describe("one support promise, one fee name, one refund sentence", () => {
   it("no screen restates the response time inline", () => {
     const offenders = FILES.filter((f) => {
       if (f.endsWith("support-copy.ts")) return false;
-      return /(?:repl(?:y|ies)|respond|response)[^\n]{0,40}within \d+\s+business day/i.test(
-        fs.readFileSync(f, "utf8"),
-      );
+      // Any bare "within N business day(s)" anywhere, not just next to a verb.
+      return /within\s+\d+\s+business\s+day/i.test(fs.readFileSync(f, "utf8"));
     }).map(rel);
     expect(offenders).toEqual([]);
   });
