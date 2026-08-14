@@ -386,9 +386,8 @@ describe("one support promise, one fee name, one refund sentence", () => {
   it("no screen restates the response time inline", () => {
     const offenders = FILES.filter((f) => {
       if (f.endsWith("support-copy.ts")) return false;
-      return /(?:repl(?:y|ies)|respond|response)[^\n]{0,40}within \d+\s+business day/i.test(
-        fs.readFileSync(f, "utf8"),
-      );
+      // Any bare "within N business day(s)" anywhere, not just next to a verb.
+      return /within\s+\d+\s+business\s+day/i.test(fs.readFileSync(f, "utf8"));
     }).map(rel);
     expect(offenders).toEqual([]);
   });
