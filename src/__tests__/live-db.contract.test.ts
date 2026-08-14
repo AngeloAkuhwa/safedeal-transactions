@@ -81,9 +81,9 @@ d("live refund rail", () => {
         "no_positional_money_binding",
         // Non-finite money: +Infinity passed every previous guard.
         "infinite_refund_refused",
-        "refunds_check_constraint_rejects_infinity",
-        "payouts_check_constraint_rejects_infinity",
-        "payments_check_constraint_rejects_infinity",
+        "refunds_check_constraint_rejects_nonfinite",
+        "payouts_check_constraint_rejects_nonfinite",
+        "payments_check_constraint_rejects_nonfinite",
         "ledger_check_constraint_rejects_nan",
         "ledger_write_refuses_infinity",
         "reverse_payout_ceiling_enforced",
@@ -100,15 +100,12 @@ d("live refund rail", () => {
     expect(Number(counts)).toBe(0);
   });
 
-  it("keeps every money amount sign-guarded at the database boundary", () => {
+  it("keeps every numeric-argument SECURITY DEFINER function finiteness-guarded", () => {
     const unguarded = psql(
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
         " where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef" +
-        " and p.proname in ('start_refund_atomic','complete_payout_atomic','complete_refund_atomic'," +
-        "'reverse_payout_atomic','resolve_dispute_atomic','apply_financial_remediation_atomic'," +
-        "'record_completion_release_intent_atomic','ledger_write_guarded','admin_correct_pricing'," +
-        "'create_orchestration_task')" +
-        " and pg_get_functiondef(p.oid) !~ 'invalid_(money|refund|payout|reversal|adjustment|commitment)_amount'" +
+        " and 'numeric'::regtype::oid = any(p.proargtypes::oid[])" +
+        " and pg_get_functiondef(p.oid) !~ 'is_finite_money\\('" +
         " order by 1",
     );
     expect(unguarded ? unguarded.split("\n") : []).toEqual([]);
@@ -130,19 +127,35 @@ d("live refund rail", () => {
     expect(nanOnly ? nanOnly.split("\n") : []).toEqual([]);
   });
 
-  it("keeps every money column guarded against non-finite amounts", () => {
-    const found = psql(
-      "select conrelid::regclass::text || '.' || conname from pg_constraint" +
-        " where conname in ('refunds_refund_amount_positive','payouts_amount_finite_positive'," +
-        "'payments_amount_finite_positive','escrow_ledger_entries_amount_finite')" +
-        " and pg_get_constraintdef(oid) like '%Infinity%' order by 1",
+  it("keeps every public numeric column guarded against non-finite values", () => {
+    const unguarded = psql(
+      "select c.relname || '.' || a.attname from pg_class c" +
+        " join pg_namespace n on n.oid = c.relnamespace" +
+        " join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped" +
+        " where n.nspname = 'public' and c.relkind = 'r' and a.atttypid = 'numeric'::regtype" +
+        " and not exists (select 1 from pg_constraint k where k.conrelid = c.oid" +
+        " and k.contype = 'c' and a.attnum = any(k.conkey)" +
+        " and pg_get_constraintdef(k.oid) like '%Infinity%') order by 1",
     );
-    expect(found ? found.split("\n") : []).toEqual([
-      "escrow_ledger_entries.escrow_ledger_entries_amount_finite",
-      "payments.payments_amount_finite_positive",
-      "payouts.payouts_amount_finite_positive",
-      "refunds.refunds_refund_amount_positive",
-    ]);
+    expect(unguarded ? unguarded.split("\n") : []).toEqual([]);
+  });
+
+  it("binds every multi-argument SECURITY DEFINER money helper by name", () => {
+    const positional = psql(
+      "with callees as (select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace" +
+        " where n.nspname='public' and p.prokind='f' and p.prosecdef and p.pronargs > 1" +
+        " and (pg_get_functiondef(p.oid) ~" +
+        " '\\m(escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing|dispute_outcomes|financial_remediations)\\M'" +
+        " or p.proname in ('escrow_available_balance','escrow_uncommitted_available'," +
+        "'escrow_open_commitments','escrow_canonical_balance'))), callers as" +
+        " (select p.proname caller,pg_get_functiondef(p.oid) src from pg_proc p" +
+        " join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind='f')" +
+        " select distinct caller || '->' || callees.proname from callers,callees" +
+        " where caller <> callees.proname" +
+        " and regexp_count(src,'\\m' || callees.proname || '\\(\\s*[^)[:space:]]')" +
+        " > regexp_count(src,'\\m' || callees.proname || '\\(\\s*\\w+\\s*:=') order by 1",
+    );
+    expect(positional ? positional.split("\n") : []).toEqual([]);
   });
 
   it("validates complete_refund_atomic's amount before its first write", () => {
@@ -234,6 +247,23 @@ function scanProcs(regex: string): string[] {
 }
 
 d("live pg_proc invented-defaults scan", () => {
+  it("adds no literal currency default to a currency column", () => {
+    const found = psql(
+      "select c.relname || '.' || a.attname from pg_attrdef d" +
+        " join pg_class c on c.oid=d.adrelid join pg_namespace n on n.oid=c.relnamespace" +
+        " join pg_attribute a on a.attrelid=d.adrelid and a.attnum=d.adnum" +
+        " where n.nspname='public' and a.attname ~ '(currency|currency_code)'" +
+        " and pg_get_expr(d.adbin,d.adrelid) ~ '''[A-Z]{3}''' order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([
+      "buyer_specific_offer_items.currency_code",
+      "checkout_sessions.currency_code",
+      "products.currency_code",
+      "release_review_queue.currency_code",
+      "vendor_plan_purchases.currency_code",
+    ]);
+  });
+
   it("adds no new currency literal to a database function", () => {
     const found = scanProcs("'NGN'");
     expect(found.filter((f) => !NGN_LITERAL_BASELINE.includes(f))).toEqual([]);
