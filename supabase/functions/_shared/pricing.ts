@@ -3,22 +3,33 @@
  *
  * Computes buyer-facing service fees dynamically based on:
  * 1. Paystack's actual local NGN fee rules
- * 2. SafeDeal's tiered service fee policy
+ * 2. SafeDeal's platform fee policy
  *
  * Definitions:
  * - item_amount: agreed item price BEFORE buyer-facing service fees
- * - service_fee_rate: buyer-facing all-in percentage (backend-owned commercial value)
+ * - platform_fee_amount: what SafeDeal earns (2% + ₦100, capped at ₦5,000)
  * - service_fee_amount: paystack_fee_amount + platform_fee_amount
  *
- * Rules:
- * - SafeDeal platform fee floored at ₦250 (minimum revenue per transaction)
- * - Total service fee capped at ₦2,500 (buyer-friendly ceiling)
- * - Fees are non-refundable
+ * Fee generation G3 ("free forever, paid to grow"):
+ *   platform fee = min(max_platform_fee, platform_fee_rate × item + platform_fee_flat)
+ * Growth-plan vendors get a reduced `platform_fee_rate` (1.5%) resolved per
+ * vendor in `settings-resolver.ts`.
+ *
+ * The legacy tiered generation (G2) is still honoured when a config supplies
+ * `tier_rates` WITHOUT `platform_fee_rate`, so historical/vendor configs and
+ * snapshot reconstruction keep producing their original numbers.
  */
 
 export interface PricingConfigOverride {
   min_platform_fee?: number;
   max_total_service_fee?: number;
+  /** G3: hard ceiling on the SafeDeal platform fee (₦). */
+  max_platform_fee?: number;
+  /** G3: percentage component of the platform fee (e.g. 0.02). */
+  platform_fee_rate?: number;
+  /** G3: flat component of the platform fee (₦). */
+  platform_fee_flat?: number;
+  /** G2 (legacy): tiered all-in rate table. */
   tier_rates?: Array<{ upto: number | null; rate: number }>;
 }
 
@@ -30,14 +41,13 @@ export interface PricingConfigOverride {
  * fallback-parity contract test).
  */
 export const DEFAULT_PRICING_CONFIG: Required<PricingConfigOverride> = {
-  min_platform_fee: 250,
-  max_total_service_fee: 2500,
-  tier_rates: [
-    { upto: 100_000, rate: 0.039 },
-    { upto: 500_000, rate: 0.035 },
-    { upto: 2_000_000, rate: 0.029 },
-    { upto: null, rate: 0.025 },
-  ],
+  min_platform_fee: 0,
+  // Absolute guardrail only: platform cap (5,000) + Paystack local cap (2,000).
+  max_total_service_fee: 7000,
+  max_platform_fee: 5000,
+  platform_fee_rate: 0.02,
+  platform_fee_flat: 100,
+  tier_rates: [],
 };
 
 const MIN_PLATFORM_FEE = DEFAULT_PRICING_CONFIG.min_platform_fee;
@@ -88,6 +98,13 @@ function tierRateFromConfig(itemAmount: number, tiers: Array<{ upto: number | nu
   return tiers[tiers.length - 1]?.rate ?? 0.025;
 }
 
+/** A config is legacy-tiered when it names tiers but no flat-model rate. */
+export function isLegacyTieredConfig(config?: PricingConfigOverride): boolean {
+  return Boolean(
+    config && config.platform_fee_rate == null && Array.isArray(config.tier_rates) && config.tier_rates.length > 0,
+  );
+}
+
 /**
  * Compute full pricing breakdown for a transaction.
  */
@@ -120,26 +137,35 @@ export function computePricing(
       ? computePaystackInternationalFee(itemAmount)
       : computePaystackLocalFee(itemAmount);
 
-  // Step 2: Determine SafeDeal target service rate (config-aware)
-  const baseTierRate = config?.tier_rates
-    ? tierRateFromConfig(itemAmount, config.tier_rates)
-    : tierRateFromConfig(itemAmount, DEFAULT_PRICING_CONFIG.tier_rates);
-  const tierRate = mode === "international" ? Math.max(baseTierRate, 0.039) : baseTierRate;
+  // Step 2: Raw SafeDeal platform fee before the total-service-fee ceiling
+  let rawPlatformFee: number;
+  let platformCapBound = false;
+  if (isLegacyTieredConfig(config)) {
+    // G2 legacy: all-in tier rate, Paystack cost absorbed inside the rate.
+    const baseTierRate = tierRateFromConfig(itemAmount, config!.tier_rates!);
+    const tierRate = mode === "international" ? Math.max(baseTierRate, 0.039) : baseTierRate;
+    rawPlatformFee = Math.max(minPlatformFee, Math.round(itemAmount * tierRate) - paystackFee);
+  } else {
+    // G3: 2% + ₦100, capped.
+    const rate = config?.platform_fee_rate ?? DEFAULT_PRICING_CONFIG.platform_fee_rate;
+    const flat = config?.platform_fee_flat ?? DEFAULT_PRICING_CONFIG.platform_fee_flat;
+    const platformCap = config?.max_platform_fee ?? DEFAULT_PRICING_CONFIG.max_platform_fee;
+    const uncapped = Math.max(minPlatformFee, Math.round(itemAmount * rate) + flat);
+    platformCapBound = uncapped > platformCap;
+    rawPlatformFee = Math.min(uncapped, platformCap);
+  }
 
-  // Step 3: Platform fee = max(minPlatformFee, tierRate × item - paystackFee)
-  const rawPlatformFee = Math.max(minPlatformFee, Math.round(itemAmount * tierRate) - paystackFee);
-
-  // Step 4: Total service fee = min(maxTotalFee, paystackFee + platformFee)
+  // Step 3: Total service fee, clipped by the absolute ceiling
   const rawServiceFee = paystackFee + rawPlatformFee;
   const serviceFeeAmount = Math.min(rawServiceFee, maxTotalFee);
 
-  // Step 5: Recalculate platform fee after cap
+  // Step 4: Recalculate platform fee after the ceiling
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
   const is_floored = rawPlatformFee === minPlatformFee;
-  const is_capped = rawServiceFee > maxTotalFee;
+  const is_capped = platformCapBound || rawServiceFee > maxTotalFee;
 
-  // Step 6: Effective rate
+  // Step 5: Effective rate
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
   return {
