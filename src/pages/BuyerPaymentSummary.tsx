@@ -424,7 +424,7 @@ export default function BuyerPaymentSummary() {
                     </>
                   ) : lockReason === "concurrency" ? (
                     <>
-                      <p className="text-sm font-bold text-foreground">You've reached your active purchase limit ({permissions?.maxConcurrentActiveTransactions})</p>
+                      <p className="text-sm font-bold text-foreground">You've reached your active purchase limit{permissions?.maxConcurrentActiveTransactions == null ? "" : ` (${permissions.maxConcurrentActiveTransactions})`}</p>
                       <p className="text-xs text-muted-foreground">Complete or resolve existing transactions before starting a new one</p>
                     </>
                   ) : (

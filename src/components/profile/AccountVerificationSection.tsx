@@ -211,12 +211,12 @@ export function AccountVerificationSection({
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-muted rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Transaction Limit</p>
-              <p className="text-sm font-bold text-foreground">{formatNaira(permissions.transactionLimitNaira)}</p>
+              <p className="text-sm font-bold text-foreground">{permissions.transactionLimitNaira === null ? "—" : formatNaira(permissions.transactionLimitNaira)}</p>
             </div>
             <div className="bg-muted rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Active Transactions</p>
               <p className="text-sm font-bold text-foreground">
-                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions}
+                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions ?? "—"}
               </p>
             </div>
           </div>
@@ -288,7 +288,7 @@ export function AccountVerificationSection({
           <div className="space-y-3">
             <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              Account verified — you can transact up to {formatNaira(permissions?.transactionLimitNaira ?? 50000)}
+              Account verified — you can transact up to {permissions?.transactionLimitNaira === null || permissions?.transactionLimitNaira === undefined ? "your account limit" : formatNaira(permissions.transactionLimitNaira)}
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-start gap-3">

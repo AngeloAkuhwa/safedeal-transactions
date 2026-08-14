@@ -25,8 +25,8 @@ export interface SellerVerification {
 
 export interface SellerPermissions {
   verificationLevel: string;
-  transactionLimitNaira: number;
-  maxConcurrentActiveTransactions: number;
+  transactionLimitNaira: number | null;
+  maxConcurrentActiveTransactions: number | null;
   activeTransactionCount: number;
   canPublishTransaction: boolean;
   canCreateAnotherActiveTransaction: boolean;

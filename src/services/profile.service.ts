@@ -29,8 +29,8 @@ export interface BuyerPermissions {
   canHoldActiveTransaction: boolean;
   requiresPhoneVerification: boolean;
   requiresLocation: boolean;
-  transactionLimitNaira: number;
-  maxConcurrentActiveTransactions: number;
+  transactionLimitNaira: number | null;
+  maxConcurrentActiveTransactions: number | null;
   verificationLevel: VerificationLevel;
   canCreateAnotherActiveTransaction: boolean;
   canAccessHighValueTransaction: boolean;
