@@ -84,9 +84,16 @@ describe("share link expiry", () => {
   it("is applied at every share-link insert site", () => {
     for (const fn of ["cart-checkout", "storefront-checkout", "claim-offer"]) {
       const src = read(`supabase/functions/${fn}/index.ts`);
-      const idx = src.indexOf('from("transaction_links")');
-      expect(idx, `${fn} inserts a transaction_links row`).toBeGreaterThan(-1);
-      expect(src.slice(idx, idx + 400)).toMatch(/expires_at: shareLinkExpiresAt\(\)/);
+      // These files also READ `transaction_links` (the idempotency completeness
+      // probe), so anchor on the INSERT site specifically rather than the first
+      // mention of the table.
+      const sites = [...src.matchAll(/from\("transaction_links"\)/g)]
+        .map((m) => src.slice(m.index!, m.index! + 400))
+        .filter((chunk) => /\.insert\(/.test(chunk));
+      expect(sites.length, `${fn} inserts a transaction_links row`).toBeGreaterThan(0);
+      for (const chunk of sites) {
+        expect(chunk).toMatch(/expires_at: shareLinkExpiresAt\(\)/);
+      }
     }
   });
 
