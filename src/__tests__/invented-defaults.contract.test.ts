@@ -575,14 +575,49 @@ const MONEY_ZERO_WRAPPED = new RegExp(
   "g",
 );
 
-/** Shrink-only ratchet. Entries may be removed, never added. */
+/**
+ * Shrink-only ratchet. Entries may be removed, never added.
+ *
+ * The pattern was widened in this pass to cover object-literal values, call
+ * arguments and return expressions — not only `const`/`let` declarations. The
+ * 18 files appended below were always offending; the previous regex could not
+ * see them. They are recorded rather than narrowed away.
+ */
 const MONEY_ZERO_WRAPPED_DEBT: string[] = [
   "src/components/admin/transactions/ResolveDisputeDialog.tsx",
+  "src/services/payment-flow.service.ts",
+  "supabase/functions/_shared/money-copy.ts",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/_shared/share-meta.ts",
   "supabase/functions/_shared/users-directory-engine.ts",
+  "supabase/functions/admin-dashboard/index.ts",
+  "supabase/functions/admin-escrow-overview/index.ts",
   "supabase/functions/admin-export-worker/index.ts",
+  "supabase/functions/admin-flagged-user-detail/index.ts",
+  "supabase/functions/buyer-disputes/index.ts",
+  "supabase/functions/buyer-transactions/index.ts",
+  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/reconcile-escrow/index.ts",
+  "supabase/functions/seller-dashboard/index.ts",
+  "supabase/functions/seller-disputes/index.ts",
+  "supabase/functions/seller-payouts/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/seller-transactions/index.ts",
+  "supabase/functions/share-meta/index.ts",
   "supabase/functions/transaction-agreement/index.ts",
+  "supabase/functions/transaction-detail/index.ts",
   "supabase/functions/verify-paystack-payment/index.ts",
+];
+
+/**
+ * Fixed in this pass and pinned clean under the WIDENED patterns — these two
+ * were invisible to the old rules and are now proven to carry no zero
+ * fabrication at all.
+ */
+const MONEY_ZERO_FIXED_THIS_PASS = [
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/payout-watchdog/index.ts",
 ];
 
 describe("money never falls back to zero (wrapped calls)", () => {
