@@ -139,7 +139,6 @@ const CURRENCY_DEBT = [
   "src/pages/AdminDisputeDetail.tsx",
   "src/pages/AdminTransactionDetail.tsx",
   "src/pages/BuyerDisputeDetail.tsx",
-  "src/pages/BuyerPaymentSummary.tsx",
   "src/pages/BuyerPrivateOffers.tsx",
   "src/pages/BuyerTransactionReview.tsx",
   "src/pages/OfferClaimLanding.tsx",
