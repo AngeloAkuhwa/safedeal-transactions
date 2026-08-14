@@ -44,9 +44,9 @@ const FEATURES: Feature[] = [
     line: "Browse public listings where every deal can be escrow-protected.",
     tone: "primary",
     steps: [
-      { icon: CircleCheck, label: "Listing verified" },
-      { icon: ShieldCheck, label: "Protection on" },
-      { icon: ShoppingBag, label: "Checkout ready" },
+      { icon: CircleCheck, label: "Verified" },
+      { icon: ShieldCheck, label: "Protected" },
+      { icon: ShoppingBag, label: "Checkout" },
     ],
   },
   {
@@ -57,7 +57,7 @@ const FEATURES: Feature[] = [
     steps: [
       { icon: Link2, label: "Create link" },
       { icon: ChevronRight, label: "Share" },
-      { icon: UserCheck, label: "Buyer opens" },
+      { icon: UserCheck, label: "Opened" },
     ],
   },
   {
@@ -66,9 +66,9 @@ const FEATURES: Feature[] = [
     line: "Buyer payment stays safely held until verification or resolution.",
     tone: "primary",
     steps: [
-      { icon: CircleCheck, label: "Payment in" },
+      { icon: CircleCheck, label: "Paid in" },
       { icon: Lock, label: "In escrow" },
-      { icon: Check, label: "Awaiting OK" },
+      { icon: Check, label: "Awaiting" },
     ],
   },
   {
@@ -77,8 +77,8 @@ const FEATURES: Feature[] = [
     line: "Buy from sellers with verified profiles, ratings, and completed deals.",
     tone: "success",
     steps: [
-      { icon: UserCheck, label: "ID checked" },
-      { icon: Store, label: "Store verified" },
+      { icon: UserCheck, label: "ID check" },
+      { icon: Store, label: "Store OK" },
       { icon: ShieldCheck, label: "Trusted" },
     ],
   },
@@ -88,8 +88,8 @@ const FEATURES: Feature[] = [
     line: "Item details, price, and delivery terms are locked after payment.",
     tone: "warning",
     steps: [
-      { icon: Check, label: "Price agreed" },
-      { icon: Lock, label: "Terms locked" },
+      { icon: Check, label: "Price set" },
+      { icon: Lock, label: "Locked" },
       { icon: ShieldCheck, label: "No edits" },
     ],
   },
@@ -99,8 +99,8 @@ const FEATURES: Feature[] = [
     line: "Sellers upload courier details, tracking numbers, and delivery proof.",
     tone: "primary",
     steps: [
-      { icon: ShoppingBag, label: "Dispatched" },
-      { icon: Search, label: "Tracking on" },
+      { icon: ShoppingBag, label: "Shipped" },
+      { icon: Search, label: "Tracking" },
       { icon: Truck, label: "In transit" },
     ],
   },
@@ -123,7 +123,7 @@ const FEATURES: Feature[] = [
     steps: [
       { icon: Camera, label: "Photos" },
       { icon: Check, label: "Receipt" },
-      { icon: ShieldCheck, label: "Proof ready" },
+      { icon: ShieldCheck, label: "Proof" },
     ],
   },
   {
