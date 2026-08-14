@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
-import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen, Star } from "lucide-react";
+import { Heart, ShoppingCart, Bell, ShieldCheck, PackageOpen, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import type { MarketplaceProduct } from "@/services/marketplace.service";
 import { getAvailableQuantity } from "@/lib/inventory";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { ProductImage } from "@/components/common/ProductImage";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
   product: MarketplaceProduct;
@@ -53,6 +54,10 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
   const lowStock = available > 0 && available <= 5;
   const seller = product.seller;
   const sellerInitial = (seller.full_name || "S")[0].toUpperCase();
+  // Same signal, same resolver as ProductCard: the mark always states its basis.
+  const sellerTrustClaim = sellerVerificationClaim({
+    identityVerified: seller.trust_summary?.identity_verified,
+  });
   // Vendor-scoped gate so per-vendor overrides disable the CTA proactively.
   const gate = useCommerceGate(seller.id);
   const cartBlocked = !gate.loading && !gate.addToCartEnabled;
@@ -155,8 +160,11 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               </div>
               <span className="truncate text-xs text-muted-foreground hover:text-foreground transition-colors">{seller.full_name}</span>
             </button>
-            {seller.trust_summary.identity_verified && (
-              <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
+            {sellerTrustClaim && (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {sellerTrustClaim}
+              </span>
             )}
             <div className="ml-auto">
               {outOfStock ? (

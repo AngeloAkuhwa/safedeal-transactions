@@ -7081,6 +7081,8 @@ export type Database = {
       admin_escrow_kpis: {
         Args: never
         Returns: {
+          book_currency: string
+          distinct_currency_count: number
           pending_release: number
           pending_release_count: number
           released_today: number

@@ -80,7 +80,6 @@ const CURRENCY_DEBT = [
   "src/components/admin/escrow/ConfigureAlertsModal.tsx",
   "src/components/admin/payouts/PayoutMobileCards.tsx",
   "src/components/admin/payouts/PayoutsTable.tsx",
-  "src/components/payment/PricingBreakdown.tsx",
   "src/components/payment/SellerPayoutLine.tsx",
   "src/components/seller/SellerConfirmCompletionCard.tsx",
   "src/lib/admin-mappers.ts",
@@ -223,7 +222,12 @@ describe("invented defaults", () => {
   });
 
   it("keeps the screens fixed in this pass off the debt list", () => {
-    for (const f of ["src/pages/CartCheckoutReview.tsx", "src/pages/BuyerCart.tsx", "src/pages/BuyerTransactionVerify.tsx"]) {
+    for (const f of [
+      "src/pages/CartCheckoutReview.tsx",
+      "src/pages/BuyerCart.tsx",
+      "src/pages/BuyerTransactionVerify.tsx",
+      "src/components/payment/PricingBreakdown.tsx",
+    ]) {
       expect(CURRENCY_DEBT).not.toContain(f);
       expect(stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"))).not.toMatch(CURRENCY_DEFAULT);
     }
@@ -248,6 +252,7 @@ const CURRENCY_SYMBOL = /[₦£€]|(?<![\/\\\w])\$(?=\d)/g;
 const SYMBOL_DEFINITION_FILES = new Set([
   "src/lib/format.ts", // the single rendering authority
   "src/pages/SellerCreateTransaction.tsx", // currency picker options
+  "supabase/functions/_shared/format.ts", // the edge-side rendering authority
 ]);
 
 /**
@@ -278,24 +283,43 @@ const SYMBOL_DEBT: string[] = [
   "src/services/vendor-plan.service.ts",
 ];
 
+/**
+ * DEFERRED — edge-function glyphs. `supabase/functions/` was previously never
+ * scanned for symbols; this list records what that first scan found. Every
+ * entry is NGN-denominated notification copy, a limit message or an
+ * NGN-only formatter helper. Same shrink-only ratchet.
+ */
+const EDGE_SYMBOL_DEBT: string[] = [
+  "supabase/functions/create-transaction/index.ts",
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/paystack-webhook/index.ts",
+  "supabase/functions/_shared/admin-mappers.ts",
+  "supabase/functions/_shared/pricing-invariant.ts",
+  "supabase/functions/_shared/security-resolver.ts",
+  "supabase/functions/_shared/share-meta.ts",
+  "supabase/functions/_shared/showcase-slots.ts",
+];
+
 describe("hardcoded currency symbols", () => {
   it("never asserts a currency glyph outside the formatter", () => {
     const offenders: string[] = [];
     const debtSeen = new Set<string>();
-    for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
+    // Scope: the whole tree. Edge-function email/receipt copy renders to a
+    // person exactly like a component does.
+    for (const file of FILES) {
       const rel = relOf(file);
       if (SYMBOL_DEFINITION_FILES.has(rel)) continue;
       const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_SYMBOL)];
       if (hits.length === 0) continue;
-      if (SYMBOL_DEBT.includes(rel)) {
+      if (SYMBOL_DEBT.includes(rel) || EDGE_SYMBOL_DEBT.includes(rel)) {
         debtSeen.add(rel);
         continue;
       }
       offenders.push(rel);
     }
     expect([...new Set(offenders)]).toEqual([]);
-    expect(SYMBOL_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+    expect([...SYMBOL_DEBT, ...EDGE_SYMBOL_DEBT].filter((f) => !debtSeen.has(f))).toEqual([]);
   });
 
   it("the escrow tiles and charts no longer format money themselves", () => {
