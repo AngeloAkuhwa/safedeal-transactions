@@ -27,6 +27,7 @@ import {
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { computePricing } from "@/lib/pricing";
+import { methodNeedsAddress, methodNeedsPhone } from "@/lib/delivery-methods";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,14 +63,6 @@ function parseEnabledMethods(raw: string | null | undefined): string[] {
   } catch {
     return [String(raw)];
   }
-}
-
-function methodNeedsAddress(m: string) {
-  return m === "courier_shipping" || m === "delivery";
-}
-
-function methodNeedsPhone(m: string) {
-  return m === "pickup" || m === "meetup" || m === "hand_delivery";
 }
 
 interface DeliveryDraft {
