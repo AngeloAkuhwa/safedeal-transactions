@@ -118,7 +118,10 @@ Deno.serve(async (req) => {
     // 3. Validate ALL items — block entire checkout if any fail
     const errors: Array<{ product_id: string; error: string }> = [];
     // Resolved selection per cart item, populated during validation
-    const resolvedByCartItem = new Map<string, { rawMethod: string; address: any; phone: string | null }>();
+    const resolvedByCartItem = new Map<
+      string,
+      { rawMethod: string; mappedMethod: string; condition: string; address: any; phone: string | null }
+    >();
     for (const ci of cartItems) {
       const product = productMap.get(ci.product_id);
       if (!product) { errors.push({ product_id: ci.product_id, error: "Product not found" }); continue; }
@@ -179,7 +182,27 @@ Deno.serve(async (req) => {
       }
       // Phone fallback to buyer profile is checked later; not blocking here
       void needsPhone;
-      resolvedByCartItem.set(ci.id, { rawMethod, address: sel?.delivery_address ?? null, phone: sel?.contact_phone ?? null });
+
+      // FAIL CLOSED, BEFORE ANY WRITE: an unmapped condition or delivery
+      // method is a fact about someone else's goods. Both are validated here
+      // so a refusal can never happen after rows have been inserted.
+      const mappedMethod = mapDeliveryMethod(rawMethod);
+      if (!mappedMethod) {
+        errors.push({ product_id: ci.product_id, error: `'${rawMethod}' is not a delivery method SafeDeal can record` });
+        continue;
+      }
+      const condition = mapCondition(product.condition_label);
+      if (!condition) {
+        errors.push({ product_id: ci.product_id, error: `"${product.title}" has no recognised condition recorded` });
+        continue;
+      }
+      resolvedByCartItem.set(ci.id, {
+        rawMethod,
+        mappedMethod,
+        condition,
+        address: sel?.delivery_address ?? null,
+        phone: sel?.contact_phone ?? null,
+      });
     }
 
     if (errors.length > 0) {
