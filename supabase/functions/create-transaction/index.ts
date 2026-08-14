@@ -239,7 +239,7 @@ const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
   high_trust_buyer: Number.MAX_SAFE_INTEGER,
 };
 
-function mapConditionToProduct(c: string): string {
+function mapConditionToProduct(c: string | null | undefined): string | null {
   const map: Record<string, string> = {
     brand_new: "brand_new",
     like_new: "like_new",
@@ -248,17 +248,17 @@ function mapConditionToProduct(c: string): string {
     fair: "used_fair",
     used: "used_good",
   };
-  return map[c] ?? "brand_new";
+  return map[c ?? ""] ?? null;
 }
 
-function mapDeliveryToProduct(m: string): string {
+function mapDeliveryToProduct(m: string | null | undefined): string | null {
   const map: Record<string, string> = {
     courier: "courier_shipping",
     pickup: "pickup",
     meetup: "meetup",
     hand_delivery: "hand_delivery",
   };
-  return map[m] ?? "courier_shipping";
+  return map[m ?? ""] ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
