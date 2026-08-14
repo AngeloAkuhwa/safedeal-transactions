@@ -315,7 +315,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/landing/Footer.tsx", text: "Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.", reason: "Footer summary of what the product does; no scale or outcome claim." },
   { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Protected Marketplace", reason: "Feature card naming the marketplace product surface." },
   { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Delivery Tracking", reason: "Labels recorded courier tracking data on a courier transaction." },
-  { file: "src/components/landing/PowerfulFeaturesSection.tsx", text: "Escrow protected", reason: "Feature bullet naming the escrow leg of a marketplace purchase." },
   { file: "src/components/notifications/NotificationSummaryCards.tsx", text: "Escrow Alerts", reason: "Admin notification bucket name for escrow-related alert records." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Verified", reason: "Tile state rendered from a stored per-signal verification boolean." },
   { file: "src/components/profile/AccountVerificationSection.tsx", text: "Not Verified", reason: "Negative tile state for an unset verification flag." },
