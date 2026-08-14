@@ -5,7 +5,7 @@ const productLinks = [
   { label: "How It Works", href: "#protected-deal" },
   { label: "Marketplace", href: "/marketplace" },
   { label: "Protection", href: "#protection" },
-  { label: "Pricing", href: "#fees" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
 const companyLinks = ["About Us", "Careers", "Blog", "Press Kit"];
