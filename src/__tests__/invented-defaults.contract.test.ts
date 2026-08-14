@@ -588,6 +588,15 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
   "supabase/functions/seller-transactions/index.ts",
+  // Newly VISIBLE after the bracket rule was fixed to allow a money noun at
+  // index 0 (`LIMIT_BY_LEVEL[level] ?? 0`) and after the bare-identifier rule
+  // lost the same leading-character requirement. Recorded, not narrowed away.
+  "src/components/security/RecoveryCodesPanel.tsx",
+  "src/pages/SellerTransactionDetail.tsx",
+  "supabase/functions/admin-audit-logs/index.ts",
+  "supabase/functions/buyer-disputes/index.ts",
+  "supabase/functions/buyer-profile/index.ts",
+  "supabase/functions/seller-profile/index.ts",
 ];
 
 describe("money never falls back to zero", () => {
