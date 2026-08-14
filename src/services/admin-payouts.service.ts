@@ -132,12 +132,12 @@ export interface PayoutDetail {
     protection_fee_capped: boolean;
     payment_processing_fee: number | null;
     total_charged: number | null;
-    seller_payout: number;
+    seller_payout: number | null;
     /** Where the release figure came from — snapshot is canonical. */
     seller_payout_source?: "pricing_snapshot" | "payout_record";
-    recorded_payout_amount?: number;
+    recorded_payout_amount?: number | null;
     release_amount_mismatch?: boolean;
-    currency: string;
+    currency: string | null;
     has_pricing_snapshot?: boolean;
   };
   seller: { id: string; name: string; email: string | null; avatar_url: string | null } | null;
