@@ -188,12 +188,20 @@ Deno.serve(async (req) => {
       // so a refusal can never happen after rows have been inserted.
       const mappedMethod = mapDeliveryMethod(rawMethod);
       if (!mappedMethod) {
-        errors.push({ product_id: ci.product_id, error: `'${rawMethod}' is not a delivery method SafeDeal can record` });
+        errors.push({
+          product_id: ci.product_id,
+          code: "delivery_method_unmapped",
+          error: `'${rawMethod}' is not a delivery method SafeDeal can record`,
+        });
         continue;
       }
       const condition = mapCondition(product.condition_label);
       if (!condition) {
-        errors.push({ product_id: ci.product_id, error: `"${product.title}" has no recognised condition recorded` });
+        errors.push({
+          product_id: ci.product_id,
+          code: "condition_unmapped",
+          error: `"${product.title}" has no recognised condition recorded`,
+        });
         continue;
       }
       resolvedByCartItem.set(ci.id, {
