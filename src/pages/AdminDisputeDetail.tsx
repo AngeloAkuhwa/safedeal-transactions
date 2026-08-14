@@ -6,7 +6,7 @@ import {
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, PlayCircle, Eye, NotebookPen, Store,
-  Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check,
+  Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
   MessageCircle, ArrowRight, Lock, Menu,
   Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
 } from "lucide-react";
