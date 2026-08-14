@@ -333,19 +333,21 @@ export default function BuyerPaymentSummary() {
   const snapshot = data.pricing;
   const num = (v: unknown): number | null =>
     typeof v === "number" && Number.isFinite(v) ? v : null;
-  const currencyCode = snapshot?.currency_code || null;
-  const totalAmount = num(snapshot?.total_amount);
-  const itemAmount = num(snapshot?.item_amount);
-  const feeAmount = num(snapshot?.service_fee_amount);
-  const feeRate = num(snapshot?.service_fee_rate);
-  const platformFeeAmount = num(snapshot?.platform_fee_amount);
+  const currency = snapshot?.currency_code || null;
+  const total = num(snapshot?.total_amount);
+  const item = num(snapshot?.item_amount);
+  const fee = num(snapshot?.service_fee_amount);
+  const rate = num(snapshot?.service_fee_rate);
+  const platformFee = num(snapshot?.platform_fee_amount);
   const pricingUnavailable =
     !snapshot ||
-    !currencyCode ||
-    totalAmount === null ||
-    totalAmount <= 0 ||
-    itemAmount === null ||
-    feeAmount === null;
+    !currency ||
+    total === null ||
+    total <= 0 ||
+    item === null ||
+    fee === null ||
+    rate === null ||
+    platformFee === null;
 
   if (pricingUnavailable) {
     return (
@@ -376,6 +378,13 @@ export default function BuyerPaymentSummary() {
       </div>
     );
   }
+
+  const currencyCode: string = currency!;
+  const totalAmount: number = total!;
+  const itemAmount: number = item!;
+  const feeAmount: number = fee!;
+  const feeRate: number = rate!;
+  const platformFeeAmount: number = platformFee!;
 
   // Cap facts come from the persisted snapshot only. A fee that merely looks
   // large is not evidence that a ceiling applied.
@@ -705,7 +714,7 @@ export default function BuyerPaymentSummary() {
                         service_fee_amount: feeAmount,
                         service_fee_rate: feeRate,
                         total_amount: totalAmount,
-                        is_floored: platformFeeAmount === DEFAULT_MIN_PLATFORM_FEE,
+                        is_floored: data.pricing?.is_floored === true,
                         is_capped: isFeeCapped,
                         capped_by: isFeeCapped ? (appliedCap?.kind ?? null) : null,
                         applied_cap_amount: isFeeCapped ? (appliedCap?.amount ?? null) : null,
