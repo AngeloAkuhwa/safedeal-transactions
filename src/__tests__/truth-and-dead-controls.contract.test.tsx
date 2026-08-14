@@ -38,6 +38,14 @@ function walk(dir: string): string[] {
 }
 
 const FILES = walk(SRC).filter((f) => !/\.test\.tsx?$/.test(f));
+
+/** Input placeholders are not claims — strip them before scanning for fake data. */
+const readScannable = (f: string) =>
+  fs
+    .readFileSync(f, "utf8")
+    .split("\n")
+    .filter((line) => !/placeholder=/.test(line))
+    .join("\n");
 const read = (rel: string) => fs.readFileSync(path.join(SRC, rel), "utf8");
 const rel = (f: string) => path.relative(SRC, f);
 
@@ -61,7 +69,7 @@ describe("no fabricated trust signals anywhere in src/", () => {
 
   for (const [name, re] of BANNED) {
     it(`does not contain ${name}`, () => {
-      const hits = FILES.filter((f) => re.test(fs.readFileSync(f, "utf8"))).map(rel);
+      const hits = FILES.filter((f) => re.test(readScannable(f))).map(rel);
       expect(hits).toEqual([]);
     });
   }
