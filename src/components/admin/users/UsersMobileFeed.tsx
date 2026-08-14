@@ -131,7 +131,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Volume</p>
-                      <p className="text-emerald-400 font-bold text-lg">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"}</p>
+                      <p className="text-emerald-400 font-bold text-lg">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}</p>
                     </div>
                   </>
                 ) : isBusinessUnverified ? (
@@ -156,7 +156,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                         <span className="text-[10px] font-normal text-slate-400">
                           ({r.transactions.resolved > 0
                             ? `${r.transactions.resolved} resolved`
-                            : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"})
+                            : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"})
                         </span>
                       </p>
                     </div>

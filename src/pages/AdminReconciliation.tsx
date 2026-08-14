@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatMoney } from "@/lib/format";
 import { FinancialRemediationTable } from "@/components/admin/reconciliation/FinancialRemediationTable";
 import {
@@ -159,13 +160,13 @@ export default function AdminReconciliation() {
                         <tr key={r.id} className="border-t">
                           <td className="p-2 font-mono text-xs">{r.transaction_code ?? r.transaction_id.slice(0, 8)}</td>
                           <td className="p-2">{statusBadge(r.status)}</td>
-                          <td className="p-2 text-right">{formatMoney(r.paystack_collected)}</td>
-                          <td className="p-2 text-right">{formatMoney(r.paystack_paid_out)}</td>
-                          <td className="p-2 text-right">{formatMoney(r.paystack_refunded)}</td>
-                          <td className="p-2 text-right">{formatMoney(r.ledger_balance)}</td>
-                          <td className="p-2 text-right">{formatMoney(r.expected_ledger_balance)}</td>
+                          <td className="p-2 text-right">{formatMoneyOrDash(r.paystack_collected, r.currency_code)}</td>
+                          <td className="p-2 text-right">{formatMoneyOrDash(r.paystack_paid_out, r.currency_code)}</td>
+                          <td className="p-2 text-right">{formatMoneyOrDash(r.paystack_refunded, r.currency_code)}</td>
+                          <td className="p-2 text-right">{formatMoneyOrDash(r.ledger_balance, r.currency_code)}</td>
+                          <td className="p-2 text-right">{formatMoneyOrDash(r.expected_ledger_balance, r.currency_code)}</td>
                           <td className={`p-2 text-right font-medium ${Math.abs(r.delta) >= 0.01 ? "text-destructive" : ""}`}>
-                            {formatMoney(r.delta)}
+                            {formatMoneyOrDash(r.delta, r.currency_code)}
                           </td>
                           <td className="p-2 text-right">
                             <Button

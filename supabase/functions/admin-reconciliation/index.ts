@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
   // Hydrate drift rows with transaction codes for display.
   const driftTxIds = Array.from(new Set(((driftRows.data ?? []) as Array<{ transaction_id: string }>).map((r) => r.transaction_id)));
   let codes: Record<string, { transaction_code: string; money_status: string }> = {};
+  const driftCurrency: Record<string, string | null> = {};
   if (driftTxIds.length) {
     const { data: txs } = await admin
       .from("transactions")
@@ -96,12 +97,22 @@ Deno.serve(async (req) => {
         money_status: t.money_status as string,
       };
     }
+    // Currency is a fact about the money, not a display default: the admin
+    // reads these balances to reconcile against the provider.
+    const { data: pricing } = await admin
+      .from("transaction_pricing")
+      .select("transaction_id, currency_code")
+      .in("transaction_id", driftTxIds);
+    for (const p of pricing ?? []) {
+      driftCurrency[p.transaction_id as string] = (p.currency_code as string | null) ?? null;
+    }
   }
 
   const drift = ((driftRows.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
     ...r,
     transaction_code: codes[r.transaction_id as string]?.transaction_code ?? null,
     money_status_live: codes[r.transaction_id as string]?.money_status ?? null,
+    currency_code: driftCurrency[r.transaction_id as string] ?? null,
   }));
 
   // Canonical remediation report — the same routine the Dashboard and Escrow

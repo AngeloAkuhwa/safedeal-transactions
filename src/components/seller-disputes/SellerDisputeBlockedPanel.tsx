@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,7 @@ export function SellerDisputeBlockedPanel({ items }: Props) {
             <p className="text-sm font-medium text-foreground truncate">{item.item_title ?? "—"}</p>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{item.buyer_name ?? "—"}</span>
-              <span className="text-sm font-bold text-foreground">{formatMoney(item.amount)}</span>
+              <span className="text-sm font-bold text-foreground">{formatMoneyOrDash(item.amount, item.currency_code)}</span>
             </div>
             {item.dispute_id && (
               <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>

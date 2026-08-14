@@ -557,7 +557,7 @@ const BuyerTransactionTracking = () => {
                 {(pricing.service_fee_amount || 0) > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
-                      <span>{FEE_NAME} ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <span>{FEE_NAME}{typeof pricing.service_fee_rate === "number" ? ` (${(pricing.service_fee_rate * 100).toFixed(1)}%)` : ""}</span>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>

@@ -1144,7 +1144,9 @@ export default function AdminTransactionDetail() {
                     escrow_ledger: { Icon: Receipt, cls: "bg-violet-500/20 text-violet-400" },
                   };
                   const isParty = typeKey === "buyer" || typeKey === "seller";
-                  const iconMeta = ICON_MAP[typeKey];
+                  // `r.type` is open-ended (buyer/seller rows included) — an unmapped key must
+                  // not crash the record list.
+                  const iconMeta = ICON_MAP[typeKey] ?? { Icon: FileSignature, cls: "bg-slate-500/20 text-slate-300" };
                   const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
                   const isEmptyPayout = typeKey === "payout" && r.label === "No payout yet";
                   const onClick =

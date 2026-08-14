@@ -46,6 +46,8 @@ export interface SellerDisputeSummary {
   under_review_count: number;
   resolved_count: number;
   blocked_payout_amount: number;
+  /** Currency of the blocked total; null when frozen payouts span currencies. */
+  blocked_payout_currency: string | null;
 }
 
 export interface SellerDisputeActionNeeded {
@@ -66,7 +68,7 @@ export interface SellerDisputeBlockedPayout {
   item_title: string | null;
   buyer_name: string | null;
   amount: number;
-  currency_code: string;
+  currency_code: string | null;
   dispute_id: string | null;
   dispute_status: string | null;
 }

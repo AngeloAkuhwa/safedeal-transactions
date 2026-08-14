@@ -1,5 +1,5 @@
 import { Scale, Clock, Hourglass, CheckCircle2, Wallet } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
@@ -61,7 +61,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
     },
     {
       label: "Payouts Blocked",
-      value: formatMoney(summary.blocked_payout_amount),
+      value: formatMoneyOrDash(summary.blocked_payout_amount, summary.blocked_payout_currency),
       subtitle: "Your seller net currently held by active disputes",
       icon: Wallet,
       iconBg: "bg-warning/10",

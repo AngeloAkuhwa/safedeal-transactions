@@ -25,11 +25,12 @@ import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
 import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 
-const fmt = (amount: number | undefined | null, currency: string) =>
-  formatMoney(amount ?? 0, currency);
+/** Renders `—` when the amount or its currency is unknown. */
+const fmt = (amount: number | undefined | null, currency: string | null) =>
+  formatMoneyOrDash(amount, currency);
 
 const timelineSteps = [
   { key: "payment_secured", label: "Payment Secured", sub: "Funds received", icon: CheckCircle },
@@ -250,7 +251,8 @@ export default function SellerUpdateDelivery() {
 
   const item = data.item;
   const pricing = data.pricing;
-  const currency = pricing?.currency_code ?? "NGN";
+  // A currency is a claim about someone else's money — never invented here.
+  const currency = pricing?.currency_code ?? null;
   const itemAmount = pricing?.item_amount ?? 0;
 
   const statusToStep: Record<string, number> = {
@@ -659,7 +661,9 @@ export default function SellerUpdateDelivery() {
           <div className="space-y-3">
             {[
               { step: 1, title: "Buyer Will Be Notified", desc: "The buyer will receive notification that the item has been shipped/delivered." },
-              { step: 2, title: "Buyer Verification Window Begins", desc: `The buyer will have ${deliveryTerms?.verification_window_hours ?? "—"} hours to confirm receipt and verify the item matches the agreement.` },
+              { step: 2, title: "Buyer Verification Window Begins", desc: verificationWindowHours === null
+                  ? "The buyer confirms receipt and verifies the item matches the agreement."
+                  : `The buyer will have ${verificationWindowHours} hours to confirm receipt and verify the item matches the agreement.` },
               { step: 3, title: "Funds Remain in Escrow", desc: `Your payment (${fmt(itemAmount, currency)}) stays securely held by SafeDeal until buyer confirms or any dispute is resolved.` },
             ].map((s) => (
               <div key={s.step} className="bg-background border rounded-xl p-4 flex gap-4">

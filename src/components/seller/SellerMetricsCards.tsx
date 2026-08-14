@@ -1,5 +1,5 @@
 import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon, ShieldAlert } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Link } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -19,6 +19,9 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
   const netPendingBankTransfer = metrics.net_pending_bank_transfer ?? 0;
   const fundsFrozenAmount = metrics.funds_frozen_amount ?? 0;
   const fundsFrozenCount = metrics.funds_frozen_count ?? 0;
+  // Denomination of every aggregate below. Null when the seller has rows in
+  // more than one currency (or none) — we render `—` rather than pick one.
+  const currency = metrics.currency_code;
 
   const cards = [
     {
@@ -35,7 +38,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Awaiting Buyer Payment",
-      value: formatMoney(metrics.awaiting_buyer_payment_amount),
+      value: formatMoneyOrDash(metrics.awaiting_buyer_payment_amount, currency),
       icon: Clock,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -47,7 +50,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Awaiting Buyer to Open Link",
-      value: formatMoney(metrics.awaiting_buyer_review_amount),
+      value: formatMoneyOrDash(metrics.awaiting_buyer_review_amount, currency),
       icon: Eye,
       iconBg: "bg-muted",
       iconColor: "text-muted-foreground",
@@ -60,7 +63,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Funds Held in Escrow",
-      value: formatMoney(metrics.funds_held_in_escrow_amount),
+      value: formatMoneyOrDash(metrics.funds_held_in_escrow_amount, currency),
       icon: Shield,
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
@@ -73,7 +76,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     ...(fundsFrozenAmount > 0
       ? [{
           label: "Funds Frozen",
-          value: formatMoney(fundsFrozenAmount),
+          value: formatMoneyOrDash(fundsFrozenAmount, currency),
           icon: ShieldAlert,
           iconBg: "bg-destructive/10",
           iconColor: "text-destructive",
@@ -86,7 +89,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       : []),
     {
       label: "Funds Pending Release",
-      value: formatMoney(metrics.funds_pending_release_amount),
+      value: formatMoneyOrDash(metrics.funds_pending_release_amount, currency),
       icon: TrendingUp,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -98,7 +101,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Net Earned (Completed)",
-      value: formatMoney(metrics.payouts_completed_amount),
+      value: formatMoneyOrDash(metrics.payouts_completed_amount, currency),
       icon: CheckCircle,
       iconBg: "bg-success/10",
       iconColor: "text-success",
@@ -109,7 +112,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       badgeBg: "bg-success/10 text-success",
       breakdown:
         netPendingBankTransfer > 0
-          ? `${formatMoney(netPaidToBank)} paid to bank · ${formatMoney(netPendingBankTransfer)} pending bank transfer`
+          ? `${formatMoneyOrDash(netPaidToBank, currency)} paid to bank · ${formatMoneyOrDash(netPendingBankTransfer, currency)} pending bank transfer`
           : null,
     },
   ];

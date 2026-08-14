@@ -22,6 +22,8 @@ export interface DriftRow {
   run_id: string;
   run_at: string;
   paystack_collected: number;
+  /** Currency these balances are denominated in; null when unknown. */
+  currency_code: string | null;
   paystack_paid_out: number;
   paystack_refunded: number;
   ledger_balance: number;

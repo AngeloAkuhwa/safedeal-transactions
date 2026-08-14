@@ -169,7 +169,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     <p className="text-emerald-400 text-xs mt-0.5 font-medium">
                       {r.transactions.resolved > 0
                         ? `${r.transactions.resolved} resolved`
-                        : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"}
+                        : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}
                     </p>
                   </td>
                   <td className="p-4 text-right">

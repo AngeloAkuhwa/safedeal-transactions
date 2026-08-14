@@ -217,6 +217,12 @@ Deno.serve(async (req) => {
     let fundsFrozenAmount = 0;
     let payoutsCompletedAmount = 0;
     let netPaidToBank = 0;
+    /**
+     * The currency these aggregates are denominated in. Summing across
+     * currencies is meaningless, so we only name one when every contributing
+     * pricing row agrees; otherwise the UI renders `—` instead of guessing.
+     */
+    let metricsCurrency: string | null = null;
 
     const amountTxIds = [...new Set([
       ...awaitingPaymentTxIds, ...awaitingBuyerReviewTxIds, ...fundsHeldTxIds,
@@ -225,9 +231,15 @@ Deno.serve(async (req) => {
     if (amountTxIds.length > 0) {
       const { data: pricingData } = await adminClient
         .from("transaction_pricing")
-        .select("transaction_id, seller_payout_amount, buyer_total_amount")
+        .select("transaction_id, seller_payout_amount, buyer_total_amount, currency_code")
         .in("transaction_id", amountTxIds);
       if (pricingData) {
+        const codes = new Set(
+          pricingData
+            .map((p: Record<string, unknown>) => (p.currency_code as string | null) ?? null)
+            .filter((c): c is string => !!c),
+        );
+        metricsCurrency = codes.size === 1 ? [...codes][0] : null;
         const pricingMap = new Map(
           pricingData.map((p: Record<string, unknown>) => [
             p.transaction_id as string,
@@ -608,6 +620,7 @@ Deno.serve(async (req) => {
 
     const metrics = {
       transactions_created_count: txRows.length,
+      currency_code: metricsCurrency,
       active_transactions_count: activeTransactionsCount,
       completed_transactions_count: completedTransactionsCount,
       awaiting_buyer_payment_count: awaitingPaymentTxIds.length,

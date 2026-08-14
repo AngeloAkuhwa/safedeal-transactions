@@ -168,8 +168,8 @@ const SellerPayouts = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <SummaryCard
             label="Total Released"
-            value={formatMoney(summary.total_released)}
-            subtitle={`Paid into your bank account · ${formatMoney(summary.total_released_last_30)} in last 30 days`}
+            value={formatMoney(summary.total_released, summary.currency_code)}
+            subtitle={`Paid into your bank account · ${formatMoney(summary.total_released_last_30, summary.currency_code)} in last 30 days`}
             icon={CheckCircle2}
             iconBg="bg-success/10"
             iconColor="text-success"
@@ -179,7 +179,7 @@ const SellerPayouts = () => {
           />
           <SummaryCard
             label="Pending Release"
-            value={formatMoney(summary.pending_release)}
+            value={formatMoney(summary.pending_release, summary.currency_code)}
             subtitle="Earned · awaiting bank transfer"
             icon={Clock}
             iconBg="bg-warning/10"
@@ -190,7 +190,7 @@ const SellerPayouts = () => {
           />
           <SummaryCard
             label="Held in Escrow"
-            value={formatMoney(summary.held_in_escrow)}
+            value={formatMoney(summary.held_in_escrow, summary.currency_code)}
             subtitle="Tied to active transactions"
             icon={Shield}
             iconBg="bg-primary/10"
@@ -201,7 +201,7 @@ const SellerPayouts = () => {
           />
           <SummaryCard
             label="On Hold / Failed"
-            value={formatMoney(summary.on_hold_failed)}
+            value={formatMoney(summary.on_hold_failed, summary.currency_code)}
             subtitle="Failed payouts + funds frozen by disputes"
             icon={AlertTriangle}
             iconBg="bg-destructive/10"
@@ -326,9 +326,9 @@ const SellerPayouts = () => {
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-sm">{row.buyer_name}</TableCell>
                               <TableCell className="hidden lg:table-cell text-sm max-w-[120px] truncate">{row.item_title}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell text-sm">{formatMoney(row.gross_amount)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell text-sm text-muted-foreground">-{formatMoney(row.fees)}</TableCell>
-                              <TableCell className="text-right font-semibold text-sm">{formatMoney(row.net_payout)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell text-sm">{formatMoney(row.gross_amount, row.currency_code)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell text-sm text-muted-foreground">-{formatMoney(row.fees, row.currency_code)}</TableCell>
+                              <TableCell className="text-right font-semibold text-sm">{formatMoney(row.net_payout, row.currency_code)}</TableCell>
                               <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(row.release_date)}</TableCell>
                               <TableCell><PayoutStatusBadge status={row.status} /></TableCell>
                               <TableCell className="text-right">
@@ -387,7 +387,7 @@ const SellerPayouts = () => {
                           ) : (
                             <span className="font-mono">{sp.transaction_code}</span>
                           )}
-                          <span>{formatMoney(sp.amount)} · {sp.hours_pending}h</span>
+                          <span>{formatMoney(sp.amount, sp.currency_code)} · {sp.hours_pending}h</span>
                         </li>
                       ))}
                     </ul>
@@ -426,7 +426,7 @@ const SellerPayouts = () => {
                       <p className="text-xs font-medium text-foreground truncate">{r.item_title}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-muted-foreground">{r.buyer_name}</span>
-                        <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(r.amount)}</span>
+                        <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(r.amount, r.currency_code)}</span>
                       </div>
                     </div>
                   ))
@@ -463,7 +463,7 @@ const SellerPayouts = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-muted-foreground">{b.buyer_name}</span>
-                        <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(b.amount)}</span>
+                        <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(b.amount, b.currency_code)}</span>
                       </div>
                       {/* Context-aware action for blocked funds */}
                       {b.blocker_reason.includes("Dispute") && b.transaction_id && (

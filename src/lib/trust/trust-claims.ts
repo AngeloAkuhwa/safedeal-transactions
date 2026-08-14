@@ -14,6 +14,8 @@
  * `supabase/functions/`, and if `.text` is accessed outside this file.
  */
 
+import { toTransactionDeliveryMethod, type TransactionDeliveryMethod } from "@/lib/delivery-methods";
+
 export type TrustCondition =
   /** Structurally true for every transaction on the platform. */
   | "ALWAYS_TRUE"
@@ -142,9 +144,20 @@ type ConditionalKey = Exclude<TrustClaimKey, AlwaysTrueKey>;
 export const TRACKED_DELIVERY_METHODS = ["courier"] as const;
 const CODE_CONFIRMED_DELIVERY_METHODS = ["pickup", "meetup", "hand_delivery"] as const;
 
+/**
+ * Delivery evidence arrives in two vocabularies: the transaction enum
+ * (`courier` …) and product-listing strings (`courier_shipping`, `delivery` …).
+ * Resolvers normalise first, so a listing-vocabulary value earns the claim it
+ * genuinely supports instead of silently resolving to null.
+ */
+function normalizeDeliveryEvidence(method?: string | null): TransactionDeliveryMethod | null {
+  return toTransactionDeliveryMethod(method);
+}
+
 export function isTrackedDelivery(method?: string | null): boolean {
-  if (!method) return false;
-  return (TRACKED_DELIVERY_METHODS as readonly string[]).includes(method);
+  const normalized = normalizeDeliveryEvidence(method);
+  if (!normalized) return false;
+  return (TRACKED_DELIVERY_METHODS as readonly string[]).includes(normalized);
 }
 
 function holdsEscrow(state?: string | null): boolean {
@@ -162,7 +175,9 @@ function satisfied<C extends TrustCondition>(condition: C, evidence: TrustEviden
     case "DELIVERY_IS_TRACKED":
       return isTrackedDelivery((evidence as TrustEvidenceMap["DELIVERY_IS_TRACKED"]).deliveryMethod);
     case "DELIVERY_IS_CODE_CONFIRMED": {
-      const m = (evidence as TrustEvidenceMap["DELIVERY_IS_CODE_CONFIRMED"]).deliveryMethod;
+      const m = normalizeDeliveryEvidence(
+        (evidence as TrustEvidenceMap["DELIVERY_IS_CODE_CONFIRMED"]).deliveryMethod,
+      );
       return !!m && (CODE_CONFIRMED_DELIVERY_METHODS as readonly string[]).includes(m);
     }
     case "FUNDS_HELD_IN_ESCROW":

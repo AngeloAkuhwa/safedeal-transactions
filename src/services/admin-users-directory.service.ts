@@ -72,6 +72,8 @@ export interface UserDirectoryDetail {
   user: UserDirectoryRow;
   recent_transactions: Array<{
     transaction_id: string; transaction_code: string; amount: number;
+    /** Currency of `amount`; null when the transaction has no pricing row. */
+    currency_code: string | null;
     status: string; money_status: string; created_at: string;
     counterparty: "as_buyer" | "as_seller";
   }>;
@@ -89,6 +91,8 @@ export interface UserDirectoryDetail {
     severity?: "high" | "warning" | "success" | "info" | "neutral";
   }>;
   stats?: {
+    /** Currency of both volumes; null when the user trades in more than one. */
+    currency_code: string | null;
     as_buyer: { count: number; volume: number };
     as_seller: { count: number; volume: number };
     disputes: { total: number; active: number; filed: number; received: number };
