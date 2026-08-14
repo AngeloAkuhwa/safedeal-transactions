@@ -39,9 +39,19 @@ const FILES = [
 /** `x === "literal"` / `!==` where the operand names a delivery method. */
 const COMPARISON =
   /(?<!typeof\s)\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*[=!]==\s*["'`]([a-z_]+)["'`]/g;
-/** `x ?? "literal"` / `x || "literal"` defaults on a method-named operand. */
+/**
+ * `x ?? "literal"` / `x || "literal"` defaults on a method-named operand.
+ * NOTE: defaulting to a VALID member is the Phase 0 defect, not the escape
+ * hatch — `?? "courier"` is exactly what made four fail-closed guards dead
+ * code. Any string default on a delivery-method operand is banned.
+ */
 const DEFAULTING =
   /\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*(?:\?\?|\|\|)\s*["'`]([a-z_]+)["'`]/g;
+/**
+ * Operands allowed to carry a string default. Add entries individually, with
+ * a reason — never widen the rule itself.
+ */
+const DEFAULTING_ALLOWLIST = new Set<string>([]);
 /** `switch (method) { case "literal": }` — captured per switch block below. */
 const SWITCH_HEAD = /switch\s*\(\s*([A-Za-z_$][\w$]*(?:\.[\w$]+)*)[^)]*\)\s*\{/g;
 const CASE_LABEL = /case\s+["'`]([a-z_]+)["'`]/g;
@@ -102,7 +112,11 @@ describe("delivery method vocabulary", () => {
       for (const m of src.matchAll(DEFAULTING)) {
         const [, operand, literal] = m;
         if (!inScope(operand) || SHAPE.includes(literal) || SENTINELS.has(literal)) continue;
-        if (!VOCAB.has(literal)) record(file, `${operand} ?? "${literal}"`);
+        if (DEFAULTING_ALLOWLIST.has(operand)) continue;
+        record(
+          file,
+          `${operand} defaulted to "${literal}" — a delivery method must fail closed, not default`,
+        );
       }
 
       // switch blocks: take the text from the head to the matching brace depth.
