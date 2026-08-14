@@ -7,6 +7,8 @@ const FN_BASE = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 export type EscrowRecordState = "held" | "frozen" | "pending_release" | "released" | "refunded";
 
 export interface EscrowKpis {
+  /** Currency of every aggregate here; null when the book is mixed/unknown. */
+  currency_code: string | null;
   total_held: number; total_held_count: number; total_held_delta_pct: number;
   total_frozen: number; total_frozen_count: number; total_frozen_delta_pct: number;
   pending_release: number; pending_release_count: number; pending_release_delta_pct: number;
@@ -16,6 +18,7 @@ export interface EscrowKpis {
 }
 
 export interface EscrowTrends {
+  currency_code: string | null;
   balance_30d: { date: string; balance: number }[];
   state_distribution: { state: string; value: number }[];
   flow_14d: { date: string; held: number; released: number; refunded: number }[];

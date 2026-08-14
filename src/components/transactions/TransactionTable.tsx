@@ -111,7 +111,6 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
                     </div>
                     <div className="space-y-0.5 min-w-0">
                       <p className="text-sm text-foreground truncate">{tx.seller_name}</p>
-                      <p className="text-xs text-muted-foreground">Verified</p>
                     </div>
                   </div>
                 </TableCell>

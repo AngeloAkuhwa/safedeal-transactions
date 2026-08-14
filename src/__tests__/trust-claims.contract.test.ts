@@ -376,7 +376,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/transactions/DeliveryTermsCard.tsx", text: "Tracking rule:", reason: "Prefix for the evidence rule derived from isTrackedDelivery for this method." },
   { file: "src/components/transactions/TerminalTransactionScreen.tsx", text: "Funds for this transaction are already held in escrow. Open the agreement to track delivery and verification.", reason: "Terminal-state note pointing the user to the agreement for a funded deal." },
   { file: "src/components/transactions/TransactionFilters.tsx", text: "Funds Held in Escrow", reason: "Filter option matching transactions whose stored money state is held." },
-  { file: "src/components/transactions/TransactionTable.tsx", text: "Verified", reason: "Table cell rendered from a stored verification boolean on the row." },
   { file: "src/lib/dispute-display-status.ts", text: "Funds Held in Escrow", reason: "Display name of the escrow money_status value during a dispute." },
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee rate", reason: "Settings-catalog name of the pricing.platform_fee_rate key." },
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee flat component", reason: "Settings-catalog name of the pricing.platform_fee_flat_ngn key." },
@@ -617,5 +616,38 @@ describe("no surface invents its own response time", () => {
       return /within\s+\d+\s+business\s+day/i.test(src) || /\d+\s*business\s+hours/i.test(src);
     }).map(rel);
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * BARE TRUST WORDS. The exact-text ban only catches registered claim strings,
+ * so `<p>Verified</p>` under every seller name on My Purchases sailed through
+ * thirteen rounds. A standalone trust adjective IS a claim: it must resolve
+ * from the registry with evidence, or not be rendered.
+ */
+const BARE_TRUST_WORDS = /^(?:verified|trusted|protected|guaranteed|insured)\b[.!]?$/i;
+
+describe("bare trust words", () => {
+  it("never renders a standalone trust adjective without evidence", () => {
+    const offenders: string[] = [];
+    for (const file of CLAIM_CONSUMERS) {
+      const src = fs.readFileSync(file, "utf8");
+      const f = rel(file);
+      for (const raw of userVisibleText(src)) {
+        const value = raw.trim();
+        if (!BARE_TRUST_WORDS.test(value)) continue;
+        if (allowed.has(`${f}\u0000${value}`)) continue;
+        offenders.push(`${f}: "${value}"`);
+      }
+    }
+    expect([...new Set(offenders)]).toEqual([]);
+  });
+
+  it("the buyer purchases table no longer labels every seller Verified", () => {
+    const src = fs.readFileSync(
+      path.join(PROJECT, "src/components/transactions/TransactionTable.tsx"),
+      "utf8",
+    );
+    expect(src).not.toMatch(/>\s*Verified\s*</);
   });
 });

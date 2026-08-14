@@ -9,7 +9,7 @@
  * criterion "Missing pricing values show —, not fake zero".
  */
 
-import { formatMoney as baseFormatMoney } from "@/lib/format";
+import { formatMoney as baseFormatMoney, formatMoneyCompact as baseFormatMoneyCompact } from "@/lib/format";
 
 export const MISSING_MONEY = "—";
 
@@ -21,6 +21,17 @@ export function formatMoneyOrDash(
     return MISSING_MONEY;
   }
   return baseFormatMoney(amount, currency);
+}
+
+/** Compact variant of {@link formatMoneyOrDash} for KPI tiles and charts. */
+export function formatMoneyCompactOrDash(
+  amount: number | null | undefined,
+  currency: string | null | undefined,
+): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount as number) || !currency) {
+    return MISSING_MONEY;
+  }
+  return baseFormatMoneyCompact(amount, currency);
 }
 
 /** Mask a bank account number for display: `****1234`. */

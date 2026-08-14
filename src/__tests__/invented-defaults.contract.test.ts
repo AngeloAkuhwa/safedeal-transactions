@@ -229,3 +229,83 @@ describe("invented defaults", () => {
     }
   });
 });
+
+/**
+ * CURRENCY SYMBOL LOCK.
+ *
+ * Every rule above matches the ISO codes (`NGN|USD|GBP|EUR`). A glyph — `₦`,
+ * `$`, `£`, `€` — is invisible to all of them, which is how two escrow
+ * components shipped their own `₦`-hardcoding compact formatters that
+ * disagreed with each other on the same screen. A symbol asserts a currency
+ * with no data behind it, exactly like a `"NGN"` default does.
+ */
+const CURRENCY_SYMBOL = /[₦£€]|(?<![\/\\\w])\$(?=\d)/g;
+
+/**
+ * Modules allowed to name a symbol: they DEFINE how money is rendered, or they
+ * are a currency PICKER whose options are labels for the codes themselves.
+ */
+const SYMBOL_DEFINITION_FILES = new Set([
+  "src/lib/format.ts", // the single rendering authority
+  "src/pages/SellerCreateTransaction.tsx", // currency picker options
+]);
+
+/**
+ * DEFERRED — pre-existing hardcoded currency symbols, found by the sweep that
+ * introduced this rule and NOT fixed in this pass. Every entry is a
+ * Naira-denominated filter band, input adornment, settings prefix or
+ * NGN-only formatter helper; none can mis-render while the book is NGN-only.
+ * Shrink-only ratchet: a listed file that stops offending fails this test.
+ */
+const SYMBOL_DEBT: string[] = [
+  "src/components/admin/escrow/EscrowFilters.tsx",
+  "src/components/admin/payouts/PayoutAdvancedFilters.tsx",
+  "src/components/admin/task-orchestration/TaskQueueFilters.tsx",
+  "src/components/landing/FAQSection.tsx",
+  "src/components/landing/FeesSection.tsx",
+  "src/components/profile/AccountVerificationSection.tsx",
+  "src/components/profile/EffectiveSettingsPanel.tsx",
+  "src/components/profile/PayoutDestinationSection.tsx",
+  "src/lib/admin-mappers.ts",
+  "src/lib/pricing-invariant.ts",
+  "src/pages/AdminDisputes.tsx",
+  "src/pages/AdminSettings.tsx",
+  "src/pages/AdminTransactions.tsx",
+  "src/pages/Pricing.tsx",
+  "src/pages/SellerProductCreate.tsx",
+  "src/pages/SellerProductDetail.tsx",
+  "src/pages/SellerTransactionShare.tsx",
+  "src/services/vendor-plan.service.ts",
+];
+
+describe("hardcoded currency symbols", () => {
+  it("never asserts a currency glyph outside the formatter", () => {
+    const offenders: string[] = [];
+    const debtSeen = new Set<string>();
+    for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
+      const rel = relOf(file);
+      if (SYMBOL_DEFINITION_FILES.has(rel)) continue;
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
+      const hits = [...src.matchAll(CURRENCY_SYMBOL)];
+      if (hits.length === 0) continue;
+      if (SYMBOL_DEBT.includes(rel)) {
+        debtSeen.add(rel);
+        continue;
+      }
+      offenders.push(rel);
+    }
+    expect([...new Set(offenders)]).toEqual([]);
+    expect(SYMBOL_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+  });
+
+  it("the escrow tiles and charts no longer format money themselves", () => {
+    for (const f of [
+      "src/components/admin/escrow/EscrowKpiCards.tsx",
+      "src/components/admin/escrow/EscrowCharts.tsx",
+    ]) {
+      const src = fs.readFileSync(path.join(ROOT, f), "utf8");
+      expect(src, f).not.toMatch(/function fmtCompact/);
+      expect(src, f).toMatch(/formatMoneyCompactOrDash/);
+    }
+  });
+});

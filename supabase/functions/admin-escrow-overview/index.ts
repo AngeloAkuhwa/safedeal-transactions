@@ -98,6 +98,21 @@ Deno.serve(async (req) => {
     count: Number(k.released_week_count ?? 0),
   };
 
+  // KPI aggregates sum across every escrow row, so they only carry a currency
+  // when the whole book settles in one. Mixed books return null and the UI
+  // renders the amount without asserting a currency it cannot prove.
+  const { data: currencyProbe } = await admin
+    .from("transaction_pricing")
+    .select("currency_code")
+    .not("currency_code", "is", null)
+    .limit(500);
+  const distinctCurrencies = Array.from(
+    new Set(((currencyProbe ?? []) as Array<{ currency_code: string | null }>)
+      .map((r) => (r.currency_code ?? "").trim().toUpperCase())
+      .filter(Boolean)),
+  );
+  const aggregateCurrency = distinctCurrencies.length === 1 ? distinctCurrencies[0] : null;
+
   // Alerts still need row-level detail, but scoped to the alert window and
   // rows that could actually trigger any alert (bounded scan, not full table).
   const alertWindowIso = new Date(now - Math.max(60, thresholds.frozen_days + 30) * DAY_MS).toISOString();
@@ -440,6 +455,7 @@ Deno.serve(async (req) => {
 
   return json(200, {
     kpis: {
+      currency_code: aggregateCurrency,
       total_held: totalHeld, total_held_count: heldCount, total_held_delta_pct: heldDelta,
       total_frozen: totalFrozen, total_frozen_count: frozenCount, total_frozen_delta_pct: frozenDelta,
       pending_release: pendingRelease, pending_release_count: pendingReleaseCount, pending_release_delta_pct: pendingDelta,
@@ -447,7 +463,12 @@ Deno.serve(async (req) => {
       released_today: releasedToday.total, released_today_count: releasedToday.count, released_today_delta_pct: releasedTodayDelta,
       released_week: releasedWeek.total, released_week_count: releasedWeek.count, released_week_delta_pct: releasedWeekDelta,
     },
-    trends: { balance_30d: balance30d, state_distribution: stateDistribution, flow_14d: flow14d },
+    trends: {
+      currency_code: aggregateCurrency,
+      balance_30d: balance30d,
+      state_distribution: stateDistribution,
+      flow_14d: flow14d,
+    },
     alerts,
     reconciliation: reconSummary,
     records: { total, page, page_size: pageSize, rows: records },

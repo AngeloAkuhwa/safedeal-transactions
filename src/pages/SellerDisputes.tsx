@@ -132,6 +132,7 @@ const SellerDisputes = () => {
               under_review_count: 0,
               resolved_count: 0,
               blocked_payout_amount: 0,
+              blocked_payout_currency: null,
             }
           }
         />
