@@ -15,6 +15,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { MediaRequirementsPanel } from "@/components/seller/MediaRequirementsPanel";
+import { ProductPhotoCropDialog, type PendingPhoto } from "@/components/seller/ProductPhotoCropDialog";
+import {
+  PRODUCT_IMAGE_MAX_BYTES,
+  PRODUCT_IMAGE_MIN_DIMENSION,
+  readImageDimensions,
+  validateProductImageStandard,
+} from "@/lib/image-quality";
 import { useMediaConfig } from "@/hooks/useMediaConfig";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/sonner";
@@ -45,6 +52,8 @@ interface FileEntry {
 const SellerProductCreate = () => {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  // Photos wait here until the seller frames them to a square.
+  const [cropQueue, setCropQueue] = useState<PendingPhoto[]>([]);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -147,6 +156,42 @@ const SellerProductCreate = () => {
     if (!filtered.length) return;
     e.target.value = "";
 
+    // The SafeDeal Image Standard applies to product PHOTOS: validate the raw
+    // pixels first, then route them through the 1:1 crop step. Videos upload
+    // straight away.
+    const photos: File[] = [];
+    const passthrough: File[] = [];
+    for (const file of filtered) {
+      if (file.type.startsWith("video/")) { passthrough.push(file); continue; }
+      try {
+        const dims = await readImageDimensions(file);
+        const res = validateProductImageStandard(
+          { ...dims, bytes: file.size },
+          { minDimension: PRODUCT_IMAGE_MIN_DIMENSION, maxBytes: PRODUCT_IMAGE_MAX_BYTES },
+        );
+        if (!res.ok) { toast.error(res.errors[0].message); continue; }
+        photos.push(file);
+      } catch {
+        // Unreadable locally — let the server be the judge.
+        passthrough.push(file);
+      }
+    }
+
+    if (photos.length) {
+      setCropQueue((prev) => [
+        ...prev,
+        ...photos.map((file) => ({
+          id: `crop-${Date.now()}-${Math.random()}`,
+          file,
+          objectUrl: URL.createObjectURL(file),
+        })),
+      ]);
+    }
+    if (passthrough.length) startUploads(passthrough);
+  };
+
+  const startUploads = (filtered: File[]) => {
+    if (!filtered.length) return;
     const newEntries: FileEntry[] = filtered.map((file) => ({
       file_id: `temp-${Date.now()}-${Math.random()}`,
       media_type: file.type.startsWith("video/") ? "video" : "image",
@@ -192,6 +237,19 @@ const SellerProductCreate = () => {
           if (activeUploads <= 0) setUploading(false);
         });
     }
+  };
+
+  const dequeueCrop = (id: string) => {
+    setCropQueue((prev) => {
+      const match = prev.find((p) => p.id === id);
+      if (match) URL.revokeObjectURL(match.objectUrl);
+      return prev.filter((p) => p.id !== id);
+    });
+  };
+
+  const handleCropConfirm = (id: string, file: File) => {
+    dequeueCrop(id);
+    startUploads([file]);
   };
 
   const retryUpload = async (idx: number) => {
