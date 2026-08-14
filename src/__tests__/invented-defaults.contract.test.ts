@@ -80,7 +80,6 @@ const CURRENCY_DEBT = [
   "src/components/admin/escrow/ConfigureAlertsModal.tsx",
   "src/components/admin/payouts/PayoutMobileCards.tsx",
   "src/components/admin/payouts/PayoutsTable.tsx",
-  "src/components/payment/PricingBreakdown.tsx",
   "src/components/payment/SellerPayoutLine.tsx",
   "src/components/seller/SellerConfirmCompletionCard.tsx",
   "src/lib/admin-mappers.ts",
@@ -223,7 +222,12 @@ describe("invented defaults", () => {
   });
 
   it("keeps the screens fixed in this pass off the debt list", () => {
-    for (const f of ["src/pages/CartCheckoutReview.tsx", "src/pages/BuyerCart.tsx", "src/pages/BuyerTransactionVerify.tsx"]) {
+    for (const f of [
+      "src/pages/CartCheckoutReview.tsx",
+      "src/pages/BuyerCart.tsx",
+      "src/pages/BuyerTransactionVerify.tsx",
+      "src/components/payment/PricingBreakdown.tsx",
+    ]) {
       expect(CURRENCY_DEBT).not.toContain(f);
       expect(stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"))).not.toMatch(CURRENCY_DEFAULT);
     }
