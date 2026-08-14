@@ -1,6 +1,7 @@
 import { Header } from "@/components/landing/Header";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { FeaturedDealsSection } from "@/components/landing/FeaturedDealsSection";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { PowerfulFeaturesSection } from "@/components/landing/PowerfulFeaturesSection";
 import { VerifiedSellersSection } from "@/components/landing/VerifiedSellersSection";
 import { ProtectionSection } from "@/components/landing/ProtectionSection";
 import { FeesSection } from "@/components/landing/FeesSection";
@@ -13,9 +14,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 const Index = () => {
   usePageMeta({
-    title: "SafeDeal — Buy Safely, Sell Confidently",
+    title: "SafeDeal — Escrow for every online deal",
     description:
-      "SafeDeal holds buyer payments in escrow until delivery is confirmed. Protected transactions, verified sellers, and dispute resolution for buyers and sellers in Lagos, Nigeria.",
+      "SafeDeal holds the buyer's payment in escrow until the item is delivered and confirmed. Protected transactions for sellers and buyers online.",
     path: "/",
     jsonLd: {
       "@context": "https://schema.org",
@@ -23,7 +24,7 @@ const Index = () => {
       name: "SafeDeal",
       url: "https://trust-link-secure.lovable.app",
       description:
-        "Transaction protection and escrow for online buyers and sellers in Nigeria.",
+        "Escrow and transaction protection for online buyers and sellers.",
       areaServed: "NG",
     },
   });
@@ -34,7 +35,8 @@ const Index = () => {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <FeaturedDealsSection />
+        <HowItWorks />
+        <PowerfulFeaturesSection />
         <VerifiedSellersSection />
         <ProtectionSection />
         <FeesSection />

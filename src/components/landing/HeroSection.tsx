@@ -18,18 +18,17 @@ export function HeroSection() {
             <div className="mb-3 inline-flex animate-fade-in items-center gap-2 rounded-full border border-border bg-card px-3 py-1 shadow-sm">
               <MapPin className="h-4 w-4 text-success" />
               <span className="text-xs font-semibold text-foreground">
-                Available in Lagos, Nigeria — expanding soon
+                Live in Lagos 🇳🇬 — more cities rolling out
               </span>
             </div>
 
             <h1 className="animate-fade-in mb-3 text-3xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
-              The safe way to buy and sell on{" "}
-              <span className="text-primary">WhatsApp &amp; Instagram.</span>
+              Escrow for every <span className="text-primary">online deal.</span>
             </h1>
 
             <p className="animate-fade-in mx-auto mb-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground lg:mx-0 [animation-delay:80ms]">
-              SafeDeal holds the buyer&apos;s money until the item is delivered and confirmed. Free
-              for verified vendors.
+              SafeDeal holds the buyer&apos;s payment until the item is delivered and confirmed — so
+              nobody has to trust a stranger. Free for verified sellers.
             </p>
 
             <div className="animate-fade-in [animation-delay:140ms]">
