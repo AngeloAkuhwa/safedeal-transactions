@@ -405,7 +405,7 @@ const BuyerTransactionDetail = () => {
                 completedAt={completion_event.completed_at}
                 fundsReleasedAt={completion_event.funds_released_at}
                 perspective="buyer"
-                onViewReceipt={handlePrint}
+                onPrintReceipt={handlePrint}
               />
             )}
 
