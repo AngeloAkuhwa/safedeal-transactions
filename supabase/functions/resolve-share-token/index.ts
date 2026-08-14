@@ -1,6 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { computePricing } from "../_shared/pricing.ts";
-import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,14 +171,20 @@ Deno.serve(async (req) => {
         pricing_model_version: ((pricingRaw as any).pricing_model_version as string) ?? null,
       };
     } else {
-      // FALLBACK: no transaction_pricing snapshot row exists. Recompute using
-      // the seller's vendor config for display only.
-      const fallback = computePricing(0, "NGN", "local", await loadPricingConfig(tx.seller_id));
+      // NO SNAPSHOT: there is no evidence of what this buyer agreed to pay.
+      // Recomputing here would invent both a currency and an amount, so every
+      // field stays null and the payment screen blocks with an honest error.
       computedPricing = {
-        ...fallback,
+        currency_code: null,
+        item_amount: null,
+        paystack_fee_amount: null,
+        platform_fee_amount: null,
+        service_fee_amount: null,
+        service_fee_rate: null,
+        total_amount: null,
         seller_payout_amount: null,
-        is_total_service_fee_capped: fallback.is_capped,
-        is_floored: fallback.is_floored,
+        is_total_service_fee_capped: false,
+        is_floored: null,
         pricing_model_version: null,
       };
     }
