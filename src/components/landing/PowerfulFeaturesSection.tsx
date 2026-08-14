@@ -236,11 +236,15 @@ function MiniFlow({
   // Use a CSS grid so columns share width evenly and content cannot overflow.
   // Four-step flows wrap to 2x2 on narrow cards so text-xs labels still fit.
   const wide = steps.length > 3;
+  const smCols =
+    wide || steps.length === 2
+      ? "sm:grid-cols-2"
+      : steps.length === 3
+        ? "sm:grid-cols-3"
+        : "sm:grid-cols-2";
+  const oddTail = !wide && steps.length % 2 === 1;
   return (
-    <div
-      className={`grid items-stretch gap-1 ${wide ? "grid-cols-2" : ""}`}
-      style={wide ? undefined : { gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
-    >
+    <div className={`grid grid-cols-2 items-stretch gap-1 ${smCols}`}>
       {steps.map((s, i) => {
         const done = i < step;
         const current = i === step && shouldPlay;
@@ -249,6 +253,8 @@ function MiniFlow({
           <div
             key={s.label}
             className={`flex min-w-0 items-center justify-center gap-1 rounded-xl border px-2 py-1.5 transition-all duration-500 ${
+              oddTail && i === steps.length - 1 ? "col-span-2 sm:col-span-1" : ""
+            } ${
               done
                 ? tone.chipDone
                 : current
