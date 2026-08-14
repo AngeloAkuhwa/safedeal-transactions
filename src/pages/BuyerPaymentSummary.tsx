@@ -17,7 +17,8 @@ import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { describeFeeBreakdown, DEFAULT_MIN_PLATFORM_FEE, DEFAULT_MAX_TOTAL_FEE } from "@/lib/pricing";
+import { describeFeeBreakdown, DEFAULT_MIN_PLATFORM_FEE } from "@/lib/pricing";
+import { appliedCapFromModelVersion } from "@/types/payment-flow.types";
 import { ChevronDown } from "lucide-react";
 import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
@@ -332,6 +333,10 @@ export default function BuyerPaymentSummary() {
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
   const platformFeeAmount = data.pricing?.platform_fee_amount ?? 0;
+  // Cap facts come from the persisted snapshot only. A fee that merely looks
+  // large is not evidence that a ceiling applied.
+  const isFeeCapped = data.pricing?.is_total_service_fee_capped === true;
+  const appliedCap = appliedCapFromModelVersion(data.pricing?.pricing_model_version);
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
   const courierTracked = isTrackedDelivery(data.delivery?.delivery_method);
 
@@ -623,7 +628,7 @@ export default function BuyerPaymentSummary() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm text-muted-foreground">{FEE_NAME}</span>
-                    {feeAmount >= 2500 && (
+                    {isFeeCapped && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
                     )}
                   </div>
@@ -647,7 +652,9 @@ export default function BuyerPaymentSummary() {
                         service_fee_rate: feeRate,
                         total_amount: totalAmount,
                         is_floored: platformFeeAmount === DEFAULT_MIN_PLATFORM_FEE,
-                        is_capped: feeAmount >= DEFAULT_MAX_TOTAL_FEE,
+                        is_capped: isFeeCapped,
+                        capped_by: isFeeCapped ? "total_service_fee" : null,
+                        applied_cap_amount: isFeeCapped ? (appliedCap?.amount ?? null) : null,
                         non_refundable: true,
                       },
                     )}

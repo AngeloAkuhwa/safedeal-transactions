@@ -89,7 +89,12 @@ export function PricingBreakdown({ snapshot, audience = "buyer", className }: Pr
           </p>
         ) : snapshot?.is_total_service_fee_capped ? (
           <p className="text-xs text-muted-foreground pt-1">
-            Total service fee capped at ₦2,500.
+            {snapshot.applied_cap
+              ? `${PRICING_LINE_LABELS.service_fee_amount} capped at ${formatMoneyOrDash(
+                  snapshot.applied_cap.amount,
+                  currency,
+                )}.`
+              : `${PRICING_LINE_LABELS.service_fee_amount} capped for this transaction.`}
           </p>
         ) : null}
       </div>

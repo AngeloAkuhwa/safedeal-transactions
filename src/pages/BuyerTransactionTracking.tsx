@@ -197,7 +197,11 @@ const BuyerTransactionTracking = () => {
               ? `Your payment of ${formatMoney(escrow.held_amount, pricing.currency_code)} is securely held in escrow — funds will only release once you verify receipt.`
               : escrow?.state === "released"
                 ? "Transaction completed. Funds have been released to the seller."
-                : `${alwaysClaim("ESCROW_PROTECTION_HEADING")} is active on this transaction.`}
+                : escrow?.state === "refunded"
+                  ? "Funds for this transaction have been refunded to you."
+                  : escrow?.state === "frozen"
+                    ? "Funds for this transaction are frozen while the dispute is reviewed."
+                    : "No funds are held for this transaction yet."}
           </p>
         </div>
       </div>

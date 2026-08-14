@@ -63,6 +63,10 @@ export interface PricingResult {
   total_amount: number;
   is_floored: boolean;
   is_capped: boolean;
+  /** Which ceiling bound this calculation: the SafeDeal-only cap or the combined cap. */
+  capped_by: "safedeal_fee" | "total_service_fee" | null;
+  /** The amount of the ceiling named by `capped_by`. */
+  applied_cap_amount: number | null;
   non_refundable: boolean;
 }
 
@@ -127,6 +131,8 @@ export function computePricing(
       total_amount: 0,
       is_floored: false,
       is_capped: false,
+      capped_by: null,
+      applied_cap_amount: null,
       non_refundable: true,
     };
   }
@@ -163,7 +169,14 @@ export function computePricing(
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
   const is_floored = rawPlatformFee === minPlatformFee;
-  const is_capped = platformCapBound || rawServiceFee > maxTotalFee;
+  const totalCapBound = rawServiceFee > maxTotalFee;
+  const is_capped = platformCapBound || totalCapBound;
+  const capped_by: "safedeal_fee" | "total_service_fee" | null = totalCapBound
+    ? "total_service_fee"
+    : platformCapBound
+      ? "safedeal_fee"
+      : null;
+  const platformCapForReport = config?.max_platform_fee ?? DEFAULT_PRICING_CONFIG.max_platform_fee;
 
   // Step 5: Effective rate
   const serviceFeeRate = serviceFeeAmount / itemAmount;
@@ -178,6 +191,13 @@ export function computePricing(
     total_amount: itemAmount + serviceFeeAmount,
     is_floored,
     is_capped,
+    capped_by,
+    applied_cap_amount:
+      capped_by === "total_service_fee"
+        ? maxTotalFee
+        : capped_by === "safedeal_fee"
+          ? platformCapForReport
+          : null,
     non_refundable: true,
   };
 }

@@ -4,9 +4,11 @@ import { formatMoney } from "@/lib/format";
 
 interface AgreementTrustIndicatorsProps {
   pricing: AgreementData["pricing"];
+  /** `transactions.agreement_locked_at` — the only evidence that terms are frozen. */
+  lockedAt?: string | null;
 }
 
-export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsProps) {
+export function AgreementTrustIndicators({ pricing, lockedAt }: AgreementTrustIndicatorsProps) {
   const totalAmount = pricing
     ? formatMoney(Number(pricing.total_amount), pricing.currency_code)
     : "Your funds";
@@ -19,13 +21,21 @@ export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsPr
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },
-    {
-      icon: FileText,
-      title: "Agreement Locked",
-      description: "Terms cannot be changed by any party",
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
-    },
+    lockedAt
+      ? {
+          icon: FileText,
+          title: "Agreement Locked",
+          description: "Terms cannot be changed by any party",
+          iconBg: "bg-primary/10",
+          iconColor: "text-primary",
+        }
+      : {
+          icon: FileText,
+          title: "Agreement not locked yet",
+          description: "Terms can still change until the agreement is locked",
+          iconBg: "bg-muted",
+          iconColor: "text-muted-foreground",
+        },
     {
       icon: ShieldCheck,
       title: "Dispute review available",

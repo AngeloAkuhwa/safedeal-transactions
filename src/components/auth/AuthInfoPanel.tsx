@@ -54,26 +54,6 @@ const AuthInfoPanel = () => {
         </div>
       </div>
 
-      {/* Testimonial */}
-      <div className="mt-10 rounded-xl border bg-card p-5">
-        <p className="text-sm text-foreground italic leading-relaxed">
-          "SafeDeal gave me the confidence to sell online. The escrow system
-          means I always get paid, and my buyers feel safe too."
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-            AO
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Adunni Okafor
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Seller, Lagos
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

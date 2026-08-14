@@ -17,7 +17,7 @@ import type {
   RefundDecision,
   RefundOutcome,
 } from "@/types/payment-flow.types";
-import { PRICING_MODEL_VERSION } from "@/types/payment-flow.types";
+import { appliedCapFromModelVersion } from "@/types/payment-flow.types";
 
 /**
  * Build a canonical PricingSnapshot from a persisted `transaction_pricing`
@@ -49,11 +49,10 @@ export function snapshotFromRow(row: Record<string, unknown> | null | undefined)
     total_amount: total,
     seller_payout_amount: sellerPayout,
     currency: (row.currency_code as string) ?? "NGN",
-    is_total_service_fee_capped:
-      Boolean(row.is_total_service_fee_capped) || service >= 2500,
-    pricing_model_version:
-      ((row.pricing_model_version as string) as typeof PRICING_MODEL_VERSION) ??
-      PRICING_MODEL_VERSION,
+    // Trust only the persisted flag. Re-deriving it against a hardcoded
+    // ceiling was wrong for every vendor with a custom cap.
+    is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped),
+    pricing_model_version: (row.pricing_model_version as string) ?? null,
   };
 }
 
@@ -89,6 +88,7 @@ export function toBuyerBreakdown(
     seller_payout_amount: snapshot.seller_payout_amount,
     currency: snapshot.currency,
     is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+    applied_cap: appliedCapFromModelVersion(snapshot.pricing_model_version),
     is_estimate: opts?.isEstimate ?? false,
   };
 }
@@ -126,9 +126,10 @@ export function viewFromRow(
     total_amount: total,
     seller_payout_amount: sellerPayout,
     currency: (row.currency_code as string) ?? (row.currency as string) ?? "NGN",
-    is_total_service_fee_capped:
-      Boolean(row.is_total_service_fee_capped) ||
-      (service != null && service >= 2500),
+    is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped),
+    applied_cap: appliedCapFromModelVersion(
+      (row.pricing_model_version as string) ?? null,
+    ),
     is_estimate: opts?.isEstimate ?? false,
   };
 }

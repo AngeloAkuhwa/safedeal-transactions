@@ -71,7 +71,7 @@ export default function BuyerTransactionAgreement() {
       <LockedSnapshotCard data={data} />
       <ImmutabilityExplanation />
       <AgreementNextSteps transactionId={transactionId!} />
-      <AgreementTrustIndicators pricing={data.pricing} />
+      <AgreementTrustIndicators pricing={data.pricing} lockedAt={data.snapshot?.locked_at ?? null} />
       <Footer />
     </div>
   );

@@ -44,7 +44,7 @@ export const PRICING_HELPER_COPY: Record<PricingLineKey, string | null> = {
   payment_processing_fee_amount:
     "Payment Processing Fee covers the cost of processing your online payment. This fee is non-refundable once payment has been processed.",
   service_fee_amount:
-    "SafeDeal keeps the total service fee capped at ₦2,500 for Nigeria MVP.",
+    "SafeDeal Fee plus Payment Processing Fee. A ceiling applies; when it binds, the applied cap is shown under this breakdown.",
   total_amount: null,
   seller_payout_amount:
     "You will receive this amount when the transaction is completed and funds are released.",

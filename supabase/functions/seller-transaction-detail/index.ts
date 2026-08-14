@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       tx.buyer_id
         ? adminClient
             .from("account_verifications")
-            .select("email_verified, phone_verified, verification_level")
+            .select("email_verified, phone_verified, identity_verified, verification_level")
             .eq("user_id", tx.buyer_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
@@ -199,6 +199,7 @@ Deno.serve(async (req) => {
           phone: (buyerProfile.phone as string) ?? "",
           avatar_url: (buyerProfile.avatar_url as string) ?? null,
           is_verified: !!buyerVerif?.identity_verified,
+          identity_verified: !!buyerVerif?.identity_verified,
           email_verified: !!buyerVerif?.email_verified,
           phone_verified: !!buyerVerif?.phone_verified,
           verification_level: (buyerVerif?.verification_level as string) ?? "unverified",
@@ -210,11 +211,12 @@ Deno.serve(async (req) => {
           phone: (participant.phone as string) ?? "",
           avatar_url: null,
           is_verified: false,
+          identity_verified: false,
           email_verified: false,
           phone_verified: false,
           verification_level: "unverified",
         }
-      : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false, email_verified: false, phone_verified: false, verification_level: "unverified" };
+      : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false, identity_verified: false, email_verified: false, phone_verified: false, verification_level: "unverified" };
 
     // SNAPSHOT-FIRST: the branches below already read the locked
     // transaction_pricing columns directly; computePricing is only invoked

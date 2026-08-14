@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("transaction_pricing")
-          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount")
+          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version")
           .eq("transaction_id", txId)
           .maybeSingle(),
         supabase
@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
       service_fee_amount: number;
       total_amount: number;
       seller_payout_amount: number | null;
+      is_total_service_fee_capped: boolean;
+      pricing_model_version: string | null;
     } | null = null;
 
     if (pricingRaw) {
@@ -144,12 +146,21 @@ Deno.serve(async (req) => {
         service_fee_amount: processingFee + platformFee,
         total_amount: num((pricingRaw as any).buyer_total_amount) ?? itemAmount + processingFee + platformFee,
         seller_payout_amount: num((pricingRaw as any).seller_payout_amount),
+        // Cap facts travel with the snapshot so the UI never guesses which
+        // ceiling applied or how large it was.
+        is_total_service_fee_capped: Boolean((pricingRaw as any).is_total_service_fee_capped),
+        pricing_model_version: ((pricingRaw as any).pricing_model_version as string) ?? null,
       };
     } else {
       // FALLBACK: no transaction_pricing snapshot row exists. Recompute using
       // the seller's vendor config for display only.
       const fallback = computePricing(0, "NGN", "local", await loadPricingConfig(tx.seller_id));
-      computedPricing = { ...fallback, seller_payout_amount: null };
+      computedPricing = {
+        ...fallback,
+        seller_payout_amount: null,
+        is_total_service_fee_capped: fallback.is_capped,
+        pricing_model_version: null,
+      };
     }
 
     // 5. Resolve media: prefer transaction_media; fall back to product_media

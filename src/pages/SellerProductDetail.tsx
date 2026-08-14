@@ -166,7 +166,7 @@ const SellerProductDetail = () => {
 
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
-  const verificationLevel = dashData?.seller?.verification_level || "unverified";
+  const identityVerified = !!dashData?.seller?.identity_verified;
 
   if (isLoading) {
     return (
@@ -204,7 +204,7 @@ const SellerProductDetail = () => {
   if (isPrivateOffer) {
     return (
       <div className="flex h-screen overflow-hidden bg-background">
-        <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} verificationLevel={verificationLevel} />
+        <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} identityVerified={identityVerified} />
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="flex items-center gap-4 px-6 lg:px-8 py-4 border-b border-border">
             <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate("/seller/storefront")}>
@@ -263,7 +263,7 @@ const SellerProductDetail = () => {
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
-        verificationLevel={verificationLevel}
+        identityVerified={identityVerified}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative">

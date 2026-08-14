@@ -67,6 +67,16 @@ export interface PricingResult {
   total_amount: number;
   is_floored: boolean;
   is_capped: boolean;
+  /**
+   * Which ceiling actually bound this calculation:
+   *  - "safedeal_fee": the SafeDeal-only ceiling (`max_platform_fee`)
+   *  - "total_service_fee": the combined SafeDeal + processing ceiling
+   *    (`max_total_service_fee`)
+   * `null` when nothing was capped. UI must name the cap it displays.
+   */
+  capped_by: "safedeal_fee" | "total_service_fee" | null;
+  /** The amount of the ceiling named by `capped_by`. */
+  applied_cap_amount: number | null;
   non_refundable: boolean;
 }
 
@@ -109,6 +119,8 @@ export function computePricing(
       total_amount: 0,
       is_floored: false,
       is_capped: false,
+      capped_by: null,
+      applied_cap_amount: null,
       non_refundable: true,
     };
   }
@@ -134,7 +146,16 @@ export function computePricing(
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
   const is_floored = rawPlatformFee === minPlatformFee;
-  const is_capped = platformCapBound || rawServiceFee > maxTotalFee;
+  const totalCapBound = rawServiceFee > maxTotalFee;
+  const is_capped = platformCapBound || totalCapBound;
+  // The total-service-fee ceiling is evaluated last, so when both bind it is
+  // the one that produced the number the buyer is charged.
+  const capped_by: "safedeal_fee" | "total_service_fee" | null = totalCapBound
+    ? "total_service_fee"
+    : platformCapBound
+      ? "safedeal_fee"
+      : null;
+  const platformCapForReport = config?.max_platform_fee ?? FALLBACK_PRICING_CONFIG.max_platform_fee;
 
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
@@ -148,6 +169,13 @@ export function computePricing(
     total_amount: itemAmount + serviceFeeAmount,
     is_floored,
     is_capped,
+    capped_by,
+    applied_cap_amount:
+      capped_by === "total_service_fee"
+        ? maxTotalFee
+        : capped_by === "safedeal_fee"
+          ? platformCapForReport
+          : null,
     non_refundable: true,
   };
 }
@@ -167,11 +195,21 @@ export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingRe
   const minPlatformFee = cfg?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
   const maxTotalFee = cfg?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
 
+  const capLabel =
+    result.capped_by === "safedeal_fee" ? "SafeDeal Fee" : "Total Service Fee";
+  const capAmount = result.applied_cap_amount;
+  const capSentence = (rest: string) =>
+    capAmount != null
+      ? `This order's fee was capped by the maximum ${capLabel} of ${capAmount.toLocaleString()} ${result.currency_code}. ${rest}`
+      : `This order's fee was capped by the maximum ${capLabel}. ${rest}`;
+
   if (isLegacyTieredConfig(cfg)) {
     const rate = tierRate(input.itemAmount, cfg!.tier_rates!);
     const ratePct = (rate * 100).toFixed(1);
     if (result.is_capped) {
-      return `This order's fee was capped at the maximum service fee of ${maxTotalFee.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% tier rate would have produced a higher amount, so the cap applied instead.`;
+      return capSentence(
+        `The standard ${ratePct}% tier rate would have produced a higher amount, so the cap applied instead.`,
+      );
     }
     if (result.is_floored) {
       return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because the calculated fee for this order amount fell below it.`;
@@ -185,7 +223,9 @@ export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingRe
   const ratePct = (rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 1);
 
   if (result.is_capped) {
-    return `SafeDeal's fee on this order was capped at ${platformCap.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} fee would have been higher, so the cap applied instead.`;
+    return capSentence(
+      `The standard ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} fee would have been higher, so the cap applied instead.`,
+    );
   }
 
   if (result.is_floored) {

@@ -7,7 +7,6 @@ interface BuyerTrustSignals {
   phoneVerified?: boolean;
   identityVerified?: boolean;
   identitySubmitted?: boolean;
-  verificationLevel?: string;
   isFirstTimeBuyer?: boolean;
 }
 
@@ -73,7 +72,7 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
         <Badge
           key={b.key}
           variant="outline"
-          className={`${b.className} hover:${b.className} ${compact ? "text-xs px-2 py-0.5" : ""}`}
+          className={`${b.className} ${compact ? "text-xs px-2 py-0.5" : ""}`}
         >
           <b.icon className={`${compact ? "h-3 w-3" : "h-3.5 w-3.5"} mr-1`} />
           {b.label}

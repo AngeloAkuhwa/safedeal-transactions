@@ -18,14 +18,17 @@ interface Props {
 
 export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT, onDiscard, onReview }: Props) {
   const [expanded, setExpanded] = useState(false);
-  if (changes.length === 0) return null;
 
-  const byRole = new Map<InternalRoleKey, StagedChange[]>();
-  for (const c of changes) {
-    const bag = byRole.get(c.role) ?? [];
-    bag.push(c);
-    byRole.set(c.role, bag);
-  }
+  // Hooks must run on every render, including the empty-changes render below.
+  const byRole = useMemo(() => {
+    const map = new Map<InternalRoleKey, StagedChange[]>();
+    for (const c of changes) {
+      const bag = map.get(c.role) ?? [];
+      bag.push(c);
+      map.set(c.role, bag);
+    }
+    return map;
+  }, [changes]);
 
   const requiresApproval = useMemo(() => {
     for (const [role, list] of byRole) {
@@ -34,7 +37,9 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
       if (evaluateApproval({ targetScope: "role", targetKey: role, addedKeys: adds, removedKeys: removes }).requires) return true;
     }
     return false;
-  }, [changes]);
+  }, [byRole]);
+
+  if (changes.length === 0) return null;
 
   return (
     <div className="sticky bottom-4 z-40 mx-auto max-w-[1400px]">
