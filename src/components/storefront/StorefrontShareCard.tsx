@@ -1,7 +1,8 @@
-import { Copy, Check, ExternalLink, Globe, Link as LinkIcon, Share2 } from "lucide-react";
+import { Copy, Check, ExternalLink, Globe, Link as LinkIcon, Share2, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { storeUrl as buildStoreUrl, storeShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 
 interface StorefrontShareCardProps {
   storeSlug: string | null;
@@ -12,7 +13,9 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
 
   if (!storeSlug) return null;
 
-  const storeUrl = `${window.location.origin}/store/${storeSlug}`;
+  // "Copy" gives the clean canonical link; WhatsApp gets the rich-preview link.
+  const storeUrl = buildStoreUrl(storeSlug);
+  const richUrl = storeShareMetaUrl(storeSlug);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(storeUrl);
@@ -22,10 +25,14 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
 
   const handleShare = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "My SafeDeal Store", url: storeUrl });
+      await navigator.share({ title: "My SafeDeal Store", url: richUrl });
     } else {
       handleCopy();
     }
+  };
+
+  const handleWhatsApp = () => {
+    openWhatsAppShare("Shop my store on SafeDeal — every order is protected by escrow:", richUrl);
   };
 
   return (
@@ -83,6 +90,15 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
             >
               <Share2 className="h-3.5 w-3.5" />
               Share
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleWhatsApp}
+              className="gap-1.5"
+            >
+              <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+              WhatsApp
             </Button>
           </div>
         </div>

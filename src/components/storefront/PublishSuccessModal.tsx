@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Eye, Store, Copy, Share2, Globe, Package, ArrowLeft } from "lucide-react";
+import { Check, Eye, Store, Copy, Share2, Globe, Package, ArrowLeft, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import { formatMoney } from "@/lib/format";
+import { productShareMetaUrl, storeShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 
 interface PublishSuccessProduct {
   title: string;
@@ -46,6 +47,10 @@ export function PublishSuccessModal({
     ? `${window.location.origin}/store/${storeSlug}`
     : null;
 
+  // Rich-preview links (crawler-friendly) used for WhatsApp / native share.
+  const richProductUrl = storeSlug && product.slug ? productShareMetaUrl(storeSlug, product.slug) : null;
+  const richStoreUrl = storeSlug ? storeShareMetaUrl(storeSlug) : null;
+
   const handleCopyLink = async () => {
     if (!productUrl) return;
     await navigator.clipboard.writeText(productUrl);
@@ -55,17 +60,23 @@ export function PublishSuccessModal({
   };
 
   const handleShare = async () => {
-    if (!storeUrl) return;
+    if (!richStoreUrl) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "My SafeDeal Store", url: storeUrl });
+        await navigator.share({ title: "My SafeDeal Store", url: richStoreUrl });
       } catch {
         // user cancelled
       }
     } else {
-      await navigator.clipboard.writeText(storeUrl);
+      await navigator.clipboard.writeText(storeUrl!);
       toast.success("Store link copied to clipboard");
     }
+  };
+
+  const handleWhatsApp = () => {
+    const url = richProductUrl || richStoreUrl;
+    if (!url) return;
+    openWhatsAppShare(`${product.title} — protected by SafeDeal escrow:`, url);
   };
 
   return (
@@ -144,6 +155,16 @@ export function PublishSuccessModal({
               Share Store
             </Button>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 justify-center"
+            onClick={handleWhatsApp}
+          >
+            <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+            Share on WhatsApp
+          </Button>
 
           {/* Back to storefront */}
           <Button

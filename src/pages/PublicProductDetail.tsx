@@ -4,7 +4,7 @@ import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, BookmarkPlus,
   CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
-  AlertCircle, ShoppingCart, Store,
+  AlertCircle, ShoppingCart, Store, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
+import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -189,9 +190,19 @@ const PublicProductDetail = () => {
     action();
   };
 
+  // Copy keeps the clean canonical URL; WhatsApp needs the crawler-friendly
+  // share-meta URL so the recipient gets a rich product preview card.
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Link copied to clipboard!");
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!sellerSlug || !productSlug) return;
+    openWhatsAppShare(
+      `${product.title} — protected by SafeDeal escrow:`,
+      productShareMetaUrl(sellerSlug, productSlug),
+    );
   };
 
   const availableQty = Math.max(0, (product.stock_quantity ?? 0) - (product.reserved_quantity ?? 0));
@@ -251,8 +262,16 @@ const PublicProductDetail = () => {
           <button
             onClick={handleShare}
             className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            aria-label="Copy product link"
           >
             <Share2 className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <button
+            onClick={handleWhatsAppShare}
+            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            aria-label="Share on WhatsApp"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-500" />
           </button>
         </div>
       </header>

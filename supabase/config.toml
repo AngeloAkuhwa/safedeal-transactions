@@ -122,3 +122,9 @@ verify_jwt = false
 
 [functions.admin-user-detail]
 verify_jwt = false
+
+[functions.share-meta]
+verify_jwt = false
+
+[functions.sitemap]
+verify_jwt = false
