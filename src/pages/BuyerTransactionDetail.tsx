@@ -12,7 +12,7 @@ import {
   AlertTriangle,
   FileText,
   MessageSquare,
-  Download,
+  Printer,
   HelpCircle,
   Flag,
   MoreHorizontal,
@@ -45,6 +45,7 @@ import type {
   TransactionStatusEntry,
 } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { supportLink } from "@/lib/support/support-copy";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
@@ -103,12 +104,6 @@ function useCountdown(deadline: string | null) {
   return remaining;
 }
 
-/** Every support control routes to /contact carrying the transaction reference. */
-function supportLink(txCode: string | null | undefined, topic: "transaction" | "report_issue") {
-  const params = new URLSearchParams({ topic });
-  if (txCode) params.set("ref", txCode);
-  return `/contact?${params.toString()}`;
-}
 
 /* ───── Next Action Card (reusable for mobile + sidebar) ───── */
 function NextActionCard({
@@ -196,7 +191,7 @@ function NextActionCard({
               onClick={onPrint}
               className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
             >
-              <Download className="h-4 w-4" /> Download Receipt
+              <Printer className="h-4 w-4" /> Print receipt
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "transaction"))}
@@ -324,7 +319,7 @@ const BuyerTransactionDetail = () => {
                       <FileText className="h-4 w-4 mr-2" /> View Locked Agreement
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={handlePrint}><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrint}><Printer className="h-4 w-4 mr-2" /> Print receipt</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(supportLink(tx.transaction_code, "transaction"))}>
                     <HelpCircle className="h-4 w-4 mr-2" /> Contact Support
                   </DropdownMenuItem>
@@ -724,7 +719,7 @@ const BuyerTransactionDetail = () => {
                   </div>
                 </div>
                 <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
-                  <Download className="h-4 w-4" /> Download Receipt
+                  <Printer className="h-4 w-4" /> Print receipt
                 </Button>
               </div>
             </div>
@@ -790,7 +785,7 @@ const BuyerTransactionDetail = () => {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
-                    <Download className="h-4 w-4" /> Download Receipt
+                    <Printer className="h-4 w-4" /> Print receipt
                   </Button>
                 </div>
               </div>
