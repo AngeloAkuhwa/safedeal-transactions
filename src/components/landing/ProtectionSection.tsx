@@ -123,10 +123,7 @@ function StepRow({
   index: number;
 }) {
   const ref = useScrollReveal<HTMLDivElement>();
-  const isLast = index === STEPS.length - 1;
-  const wrap = isLast
-    ? "bg-muted text-success"
-    : "bg-primary text-primary-foreground";
+  const wrap = "bg-primary text-primary-foreground";
   return (
     <div
       ref={ref}

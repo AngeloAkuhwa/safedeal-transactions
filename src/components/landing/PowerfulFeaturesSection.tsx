@@ -454,7 +454,7 @@ function ProtectionStrip() {
               }`}
             >
               <span className="flex h-3 w-3 shrink-0 items-center justify-center">
-                {reached ? <Check className="h-3 w-3 text-success" /> : <Icon className="h-3 w-3" />}
+                {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
               </span>
               <span className="min-w-0 truncate text-xs font-bold sm:text-xs">
                 {it.label}
