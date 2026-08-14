@@ -776,15 +776,26 @@ describe("the release fee-chain guard fails closed", () => {
   });
 });
 
-describe("cart checkout invents nothing about someone else's goods", () => {
-  const src = stripComments(
-    fs.readFileSync(path.join(ROOT, "supabase/functions/cart-checkout/index.ts"), "utf8"),
-  );
+/**
+ * BOTH CHECKOUT PATHS. `cart-checkout` (multi-item) and `storefront-checkout`
+ * ("Buy Now") are twins: every rule here is asserted against both, because
+ * four rounds of fixes landed on one half of a pair.
+ *
+ * Note the deliberate asymmetry between the two commitments:
+ *  - the VERIFICATION WINDOW is a real commitment, so an unresolvable window
+ *    refuses the checkout (`verification_window_unresolved`);
+ *  - the DELIVERY ESTIMATE is optional seller-supplied information, so a
+ *    missing one is carried through as `null` and simply not displayed. It
+ *    must never block a sale, and must never be invented as "7 days".
+ */
+describe.each([
+  "supabase/functions/cart-checkout/index.ts",
+  "supabase/functions/storefront-checkout/index.ts",
+])("%s invents nothing about someone else's goods", (rel) => {
+  const src = stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8"));
 
-  it("takes the session currency from the products", () => {
+  it("never names a currency literally", () => {
     expect(src).not.toMatch(CURRENCY_DEFAULT);
-    expect(src).toContain("mixed_currency_cart");
-    expect(src).toContain("currency_code: sessionCurrency");
   });
 
   it("fails closed on an unmapped condition or delivery method", () => {
@@ -794,10 +805,25 @@ describe("cart checkout invents nothing about someone else's goods", () => {
     expect(src).toContain("delivery_method_unmapped");
   });
 
-  it("sources the verification window and delivery estimate from real data", () => {
+  it("resolves the verification window from real data, or refuses", () => {
     expect(src).not.toMatch(WINDOW_POSITIONAL);
-    expect(src).not.toMatch(DAYS_DEFAULT);
     expect(src).toContain("verification_window_unresolved");
-    expect(src).toContain("delivery_estimate_missing");
+  });
+
+  it("treats a missing delivery estimate as absent, not as a default", () => {
+    expect(src).not.toMatch(DAYS_DEFAULT);
+    // No estimate => no date persisted, and no refusal.
+    expect(src).not.toContain("delivery_estimate_missing");
+    expect(src).toMatch(/expectedDeliveryDate/);
+  });
+});
+
+describe("cart checkout session currency", () => {
+  const src = stripComments(
+    fs.readFileSync(path.join(ROOT, "supabase/functions/cart-checkout/index.ts"), "utf8"),
+  );
+  it("takes the session currency from the products", () => {
+    expect(src).toContain("mixed_currency_cart");
+    expect(src).toContain("currency_code: sessionCurrency");
   });
 });
