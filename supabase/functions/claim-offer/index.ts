@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { shareLinkExpiresAt } from "../_shared/share-links.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
@@ -36,6 +36,42 @@ function generateShareToken(): string {
   crypto.getRandomValues(bytes);
   for (const b of bytes) result += chars[b % chars.length];
   return result;
+}
+
+/**
+ * FAIL CLOSED (mirrors `storefront-checkout` and `cart-checkout`): an unmapped
+ * condition or delivery method is a fact about someone else's goods, persisted
+ * into the agreement the buyer is asked to pay against. Refuse rather than
+ * invent "brand new" or "courier". All three maps must stay identical.
+ */
+const CONDITION_MAP: Record<string, string> = {
+  brand_new: "brand_new",
+  like_new: "like_new",
+  refurbished: "excellent",
+  used_good: "good",
+  used_fair: "fair",
+};
+function mapCondition(productCondition: string | null): string | null {
+  return CONDITION_MAP[productCondition ?? ""] ?? null;
+}
+
+const DELIVERY_METHOD_MAP: Record<string, string> = {
+  pickup: "pickup",
+  delivery: "courier",
+  courier_shipping: "courier",
+  digital: "hand_delivery",
+  hand_delivery: "hand_delivery",
+  meetup: "meetup",
+};
+function mapDeliveryMethod(productMethod: string | null): string | null {
+  return DELIVERY_METHOD_MAP[productMethod ?? ""] ?? null;
+}
+
+function httpError(status: number, body: unknown): Error {
+  const err: any = new Error("claim_offer_refused");
+  err.__httpStatus = status;
+  err.__httpBody = body;
+  return err;
 }
 
 // States we can REUSE a pre-purchase transaction in.
