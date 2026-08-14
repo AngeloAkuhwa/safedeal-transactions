@@ -12,6 +12,7 @@
  * or the constants below (sachets). The client never supplies an amount.
  */
 import { requireUser, authErrorResponse } from "../_shared/auth.ts";
+import { captureVendorPlanPayment } from "../_shared/vendor-plan-capture.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,6 +92,37 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
     const body = await req.json().catch(() => ({}));
+
+    // Return-from-Paystack fast path: verify + activate without waiting for
+    // the webhook. `activate_vendor_purchase` is idempotent, so both can run.
+    if (body?.action === "verify") {
+      const reference = String(body?.reference ?? "");
+      if (!reference) return json({ error: "reference_required" }, 400);
+      const { data: owned } = await adminClient
+        .from("vendor_plan_purchases")
+        .select("id, user_id")
+        .eq("provider_reference", reference)
+        .maybeSingle();
+      if (!owned || owned.user_id !== userId) return json({ error: "not_found" }, 404);
+
+      const secretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
+      if (!secretKey) return json({ error: "payments_unavailable" }, 503);
+      const verifyRes = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      );
+      const verifyJson = await verifyRes.json().catch(() => null);
+      if (!verifyJson?.status || verifyJson.data?.status !== "success") {
+        return json({ status: "pending" });
+      }
+      const captured = await captureVendorPlanPayment(
+        adminClient as any,
+        reference,
+        typeof verifyJson.data?.amount === "number" ? verifyJson.data.amount : null,
+      );
+      return json({ status: captured.ok ? "paid" : "failed", reason: captured.reason }, captured.ok ? 200 : 409);
+    }
+
     const purchaseType = String(body?.purchase_type ?? "");
     const callbackUrl = typeof body?.callback_url === "string" ? body.callback_url : null;
 
