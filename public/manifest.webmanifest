@@ -27,7 +27,7 @@
     {
       "name": "New Protected Deal",
       "short_name": "New Deal",
-      "url": "/seller/create-transaction",
+      "url": "/seller/transactions/new",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
