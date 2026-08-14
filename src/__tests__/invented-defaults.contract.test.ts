@@ -268,6 +268,8 @@ describe("invented defaults", () => {
       const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_POSITIONAL)];
       if (hits.length === 0) continue;
+      // The two pricing engines DEFINE the platform default currency.
+      if (CURRENCY_DEFINITION_FILES.has(rel)) continue;
       if (POSITIONAL_DEBT.includes(rel)) {
         debtSeen.add(rel);
         continue;
