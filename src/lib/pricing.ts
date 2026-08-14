@@ -188,5 +188,9 @@ export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingRe
     return `SafeDeal's fee on this order was capped at ${platformCap.toLocaleString()} ${result.currency_code}. The standard ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} fee would have been higher, so the cap applied instead.`;
   }
 
+  if (result.is_floored) {
+    return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on this order amount came to less than it.`;
+  }
+
   return `SafeDeal charges ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}, plus the payment processing fee — a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code}.`;
 }
