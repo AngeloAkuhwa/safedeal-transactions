@@ -22,7 +22,7 @@ import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
  */
 function getVerificationLabel(identityVerified: boolean) {
   const claim = sellerVerificationClaim({ identityVerified });
-  return claim ? claim.text : "Standard account";
+  return claim ?? "Standard account";
 }
 
 function getVerificationDotColor(identityVerified: boolean) {
@@ -98,7 +98,7 @@ const SellerStorefront = () => {
   const trust = data?.trust_summary;
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
-  const verificationLevel = trust?.verification_level || "unverified";
+  const identityVerified = !!trust?.identity_verified;
   const handleUnpublish = async (productId: string) => {
     setActionPending(true);
     try {
@@ -146,7 +146,7 @@ const SellerStorefront = () => {
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
-        verificationLevel={verificationLevel}
+        identityVerified={identityVerified}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative">

@@ -13,7 +13,9 @@
  *     never be faked by matching regex counts.
  */
 import React from "react";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
+
+const ID_VERIFIED_TEXT = resolveClaim("SELLER_ID_VERIFIED", { identityVerified: true })!;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -216,7 +218,7 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
     const { desktop, mobile } = sellerCards(container);
     for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
       expect(scope.getAllByText("Not verified").length, name).toBe(1);
-      expect(scope.queryAllByText(TRUST_CLAIMS.SELLER_ID_VERIFIED.text), name).toEqual([]);
+      expect(scope.queryAllByText(ID_VERIFIED_TEXT), name).toEqual([]);
     }
   });
 
@@ -224,10 +226,10 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
     sellerVerified = true;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     const { container } = renderPage(<Page />);
-    await within(container).findAllByText(TRUST_CLAIMS.SELLER_ID_VERIFIED.text);
+    await within(container).findAllByText(ID_VERIFIED_TEXT);
     const { desktop, mobile } = sellerCards(container);
     for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
-      expect(scope.getAllByText(TRUST_CLAIMS.SELLER_ID_VERIFIED.text).length, name).toBe(1);
+      expect(scope.getAllByText(ID_VERIFIED_TEXT).length, name).toBe(1);
       expect(scope.queryAllByText("Not verified"), name).toEqual([]);
     }
   });

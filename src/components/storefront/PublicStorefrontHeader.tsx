@@ -1,7 +1,7 @@
 import { ShieldCheck, Mail, Phone, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface PublicStorefrontHeaderProps {
   seller: {
@@ -38,7 +38,7 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
               {seller.identity_verified && (
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1">
                   <ShieldCheck className="h-3 w-3" />
-                  {TRUST_CLAIMS.SELLER_VERIFIED.text}
+                  {resolveClaim("SELLER_VERIFIED", { identityVerified: seller.identity_verified })}
                 </Badge>
               )}
               <span className="text-sm text-muted-foreground">
@@ -63,7 +63,7 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
           {seller.identity_verified && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <UserCheck className="h-3.5 w-3.5 text-primary" />
-              {TRUST_CLAIMS.SELLER_ID_VERIFIED.text}
+              {resolveClaim("SELLER_ID_VERIFIED", { identityVerified: seller.identity_verified })}
             </div>
           )}
         </div>

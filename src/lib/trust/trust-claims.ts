@@ -1,14 +1,17 @@
 /**
  * SINGLE SOURCE OF TRUTH for every user-facing trust / protection claim.
  *
- * A "trust claim" is any string that tells a user something is verified,
- * protected, tracked or guaranteed. Every entry declares BOTH the text and the
- * condition that must hold for the text to be shown. `ALWAYS_TRUE` is only
- * allowed where the claim is structurally true for every transaction.
+ * PHASE 0g — the claim TEXT is no longer reachable. `TRUST_CLAIMS` is module
+ * private and `.text` is never exported. The only way to obtain a claim string
+ * is through a resolver whose evidence parameter is typed by the claim's own
+ * condition, so a call site physically cannot render "Verified Seller" without
+ * handing over identity data, nor "Escrow Protection Active" without escrow
+ * state. The resolver returns `null` when the evidence does not support the
+ * claim and the caller must render nothing.
  *
  * A contract test (`trust-claims.contract.test.ts`) fails the build if any of
- * these strings appears as a literal anywhere under `src/pages` or
- * `src/components`, so a new screen cannot ship an ungated claim.
+ * these strings appears as a literal anywhere under `src/` or
+ * `supabase/functions/`, and if `.text` is accessed outside this file.
  */
 
 export type TrustCondition =
@@ -25,8 +28,8 @@ export type TrustCondition =
   /** Funds for this transaction are currently held in escrow (post-payment). */
   | "FUNDS_HELD_IN_ESCROW";
 
-export interface TrustClaim {
-  /** The exact user-facing text. */
+interface TrustClaim {
+  /** The exact user-facing text. Never exported. */
   readonly text: string;
   /** What must be true for this text to render. */
   readonly condition: TrustCondition;
@@ -34,10 +37,10 @@ export interface TrustClaim {
   readonly basis: string;
 }
 
-const claim = (text: string, condition: TrustCondition, basis: string): TrustClaim =>
-  ({ text, condition, basis });
+const claim = <C extends TrustCondition>(text: string, condition: C, basis: string) =>
+  ({ text, condition, basis }) as { readonly text: string; readonly condition: C; readonly basis: string };
 
-export const TRUST_CLAIMS = {
+const TRUST_CLAIMS = {
   /** Every paid transaction routes funds into escrow before release. */
   ESCROW_PROTECTED: claim(
     "Escrow Protected",
@@ -63,7 +66,7 @@ export const TRUST_CLAIMS = {
   ESCROW_ACTIVE: claim(
     "Escrow Protection Active",
     "FUNDS_HELD_IN_ESCROW",
-    "transactions.payment_status === 'payment_secured' / funds_held_in_escrow — escrow_ledger_entries booked.",
+    "escrow.state === 'held' — escrow_ledger_entries booked and not yet released or refunded.",
   ),
   PAYMENT_PROTECTED_NOW: claim(
     "Your payment is protected",
@@ -115,30 +118,93 @@ export const TRUST_CLAIMS = {
   ),
 } as const;
 
+export type TrustClaimKey = keyof typeof TRUST_CLAIMS;
+type ConditionOf<K extends TrustClaimKey> = (typeof TRUST_CLAIMS)[K]["condition"];
+
+/** The proof each condition demands. TypeScript refuses a call without it. */
+export interface TrustEvidenceMap {
+  ALWAYS_TRUE: undefined;
+  SELLER_ID_VERIFIED: { identityVerified: boolean | null | undefined };
+  SELLER_PHONE_VERIFIED: { phoneVerified: boolean | null | undefined };
+  DELIVERY_IS_TRACKED: { deliveryMethod: string | null | undefined };
+  DELIVERY_IS_CODE_CONFIRMED: { deliveryMethod: string | null | undefined };
+  FUNDS_HELD_IN_ESCROW: { escrowState: string | null | undefined };
+}
+
+type AlwaysTrueKey = { [K in TrustClaimKey]: ConditionOf<K> extends "ALWAYS_TRUE" ? K : never }[TrustClaimKey];
+type ConditionalKey = Exclude<TrustClaimKey, AlwaysTrueKey>;
+
 /**
  * Closed allowlist: unknown or missing methods never earn a tracking claim.
  * Verified against the live `delivery_method_type` enum, whose only members are
- * courier / pickup / meetup / hand_delivery. `courier` is the only tracked one;
- * the previously listed aliases (`shipping`, `standard_delivery`, `delivery`)
- * are not storable values and `delivery` was ambiguous with hand delivery.
+ * courier / pickup / meetup / hand_delivery.
  */
 export const TRACKED_DELIVERY_METHODS = ["courier"] as const;
+const CODE_CONFIRMED_DELIVERY_METHODS = ["pickup", "meetup", "hand_delivery"] as const;
 
 export function isTrackedDelivery(method?: string | null): boolean {
   if (!method) return false;
   return (TRACKED_DELIVERY_METHODS as readonly string[]).includes(method);
 }
 
+function holdsEscrow(state?: string | null): boolean {
+  return state === "held" || state === "funds_held_in_escrow" || state === "payment_secured";
+}
+
+function satisfied<C extends TrustCondition>(condition: C, evidence: TrustEvidenceMap[C]): boolean {
+  switch (condition) {
+    case "ALWAYS_TRUE":
+      return true;
+    case "SELLER_ID_VERIFIED":
+      return (evidence as TrustEvidenceMap["SELLER_ID_VERIFIED"]).identityVerified === true;
+    case "SELLER_PHONE_VERIFIED":
+      return (evidence as TrustEvidenceMap["SELLER_PHONE_VERIFIED"]).phoneVerified === true;
+    case "DELIVERY_IS_TRACKED":
+      return isTrackedDelivery((evidence as TrustEvidenceMap["DELIVERY_IS_TRACKED"]).deliveryMethod);
+    case "DELIVERY_IS_CODE_CONFIRMED": {
+      const m = (evidence as TrustEvidenceMap["DELIVERY_IS_CODE_CONFIRMED"]).deliveryMethod;
+      return !!m && (CODE_CONFIRMED_DELIVERY_METHODS as readonly string[]).includes(m);
+    }
+    case "FUNDS_HELD_IN_ESCROW":
+      return holdsEscrow((evidence as TrustEvidenceMap["FUNDS_HELD_IN_ESCROW"]).escrowState);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Resolves a conditional claim against real evidence.
+ * Returns the text, or `null` when the evidence does not support it —
+ * callers MUST render nothing on `null`.
+ */
+export function resolveClaim<K extends ConditionalKey>(
+  key: K,
+  evidence: TrustEvidenceMap[ConditionOf<K>],
+): string | null {
+  const c = TRUST_CLAIMS[key];
+  return satisfied(c.condition, evidence as TrustEvidenceMap[TrustCondition]) ? c.text : null;
+}
+
+/** Claims that are structurally true for every transaction — no evidence exists to demand. */
+export function alwaysClaim(key: AlwaysTrueKey): string {
+  return TRUST_CLAIMS[key].text;
+}
+
 /**
  * Resolves the strongest seller verification claim that real data supports.
- * Returns `null` when nothing is verified — callers must render nothing.
+ * Returns `null` when identity is not verified — callers must render nothing.
  */
 export function sellerVerificationClaim(input: {
   identityVerified?: boolean | null;
-}): TrustClaim | null {
-  if (input.identityVerified) return TRUST_CLAIMS.SELLER_ID_VERIFIED;
-  return null;
+}): string | null {
+  return resolveClaim("SELLER_ID_VERIFIED", { identityVerified: input.identityVerified });
 }
+
+/** Condition + basis for audit tooling. Deliberately excludes `text`. */
+export const TRUST_CLAIM_META: Record<TrustClaimKey, { condition: TrustCondition; basis: string }> =
+  Object.fromEntries(
+    Object.entries(TRUST_CLAIMS).map(([k, v]) => [k, { condition: v.condition, basis: v.basis }]),
+  ) as Record<TrustClaimKey, { condition: TrustCondition; basis: string }>;
 
 /** Every claim text that may never appear as a literal outside this module. */
 export const ALL_TRUST_CLAIM_TEXTS: readonly string[] = Array.from(

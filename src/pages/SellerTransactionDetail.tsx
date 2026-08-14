@@ -185,15 +185,16 @@ const SellerTransactionDetail = () => {
     });
   };
 
-  const feePercent = (() => {
-    if (!pricing || !pricing.item_amount || pricing.item_amount <= 0) return "3";
+  // No snapshot rate => show no rate at all. Never invent a percentage.
+  const feePercent: string | null = (() => {
+    if (!pricing || !pricing.item_amount || pricing.item_amount <= 0) return null;
     if (typeof pricing.platform_fee_amount === "number" && pricing.platform_fee_amount > 0) {
       return ((pricing.platform_fee_amount / pricing.item_amount) * 100).toFixed(1);
     }
     if (typeof pricing.service_fee_rate === "number" && pricing.service_fee_rate > 0) {
       return (pricing.service_fee_rate * 100).toFixed(1);
     }
-    return "3";
+    return null;
   })();
 
   return (
@@ -397,7 +398,7 @@ const SellerTransactionDetail = () => {
                   <span className="font-semibold text-foreground">{fmt(pricing.item_amount, currency)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Platform Fee ({feePercent}%)</span>
+                  <span className="text-muted-foreground">Platform Fee{feePercent ? ` (${feePercent}%)` : ""}</span>
                   <span className="font-semibold text-foreground">{fmt(pricing.platform_fee_amount, currency)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -414,7 +415,7 @@ const SellerTransactionDetail = () => {
                     <span className="font-semibold text-foreground">{fmt(pricing.buyer_total_amount, currency)}</span>
                   </div>
                 </div>
-                {escrow && (
+                {escrow?.state === "held" && (
                   <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                     <Shield className="h-3 w-3 text-green-600" />
                     Funds are held securely until buyer confirms delivery

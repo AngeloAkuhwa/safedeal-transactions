@@ -16,7 +16,7 @@ import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
@@ -310,9 +310,9 @@ const CartCheckoutReview = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-foreground">{sellerName}</p>
-                          {phoneVerified && (
+                          {resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified }) && (
                             <Badge variant="secondary" className="text-[10px] gap-1 px-1.5 py-0">
-                              <Phone className="h-2.5 w-2.5" /> {TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text}
+                              <Phone className="h-2.5 w-2.5" /> {resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified })}
                             </Badge>
                           )}
                         </div>

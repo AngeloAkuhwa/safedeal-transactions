@@ -97,7 +97,7 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
             {trustClaim && (
               <span className="inline-flex items-center gap-1 text-xs text-primary flex-shrink-0">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                {trustClaim.text}
+                {trustClaim}
               </span>
             )}
           </div>

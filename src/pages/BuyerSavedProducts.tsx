@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -167,7 +167,7 @@ export default function BuyerSavedProducts() {
                 const outOfStock = item.stock_quantity <= 0;
                 const stock = getStockInfo(item.stock_quantity);
                 const sellerInitial = (item.seller?.full_name || "S")[0].toUpperCase();
-                const isVerified = item.seller?.trust_summary?.email_verified;
+                const verifiedSellerClaim = resolveClaim("SELLER_VERIFIED", { identityVerified: item.seller?.trust_summary?.identity_verified });
 
                 return (
                   <div
@@ -240,9 +240,9 @@ export default function BuyerSavedProducts() {
                           </AvatarFallback>
                         </Avatar>
                         <span className="truncate text-sm font-medium text-foreground">{item.seller?.full_name}</span>
-                        {isVerified && (
-                          <Badge className="ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-none text-[10px] px-2 py-0.5">
-                            {TRUST_CLAIMS.SELLER_VERIFIED.text}
+                        {verifiedSellerClaim && (
+                          <Badge variant="outline" className="ml-auto text-[10px] px-2 py-0.5">
+                            {verifiedSellerClaim}
                           </Badge>
                         )}
                       </div>

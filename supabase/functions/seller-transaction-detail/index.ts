@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
           email: (buyerProfile.email as string) ?? "",
           phone: (buyerProfile.phone as string) ?? "",
           avatar_url: (buyerProfile.avatar_url as string) ?? null,
-          is_verified: !!tx.buyer_id,
+          is_verified: !!buyerVerif?.identity_verified,
           email_verified: !!buyerVerif?.email_verified,
           phone_verified: !!buyerVerif?.phone_verified,
           verification_level: (buyerVerif?.verification_level as string) ?? "unverified",

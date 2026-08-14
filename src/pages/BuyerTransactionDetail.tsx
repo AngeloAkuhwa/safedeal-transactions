@@ -46,7 +46,7 @@ import type {
 } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { supportLink } from "@/lib/support/support-copy";
-import { sellerVerificationClaim, TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { sellerVerificationClaim, alwaysClaim, resolveClaim } from "@/lib/trust/trust-claims";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
@@ -337,7 +337,7 @@ const BuyerTransactionDetail = () => {
             <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-primary/5 border-primary/20">
               <Shield className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
               <div>
-                <p className="text-sm font-bold text-primary">{TRUST_CLAIMS.ESCROW_ACTIVE.text}</p>
+                <p className="text-sm font-bold text-primary">{resolveClaim("ESCROW_ACTIVE", { escrowState: escrow.state })}</p>
                 <p className="text-xs mt-0.5 text-primary/80">
                   Your payment of <span className="font-bold">{formatMoney(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
@@ -556,7 +556,7 @@ const BuyerTransactionDetail = () => {
                   <div>
                     {/* Present-tense claim only while funds are actually held. */}
                     <p className="text-sm font-bold text-primary mb-1">
-                      {escrow?.state === "held" ? TRUST_CLAIMS.MONEY_PROTECTED_NOW.text : TRUST_CLAIMS.PAYMENT_WILL_BE_ESCROWED.text}
+                      {resolveClaim("MONEY_PROTECTED_NOW", { escrowState: escrow?.state }) ?? alwaysClaim("PAYMENT_WILL_BE_ESCROWED")}
                     </p>
                     <p className="text-xs text-primary/80 leading-relaxed">
                       {escrow?.state === "held"
@@ -691,7 +691,7 @@ const BuyerTransactionDetail = () => {
                     {sellerVerificationClaim({ identityVerified: seller.is_verified }) ? (
                       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
                         <BadgeCheck className="h-3 w-3 mr-1" />
-                        {sellerVerificationClaim({ identityVerified: seller.is_verified })!.text}
+                        {sellerVerificationClaim({ identityVerified: seller.is_verified })}
                       </Badge>
                     ) : (
                       <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Not verified</span>
@@ -764,7 +764,7 @@ const BuyerTransactionDetail = () => {
                       {sellerVerificationClaim({ identityVerified: seller.is_verified }) ? (
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
                           <BadgeCheck className="h-3 w-3 mr-1" />
-                          {sellerVerificationClaim({ identityVerified: seller.is_verified })!.text}
+                          {sellerVerificationClaim({ identityVerified: seller.is_verified })}
                         </Badge>
                       ) : (
                         <span className="font-semibold text-muted-foreground">Not verified</span>

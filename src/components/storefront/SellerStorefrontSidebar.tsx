@@ -9,12 +9,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { signOut, getSession } from "@/services/auth.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { toast } from "@/components/ui/sonner";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
 interface SellerStorefrontSidebarProps {
   sellerName: string;
   avatarUrl: string | null;
-  verificationLevel: string;
+  /** Only `identity_verified` may earn a verification claim. */
+  identityVerified: boolean;
 }
 
 const navLinks = [
@@ -25,16 +26,11 @@ const navLinks = [
   { label: "Disputes", href: "/seller/disputes", icon: Scale },
 ];
 
-function getVerificationLabel(level: string) {
-  switch (level) {
-    case "trusted_buyer":
-    case "high_trust_buyer": return TRUST_CLAIMS.SELLER_VERIFIED.text;
-    case "basic_verified": return "Basic account";
-    default: return "Standard account";
-  }
+function getVerificationLabel(identityVerified: boolean) {
+  return sellerVerificationClaim({ identityVerified }) ?? "Standard account";
 }
 
-function SidebarInner({ sellerName, avatarUrl, verificationLevel, onNavigate }: SellerStorefrontSidebarProps & { onNavigate?: () => void }) {
+function SidebarInner({ sellerName, avatarUrl, identityVerified, onNavigate }: SellerStorefrontSidebarProps & { onNavigate?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -123,7 +119,7 @@ function SidebarInner({ sellerName, avatarUrl, verificationLevel, onNavigate }: 
           </Avatar>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{sellerName}</p>
-            <p className="text-xs text-muted-foreground">{getVerificationLabel(verificationLevel)}</p>
+            <p className="text-xs text-muted-foreground">{getVerificationLabel(identityVerified)}</p>
           </div>
         </div>
       </div>

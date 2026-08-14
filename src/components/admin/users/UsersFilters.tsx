@@ -1,6 +1,6 @@
 import { Search, X } from "lucide-react";
 import type { UserDirectoryQuery } from "@/services/admin-users-directory.service";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
   value: UserDirectoryQuery;
@@ -21,7 +21,7 @@ const STATUSES: Array<{ v: string; l: string }> = [
 ];
 const VERIFS: Array<{ v: string; l: string }> = [
   { v: "all", l: "All Verification" }, { v: "fully", l: "Fully Verified" }, { v: "id", l: "ID Verified" },
-  { v: "phone", l: TRUST_CLAIMS.SELLER_PHONE_VERIFIED.text }, { v: "email", l: "Email Only" }, { v: "none", l: "Unverified" },
+  { v: "phone", l: resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified: true })! }, { v: "email", l: "Email Only" }, { v: "none", l: "Unverified" },
 ];
 const RANGES: Array<{ v: string; l: string }> = [
   { v: "all", l: "All Time" }, { v: "7d", l: "Last 7 days" }, { v: "30d", l: "Last 30 days" }, { v: "90d", l: "Last 90 days" },

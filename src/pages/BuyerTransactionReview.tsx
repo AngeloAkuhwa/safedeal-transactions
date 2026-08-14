@@ -10,7 +10,7 @@ import {
   FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban, ChevronRight
 } from "lucide-react";
 import { supportLink } from "@/lib/support/support-copy";
-import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
+import { alwaysClaim, resolveClaim, isTrackedDelivery } from "@/lib/trust/trust-claims";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -459,7 +459,7 @@ export default function BuyerTransactionReview() {
             {[
               { icon: CreditCard, title: "1. Secure Payment", desc: "Your payment is processed through encrypted channels and held securely", color: "text-primary", bg: "bg-primary/10" },
               { icon: Lock, title: "2. Agreement Locked", desc: "Transaction terms become immutable to protect both parties", color: "text-warning", bg: "bg-warning/10" },
-              { icon: Truck, title: "3. Seller Fulfills", desc: isTrackedDelivery(data.delivery?.delivery_method) ? TRUST_CLAIMS.DELIVERY_TRACKED.text : "Seller follows the selected handover terms", color: "text-success", bg: "bg-success/10" },
+              { icon: Truck, title: "3. Seller Fulfills", desc: resolveClaim("DELIVERY_TRACKED", { deliveryMethod: data.delivery?.delivery_method }) ?? "Seller follows the selected handover terms", color: "text-success", bg: "bg-success/10" },
               { icon: CheckCircle, title: "4. You Verify", desc: "Confirm item or raise dispute within verification window", color: "text-destructive", bg: "bg-destructive/10" },
             ].map((step) => (
               <div key={step.title} className="text-center">
@@ -579,9 +579,9 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
             <h3 className="text-lg font-bold text-foreground mb-1">{seller.full_name}</h3>
             <p className="text-sm text-muted-foreground mb-3">Member since {memberSince}</p>
             <div className="flex flex-wrap gap-2">
-              {v?.identity_verified && (
+              {resolveClaim("SELLER_ID_VERIFIED", { identityVerified: v?.identity_verified }) && (
                 <Badge className="bg-success/10 text-success border-success/30 hover:bg-success/10">
-                  <CheckCircle className="h-3 w-3 mr-1" /> {TRUST_CLAIMS.SELLER_ID_VERIFIED.text}
+                  <CheckCircle className="h-3 w-3 mr-1" /> {resolveClaim("SELLER_ID_VERIFIED", { identityVerified: v?.identity_verified })}
                 </Badge>
               )}
             </div>
@@ -594,7 +594,7 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
             <div className="w-8 h-8 bg-success rounded-lg flex items-center justify-center">
               <ShieldCheck className="h-4 w-4 text-success-foreground" />
             </div>
-            <h4 className="text-base font-bold text-foreground">{TRUST_CLAIMS.SELLER_TRUST_PROFILE_HEADING.text}</h4>
+            <h4 className="text-base font-bold text-foreground">{alwaysClaim("SELLER_TRUST_PROFILE_HEADING")}</h4>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <VerificationTile
@@ -819,7 +819,7 @@ function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; curren
         <div className="w-10 h-10 bg-success-foreground/20 rounded-lg flex items-center justify-center">
           <Shield className="h-5 w-5" />
         </div>
-        <h3 className="text-xl font-bold">{TRUST_CLAIMS.ESCROW_PROTECTION_HEADING.text}</h3>
+        <h3 className="text-xl font-bold">{alwaysClaim("ESCROW_PROTECTION_HEADING")}</h3>
       </div>
       <div className="space-y-4 mb-6">
         {[
