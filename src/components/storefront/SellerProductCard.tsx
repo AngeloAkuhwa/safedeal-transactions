@@ -6,10 +6,10 @@ import {
 import { formatMoney } from "@/lib/format";
 import { getAvailableQuantity } from "@/lib/inventory";
 import {
-import { ProductImage } from "@/components/common/ProductImage";
   resolveProductStatusLabel,
   TONE_CLASSNAMES,
 } from "@/lib/status-labels";
+import { ProductImage } from "@/components/common/ProductImage";
 
 interface SellerProductCardProps {
   product: {
