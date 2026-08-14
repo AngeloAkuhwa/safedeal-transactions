@@ -37,12 +37,12 @@ function esc(s: string) {
 
 function renderEmail(title: string, message: string, ctaUrl?: string, ctaLabel = "View in SafeDeal") {
   const cta = ctaUrl
-    ? `<div style="margin:24px 0"><a href="${esc(ctaUrl)}" style="background:#0ea5e9;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">${esc(ctaLabel)}</a></div>`
+    ? `<div style="margin:24px 0"><a href="${esc(ctaUrl)}" style="background:#0F5BB3;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">${esc(ctaLabel)}</a></div>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;color:#0f172a">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-      <div style="background:#0ea5e9;padding:20px 24px"><div style="color:#fff;font-weight:700;font-size:18px">SafeDeal</div></div>
+      <div style="background:#0F5BB3;padding:20px 24px"><div style="color:#fff;font-weight:700;font-size:18px">SafeDeal</div></div>
       <div style="padding:28px 24px">
         <h2 style="margin:0 0 12px;font-size:20px;color:#0f172a">${esc(title)}</h2>
         <p style="margin:0;color:#334155;line-height:1.55;font-size:15px;white-space:pre-wrap">${esc(message)}</p>
@@ -50,7 +50,7 @@ function renderEmail(title: string, message: string, ctaUrl?: string, ctaLabel =
       </div>
       <div style="padding:16px 24px;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px">
         You're receiving this because SafeDeal email notifications are enabled.
-        <a href="${esc(APP_URL)}/dashboard/profile#notifications" style="color:#0ea5e9;text-decoration:none">Manage preferences</a>.
+        <a href="${esc(APP_URL)}/dashboard/profile#notifications" style="color:#0F5BB3;text-decoration:none">Manage preferences</a>.
       </div>
     </div>
   </div></body></html>`;

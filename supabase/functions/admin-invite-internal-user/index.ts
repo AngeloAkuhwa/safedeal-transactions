@@ -62,8 +62,8 @@ function renderInviteHtml(opts: {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;">
           <tr><td style="padding:24px 28px 8px 28px;">
             <table role="presentation" width="100%"><tr>
-              <td style="font-weight:700;font-size:20px;letter-spacing:-0.2px;color:#0EA5E9;">SafeDeal</td>
-              <td align="right"><span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#E0F2FE;color:#0369A1;font-size:11px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;">Admin Console</span></td>
+              <td style="font-weight:700;font-size:20px;letter-spacing:-0.2px;color:#0F5BB3;">SafeDeal</td>
+              <td align="right"><span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#E0F2FE;color:#0F5BB3;font-size:11px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;">Admin Console</span></td>
             </tr></table>
           </td></tr>
           <tr><td style="padding:16px 28px 4px 28px;">
@@ -71,7 +71,7 @@ function renderInviteHtml(opts: {
             <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#334155;">Hi ${name}, ${inviter} invited you to join the <strong style="color:#0F172A;">${role}</strong> team on the SafeDeal admin console. Accept below to set your password and get started.</p>
           </td></tr>
           <tr><td style="padding:8px 28px 4px 28px;">
-            <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background:#0EA5E9;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background:#0F5BB3;">
               <a href="${link}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;">Accept invitation &amp; set password</a>
             </td></tr></table>
           </td></tr>
