@@ -269,9 +269,11 @@ export default function BuyerTransactionReview() {
                       : "Please review all details carefully before proceeding with payment"}
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  <HelpCircle className="h-4 w-4" />
-                  Help
+                <Button asChild variant="outline" size="sm">
+                  <Link to={supportLink(data.transaction.transaction_code, "transaction")}>
+                    <HelpCircle className="h-4 w-4" />
+                    Help
+                  </Link>
                 </Button>
               </div>
             </div>
