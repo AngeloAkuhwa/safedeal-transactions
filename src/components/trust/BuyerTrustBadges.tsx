@@ -43,7 +43,7 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
     badges.push({
       key: "identity",
       icon: ShieldCheck,
-      label: "Identity Verified",
+      label: identityClaim,
       className: "bg-primary/10 text-primary border-primary/20",
     });
   } else if (signals.identitySubmitted) {
