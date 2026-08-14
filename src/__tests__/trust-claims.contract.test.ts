@@ -339,7 +339,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/seller/SellerDashboardEmptyState.tsx", text: "Create a product listing or send a transaction link to a buyer. SafeDeal holds the payment in escrow until the buyer confirms the item.", reason: "Empty-state instructions describing how escrow holds the buyer's payment." },
   { file: "src/components/seller/SellerDashboardHero.tsx", text: "Manage your protected transactions and monitor payments", reason: "Dashboard subtitle naming the transaction type the seller manages." },
   { file: "src/components/seller/SellerDashboardHero.tsx", text: "Create Protected Transaction", reason: "Primary action button naming the transaction type being created." },
-  { file: "src/components/seller/SellerMetricsCards.tsx", text: "All protected deals you", reason: "Metric card caption describing which deals the figure counts." },
   { file: "src/components/seller/SellerMetricsCards.tsx", text: "Funds Held in Escrow", reason: "Metric card title for the seller's held escrow balance." },
   { file: "src/components/seller/SellerMetricsCards.tsx", text: "Your net earnings currently locked in escrow", reason: "Metric card caption describing the ledger figure shown above it." },
   { file: "src/components/seller/SellerOnboardingChecklist.tsx", text: "Complete these steps to start selling with protected payments.", reason: "Onboarding checklist intro naming what the steps unlock." },
@@ -357,7 +356,6 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/components/transactions/TerminalTransactionScreen.tsx", text: "Funds for this transaction are already held in escrow. Open the agreement to track delivery and verification.", reason: "Terminal-state note pointing the user to the agreement for a funded deal." },
   { file: "src/components/transactions/TransactionFilters.tsx", text: "Funds Held in Escrow", reason: "Filter option matching transactions whose stored money state is held." },
   { file: "src/components/transactions/TransactionTable.tsx", text: "Verified", reason: "Table cell rendered from a stored verification boolean on the row." },
-  { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Email Verified", reason: "Badge label for the stored email confirmation flag on a buyer." },
   { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Identity Verified", reason: "Badge label rendered only when identity_verified is true for the buyer." },
   { file: "src/lib/dispute-display-status.ts", text: "Funds Held in Escrow", reason: "Canonical status/settings label mapped from stored backend values." },
   { file: "src/lib/settings-catalog.ts", text: "Escrow fee rate", reason: "Canonical status/settings label mapped from stored backend values." },
@@ -404,7 +402,19 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "supabase/functions/seller-transaction-detail/index.ts", text: "Package and ship the item, then update tracking.", reason: "Server response text describing the recorded state of a real transaction." },
   { file: "supabase/functions/submit-contact-message/index.ts", text: "If money is still held in escrow on a transaction, open a dispute from the transaction itself — that freezes the funds while the case is reviewed.", reason: "Server response text describing the recorded state of a real transaction." },
   { file: "supabase/functions/vendor-plan/index.ts", text: "The Verified plan is free — nothing to pay.", reason: "Server response text describing the recorded state of a real transaction." },
-  { file: "supabase/functions/verify-paystack-payment/index.ts", text: "Payment of received and held in escrow", reason: "Server response text describing the recorded state of a real transaction." },];
+  { file: "supabase/functions/verify-paystack-payment/index.ts", text: "Payment of received and held in escrow", reason: "Server response text describing the recorded state of a real transaction." },  { file: "src/pages/Index.tsx", text: "SafeDeal holds the buyer's payment in escrow until the item is delivered and confirmed. Protected transactions for sellers and buyers online.", reason: "Meta description of the escrow mechanic; no outcome or scale promise." },
+  { file: "src/pages/SellerPayouts.tsx", text: "Your protected earnings currently locked in escrow, awaiting buyer confirmation. Disputed/frozen amounts appear under On Hold / Failed.", reason: "Caption explaining which ledger buckets feed the held figure above it." },
+  { file: "src/pages/SellerPayouts.tsx", text: "Includes failed payouts and disputed funds frozen in escrow. Sum of seller-net at risk.", reason: "Caption naming exactly which ledger rows the on-hold figure sums." },
+  { file: "src/components/admin/dashboard/KpiCards.tsx", text: "Funds currently held or frozen in escrow. Excludes released and refunded amounts.", reason: "Admin KPI definition stating the ledger filter behind the number." },
+  { file: "src/components/profile/AccountVerificationSection.tsx", text: "Required for protected transactions", reason: "Tells the user why the phone field is needed before transacting." },
+  { file: "src/components/profile/SellerVerificationSection.tsx", text: "Identity verified", reason: "Tile description rendered only when the stored identity flag is true." },
+  { file: "src/components/seller/SellerMetricsCards.tsx", text: "All protected deals you've created", reason: "Metric caption naming which transactions the count includes." },
+  { file: "src/components/seller/SellerMetricsCards.tsx", text: "Count of every protected transaction you've created on SafeDeal.", reason: "Tooltip defining the metric as a simple row count." },
+  { file: "src/components/seller/SellerMetricsCards.tsx", text: "Your protected earnings currently held by SafeDeal until the transaction is confirmed.", reason: "Tooltip defining the held-earnings metric from escrow ledger rows." },
+  { file: "supabase/functions/_shared/delivery-confirm.ts", text: "Delivery cannot be confirmed: the buyer's funds are not currently held in escrow for this transaction.", reason: "Guard error stating the negative escrow state that blocks confirmation." },
+  { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Email confirmed", reason: "Neutral contactability label for the stored email confirmation flag." },
+  { file: "src/components/trust/BuyerTrustBadges.tsx", text: "Phone confirmed", reason: "Neutral contactability label for the stored phone confirmation flag." },
+];
 
 const allowed = new Set(PER_STRING_ALLOWLIST.map((e) => `${e.file}\u0000${e.text}`));
 
