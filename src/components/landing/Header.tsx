@@ -12,9 +12,9 @@ import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
   { label: "Marketplace", href: "/marketplace" },
-  { label: "How It Works", href: "#protected-deal" },
+  { label: "How It Works", href: "#how-it-works" },
   { label: "Protection", href: "#protection" },
-  { label: "Pricing", href: "#fees" },
+  { label: "Pricing", href: "/pricing" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -119,11 +119,6 @@ export function Header() {
 
         {/* Mobile menu */}
         <div className="flex items-center gap-1.5 md:hidden">
-          {!user && (
-            <Button asChild size="sm" className="tap-target rounded-xl font-semibold shadow-md">
-              <Link to="/auth">Sign Up</Link>
-            </Button>
-          )}
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
