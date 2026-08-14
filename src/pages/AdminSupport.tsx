@@ -334,7 +334,9 @@ export default function AdminSupport() {
           <DialogHeader>
             <DialogTitle>Reply to {active?.full_name}</DialogTitle>
             <DialogDescription>
-              Sent by email to {active?.email}. The reply is stored on the message and audited.
+              SafeDeal will try to email {active?.email}. The reply is always stored on the
+              message and audited — the confirmation after sending tells you whether the email
+              actually went out.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -342,7 +344,7 @@ export default function AdminSupport() {
             maxLength={4000}
             value={reply}
             onChange={(e) => setReply(e.target.value)}
-            placeholder="Write the reply the sender will receive…"
+            placeholder="Write the reply…"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setActive(null)}>

@@ -7,7 +7,7 @@ import {
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, PlayCircle, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
-  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
+  MessageCircle, ArrowRight, Lock, Menu,
   Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -1755,12 +1755,6 @@ function CaseCommunicationSection(props: {
             </div>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <button className={cn(
-                  "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
-                  "hover:border-slate-500"
-                )}>
-                  <Paperclip className="w-3 h-3 mr-1" /> Attach File
-                </button>
                 <select
                   value={msgType}
                   onChange={(e) => setMsgType(e.target.value)}
@@ -1931,14 +1925,6 @@ function MessageItem({ m }: { m: CommMessage }) {
               <Check className="w-3 h-3" /> <span>Logged</span>
             </div>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="text-slate-500 hover:text-blue-400 text-xs inline-flex items-center gap-1">
-            <Reply className="w-3 h-3" /> Reply
-          </button>
-          <button className="text-slate-500 hover:text-slate-300 text-xs">
-            <MoreHorizontal className="w-3 h-3" />
-          </button>
         </div>
       </div>
     </div>

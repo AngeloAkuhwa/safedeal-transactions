@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import {
   Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search,
-  Filter, Megaphone, Eye, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
+  Filter, Megaphone, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
   Clock, AlertCircle, Paperclip,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -652,7 +652,6 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
               <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
               <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
               <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -698,11 +697,6 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                     {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                     {statusLabel(r.status)}
                   </span>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  <button className="text-blue-400 hover:text-blue-300" title="View">
-                    <Eye className="h-4 w-4" />
-                  </button>
                 </td>
               </tr>
             ))}

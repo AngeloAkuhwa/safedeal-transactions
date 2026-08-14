@@ -14,7 +14,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, cleanup, screen } from "@testing-library/react";
+import { render, cleanup, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import fs from "node:fs";
@@ -24,8 +24,10 @@ import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import {
   SUPPORT_RESPONSE_PROMISE,
   SUPPORT_RESPONSE_TARGET,
+  SUPPORT_HOURS,
   supportLink,
 } from "@/lib/support/support-copy";
+import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
 
 const SRC = path.resolve(__dirname, "..");
 
@@ -109,24 +111,81 @@ function renderPage(node: React.ReactElement) {
 
 let sellerVerified = false;
 
+const detailFixture = {
+  transaction: {
+    id: "tx-1",
+    transaction_code: "SD-2026-000123",
+    status: "delivered_awaiting_verification",
+    money_status: "held_in_escrow",
+    dispute_status: "none",
+    created_at: "2026-01-01T00:00:00Z",
+    delivered_at: "2026-01-05T00:00:00Z",
+    verification_deadline_at: "2026-01-07T00:00:00Z",
+    share_token: null,
+    agreement_locked_at: null,
+    cancellation_reason: null,
+    cancelled_by_role: null,
+  },
+  item: {
+    title: "Test item",
+    description: "A test item",
+    quantity: 1,
+    condition: "new",
+    condition_label: "new",
+    brand: null,
+    model: null,
+    category: null,
+  },
+  items: [],
+  pricing: {
+    currency_code: "NGN",
+    item_amount: 100000,
+    paystack_fee_amount: 0,
+    platform_fee_amount: 2100,
+    service_fee_amount: 2100,
+    service_fee_rate: 0.021,
+    total_amount: 102100,
+    buyer_total_amount: 102100,
+    seller_net_amount: 100000,
+    delivery_fee_amount: 0,
+  },
+  escrow: {
+    state: "held",
+    held_amount: 102100,
+    released_amount: 0,
+    frozen_amount: 0,
+    refunded_amount: 0,
+    amount: 102100,
+    currency_code: "NGN",
+  },
+  dispute: null,
+  status_history: [],
+  money_history: [],
+  delivery_terms: null,
+  delivery_tracking: null,
+  delivery_proof_files: [],
+  dispatch_evidence_files: [],
+  agreement: null,
+  next_action: { action: "verify_receipt", label: "Verify item received", description: "" },
+  product_media: [],
+  completion_event: null,
+};
+
+// The fixture must satisfy the real service contract, or these render tests
+// prove nothing about the real screen.
+const _fixtureMatchesContract: TransactionDetailResponse = {
+  ...detailFixture,
+  seller: { full_name: "Test Seller", avatar_url: null, member_since: "2025-01-01T00:00:00Z", is_verified: false },
+};
+void _fixtureMatchesContract;
+
 vi.mock("@/hooks/useBuyerIdentity", () => ({
   useBuyerIdentity: () => ({ buyerName: "Test Buyer", avatarUrl: null }),
 }));
 
 vi.mock("@/services/transaction-detail.service", () => ({
   getTransactionDetail: vi.fn(async () => ({
-    transaction: {
-      id: "tx-1",
-      transaction_code: "SD-2026-000123",
-      status: "delivered_awaiting_verification",
-      money_status: "held_in_escrow",
-      dispute_status: "none",
-      created_at: "2026-01-01T00:00:00Z",
-      delivered_at: "2026-01-05T00:00:00Z",
-      verification_deadline_at: "2026-01-07T00:00:00Z",
-      cancellation_reason: null,
-      cancelled_by_role: null,
-    },
+    ...detailFixture,
     seller: {
       id: "seller-1",
       full_name: "Test Seller",
@@ -134,35 +193,6 @@ vi.mock("@/services/transaction-detail.service", () => ({
       is_verified: sellerVerified,
       member_since: "2025-01-01T00:00:00Z",
     },
-    item: {
-      title: "Test item",
-      description: "A test item",
-      quantity: 1,
-      condition_label: "new",
-      brand: null,
-      model: null,
-    },
-    items: [],
-    pricing: {
-      currency_code: "NGN",
-      item_amount: 100000,
-      service_fee_amount: 2100,
-      buyer_total_amount: 102100,
-      seller_net_amount: 100000,
-      delivery_fee_amount: 0,
-    },
-    escrow: { state: "held", amount: 102100, currency_code: "NGN" },
-    dispute: null,
-    status_history: [],
-    money_history: [],
-    delivery_terms: null,
-    delivery_tracking: null,
-    delivery_proof_files: [],
-    dispatch_evidence_files: [],
-    agreement: null,
-    next_action: { action: "verify_receipt", label: "Verify item received" },
-    product_media: [],
-    completion_event: null,
   })),
 }));
 
@@ -176,20 +206,22 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
   it("renders NO Verified badge or tick when the seller is not verified", async () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
-    renderPage(<Page />);
-    const notVerified = await screen.findAllByText("Not verified");
+    const { container } = renderPage(<Page />);
+    const scope = within(container);
+    const notVerified = await scope.findAllByText("Not verified");
     // Desktop + mobile copies of the seller card.
     expect(notVerified.length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryAllByText("Verified")).toEqual([]);
+    expect(scope.queryAllByText("Verified")).toEqual([]);
   });
 
   it("renders the Verified badge on BOTH the desktop and mobile card when verified", async () => {
     sellerVerified = true;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
-    renderPage(<Page />);
-    const verified = await screen.findAllByText("Verified");
+    const { container } = renderPage(<Page />);
+    const scope = within(container);
+    const verified = await scope.findAllByText("Verified");
     expect(verified.length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryAllByText("Not verified")).toEqual([]);
+    expect(scope.queryAllByText("Not verified")).toEqual([]);
   });
 
   it("labels the receipt control by what it actually does", async () => {
@@ -203,30 +235,36 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
 
 /* ───────────────────────── dead control scans ─────────────────────────── */
 
-describe("no dead controls on buyer-facing and support surfaces", () => {
-  const SURFACES = [
-    "pages/BuyerTransactionDetail.tsx",
-    "pages/BuyerPaymentSummary.tsx",
-    "pages/AdminSupport.tsx",
-    "components/verification/VerificationSidebar.tsx",
-  ];
+describe("no dead controls anywhere under src/pages and src/components", () => {
+  // Every .tsx under pages/ and components/ — no allowlist, no exceptions.
+  const SURFACES = FILES.filter(
+    (f) => /\.tsx$/.test(f) && /(^|\/)(pages|components)\//.test(rel(f).replace(/\\/g, "/")),
+  );
 
-  const isDead = (tag: string, before: string) =>
-    !/onClick|onSubmit|type="submit"|disabled|asChild|href=|to=/.test(tag) &&
-    // A trigger that opens a menu/dialog is live even without its own handler.
-    !/asChild>\s*$/.test(before);
+  const isDead = (tag: string, before: string) => {
+    if (/onClick|onSubmit|onPointerDown|type="submit"|disabled|asChild|href=|to=/.test(tag)) return false;
+    // Live without its own handler when a parent gives it behaviour:
+    //  - `asChild` wrapper (DialogTrigger/DropdownMenuTrigger/Tooltip etc.)
+    //  - wrapped directly in a <Link> / <a>
+    //  - inside a <form> submit context via a nearby onSubmit
+    return !/asChild[\s\S]{0,160}>\s*$/.test(before) && !/<(?:Link|a)\b[^>]*>\s*$/.test(before);
+  };
 
-  for (const file of SURFACES) {
-    it(`every <button> and <Button> in ${file} does something`, () => {
-      const src = read(file);
-      const matches = [...src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)];
-      expect(matches.length).toBeGreaterThan(0);
-      const dead = matches
-        .filter((m) => isDead(m[0], src.slice(Math.max(0, m.index! - 120), m.index!)))
-        .map((m) => m[0]);
-      expect(dead).toEqual([]);
-    });
-  }
+  it("scans a meaningful number of files", () => {
+    expect(SURFACES.length).toBeGreaterThan(100);
+  });
+
+  it("every <button> and <Button> does something", () => {
+    const dead: string[] = [];
+    for (const file of SURFACES) {
+      const src = fs.readFileSync(file, "utf8");
+      for (const m of src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)) {
+        const before = src.slice(Math.max(0, m.index! - 200), m.index!);
+        if (isDead(m[0], before)) dead.push(`${rel(file)}: ${m[0].slice(0, 80)}`);
+      }
+    }
+    expect(dead).toEqual([]);
+  });
 
   it("DropdownMenuItem support entries in the transaction detail have handlers", () => {
     const src = read("pages/BuyerTransactionDetail.tsx");
@@ -240,6 +278,48 @@ describe("no dead controls on buyer-facing and support surfaces", () => {
     for (const file of ["pages/BuyerTransactionDetail.tsx", "components/verification/VerificationSidebar.tsx"]) {
       expect(read(file), file).toContain("supportLink(");
     }
+  });
+});
+
+/* ─────────────────── support SLA has exactly one source ───────────────── */
+
+describe("the support promise is stated in exactly one place", () => {
+  it("the app module re-exports the edge-function module", () => {
+    const appSrc = read("lib/support/support-copy.ts");
+    expect(appSrc).toContain("supabase/functions/_shared/support-copy");
+    expect(appSrc).not.toMatch(/business day/);
+  });
+
+  it("no file hardcodes the response target or support hours", () => {
+    const canonical = path.resolve(SRC, "..", "supabase/functions/_shared/support-copy.ts");
+    const offenders = FILES.filter((f) => {
+      const src = fs.readFileSync(f, "utf8");
+      return new RegExp(`${SUPPORT_RESPONSE_TARGET}|${SUPPORT_HOURS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(src);
+    }).map(rel);
+    expect(offenders).toEqual([]);
+    expect(fs.readFileSync(canonical, "utf8")).toContain(SUPPORT_RESPONSE_TARGET);
+  });
+
+  it("the acknowledgement email uses the shared sentence", () => {
+    const fn = fs.readFileSync(
+      path.resolve(SRC, "..", "supabase/functions/submit-contact-message/index.ts"),
+      "utf8",
+    );
+    expect(fn).toContain("SUPPORT_ACK_SENTENCE");
+    expect(fn).not.toMatch(/business day/);
+  });
+});
+
+describe("the completion banner labels the receipt control honestly", () => {
+  const src = read("components/transactions/TransactionCompletionBanner.tsx");
+  it("uses a printer icon and a print label", () => {
+    expect(src).toContain("Printer");
+    expect(src).toContain("Print receipt");
+    expect(src).not.toContain("View Receipt");
+    expect(src).not.toMatch(/\bDownload\b/);
+  });
+  it("takes its release-review wait from the shared constant", () => {
+    expect(src).toContain("FUND_RELEASE_REVIEW_TARGET");
   });
 });
 

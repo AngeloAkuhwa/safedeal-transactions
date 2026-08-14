@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
-  Globe, Users, Lock, Copy, Share2, ShieldCheck, Trash2,
+  Globe, Users, Lock, Share2, ShieldCheck,
   Info, ImageIcon, Banknote, Handshake, PackagePlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -419,11 +419,6 @@ const SellerProductDetail = () => {
                               Primary
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/[0.4] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <button className="p-1.5 rounded-lg bg-white/[0.2] backdrop-blur-sm text-white hover:bg-white/[0.3]">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
                         </div>
                       ))}
                       {/* Upload placeholder */}
@@ -652,13 +647,20 @@ const SellerProductDetail = () => {
                   <h3 className="text-base font-semibold text-foreground">Quick Actions</h3>
                 </div>
                 <div className="p-6 space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-center gap-2 text-foreground">
-                    <Copy className="h-3.5 w-3.5" />
-                    Duplicate Product
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-center gap-2 text-foreground">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-2 text-foreground"
+                    disabled={!product.store_slug}
+                    onClick={async () => {
+                      if (!product.store_slug) return;
+                      const url = `${window.location.origin}/store/${product.store_slug}`;
+                      await navigator.clipboard.writeText(url);
+                      toast.success("Storefront link copied");
+                    }}
+                  >
                     <Share2 className="h-3.5 w-3.5" />
-                    Share Product
+                    {product.store_slug ? "Copy storefront link" : "Publish your store to share"}
                   </Button>
                   <Button
                     variant="outline"

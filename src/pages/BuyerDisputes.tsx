@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, Shield, Check, BookOpen, HelpCircle } from "lucide-react";
+import { Loader2, RefreshCw, Shield, Check, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
+import { supportLink } from "@/lib/support/support-copy";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
 import { BuyerDisputeSummaryCards } from "@/components/disputes/BuyerDisputeSummaryCards";
@@ -83,9 +85,11 @@ const BuyerDisputes = () => {
                 Track all active and resolved disputes related to your protected transactions.
               </p>
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Dispute Help</span>
+            <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+              <Link to={supportLink(null, "dispute")}>
+                <HelpCircle className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Dispute Help</span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -130,10 +134,6 @@ const BuyerDisputes = () => {
                   </li>
                 </ul>
               </div>
-              <Button size="sm" className="flex-shrink-0 gap-1.5 h-8 text-xs">
-                <BookOpen className="h-3.5 w-3.5" />
-                Dispute Guide
-              </Button>
             </div>
           </div>
         </section>

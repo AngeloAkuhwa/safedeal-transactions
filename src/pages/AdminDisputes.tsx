@@ -3,7 +3,6 @@ import {
   RefreshCw,
   Download,
   Search,
-  ShieldAlert,
   Scale,
   Clock,
   AlertTriangle,
@@ -385,9 +384,6 @@ export default function AdminDisputes() {
               <Button variant="outline" size="sm" onClick={onExport}>
                 <Download className="mr-2 h-4 w-4" /> Export
               </Button>
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
-                <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
-              </Button>
             </div>
           </div>
         </header>
@@ -467,9 +463,6 @@ export default function AdminDisputes() {
                     Clear filters
                   </Button>
                 )}
-                <Button variant="outline" size="sm" className="text-xs">
-                  Advanced Filters
-                </Button>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">

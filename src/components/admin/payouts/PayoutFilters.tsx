@@ -1,4 +1,4 @@
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface Props {
   search: string;
@@ -18,13 +18,6 @@ export function PayoutFilters({ search, onSearch }: Props) {
           className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full lg:w-80 text-sm"
         />
       </div>
-      <button
-        type="button"
-        className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-sm font-medium whitespace-nowrap"
-      >
-        <Filter className="h-4 w-4" />
-        Filters
-      </button>
     </div>
   );
 }

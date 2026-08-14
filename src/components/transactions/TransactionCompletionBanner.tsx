@@ -1,8 +1,9 @@
-import { CheckCircle, Scale, Download, ShieldCheck } from "lucide-react";
+import { CheckCircle, Scale, Printer, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { FUND_RELEASE_REVIEW_TARGET } from "@/lib/support/support-copy";
 
 export type CompletionVariant = "buyer_confirmed" | "dispute_resolved" | "unknown";
 
@@ -13,7 +14,8 @@ export interface TransactionCompletionBannerProps {
    * "Awaiting Release" pre-release state and ignores the released copy. */
   fundsReleasedAt?: string | null;
   perspective: "buyer" | "seller";
-  onViewReceipt?: () => void;
+  /** Opens the browser print dialog for the receipt. */
+  onPrintReceipt?: () => void;
   className?: string;
 }
 
@@ -110,7 +112,7 @@ function buildAwaitingCopy(
       }
     : {
         title: "Buyer Confirmed Receipt",
-        body: `The buyer confirmed receipt on ${date}. SafeDeal will release your funds after review — typically within 1 business day.`,
+        body: `The buyer confirmed receipt on ${date}. SafeDeal will release your funds after review — typically within ${FUND_RELEASE_REVIEW_TARGET}.`,
       };
 }
 
@@ -119,7 +121,7 @@ export function TransactionCompletionBanner({
   completedAt,
   fundsReleasedAt,
   perspective,
-  onViewReceipt,
+  onPrintReceipt,
   className,
 }: TransactionCompletionBannerProps) {
   const isReleased = !!fundsReleasedAt;
@@ -154,15 +156,15 @@ export function TransactionCompletionBanner({
             </p>
           )}
 
-          {onViewReceipt && isReleased && (
+          {onPrintReceipt && isReleased && (
             <Button
               variant="outline"
               size="sm"
               className="mt-3 gap-2"
-              onClick={onViewReceipt}
+              onClick={onPrintReceipt}
             >
-              <Download className="h-3.5 w-3.5" />
-              View Receipt
+              <Printer className="h-3.5 w-3.5" />
+              Print receipt
             </Button>
           )}
         </div>

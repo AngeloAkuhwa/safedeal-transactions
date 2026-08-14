@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { sellerConfirmCompletion } from "@/services/seller-transaction-detail.service";
 import { useNavigate } from "react-router";
 import { SellerPayoutLine } from "@/components/payment/SellerPayoutLine";
+import { FUND_RELEASE_REVIEW_TARGET } from "@/lib/support/support-copy";
 
 interface SellerConfirmCompletionCardProps {
   transactionId: string;
@@ -93,7 +94,7 @@ export function SellerConfirmCompletionCard({
           </div>
 
           <p className="text-sm text-muted-foreground leading-relaxed">
-            The buyer confirmed receipt for <span className="font-semibold text-foreground">#{transactionCode}</span> on {buyerConfirmedDate}. Once you confirm, SafeDeal will review and release your funds — typically within 1 business day.
+            The buyer confirmed receipt for <span className="font-semibold text-foreground">#{transactionCode}</span> on {buyerConfirmedDate}. Once you confirm, SafeDeal will review and release your funds — typically within {FUND_RELEASE_REVIEW_TARGET}.
           </p>
 
           <div className="mt-4 rounded-lg border border-primary/20 bg-background/60 px-3 py-2">

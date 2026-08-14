@@ -204,14 +204,11 @@ const SellerProductPreview = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-primary/20 bg-primary/5 text-primary"
-            >
+            {/* Static mode indicator, not a control — this page IS the preview. */}
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
               <Eye className="h-3.5 w-3.5" />
               Preview
-            </Button>
+            </span>
             <Button
               size="sm"
               onClick={() => navigate(`/seller/storefront/${productId}`)}
