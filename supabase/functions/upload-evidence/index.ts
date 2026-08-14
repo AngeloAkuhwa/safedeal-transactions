@@ -75,10 +75,17 @@ Deno.serve(async (req) => {
 // ════════════════════════════════════════════
 // SIGN UPLOAD
 // ════════════════════════════════════════════
+/**
+ * Incoming transformation for product photo masters: never store more than
+ * 2000px on the longest side, at a sane quality. Pure URL/transform work —
+ * no paid Cloudinary add-ons involved.
+ */
+const MASTER_INCOMING_TRANSFORMATION = "c_limit,w_2000,h_2000,q_auto:good";
+
 async function signUpload(
   admin: ReturnType<typeof createClient>,
   userId: string,
-  body: { context?: string },
+  body: { context?: string; resource_type?: string },
 ) {
   // Rate limit: max 50 uploads per hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -126,6 +133,11 @@ async function signUpload(
       ...mediaCfg.videoAllowedFormats,
     ].join(",");
     params.max_file_size = String(Math.max(mediaCfg.imageMaxBytes, mediaCfg.videoMaxBytes));
+    // Only images get the incoming transformation; videos would need eager
+    // processing, which we deliberately avoid.
+    if ((body.resource_type ?? "image") === "image") {
+      params.transformation = MASTER_INCOMING_TRANSFORMATION;
+    }
   }
 
   const paramsToSign = Object.keys(params)
@@ -143,6 +155,7 @@ async function signUpload(
     folder,
     allowed_formats: params.allowed_formats ?? null,
     max_file_size: params.max_file_size ?? null,
+    transformation: params.transformation ?? null,
     media_config: mediaCfg,
   });
 }
