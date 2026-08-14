@@ -17,7 +17,7 @@ import type {
   RefundDecision,
   RefundOutcome,
 } from "@/types/payment-flow.types";
-import { appliedCapFromModelVersion } from "@/types/payment-flow.types";
+import { resolveAppliedCap } from "@/types/payment-flow.types";
 
 /**
  * Build a canonical PricingSnapshot from a persisted `transaction_pricing`
