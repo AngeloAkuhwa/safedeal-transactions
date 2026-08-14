@@ -120,35 +120,22 @@ Deno.serve(async (req) => {
     if (txErr || !tx) return jsonResponse({ error: "Transaction not found" }, 404);
     if (tx.seller_id !== userId) return jsonResponse({ error: "Not authorized" }, 403);
 
-    let { data: terms } = await admin
+    const { data: terms } = await admin
       .from("transaction_delivery_terms")
       .select("delivery_method, verification_window_hours")
       .eq("transaction_id", transaction_id)
       .maybeSingle();
 
-    if (!terms) {
-      console.warn(`Missing delivery terms for transaction ${transaction_id} — bootstrapping defaults`);
-      const { data: bootstrapped, error: bootstrapErr } = await admin
-        .from("transaction_delivery_terms")
-        .insert({
-          transaction_id,
-          delivery_method: "courier",
-          expected_delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          verification_window_hours: 72,
-        })
-        .select("delivery_method, verification_window_hours")
-        .single();
-      if (bootstrapErr) {
-        console.error("Failed to bootstrap delivery terms:", bootstrapErr);
-      } else {
-        terms = bootstrapped;
-      }
-    }
-
     // Fail closed: an unset delivery method is not a courier shipment. We
     // refuse the transition rather than demanding courier evidence.
+    // The same applies to the verification window: it is the buyer's agreed
+    // inspection clock, so an absent one is refused rather than set to 72h.
     const deliveryMethod = terms?.delivery_method ?? null;
-    const verificationWindowHours = terms?.verification_window_hours ?? 72;
+    const rawWindow = terms?.verification_window_hours;
+    const verificationWindowHours =
+      rawWindow != null && Number.isFinite(Number(rawWindow)) && Number(rawWindow) > 0
+        ? Number(rawWindow)
+        : null;
 
     // State transition validation
     const allowedFrom = ALLOWED_FROM[action];
@@ -165,6 +152,16 @@ Deno.serve(async (req) => {
           error: "This transaction has no delivery method set. Set the delivery terms before updating fulfilment.",
         }, 400);
       }
+    }
+
+    // Marking delivered starts the buyer's inspection clock. Without an agreed
+    // window there is no clock to start — refuse instead of inventing one.
+    if (action === "delivered" && verificationWindowHours === null) {
+      return jsonResponse({
+        error:
+          "This transaction has no agreed verification window. SafeDeal support must set the delivery terms before it can be marked delivered.",
+        code: "verification_window_unresolved",
+      }, 409);
     }
 
     if (action === "dispatched") {
@@ -320,7 +317,7 @@ Deno.serve(async (req) => {
     const updatePayload: Record<string, unknown> = { status: newStatus };
     if (action === "delivered") {
       updatePayload.delivered_at = now;
-      updatePayload.verification_deadline_at = new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString();
+      updatePayload.verification_deadline_at = new Date(Date.now() + verificationWindowHours! * 60 * 60 * 1000).toISOString();
     }
 
     const { error: updateErr } = await admin
@@ -563,7 +560,7 @@ Deno.serve(async (req) => {
       new_status: newStatus,
       delivered_at: action === "delivered" ? now : null,
       verification_deadline_at: action === "delivered"
-        ? new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString()
+        ? new Date(Date.now() + verificationWindowHours! * 60 * 60 * 1000).toISOString()
         : null,
       handoff_code: handoffCode,
       rider_token: riderToken,

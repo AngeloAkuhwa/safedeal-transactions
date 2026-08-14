@@ -209,7 +209,14 @@ export async function loadEffectiveAutoRelease(
     const platform = (rows ?? []).find((r: any) => r.scope === "platform");
     const effective = vendor ?? platform;
     if (!effective) return fallback;
-    const window = await loadEffectiveTimeoutHours(vendorId ?? null, "buyer_verification_timeout", 48);
+    // Auto-release moves escrow to the seller on this clock, so it PERSISTS a
+    // window rather than narrating one: use the strict resolver and refuse to
+    // enable auto-release when no window is configured.
+    const window = await resolveEffectiveTimeoutHours(vendorId ?? null, "buyer_verification_timeout");
+    if (window === null) {
+      return { ...fallback, enabled: false, enabled_by: effective.auto_release_enabled_by ?? null,
+        enabled_at: effective.auto_release_enabled_at ?? null, scope: vendor ? "vendor" : "platform" };
+    }
     return {
       enabled: Boolean(effective.setting_value),
       window_hours: window,

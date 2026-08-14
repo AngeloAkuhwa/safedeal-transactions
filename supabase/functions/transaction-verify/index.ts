@@ -448,7 +448,22 @@ async function buyerConfirmDelivery(
     .select("verification_window_hours")
     .eq("transaction_id", transactionId)
     .maybeSingle();
-  const verificationWindowHours = terms?.verification_window_hours ?? 72;
+  // FAIL CLOSED (same rule as delivery-token-confirm and update-delivery-status):
+  // the lock trigger no longer fabricates delivery terms, so an absent window
+  // is an unknown fact, not a 72-hour commitment. Refuse rather than invent a
+  // release deadline the parties never agreed to.
+  const rawWindow = terms?.verification_window_hours;
+  const verificationWindowHours =
+    rawWindow != null && Number.isFinite(Number(rawWindow)) && Number(rawWindow) > 0
+      ? Number(rawWindow)
+      : null;
+  if (verificationWindowHours === null) {
+    return jsonResponse({
+      error:
+        "This transaction has no agreed verification window. SafeDeal support must set the delivery terms before delivery can be confirmed.",
+      code: "verification_window_unresolved",
+    }, 409);
+  }
 
   try {
     if (tx.status === "payment_secured") {

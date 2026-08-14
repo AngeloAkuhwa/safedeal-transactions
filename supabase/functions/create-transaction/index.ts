@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig, loadEffectiveTimeoutHours, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,10 +85,20 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   const itemTitle = (body.item_title as string) ?? "";
   const itemDescription = (body.item_description as string) ?? "";
   const itemQuantity = (body.item_quantity as number) ?? 1;
-  const itemCondition = (body.item_condition as string) ?? "brand_new";
-  const price = (body.price as number) ?? 0;
-  const currencyCode = (body.currency_code as string) ?? "NGN";
-  const deliveryMethod = (body.delivery_method as string) ?? "courier";
+  // A DRAFT records what the seller has entered so far — nothing more. Every
+  // unset field stays unset: a fabricated condition / currency / delivery
+  // method / window is later read back by `handlePublish` as if the seller had
+  // chosen it, which is exactly how the fail-closed publish guard was bypassed.
+  const itemCondition = typeof body.item_condition === "string" && body.item_condition
+    ? body.item_condition
+    : null;
+  const price = typeof body.price === "number" && Number.isFinite(body.price) ? body.price : null;
+  const currencyCode = typeof body.currency_code === "string" && body.currency_code
+    ? body.currency_code
+    : null;
+  const deliveryMethod = typeof body.delivery_method === "string" && body.delivery_method
+    ? body.delivery_method
+    : null;
   const expectedDeliveryDate = (body.expected_delivery_date as string) ?? "";
   const verificationWindowHoursRaw = body.verification_window_hours as number | undefined;
   const sellerNotes = (body.seller_notes as string) ?? "";
@@ -144,10 +154,16 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   }
 
   const vendorConfig = await loadPricingConfig(userId);
-  const pricing = computePricing(price, currencyCode, "local", vendorConfig);
-  const snapshot = buildPricingSnapshot(price, currencyCode, vendorConfig);
+  // Pricing is only snapshotted once the seller has actually named a price and
+  // a currency. Until then there is nothing truthful to snapshot.
+  const canPrice = price !== null && price > 0 && currencyCode !== null;
+  const pricing = canPrice ? computePricing(price!, currencyCode!, "local", vendorConfig) : null;
+  const snapshot = canPrice ? buildPricingSnapshot(price!, currencyCode!, vendorConfig) : null;
+  // The seller's own entry wins; otherwise the configured window; otherwise
+  // NOTHING is written — publish will resolve it strictly and refuse if it
+  // cannot. The draft path must never manufacture a commitment.
   const verificationWindowHours = verificationWindowHoursRaw
-    ?? await loadEffectiveTimeoutHours(userId, "buyer_verification_timeout", 72);
+    ?? await resolveEffectiveTimeoutHours(userId, "buyer_verification_timeout");
   const fileIds = (body.file_ids as string[]) ?? [];
 
   await Promise.all([
@@ -171,17 +187,19 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
       quantity: itemQuantity,
       condition_label: itemCondition,
     }),
-    upsertByTransaction(adminClient, "transaction_pricing", transactionId!, {
-      currency_code: currencyCode,
-      item_amount: price,
-      platform_fee_amount: pricing.platform_fee_amount,
-      buyer_total_amount: pricing.total_amount,
-      payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
-      seller_payout_amount: snapshot.seller_payout_amount,
-      is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
-      pricing_model_version: snapshot.pricing_model_version,
-    }),
-    expectedDeliveryDate
+    canPrice
+      ? upsertByTransaction(adminClient, "transaction_pricing", transactionId!, {
+          currency_code: currencyCode,
+          item_amount: price,
+          platform_fee_amount: pricing!.platform_fee_amount,
+          buyer_total_amount: pricing!.total_amount,
+          payment_processing_fee_amount: snapshot!.payment_processing_fee_amount,
+          seller_payout_amount: snapshot!.seller_payout_amount,
+          is_total_service_fee_capped: snapshot!.is_total_service_fee_capped,
+          pricing_model_version: snapshot!.pricing_model_version,
+        })
+      : Promise.resolve(),
+    expectedDeliveryDate && deliveryMethod
       ? upsertByTransaction(adminClient, "transaction_delivery_terms", transactionId!, {
           delivery_method: deliveryMethod,
           expected_delivery_date: expectedDeliveryDate,
@@ -381,8 +399,10 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
           title: draftItemRes.data.title,
           description: draftItemRes.data.description || "",
           quantity: draftItemRes.data.quantity || 1,
-          condition: draftItemRes.data.condition_label || "brand_new",
-          price: Number(pricingRes.data?.item_amount) || 0,
+          // No invented condition or price: an unset field fails the checks
+          // below rather than publishing a fact the seller never supplied.
+          condition: draftItemRes.data.condition_label ?? null,
+          price: pricingRes.data?.item_amount != null ? Number(pricingRes.data.item_amount) : null,
           currency_code: currencyCode,
         }]
       : []);

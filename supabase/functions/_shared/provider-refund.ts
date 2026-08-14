@@ -26,6 +26,11 @@ export type ProviderRefundResult =
  * that already carries a provider_reference) returns success without calling
  * Paystack again.
  *
+ * Fail closed on pricing: the refundable amount is defined by the pricing
+ * snapshot (buyer total minus the non-refundable processing fee). The guard
+ * lives HERE rather than in one caller so all three rails — the ad-hoc admin
+ * refund, the dispute-resolution path and the retry action — share it.
+ *
  * Never throws — failures call `fail_refund_atomic`, alert ops, and return an
  * error result so the caller can decide what to report.
  */
@@ -65,6 +70,37 @@ export async function executeProviderRefund(
     }
 
     const transactionId = (refund as any).transaction_id as string;
+
+    // Pricing-snapshot guard — no snapshot, no money movement.
+    const { data: pricingRow } = await admin
+      .from("transaction_pricing")
+      .select("buyer_total_amount, payment_processing_fee_amount")
+      .eq("transaction_id", transactionId)
+      .maybeSingle();
+    const buyerTotal = Number((pricingRow as any)?.buyer_total_amount);
+    const processingFee =
+      (pricingRow as any)?.payment_processing_fee_amount != null
+        ? Number((pricingRow as any).payment_processing_fee_amount)
+        : Number.NaN;
+    if (!Number.isFinite(buyerTotal) || !Number.isFinite(processingFee)) {
+      try {
+        await admin.rpc("flag_for_release_review", {
+          p_transaction_id: transactionId,
+          p_reason: "pricing_missing",
+          p_actor_user_id: opts?.actor_user_id ?? null,
+          p_notes:
+            "No pricing snapshot: cannot establish the refundable amount before moving money at the provider.",
+        });
+      } catch (e) {
+        console.error("executeProviderRefund: flag_for_release_review failed", e);
+      }
+      return { ok: false, error: "pricing_missing", refund_id: refundId };
+    }
+    // The refundable ceiling is buyer total minus the non-refundable
+    // processing fee. Anything above it is a policy breach, not a rounding.
+    if (refundAmount > Math.max(buyerTotal - processingFee, 0) + 0.005) {
+      return { ok: false, error: "refund_exceeds_refundable_amount", refund_id: refundId };
+    }
 
     const { data: tx } = await admin
       .from("transactions")

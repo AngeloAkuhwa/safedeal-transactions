@@ -111,7 +111,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/admin-transactions-monitor/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/dispute-detail/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/payout-watchdog/index.ts",
@@ -126,7 +125,6 @@ const EDGE_CURRENCY_DEBT: string[] = [
   "supabase/functions/seller-transactions/index.ts",
   "supabase/functions/transaction-agreement/index.ts",
   "supabase/functions/transaction-detail/index.ts",
-  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-payout-account/index.ts",
   "supabase/functions/vendor-plan/index.ts",
   "supabase/functions/verify-paystack-payment/index.ts",
@@ -172,13 +170,8 @@ const CURRENCY_DEBT = [
  * `system_settings`. Same ratchet rules as above.
  */
 const WINDOW_DEBT = [
-  "supabase/functions/create-transaction/index.ts",
-  "supabase/functions/delivery-token-confirm/index.ts",
-  "supabase/functions/transaction-verify/index.ts",
-  "supabase/functions/update-delivery-status/index.ts",
   // Newly VISIBLE under the positional + delivery-estimate rules added in this
   // pass. Recorded, not narrowed away.
-  "supabase/functions/_shared/settings-resolver.ts",
 ];
 
 /**
@@ -197,7 +190,6 @@ const POSITIONAL_DEBT = [
 
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
   "supabase/functions/_shared/safedeal-money-policy.ts",
-  "supabase/functions/_shared/settings-resolver.ts",
   "supabase/functions/admin-system-settings/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/seller-transaction-detail/index.ts",
@@ -365,7 +357,6 @@ const SYMBOL_DEBT: string[] = [
  * NGN-only formatter helper. Same shrink-only ratchet.
  */
 const EDGE_SYMBOL_DEBT: string[] = [
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/_shared/pricing-invariant.ts",
@@ -537,7 +528,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/admin-users-directory-export/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
   "supabase/functions/_shared/safedeal-money-policy.ts",
@@ -677,7 +667,6 @@ const MONEY_ZERO_WRAPPED_DEBT: string[] = [
   "supabase/functions/admin-flagged-user-detail/index.ts",
   "supabase/functions/buyer-disputes/index.ts",
   "supabase/functions/buyer-transactions/index.ts",
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
   "supabase/functions/seller-dashboard/index.ts",
@@ -864,6 +853,8 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     pattern: /interval\s+'\d+\s+day/i,
     debt: [
         "supabase/migrations/20260308102521_d299192f-2ecd-4095-b7df-aec585f187f9.sql",
+        // ledger_write_guarded still COALESCEs its currency; tracked live in live-db.contract.test.ts.
+        "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260419165835_75c559da-03a0-4412-9a4e-4a0987d8309d.sql",
         "supabase/migrations/20260613133755_de7f6587-0a8f-480b-86fd-5d128286a164.sql",
         "supabase/migrations/20260613135229_a14c082f-f4b5-47e3-ac21-fbbc5bab7f0a.sql",
