@@ -88,7 +88,11 @@ export function toBuyerBreakdown(
     seller_payout_amount: snapshot.seller_payout_amount,
     currency: snapshot.currency,
     is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
-    applied_cap: appliedCapFromModelVersion(snapshot.pricing_model_version),
+    applied_cap: resolveAppliedCap({
+      pricing_model_version: snapshot.pricing_model_version,
+      service_fee_amount: snapshot.service_fee_amount,
+      safedeal_fee_amount: snapshot.safedeal_fee_amount,
+    }),
     is_estimate: opts?.isEstimate ?? false,
   };
 }
@@ -127,9 +131,11 @@ export function viewFromRow(
     seller_payout_amount: sellerPayout,
     currency: (row.currency_code as string) ?? (row.currency as string) ?? "NGN",
     is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped),
-    applied_cap: appliedCapFromModelVersion(
-      (row.pricing_model_version as string) ?? null,
-    ),
+    applied_cap: resolveAppliedCap({
+      pricing_model_version: (row.pricing_model_version as string) ?? null,
+      service_fee_amount: service,
+      safedeal_fee_amount: safedeal,
+    }),
     is_estimate: opts?.isEstimate ?? false,
   };
 }

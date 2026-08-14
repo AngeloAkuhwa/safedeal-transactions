@@ -18,7 +18,7 @@ import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { describeFeeBreakdown, DEFAULT_MIN_PLATFORM_FEE } from "@/lib/pricing";
-import { appliedCapFromModelVersion } from "@/types/payment-flow.types";
+import { resolveAppliedCap } from "@/types/payment-flow.types";
 import { ChevronDown } from "lucide-react";
 import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
