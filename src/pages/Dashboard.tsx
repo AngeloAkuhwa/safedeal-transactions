@@ -70,10 +70,10 @@ const Dashboard = () => {
             <div className="rounded-xl border bg-card p-8 text-center">
               <ShoppingBag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
               <h2 className="text-base font-semibold text-foreground mb-1">
-                You don't have any protected purchases yet
+                You don't have any purchases yet
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                When you make your first secure purchase through SafeDeal, it will appear here with full tracking and protection.
+                When you make your first purchase through SafeDeal, its transaction and delivery status will appear here.
               </p>
             </div>
           </section>

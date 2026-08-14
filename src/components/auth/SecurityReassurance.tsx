@@ -14,7 +14,7 @@ const items = [
     icon: ShieldCheck,
     title: "Identity & Payment Verification",
     bullets: [
-      "Verified buyer & seller identities",
+      "Buyer and seller identity checks",
       "Secure payment processing",
       "Fraud detection built-in",
     ],

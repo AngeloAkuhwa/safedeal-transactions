@@ -311,7 +311,7 @@ async function handleList(adminClient: any, userId: string, req: Request) {
     query,
     adminClient
       .from("account_verifications")
-      .select("verification_level")
+      .select("verification_level, identity_verified")
       .eq("user_id", userId)
       .maybeSingle(),
     adminClient
@@ -392,6 +392,7 @@ async function handleList(adminClient: any, userId: string, req: Request) {
   // Build trust_summary from DB data
   const trustSummary = {
     verification_level: verificationResult.data?.verification_level || "unverified",
+    identity_verified: verificationResult.data?.identity_verified === true,
     published_count: publishedCountResult.count || 0,
     rating: null, // No reviews table yet
     review_count: 0,

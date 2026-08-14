@@ -800,7 +800,7 @@ const BuyerCart = () => {
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-start gap-2.5">
                       <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-xs text-muted-foreground">
-                        Transactions are grouped by seller and protected individually with independent escrow.
+                        Transactions are grouped by seller and recorded separately.
                       </p>
                     </div>
                   </div>

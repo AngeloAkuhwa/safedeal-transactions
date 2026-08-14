@@ -398,7 +398,7 @@ export function TransactionSuccess({
               </div>
               <div className="flex-1">
                 <h4 className="text-lg font-bold text-foreground mb-2">SafeDeal Protection Active After Payment</h4>
-                <p className="text-sm text-muted-foreground">Once the buyer pays through your secure link, SafeDeal protection is fully active. The agreement locks, funds are held in escrow, and you can fulfill the order knowing payment is guaranteed upon successful delivery confirmation.</p>
+                <p className="text-sm text-muted-foreground">Once the buyer pays through the link, the agreement locks and the transaction moves to fulfillment. Release remains subject to the recorded delivery, dispute, and payment states.</p>
               </div>
             </div>
           </div>

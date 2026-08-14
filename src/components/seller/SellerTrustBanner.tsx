@@ -13,16 +13,16 @@ export function SellerTrustBanner() {
             <Shield className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Your transactions are fully protected</h3>
+            <h3 className="text-lg font-bold text-white">Transaction terms in one place</h3>
             <p className="text-sm text-white/80">
-              All payments are held securely in escrow until buyers verify receipt
+              Review each transaction's payment, delivery, and release status
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="bg-white/20 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
-            <p className="text-2xl font-bold text-white">100%</p>
-            <p className="text-xs text-white/80">Protected</p>
+            <p className="text-2xl font-bold text-white">Recorded</p>
+            <p className="text-xs text-white/80">Status</p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
             <div className="flex items-center justify-center gap-1">

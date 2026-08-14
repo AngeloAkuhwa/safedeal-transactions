@@ -1,4 +1,4 @@
-import { Shield, CheckCircle2, Mail, Phone, UserCheck } from "lucide-react";
+import { ShieldCheck, Mail, Phone, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
@@ -24,15 +24,8 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
     .slice(0, 2)
     .toUpperCase();
 
-  const verificationLabel =
-    seller.verification_level === "trusted_buyer"
-      ? "Trusted Seller"
-      : seller.verification_level === "basic_verified"
-      ? TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text
-      : "Seller";
-
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-background to-success/5 border-b">
+    <div className="bg-primary/5 border-b">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="flex items-center gap-4 sm:gap-6 mb-4">
           <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-primary/20">
@@ -42,10 +35,12 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{seller.full_name}</h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-1">
-                <Shield className="h-3 w-3" />
-                {verificationLabel}
-              </Badge>
+              {seller.identity_verified && (
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  {TRUST_CLAIMS.SELLER_VERIFIED.text}
+                </Badge>
+              )}
               <span className="text-sm text-muted-foreground">
                 {productCount} product{productCount !== 1 ? "s" : ""}
               </span>
@@ -55,26 +50,22 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
         <div className="flex items-center gap-3 flex-wrap">
           {seller.email_verified && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Mail className="h-3.5 w-3.5 text-success" />
-              Email verified
+              <Mail className="h-3.5 w-3.5" />
+              Email confirmed
             </div>
           )}
           {seller.phone_verified && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Phone className="h-3.5 w-3.5 text-success" />
-              Phone verified
+              <Phone className="h-3.5 w-3.5" />
+              Phone confirmed
             </div>
           )}
           {seller.identity_verified && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <UserCheck className="h-3.5 w-3.5 text-success" />
-              ID verified
+              <UserCheck className="h-3.5 w-3.5 text-primary" />
+              {TRUST_CLAIMS.SELLER_ID_VERIFIED.text}
             </div>
           )}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-            SafeDeal Protected
-          </div>
         </div>
       </div>
     </div>

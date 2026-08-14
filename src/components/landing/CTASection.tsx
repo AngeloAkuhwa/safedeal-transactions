@@ -11,7 +11,7 @@ export function CTASection() {
           Ready to shop or sell with protection?
         </h2>
         <p className="body-lead mx-auto mb-6 max-w-xl text-left text-muted-foreground sm:text-center">
-          Browse protected listings or create your own deal in minutes.
+          Browse listings or create your own deal in minutes.
         </p>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-5">

@@ -31,10 +31,10 @@ export function TransactionsEmptyState({ variant, onClearFilters }: Transactions
     <div className="sd-card p-8 text-center">
       <ShoppingBag className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
       <h3 className="text-base font-semibold text-foreground mb-1">
-        You do not have any protected purchases yet
+        You do not have any purchases yet
       </h3>
       <p className="text-xs text-muted-foreground max-w-md mx-auto mb-4">
-        When you make your first secure purchase through SafeDeal, it will appear here with full tracking and protection.
+        When you make your first purchase through SafeDeal, its transaction and delivery status will appear here.
       </p>
       <div className="flex items-center justify-center gap-2">
         <Button asChild size="sm" className="h-8 text-xs">

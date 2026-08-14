@@ -16,12 +16,8 @@ export type TrustCondition =
   | "ALWAYS_TRUE"
   /** `account_verifications.identity_verified` is true for the seller. */
   | "SELLER_ID_VERIFIED"
-  /** `account_verifications.email_verified` is true for the seller. */
-  | "SELLER_EMAIL_VERIFIED"
   /** `account_verifications.phone_verified` is true for the seller. */
   | "SELLER_PHONE_VERIFIED"
-  /** Seller's computed `verification_level` is trusted_buyer/high_trust_buyer. */
-  | "SELLER_TRUST_LEVEL_VERIFIED"
   /** The chosen/booked delivery method is courier-tracked. */
   | "DELIVERY_IS_TRACKED"
   /** The chosen/booked delivery method is confirmed by handover code. */
@@ -69,13 +65,8 @@ export const TRUST_CLAIMS = {
   ),
   SELLER_VERIFIED: claim(
     "Verified Seller",
-    "SELLER_EMAIL_VERIFIED",
-    "account_verifications.email_verified === true (weakest verification we will label).",
-  ),
-  SELLER_LEVEL_VERIFIED: claim(
-    "Verified Seller",
-    "SELLER_TRUST_LEVEL_VERIFIED",
-    "compute_verification_level() returned trusted_buyer or high_trust_buyer.",
+    "SELLER_ID_VERIFIED",
+    "account_verifications.identity_verified === true; email or phone confirmation alone never earns this badge.",
   ),
   SELLER_PHONE_VERIFIED: claim(
     "Phone Verified",
@@ -100,18 +91,18 @@ export const TRUST_CLAIMS = {
   ),
 } as const;
 
-/** Delivery methods where no courier tracking number exists. */
-export const UNTRACKED_DELIVERY_METHODS = [
-  "hand_delivery",
-  "meetup",
-  "pickup",
-  "digital",
-  "digital_delivery",
+/** Closed allowlist: unknown or missing methods never earn a tracking claim. */
+export const TRACKED_DELIVERY_METHODS = [
+  "courier",
+  "courier_shipping",
+  "shipping",
+  "standard_delivery",
+  "delivery",
 ] as const;
 
 export function isTrackedDelivery(method?: string | null): boolean {
   if (!method) return false;
-  return !(UNTRACKED_DELIVERY_METHODS as readonly string[]).includes(method);
+  return (TRACKED_DELIVERY_METHODS as readonly string[]).includes(method);
 }
 
 /**
@@ -123,7 +114,6 @@ export function sellerVerificationClaim(input: {
   emailVerified?: boolean | null;
 }): TrustClaim | null {
   if (input.identityVerified) return TRUST_CLAIMS.SELLER_ID_VERIFIED;
-  if (input.emailVerified) return TRUST_CLAIMS.SELLER_VERIFIED;
   return null;
 }
 

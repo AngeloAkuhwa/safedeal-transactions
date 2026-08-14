@@ -28,9 +28,15 @@ export interface DeliveryTermsCardProps {
 
 const TRACKING_RULE_BY_METHOD: Record<string, string> = {
   courier: "Tracking number required for shipment",
+  courier_shipping: "Tracking number required for shipment",
+  shipping: "Tracking number required for shipment",
+  standard_delivery: "Tracking number required for shipment",
+  delivery: "Tracking number required for shipment",
   pickup: "Handoff code required at pickup location",
   meetup: "Handoff code required at the meetup",
   hand_delivery: "Rider/courier name and dispatch evidence required",
+  digital: "Digital delivery evidence required",
+  digital_delivery: "Digital delivery evidence required",
 };
 
 function getAddressLine(terms: DeliveryTermsCardProps["terms"]): string | null {
@@ -50,12 +56,12 @@ function getAddressLine(terms: DeliveryTermsCardProps["terms"]): string | null {
 export function DeliveryTermsCard({ terms, lockedAt, compact, className }: DeliveryTermsCardProps) {
   if (!terms) return null;
 
-  const method = terms.delivery_method ?? "courier";
+  const method = terms.delivery_method ?? "unknown";
   const expected = terms.expected_delivery_date
     ? format(new Date(terms.expected_delivery_date), "MMM d, yyyy")
     : "—";
   const window = terms.verification_window_hours ?? null;
-  const trackingRule = TRACKING_RULE_BY_METHOD[method] ?? TRACKING_RULE_BY_METHOD.courier;
+  const trackingRule = TRACKING_RULE_BY_METHOD[method] ?? "No delivery evidence rule is configured for this method";
   const address = getAddressLine(terms);
   const showHandoffNote = method === "pickup" || method === "meetup";
 
@@ -66,13 +72,15 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-primary" />
           <h3 className={cn("font-bold text-foreground", compact ? "text-sm" : "text-base")}>
-            Locked Delivery Terms
+            {lockedAt ? "Locked Delivery Terms" : "Delivery Terms"}
           </h3>
         </div>
-        <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[10px] font-bold gap-1 px-2 py-0.5">
-          <ShieldCheck className="h-3 w-3" />
-          IMMUTABLE
-        </Badge>
+        {lockedAt && (
+          <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[10px] font-bold gap-1 px-2 py-0.5">
+            <ShieldCheck className="h-3 w-3" />
+            IMMUTABLE
+          </Badge>
+        )}
       </div>
 
       {/* Body */}

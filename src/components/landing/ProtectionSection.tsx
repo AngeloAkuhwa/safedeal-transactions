@@ -31,7 +31,7 @@ export function ProtectionSection() {
       <div className="container-x mx-auto max-w-5xl">
         <div className="mb-5 text-center sm:mb-8">
           <h2 className="h-section mb-2 font-bold text-foreground">
-            Your money stays protected until you're satisfied
+            Payment follows the recorded transaction outcome
           </h2>
           <p className="body-lead mx-auto max-w-xl text-left text-muted-foreground sm:text-center">
             You pay SafeDeal, not the seller. The money only moves when the item checks out.
@@ -61,7 +61,7 @@ export function ProtectionSection() {
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <p className="text-sm font-semibold text-foreground">
-              Do not pay outside SafeDeal. Outside payments are not protected.
+              Do not pay outside SafeDeal. Outside payments are not part of the recorded transaction.
             </p>
           </div>
         </div>

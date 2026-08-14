@@ -178,7 +178,7 @@ const SellerTransactions = () => {
             <CardContent className="p-3">
               <p className="sd-eyebrow mb-1">Transactions</p>
               <p className="sd-kpi-value tabular-nums">{summary.total}</p>
-              <p className="sd-kpi-helper">All protected deals you've created</p>
+              <p className="sd-kpi-helper">All transactions you've created</p>
               <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
                 {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
                 {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}

@@ -47,7 +47,7 @@ export function AnimatedTransactionCard() {
     <div
       className="relative rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-5"
       role="img"
-      aria-label="Illustration of a SafeDeal protected transaction moving from payment to escrow to delivery confirmation and payout"
+      aria-label="Illustration of a SafeDeal transaction moving from payment to delivery confirmation and payout"
     >
       {/* Header */}
       <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
@@ -56,12 +56,12 @@ export function AnimatedTransactionCard() {
             <Shield className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">How a protected deal works</p>
+            <p className="text-sm font-bold text-foreground">How a SafeDeal transaction works</p>
             <p className="text-xs text-muted-foreground">Example flow · not a real transaction</p>
           </div>
         </div>
         <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-foreground">
-          Protected
+          Example
         </span>
       </div>
 

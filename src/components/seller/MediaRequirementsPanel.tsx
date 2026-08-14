@@ -46,7 +46,7 @@ export function MediaRequirementsPanel({ config }: { config: MediaConfig }) {
       </div>
       <p className="text-[11px] text-muted-foreground flex gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-        Best results: plain white background, product centred and filling the frame, no text, prices or watermarks.
+        For clear photos: use a plain white background, centre the product and fill the frame; avoid text, prices or watermarks.
       </p>
     </div>
   );

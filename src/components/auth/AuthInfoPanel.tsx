@@ -4,13 +4,13 @@ import { Link } from "react-router";
 const features = [
   {
     icon: Lock,
-    title: "Bank-Level Security",
-    description: "256-bit SSL encryption protects all your data and transactions",
+    title: "Account Security",
+    description: "Encrypted connections and account security controls",
   },
   {
     icon: Zap,
-    title: "Instant Escrow Protection",
-    description: "Funds are held securely until both parties confirm the deal",
+    title: "Recorded Payment States",
+    description: "Payment, release, refund, and dispute states are shown on each transaction",
   },
   {
     icon: Headphones,
@@ -32,8 +32,7 @@ const AuthInfoPanel = () => {
           Join SafeDeal
         </h2>
         <p className="text-muted-foreground mb-10 text-base leading-relaxed">
-          Create your account to start buying and selling securely with escrow
-          protection.
+          Create your account to record buying and selling terms in one transaction flow.
         </p>
 
         <div className="space-y-6">
