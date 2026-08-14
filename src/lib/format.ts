@@ -8,6 +8,13 @@
  *
  * Do NOT introduce a new `Intl.NumberFormat` call elsewhere in the codebase
  * with `minimumFractionDigits: 0` — keep money formatting in this one file.
+ *
+ * `currency` is a REQUIRED parameter on every helper here. It used to default
+ * to "NGN", which quietly re-introduced the invented-currency defect at every
+ * call site that omitted it (a seller settling in another currency read their
+ * whole payouts page in Naira). The type system is the enforcement mechanism:
+ * if a currency genuinely isn't known, use `formatMoneyOrDash` or render `—`
+ * rather than guessing one.
  */
 
 const NGN_FORMATTER = new Intl.NumberFormat("en-NG", {
@@ -39,6 +46,15 @@ function safe(amount: number | null | undefined): number {
 }
 
 /**
+ * Upper-cases a currency code. An empty/blank code is NOT silently promoted to
+ * a currency — it renders as a bare number, so a missing code looks missing
+ * instead of looking like Naira.
+ */
+function normalizeCurrency(currency: string): string {
+  return (currency || "").trim().toUpperCase();
+}
+
+/**
  * Render an amount with exactly 2 decimal places.
  *
  * - NGN  -> "₦1,234.50"
@@ -47,14 +63,15 @@ function safe(amount: number | null | undefined): number {
  */
 export function formatMoney(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string,
 ): string {
   const value = safe(amount);
-  const code = (currency || "NGN").toUpperCase();
+  const code = normalizeCurrency(currency);
   if (code === "NGN") {
     return NGN_FORMATTER.format(value);
   }
-  return `${code} ${decimalFormatter(code).format(value)}`;
+  const rendered = decimalFormatter(code).format(value);
+  return code ? `${code} ${rendered}` : rendered;
 }
 
 /**
@@ -64,10 +81,10 @@ export function formatMoney(
  */
 export function formatMoneyCompact(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string,
 ): string {
   const value = safe(amount);
-  const code = (currency || "NGN").toUpperCase();
+  const code = normalizeCurrency(currency);
   const abs = Math.abs(value);
   if (abs < 1_000_000) {
     return formatMoney(value, code);
@@ -80,13 +97,13 @@ export function formatMoneyCompact(
     scaled = `${(abs / 1_000_000).toFixed(1)}M`;
   }
   if (code === "NGN") return `${sign}₦${scaled}`;
-  return `${code} ${sign}${scaled}`;
+  return code ? `${code} ${sign}${scaled}` : `${sign}${scaled}`;
 }
 
 /** Render a signed delta (e.g. payout / refund rows). */
 export function formatMoneyDelta(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string,
 ): string {
   const value = safe(amount);
   if (value === 0) return formatMoney(0, currency);

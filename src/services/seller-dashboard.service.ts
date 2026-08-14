@@ -41,6 +41,8 @@ export interface SellerOnboarding {
 }
 
 export interface SellerMetrics {
+  /** Currency of every *_amount field below; null when mixed or unknown. */
+  currency_code: string | null;
   transactions_created_count: number;
   active_transactions_count: number;
   completed_transactions_count: number;

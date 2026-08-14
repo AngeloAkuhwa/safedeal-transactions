@@ -358,6 +358,16 @@ Deno.serve(async (req) => {
       .from("transactions")
       .select("id, transaction_code, money_status, created_at, buyer_id, seller_id")
       .in("id", sliceTxIds);
+    // Currency is part of the balance, not a display default — an admin
+    // reconciles these figures against the provider.
+    const { data: pricingRows } = await admin
+      .from("transaction_pricing")
+      .select("transaction_id, currency_code")
+      .in("transaction_id", sliceTxIds);
+    const currencyMap = new Map(
+      ((pricingRows ?? []) as Array<{ transaction_id: string; currency_code: string | null }>)
+        .map((p) => [p.transaction_id, p.currency_code ?? null]),
+    );
     // P1: only hydrate profiles for participants on this page (was: full
     // `profiles` scan, which OOMs past ~50k users).
     const participantIds = Array.from(
@@ -407,6 +417,7 @@ Deno.serve(async (req) => {
             name: (seller?.full_name as string) ?? "Unknown",
             avatar_url: (seller?.avatar_url as string) ?? null,
           },
+          currency_code: currencyMap.get(tx.id as string) ?? null,
           total_held: Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0),
           frozen: Number(s.frozen_amount ?? 0),
           releasable: Number(s.held_amount ?? 0),

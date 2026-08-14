@@ -1,8 +1,18 @@
 import { Flag, ExternalLink, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import type { EscrowRecordRow } from "@/services/admin-escrow.service";
+
+/**
+ * Fallback for a state the UI does not know about. A dynamic key lookup must
+ * never be dereferenced unguarded — an unmapped value used to blank the table.
+ */
+const UNKNOWN_STATE_STYLE = {
+  dot: "bg-slate-500",
+  pill: "bg-slate-700/40 text-slate-300 border border-slate-600",
+  label: "Unknown",
+};
 
 const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
   held:            { dot: "bg-emerald-400",   pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "Held" },
@@ -112,7 +122,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
             {rows.length === 0 ? (
               <tr><td colSpan={10} className="p-12 text-center text-sm text-slate-500">No escrow records match these filters.</td></tr>
             ) : rows.map((r) => {
-              const st = STATE_STYLES[r.state];
+              const st = STATE_STYLES[r.state] ?? UNKNOWN_STATE_STYLE;
               return (
                 <tr key={r.transaction_id} className="hover:bg-slate-800/50 transition-all">
                   <td className="p-4">
@@ -137,10 +147,10 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                       <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.seller.name}</p>
                     </div>
                   </td>
-                  <td className={`p-4 text-right text-sm font-medium whitespace-nowrap ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoney(r.total_held, "NGN")}</td>
-                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoney(r.frozen, "NGN")}</td>
-                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoney(r.releasable, "NGN")}</td>
-                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoney(r.released, "NGN")}</td>
+                  <td className={`p-4 text-right text-sm font-medium whitespace-nowrap ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.frozen, r.currency_code)}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.releasable, r.currency_code)}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.released, r.currency_code)}</td>
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -169,7 +179,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
         {rows.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-500">No escrow records match these filters.</p>
         ) : rows.map((r) => {
-          const st = STATE_STYLES[r.state];
+          const st = STATE_STYLES[r.state] ?? UNKNOWN_STATE_STYLE;
           return (
             <button
               key={r.transaction_id}
@@ -205,19 +215,19 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Held</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoney(r.total_held, "NGN")}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Frozen</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoney(r.frozen, "NGN")}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.frozen, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Releasable</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoney(r.releasable, "NGN")}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.releasable, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Released</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoney(r.released, "NGN")}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.released, r.currency_code)}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3 text-xs">

@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   // Recent transactions (top 5)
   const { data: txs } = await admin
     .from("transactions")
-    .select("id, transaction_code, status, money_status, created_at, buyer_id, seller_id, transaction_pricing(buyer_total_amount)")
+    .select("id, transaction_code, status, money_status, created_at, buyer_id, seller_id, transaction_pricing(buyer_total_amount, currency_code)")
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -122,16 +122,20 @@ Deno.serve(async (req) => {
   // Aggregate stats per role (buyer/seller volumes and counts)
   const { data: allTxAgg } = await admin
     .from("transactions")
-    .select("id, buyer_id, seller_id, status, transaction_pricing(buyer_total_amount)")
+    .select("id, buyer_id, seller_id, status, transaction_pricing(buyer_total_amount, currency_code)")
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
 
   let buyerCount = 0, sellerCount = 0, buyerVolume = 0, sellerVolume = 0;
+  // Volumes are only meaningful in a single currency. Report one when every
+  // priced transaction agrees, otherwise null so the UI renders an em dash.
+  const statsCurrencies = new Set<string>();
   for (const t of allTxAgg ?? []) {
     const pricing = (t as Record<string, unknown>).transaction_pricing as
-      | { buyer_total_amount?: number | string | null }
-      | Array<{ buyer_total_amount?: number | string | null }>
+      | { buyer_total_amount?: number | string | null; currency_code?: string | null }
+      | Array<{ buyer_total_amount?: number | string | null; currency_code?: string | null }>
       | null;
     const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
+    if (pricingRow?.currency_code) statsCurrencies.add(pricingRow.currency_code);
     const amt = Number(pricingRow?.buyer_total_amount ?? 0);
     if (t.buyer_id === userId) { buyerCount += 1; buyerVolume += amt; }
     if (t.seller_id === userId) { sellerCount += 1; sellerVolume += amt; }
@@ -227,13 +231,14 @@ Deno.serve(async (req) => {
     available_actions,
     recent_transactions: (txs ?? []).map((t) => {
       const pricing = (t as Record<string, unknown>).transaction_pricing as
-        | { buyer_total_amount?: number | string | null }
-        | Array<{ buyer_total_amount?: number | string | null }>
+        | { buyer_total_amount?: number | string | null; currency_code?: string | null }
+        | Array<{ buyer_total_amount?: number | string | null; currency_code?: string | null }>
         | null;
       const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
       return {
         transaction_id: t.id, transaction_code: t.transaction_code,
         amount: Number(pricingRow?.buyer_total_amount ?? 0),
+        currency_code: pricingRow?.currency_code ?? null,
         status: t.status, money_status: t.money_status,
         created_at: t.created_at,
         counterparty: t.buyer_id === userId ? "as_buyer" : "as_seller",
@@ -254,6 +259,7 @@ Deno.serve(async (req) => {
       adminNames,
     }),
     stats: {
+      currency_code: statsCurrencies.size === 1 ? [...statsCurrencies][0] : null,
       as_buyer: { count: buyerCount, volume: buyerVolume },
       as_seller: { count: sellerCount, volume: sellerVolume },
       disputes: {

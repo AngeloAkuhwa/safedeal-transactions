@@ -90,6 +90,8 @@ Deno.serve(async (req) => {
           under_review_count: 0,
           resolved_count: 0,
           blocked_payout_amount: 0,
+      blocked_payout_currency: null as string | null,
+          blocked_payout_currency: null as string | null,
         },
         items: [],
         action_needed: [],
@@ -129,6 +131,7 @@ Deno.serve(async (req) => {
       under_review_count: 0,
       resolved_count: 0,
       blocked_payout_amount: 0,
+      blocked_payout_currency: null as string | null,
     };
 
     for (const d of allDisputesList) {
@@ -186,11 +189,13 @@ Deno.serve(async (req) => {
       );
 
       let totalBlocked = 0;
+      const blockedCurrencies = new Set<string>();
       for (const txId of frozenTxIds) {
         const tx = txLookup.get(txId)!;
         const pricing = pricingLookup.get(txId);
         const amount = (pricing?.seller_payout_amount as number) ?? 0;
         totalBlocked += amount;
+        if (pricing?.currency_code) blockedCurrencies.add(pricing.currency_code as string);
 
         // Find associated dispute
         const dispute = allDisputesList.find((d) => d.transaction_id === txId);
@@ -201,12 +206,15 @@ Deno.serve(async (req) => {
           item_title: itemLookup.get(txId) ?? null,
           buyer_name: buyerLookup.get(tx.buyer_id as string) ?? null,
           amount,
-          currency_code: (pricing?.currency_code as string) ?? "NGN",
+          currency_code: (pricing?.currency_code as string | null) ?? null,
           dispute_id: dispute?.id ?? null,
           dispute_status: dispute?.status ?? null,
         });
       }
       summary.blocked_payout_amount = totalBlocked;
+      // Only claim a currency for the total when every frozen payout agrees.
+      summary.blocked_payout_currency =
+        blockedCurrencies.size === 1 ? [...blockedCurrencies][0] : null;
     }
 
     // Action needed items: disputes where seller hasn't responded

@@ -571,14 +571,14 @@ export default function AdminTransactions() {
       },
       {
         key: "total_amount", icon: Banknote, label: "Total Amount",
-        value: summary ? formatMoneyCompact(summary.totalAmount) : "—",
-        exact: summary ? formatMoney(summary.totalAmount) : null,
+        value: summary ? formatMoneyCompact(summary.totalAmount, summary.currency) : "—",
+        exact: summary ? formatMoney(summary.totalAmount, summary.currency) : null,
         iconCls: "bg-emerald-500/15 text-emerald-400",
       },
       {
         key: "in_escrow", icon: Landmark, label: "In Escrow",
-        value: summary ? formatMoneyCompact(summary.inEscrowAmount) : "—",
-        exact: summary ? formatMoney(summary.inEscrowAmount) : null,
+        value: summary ? formatMoneyCompact(summary.inEscrowAmount, summary.currency) : "—",
+        exact: summary ? formatMoney(summary.inEscrowAmount, summary.currency) : null,
         iconCls: "bg-purple-500/15 text-purple-400",
       },
       {

@@ -25,7 +25,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 import { useAuthState } from "@/hooks/useSavedProducts";
-import { formatMoney } from "@/lib/format";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function BuyerMarketplace() {
@@ -181,12 +180,12 @@ export default function BuyerMarketplace() {
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   {appliedPriceMin || appliedPriceMax
-                    ? `${appliedPriceMin ? formatMoney(Number(appliedPriceMin)) : "₦0.00"} – ${appliedPriceMax ? formatMoney(Number(appliedPriceMax)) : "∞"}`
+                    ? `${appliedPriceMin ? Number(appliedPriceMin).toLocaleString() : "0"} – ${appliedPriceMax ? Number(appliedPriceMax).toLocaleString() : "∞"}`
                     : "Price Filter"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 space-y-3" align="end">
-                <p className="text-sm font-medium">Price Range (₦)</p>
+                <p className="text-sm font-medium">Price Range</p>
                 <div className="flex gap-2">
                   <PriceInput
                     type="number"

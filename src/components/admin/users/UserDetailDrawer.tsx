@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Loader2, Flag, Ban, CheckCircle2, ShieldCheck, Banknote, Scale, ExternalLink, Clock, Mail, Phone, IdCard } from "lucide-react";
 import { useNavigate } from "react-router";
 import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.service";
-import { formatMoney, formatMoneyCompact } from "@/lib/format";
+import { formatMoneyCompact } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface Props {
@@ -86,7 +87,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
                   <p className="text-slate-500 text-xs">Transactions</p>
                 </div>
                 <div>
-                  <p className="text-emerald-400 text-base font-semibold">{data.user.transactions.volume > 0 ? formatMoneyCompact(data.user.transactions.volume) : "—"}</p>
+                  <p className="text-emerald-400 text-base font-semibold">{data.user.transactions.volume > 0 ? formatMoneyCompact(data.user.transactions.volume, data.user.transactions.currency) : "—"}</p>
                   <p className="text-slate-500 text-xs">Volume</p>
                 </div>
                 <div>
@@ -108,7 +109,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
                         <p className="text-slate-500 text-xs capitalize">{t.counterparty === "as_buyer" ? "as buyer" : "as seller"} · {t.status}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-emerald-400 text-sm font-semibold">{formatMoney(t.amount)}</p>
+                        <p className="text-emerald-400 text-sm font-semibold">{formatMoneyOrDash(t.amount, t.currency_code)}</p>
                         <ExternalLink className="h-3 w-3 text-slate-500 inline-block" />
                       </div>
                     </div>

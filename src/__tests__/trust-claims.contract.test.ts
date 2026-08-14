@@ -543,10 +543,16 @@ describe("the trust-claim lock", () => {
   }
 
   it("treats handover and unknown methods as untracked, courier as tracked", () => {
-    for (const m of ["hand_delivery", "meetup", "pickup", "digital", "delivery", "shipping", "standard_delivery", "unknown", ""]) {
+    for (const m of ["hand_delivery", "meetup", "pickup", "digital", "shipping", "standard_delivery", "unknown", ""]) {
       expect(isTrackedDelivery(m), m).toBe(false);
     }
     expect(isTrackedDelivery("courier")).toBe(true);
+    // Listing vocabulary is normalised through `toTransactionDeliveryMethod`,
+    // so a product method that IS a courier shipment earns the claim instead of
+    // silently resolving to null and rendering an empty badge.
+    for (const m of ["delivery", "courier_shipping"]) {
+      expect(isTrackedDelivery(m), m).toBe(true);
+    }
     expect(isTrackedDelivery(null)).toBe(false);
   });
 

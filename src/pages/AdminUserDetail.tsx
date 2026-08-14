@@ -16,6 +16,7 @@ import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { setVendorStatus } from "@/services/admin-settings.service";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney, maskEmail, maskPhone } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -534,13 +535,13 @@ export default function AdminUserDetail() {
                 <StatCard
                   icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
                   label="Total as Buyer"
-                  value={stats ? formatMoney(stats.as_buyer.volume) : "—"}
+                  value={stats ? formatMoneyOrDash(stats.as_buyer.volume, stats.currency_code) : "—"}
                   sub={stats ? `${stats.as_buyer.count} transactions` : ""}
                 />
                 <StatCard
                   icon={<Store className="h-6 w-6 text-purple-400" />}
                   label="Total as Seller"
-                  value={stats ? formatMoney(stats.as_seller.volume) : "—"}
+                  value={stats ? formatMoneyOrDash(stats.as_seller.volume, stats.currency_code) : "—"}
                   sub={stats ? `${stats.as_seller.count} transactions` : ""}
                 />
                 <StatCard
@@ -589,7 +590,7 @@ export default function AdminUserDetail() {
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-white font-bold">{formatMoney(t.amount)}</p>
+                              <p className="text-white font-bold">{formatMoneyOrDash(t.amount, t.currency_code)}</p>
                               <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize ${inDispute ? "bg-orange-500/20 text-orange-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                                 {String(t.status).replace(/_/g, " ")}
                               </span>

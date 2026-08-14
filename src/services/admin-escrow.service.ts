@@ -45,6 +45,8 @@ export interface EscrowRecordRow {
   money_status: string;
   buyer: { name: string; avatar_url: string | null };
   seller: { name: string; avatar_url: string | null };
+  /** Currency of every balance on this row; null when pricing is missing. */
+  currency_code: string | null;
   total_held: number;
   frozen: number;
   releasable: number;

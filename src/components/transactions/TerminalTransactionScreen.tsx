@@ -57,6 +57,8 @@ const COPY: Record<TerminalStatus, { icon: typeof XCircle; title: string; subtit
   },
 };
 
+const FALLBACK_TONE = { bg: "bg-muted/40", iconBg: "bg-muted", text: "text-foreground", border: "border-border" };
+
 const TONE_CLASSES: Record<string, { bg: string; iconBg: string; text: string; border: string }> = {
   destructive: { bg: "bg-destructive/5", iconBg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30" },
   warning: { bg: "bg-warning/5", iconBg: "bg-warning/10", text: "text-warning", border: "border-warning/30" },
@@ -78,7 +80,7 @@ function formatStamp(ts?: string | null): string | null {
 export function TerminalTransactionScreen({ status, transactionCode, timestamp, transactionId }: Props) {
   const navigate = useNavigate();
   const cfg = COPY[status];
-  const tone = TONE_CLASSES[cfg.tone];
+  const tone = TONE_CLASSES[cfg.tone] ?? FALLBACK_TONE;
   const Icon = cfg.icon;
   const stamp = formatStamp(timestamp);
 

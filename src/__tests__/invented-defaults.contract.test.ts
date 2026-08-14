@@ -21,6 +21,15 @@ function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 }
 
+/**
+ * `src/lib/format.ts` is no longer blanket-allowlisted — only the `Intl`
+ * constructions inside it are, because `new Intl.NumberFormat(..., { currency:
+ * "NGN" })` is the one place a currency code legitimately appears as a literal.
+ */
+function stripIntlConstructions(src: string): string {
+  return src.replace(/new Intl\.NumberFormat\([\s\S]*?\)/g, "");
+}
+
 function walk(dir: string, out: string[] = []): string[] {
   if (!fs.existsSync(dir)) return out;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -46,13 +55,12 @@ const WINDOW_PARAM_DEFAULT =
 
 /** `?? "NGN"`, `|| "NGN"`, `currency = "NGN"`, `currency: "NGN"`. */
 const CURRENCY_DEFAULT =
-  /(?:\?\?|\|\||=|:)\s*["'`](NGN|USD|GBP|EUR)["'`]/g;
+  /(?:\?\?|\|\||(?<![=!<>])=|:)\s*["'`](NGN|USD|GBP|EUR)["'`]/g;
 /**
  * Modules allowed to name a currency literally: they DEFINE the platform's
  * default currency or a provider's fixed settlement currency.
  */
 const CURRENCY_DEFINITION_FILES = new Set([
-  "src/lib/format.ts",
   "src/lib/pricing.ts",
   "src/lib/payment/money-format.ts",
   "src/services/vendor-plan.service.ts",
@@ -91,7 +99,6 @@ const CURRENCY_DEBT = [
   "src/pages/SellerProductPreview.tsx",
   "src/pages/SellerTransactionDetail.tsx",
   "src/pages/SellerTransactionShare.tsx",
-  "src/pages/SellerUpdateDelivery.tsx",
   "src/services/admin-disputes.service.ts",
   "src/services/admin-transactions-monitor.service.ts",
   "src/services/admin-users-directory.service.ts",
@@ -110,6 +117,46 @@ const WINDOW_DEBT = [
   "supabase/functions/seller-drafts/index.ts",
   "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/update-delivery-status/index.ts",
+];
+
+/**
+ * A positional currency argument — `formatMoney(x, "NGN")`. The `??`/`||`/`=`
+ * regex above cannot see these, which is exactly how eight wrong-currency
+ * escrow balances survived the previous pass.
+ */
+const CURRENCY_POSITIONAL =
+  /\bformatMoney(?:Compact|Delta|OrDash)?\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
+
+/**
+ * KNOWN DEBT — pre-existing positional `"NGN"` arguments. Shrink-only ratchet,
+ * same rules as the lists above.
+ */
+const POSITIONAL_DEBT = [
+  "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
+  "src/components/admin/dashboard/KpiCards.tsx",
+  "src/components/admin/dashboard/RecentActivity.tsx",
+  "src/components/admin/escrow/EscrowAlertsPanel.tsx",
+  "src/components/admin/escrow/EscrowRecordDrawer.tsx",
+  "src/components/admin/flagged-users/FlaggedUserCard.tsx",
+  "src/components/admin/flagged-users/FlaggedUserDrawer.tsx",
+  "src/components/admin/flagged-users/FlaggedUsersTable.tsx",
+  "src/components/admin/payouts/PayoutBatchBar.tsx",
+  "src/components/admin/payouts/PayoutMobileCards.tsx",
+  "src/components/admin/payouts/PayoutSummaryCards.tsx",
+  "src/components/admin/payouts/PayoutsTable.tsx",
+  "src/components/disputes/AgreementSnapshotSection.tsx",
+  "src/components/disputes/BuyerDisputeList.tsx",
+  "src/components/profile/AccountVerificationSection.tsx",
+  "src/components/profile/SellerVerificationSection.tsx",
+  "src/components/seller-disputes/SellerDisputeTable.tsx",
+  "src/components/seller/ExportPayoutsDialog.tsx",
+  "src/components/seller/ExportPreviewDialog.tsx",
+  "src/pages/AdminPayouts.tsx",
+  "src/pages/AdminTransactionDetail.tsx",
+  "src/pages/SellerAnalytics.tsx",
+  "src/pages/SellerDisputeDetail.tsx",
+  "src/pages/SellerProductPreview.tsx",
+  "src/pages/SellerTransactions.tsx",
 ];
 
 function relOf(file: string) {
@@ -144,7 +191,7 @@ describe("invented defaults", () => {
     for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
       const rel = relOf(file);
       if (CURRENCY_DEFINITION_FILES.has(rel)) continue;
-      const src = stripComments(fs.readFileSync(file, "utf8"));
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
       const hits = [...src.matchAll(CURRENCY_DEFAULT)];
       if (hits.length === 0) continue;
       if (CURRENCY_DEBT.includes(rel)) {
@@ -155,6 +202,24 @@ describe("invented defaults", () => {
     }
     expect(offenders).toEqual([]);
     expect(CURRENCY_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
+  });
+
+  it("never passes a currency literal positionally", () => {
+    const offenders: string[] = [];
+    const debtSeen = new Set<string>();
+    for (const file of FILES.filter((f) => relOf(f).startsWith("src/"))) {
+      const rel = relOf(file);
+      const src = stripIntlConstructions(stripComments(fs.readFileSync(file, "utf8")));
+      const hits = [...src.matchAll(CURRENCY_POSITIONAL)];
+      if (hits.length === 0) continue;
+      if (POSITIONAL_DEBT.includes(rel)) {
+        debtSeen.add(rel);
+        continue;
+      }
+      for (const m of hits) offenders.push(`${rel}: ${m[0].trim()}`);
+    }
+    expect(offenders).toEqual([]);
+    expect(POSITIONAL_DEBT.filter((f) => !debtSeen.has(f))).toEqual([]);
   });
 
   it("keeps the screens fixed in this pass off the debt list", () => {

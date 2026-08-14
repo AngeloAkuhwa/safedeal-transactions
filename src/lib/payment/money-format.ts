@@ -2,7 +2,7 @@
  * Payment-flow money formatter.
  *
  * Thin wrapper around `src/lib/format.ts` that:
- *  - Defaults to NGN
+ *  - Requires a currency, and renders `—` when it is unknown (NEVER invents one)
  *  - Renders `—` for null/undefined values (NEVER fake `₦0.00`)
  *
  * USE THIS in every pricing/refund/payout breakdown to satisfy the acceptance
@@ -15,9 +15,9 @@ export const MISSING_MONEY = "—";
 
 export function formatMoneyOrDash(
   amount: number | null | undefined,
-  currency: string = "NGN",
+  currency: string | null | undefined,
 ): string {
-  if (amount === null || amount === undefined || Number.isNaN(amount as number)) {
+  if (amount === null || amount === undefined || Number.isNaN(amount as number) || !currency) {
     return MISSING_MONEY;
   }
   return baseFormatMoney(amount, currency);

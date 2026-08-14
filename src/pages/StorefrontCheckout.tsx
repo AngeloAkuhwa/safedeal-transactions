@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getAvailableQuantity } from "@/lib/inventory";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,9 +103,10 @@ const StorefrontCheckout = () => {
   const { product, seller } = data;
 
   // Clamp requested quantity to available stock (falls back to requested qty if stock is unknown).
-  const quantity = typeof product.stock_quantity === "number" && product.stock_quantity > 0
-    ? Math.min(requestedQty, product.stock_quantity)
-    : requestedQty;
+  // Availability honours reservations — `stock_quantity` alone lets a buyer
+  // start a transaction the server must reject.
+  const availableQuantity = getAvailableQuantity(product);
+  const quantity = availableQuantity > 0 ? Math.min(requestedQty, availableQuantity) : requestedQty;
 
   // Pricing
   const itemSubtotal = product.unit_price * quantity;
@@ -223,10 +225,10 @@ const StorefrontCheckout = () => {
                       {product.category.name}
                     </Badge>
                   )}
-                  {typeof product.stock_quantity === "number" && product.stock_quantity > 0 ? (
+                  {availableQuantity > 0 ? (
                     <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      {product.stock_quantity} in stock
+                      {availableQuantity} in stock
                     </Badge>
                   ) : null}
                 </div>
@@ -348,11 +350,19 @@ const StorefrontCheckout = () => {
                   <ShieldCheck className="h-3 w-3" />
                   {alwaysClaim("ESCROW_PROTECTED")}
                 </Badge>
-                <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {resolveClaim("DELIVERY_TRACKED", { deliveryMethod: activeMethod })
-                    ?? resolveClaim("DELIVERY_CODE_CONFIRMED", { deliveryMethod: activeMethod })}
-                </Badge>
+                {(() => {
+                  // No supported claim => render nothing, not an empty pill.
+                  const deliveryClaim =
+                    resolveClaim("DELIVERY_TRACKED", { deliveryMethod: activeMethod })
+                    ?? resolveClaim("DELIVERY_CODE_CONFIRMED", { deliveryMethod: activeMethod });
+                  if (!deliveryClaim) return null;
+                  return (
+                    <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {deliveryClaim}
+                    </Badge>
+                  );
+                })()}
               </div>
             </div>
           </div>
