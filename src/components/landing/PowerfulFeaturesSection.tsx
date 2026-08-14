@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { SnapCarousel } from "@/components/ui/snap-carousel";
+import { alwaysClaim } from "@/lib/trust/trust-claims";
 
 type Tone = "primary" | "neutral";
 
@@ -379,7 +380,7 @@ function ProtectionStrip() {
   const [step, setStep] = useState(-1);
   const items = [
     { icon: Lock, label: "Locked terms" },
-    { icon: ShieldCheck, label: "Escrow protected" },
+    { icon: ShieldCheck, label: alwaysClaim("ESCROW_PROTECTED") },
     { icon: Truck, label: "Delivery tracked" },
     { icon: Bot, label: "Dispute agent ready" },
   ];

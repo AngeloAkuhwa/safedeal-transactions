@@ -29,7 +29,7 @@ function planFeatures(plan: VendorPlan, baseRate: number): string[] {
       ? `Reduced escrow fee — ${(plan.escrow_fee_rate * 100).toFixed(1)}% + ${formatNaira(FALLBACK_PRICING_CONFIG.platform_fee_flat)} per completed deal`
       : `Escrow fee ${(baseRate * 100).toFixed(0)}% + ${formatNaira(FALLBACK_PRICING_CONFIG.platform_fee_flat)} per completed deal`,
     "Buyer-protected checkout and escrow",
-    "Verified seller badge and store page",
+    "Store page with your real verification status shown",
   ];
   if (plan.featured_placement) feats.push("Featured placement in marketplace search");
   return feats;
