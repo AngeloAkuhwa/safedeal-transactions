@@ -699,11 +699,6 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                     {statusLabel(r.status)}
                   </span>
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                  <button className="text-blue-400 hover:text-blue-300" title="View">
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
