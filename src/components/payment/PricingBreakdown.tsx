@@ -33,7 +33,9 @@ interface Props {
 }
 
 export function PricingBreakdown({ snapshot, audience = "buyer", className }: Props) {
-  const currency = snapshot?.currency ?? "NGN";
+  // No default: an unknown currency must render `—`, never a Naira claim we
+  // cannot prove. See the header contract above.
+  const currency = snapshot?.currency ?? null;
 
   const value = (key: PricingLineKey): number | null => {
     if (!snapshot) return null;
