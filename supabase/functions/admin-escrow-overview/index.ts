@@ -99,19 +99,15 @@ Deno.serve(async (req) => {
   };
 
   // KPI aggregates sum across every escrow row, so they only carry a currency
-  // when the whole book settles in one. Mixed books return null and the UI
-  // renders the amount without asserting a currency it cannot prove.
-  const { data: currencyProbe } = await admin
-    .from("transaction_pricing")
-    .select("currency_code")
-    .not("currency_code", "is", null)
-    .limit(500);
-  const distinctCurrencies = Array.from(
-    new Set(((currencyProbe ?? []) as Array<{ currency_code: string | null }>)
-      .map((r) => (r.currency_code ?? "").trim().toUpperCase())
-      .filter(Boolean)),
-  );
-  const aggregateCurrency = distinctCurrencies.length === 1 ? distinctCurrencies[0] : null;
+  // when the whole book settles in one. `admin_escrow_kpis` computes
+  // `count(distinct currency_code)` in SQL over the ENTIRE pricing table — a
+  // sampled page could miss a second currency and let the tiles assert one.
+  // Mixed books yield null and the UI renders the amount without a symbol.
+  const distinctCurrencyCount = Number(k.distinct_currency_count ?? 0);
+  const aggregateCurrency =
+    distinctCurrencyCount === 1 && typeof k.book_currency === "string" && k.book_currency
+      ? k.book_currency
+      : null;
 
   // Alerts still need row-level detail, but scoped to the alert window and
   // rows that could actually trigger any alert (bounded scan, not full table).
