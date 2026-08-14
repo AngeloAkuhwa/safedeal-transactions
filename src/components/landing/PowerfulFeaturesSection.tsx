@@ -379,10 +379,12 @@ function FeatureCard({
           </div>
         )}
 
-        {/* Mini-flow */}
-        <div className="mt-auto rounded-xl border border-border/70 bg-muted/30 p-1.5">
-          <MiniFlow steps={f.steps} step={step} shouldPlay={shouldPlay} tone={t} />
-        </div>
+        {/* Mini-flow — hero (dispute agent) only */}
+        {f.hero && (
+          <div className="mt-auto rounded-xl border border-border/70 bg-muted/30 p-1.5">
+            <MiniFlow steps={f.steps} step={step} shouldPlay={shouldPlay} tone={t} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -499,7 +501,7 @@ export function PowerfulFeaturesSection() {
   };
 
   return (
-    <section id="features" className="pb-28 pt-8 sm:py-12 lg:py-16 bg-muted/30">
+    <section id="features" className="section-y bg-muted/30">
       <style>{`
         @keyframes sd-hero-glow-shift {
           0%, 100% { opacity: 0.85; transform: translate3d(0, 0, 0); }
@@ -515,14 +517,10 @@ export function PowerfulFeaturesSection() {
 
       <div className="container-x mx-auto max-w-6xl">
         <div ref={headerRef} className="mb-6 text-center sm:mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Sparkles className="h-3 w-3 text-primary" />
-            <span className="text-xs font-semibold text-foreground">Features</span>
-          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Powerful features for secure transactions
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-left text-muted-foreground sm:text-center">
             Everything needed to protect buyers, verify sellers, track delivery, and resolve
             disputes faster.
           </p>

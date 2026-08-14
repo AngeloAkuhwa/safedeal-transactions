@@ -44,20 +44,16 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
 
 export function VerifiedSellersSection() {
   return (
-    <section id="for-sellers" className="bg-background py-8 sm:py-12 lg:py-16">
+    <section id="for-sellers" className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-5 text-center sm:mb-10">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Shield className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">For sellers</span>
-          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Built for anyone who sells online
           </h2>
-          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-left text-muted-foreground sm:text-center">
             If your customers find you in DMs, SafeDeal gives both sides a safe way to close the deal.
           </p>
-          <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-foreground">
+          <p className="mx-auto mt-3 max-w-xl text-left text-sm font-semibold text-foreground sm:text-center">
             Your own store link, free forever — we only earn when you get paid.
           </p>
         </div>
