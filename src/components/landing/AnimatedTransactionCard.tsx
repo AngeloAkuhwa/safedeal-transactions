@@ -11,36 +11,21 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type Tone = "primary" | "success" | "warning";
-
 const STEPS: {
   title: string;
   subtitle: string;
   icon: LucideIcon;
-  tone: Tone;
 }[] = [
-  { title: "Product selected", subtitle: "Buyer agrees to the terms", icon: ShoppingBag, tone: "primary" },
-  { title: "Payment received", subtitle: "Paid through SafeDeal", icon: CheckCircle, tone: "success" },
-  { title: "Funds held", subtitle: "Protected in escrow", icon: ShieldCheck, tone: "warning" },
-  { title: "Seller dispatches", subtitle: "Delivery on the way", icon: Truck, tone: "primary" },
-  { title: "Buyer verifies", subtitle: "Confirm item matches", icon: CircleCheck, tone: "primary" },
-  { title: "Funds released", subtitle: "Paid to seller", icon: ArrowRightLeft, tone: "success" },
+  { title: "Product selected", subtitle: "Buyer agrees to the terms", icon: ShoppingBag },
+  { title: "Payment received", subtitle: "Paid through SafeDeal", icon: CheckCircle },
+  { title: "Funds held", subtitle: "Protected in escrow", icon: ShieldCheck },
+  { title: "Seller dispatches", subtitle: "Delivery on the way", icon: Truck },
+  { title: "Buyer verifies", subtitle: "Confirm item matches", icon: CircleCheck },
+  { title: "Funds released", subtitle: "Paid to seller", icon: ArrowRightLeft },
 ];
 
-const TONE_STYLES: Record<Tone, { activeWrap: string; activeIcon: string }> = {
-  primary: {
-    activeWrap: "border-primary/40 bg-primary/10 ring-2 ring-primary/30",
-    activeIcon: "bg-primary text-primary-foreground",
-  },
-  success: {
-    activeWrap: "border-success/40 bg-success/10 ring-2 ring-success/30",
-    activeIcon: "bg-success text-success-foreground",
-  },
-  warning: {
-    activeWrap: "border-warning/40 bg-warning/10 ring-2 ring-warning/30",
-    activeIcon: "bg-warning text-warning-foreground",
-  },
-};
+const ACTIVE_WRAP = "border-primary/40 bg-primary/10 ring-2 ring-primary/30";
+const ACTIVE_ICON = "bg-primary text-primary-foreground";
 
 export function AnimatedTransactionCard() {
   const [active, setActive] = useState(0);
@@ -75,7 +60,7 @@ export function AnimatedTransactionCard() {
             <p className="text-xs text-muted-foreground">Example flow · not a real transaction</p>
           </div>
         </div>
-        <span className="rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-success">
+        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-foreground">
           Protected
         </span>
       </div>
@@ -97,11 +82,7 @@ export function AnimatedTransactionCard() {
               <div
                 key={i}
                 className={`h-full flex-1 rounded-full transition-all duration-700 ease-out ${
-                  done
-                    ? "bg-success"
-                    : current
-                      ? "bg-gradient-to-r from-primary to-success"
-                      : "bg-transparent"
+                  done || current ? "bg-primary" : "bg-transparent"
                 }`}
               />
             );
@@ -127,19 +108,17 @@ function StepRow({
   const Icon = step.icon;
   const isDone = index < active;
   const isActive = index === active;
-  const tone = TONE_STYLES[step.tone];
-
   let wrapClass = "border bg-muted/30 opacity-50";
   let iconWrapClass = "bg-muted text-muted-foreground";
   let titleClass = "text-muted-foreground";
 
   if (isDone) {
-    wrapClass = "border-success/30 bg-success/10";
-    iconWrapClass = "bg-success text-success-foreground";
+    wrapClass = "border border-border bg-muted/50";
+    iconWrapClass = "bg-muted text-muted-foreground";
     titleClass = "text-foreground";
   } else if (isActive) {
-    wrapClass = `${tone.activeWrap} scale-[1.02] shadow-sm`;
-    iconWrapClass = tone.activeIcon;
+    wrapClass = `${ACTIVE_WRAP} scale-[1.02] shadow-sm`;
+    iconWrapClass = ACTIVE_ICON;
     titleClass = "text-foreground";
   }
 

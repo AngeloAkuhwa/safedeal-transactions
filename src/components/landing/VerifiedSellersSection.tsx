@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Share2, Store, Globe2, Shield, ArrowRight, BadgeCheck, Lock } from "lucide-react";
+import { Share2, Store, Globe2, Shield, BadgeCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { SnapCarousel } from "@/components/ui/snap-carousel";
@@ -9,19 +9,19 @@ const AUDIENCES = [
     icon: Share2,
     title: "Social sellers",
     line: "Selling through Instagram, WhatsApp, TikTok or Facebook? Send a protected link instead of your account number.",
-    tone: "bg-primary/10 text-primary",
+    tone: "bg-muted text-muted-foreground",
   },
   {
     icon: Store,
     title: "Independent stores",
     line: "No website? Get a free SafeDeal storefront your customers can trust.",
-    tone: "bg-warning/10 text-warning",
+    tone: "bg-muted text-muted-foreground",
   },
   {
     icon: Globe2,
     title: "Marketplace & cross-border sellers",
     line: "Dealing with buyers you've never met? Escrow removes the leap of faith.",
-    tone: "bg-success/10 text-success",
+    tone: "bg-muted text-muted-foreground",
   },
 ] as const;
 
@@ -47,9 +47,9 @@ export function VerifiedSellersSection() {
     <section id="for-sellers" className="bg-background py-8 sm:py-12 lg:py-16">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-5 text-center sm:mb-10">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
-            <Shield className="h-4 w-4 text-success" />
-            <span className="text-xs font-semibold text-success">For sellers</span>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
+            <Shield className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-foreground">For sellers</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Built for anyone who sells online
@@ -72,17 +72,17 @@ export function VerifiedSellersSection() {
         <div className="mt-6 rounded-2xl border bg-muted/40 p-4 sm:mt-8">
           <ul className="flex flex-col items-center justify-center gap-2 text-center text-sm font-semibold text-muted-foreground sm:flex-row sm:gap-5">
             <li className="inline-flex items-center gap-1.5">
-              <Lock className="h-4 w-4 text-primary" />
+              <Lock className="h-4 w-4 text-muted-foreground" />
               Payments secured by Paystack
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
-              <Shield className="h-4 w-4 text-warning" />
+              <Shield className="h-4 w-4 text-muted-foreground" />
               Funds held in secure escrow
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-success" />
+              <BadgeCheck className="h-4 w-4 text-muted-foreground" />
               Verified sellers only
             </li>
           </ul>
@@ -96,7 +96,6 @@ export function VerifiedSellersSection() {
           >
             <Link to="/auth?role=seller">
               Open your free store
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
         </div>

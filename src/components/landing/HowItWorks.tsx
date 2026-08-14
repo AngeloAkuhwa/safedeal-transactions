@@ -75,7 +75,7 @@ export function HowItWorks() {
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Lightbulb className="h-3 w-3 text-primary" />
-            <span className="text-xs font-semibold text-primary">Simple & Secure</span>
+            <span className="text-xs font-semibold text-foreground">Simple &amp; Secure</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">How SafeDeal Works</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
@@ -89,7 +89,7 @@ export function HowItWorks() {
           <div className="absolute left-0 right-0 top-7 h-1 rounded-full bg-muted" />
           {/* Filled */}
           <div
-            className="absolute left-0 top-7 h-1 rounded-full bg-gradient-to-r from-primary via-primary to-success transition-all duration-700 ease-out"
+            className="absolute left-0 top-7 h-1 rounded-full bg-primary transition-all duration-700 ease-out"
             style={{ width: `${progress}%` }}
           />
           <ol className="relative grid grid-cols-6 gap-2">
@@ -103,7 +103,7 @@ export function HowItWorks() {
         <div className="relative lg:hidden">
           <div className="absolute bottom-0 left-[18px] top-0 w-0.5 rounded-full bg-muted" />
           <div
-            className="absolute left-[18px] top-0 w-0.5 rounded-full bg-gradient-to-b from-primary to-success transition-all duration-700 ease-out"
+            className="absolute left-[18px] top-0 w-0.5 rounded-full bg-primary transition-all duration-700 ease-out"
             style={{ height: `${progress}%` }}
           />
           <ol className="relative space-y-4">
@@ -134,7 +134,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
       <span
         className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background shadow-md transition-all duration-500 ${
           state === "done"
-            ? "bg-success text-success-foreground"
+            ? "bg-muted text-success"
             : state === "current"
               ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25"
               : "bg-muted text-muted-foreground"
@@ -144,7 +144,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
       </span>
       <span
         className={`mt-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-          state === "pending" ? "text-muted-foreground" : "text-primary"
+          state === "pending" ? "text-muted-foreground" : "text-foreground"
         }`}
       >
         Step {index + 1}
@@ -172,7 +172,7 @@ function MobileStep({ step, index, active }: { step: Step; index: number; active
       <span
         className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-background shadow-md transition-all duration-500 ${
           state === "done"
-            ? "bg-success text-success-foreground"
+            ? "bg-muted text-success"
             : state === "current"
               ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25"
               : "bg-muted text-muted-foreground"

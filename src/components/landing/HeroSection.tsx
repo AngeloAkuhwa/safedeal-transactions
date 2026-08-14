@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { MapPin, Store, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { AnimatedTransactionCard } from "./AnimatedTransactionCard";
 
 export function HeroSection() {
@@ -16,7 +16,7 @@ export function HeroSection() {
           {/* Left */}
           <div className="text-center lg:text-left">
             <div className="mb-3 inline-flex animate-fade-in items-center gap-2 rounded-full border border-border bg-card px-3 py-1 shadow-sm">
-              <MapPin className="h-4 w-4 text-success" />
+              <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-semibold text-foreground">
                 Live in Lagos 🇳🇬 — more cities rolling out
               </span>
@@ -37,7 +37,6 @@ export function HeroSection() {
                 style={{ minHeight: "48px" }}
                 className="tap-press inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg sm:w-auto"
               >
-                <Store className="h-5 w-5" />
                 <span>Open your free store</span>
               </Link>
 

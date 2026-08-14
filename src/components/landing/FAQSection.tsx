@@ -52,14 +52,9 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
     >
       <AccordionItem value={`faq-${index}`} className="border-none">
         <AccordionTrigger className="group px-3.5 py-3 text-left text-sm font-semibold text-foreground hover:no-underline sm:text-base">
-          <span className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-              <HelpCircle className="h-4 w-4" />
-            </span>
-            <span className="flex-1">{faq.q}</span>
-          </span>
+          <span className="flex-1">{faq.q}</span>
         </AccordionTrigger>
-        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-sm leading-relaxed text-muted-foreground">
+        <AccordionContent className="px-3.5 pb-3 text-sm leading-relaxed text-muted-foreground">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -74,7 +69,7 @@ export function FAQSection() {
         <div className="mb-5 text-center sm:mb-7">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <HelpCircle className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-primary">FAQ</span>
+            <span className="text-xs font-semibold text-foreground">FAQ</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
