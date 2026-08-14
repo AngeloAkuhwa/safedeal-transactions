@@ -873,6 +873,9 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     name: "hardcoded currency literal",
     pattern: /'(NGN|USD|GBP|EUR)'/,
     debt: [
+        // Contains 'NGN' only as the search half of the rewrite that DELETES
+        // COALESCE(_currency,'NGN') from create_orchestration_task.
+        "supabase/migrations/20260814230108_938157fd-2f94-403b-853d-e67c253dd1d7.sql",
         // Historical migration text only. The live money primitives no longer
         // COALESCE a currency — that is asserted against pg_proc in
         // live-db.contract.test.ts, not against this file list.
