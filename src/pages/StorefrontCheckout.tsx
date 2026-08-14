@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { describeFeeBreakdown } from "@/lib/pricing";
+import { methodNeedsAddress, methodNeedsPhone } from "@/lib/delivery-methods";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { REFUND_BULLET } from "@/lib/payment/fee-policy";

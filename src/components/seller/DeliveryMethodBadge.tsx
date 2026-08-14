@@ -1,8 +1,12 @@
 import { Truck, MapPin, Users, Hand } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  toTransactionDeliveryMethod,
+  type TransactionDeliveryMethod,
+} from "@/lib/delivery-methods";
 
-export type DeliveryMethod = "courier" | "pickup" | "meetup" | "hand_delivery";
+export type DeliveryMethod = TransactionDeliveryMethod;
 
 interface DeliveryMethodBadgeProps {
   method: DeliveryMethod | string | null | undefined;
@@ -32,9 +36,14 @@ const META: Record<DeliveryMethod, { label: string; icon: typeof Truck; classes:
   },
 };
 
+/**
+ * Fails closed: a missing or unrecognised method renders nothing rather than
+ * asserting "Courier Shipment" for a delivery arrangement we cannot identify.
+ */
 export function DeliveryMethodBadge({ method, className }: DeliveryMethodBadgeProps) {
-  const key = (method ?? "courier") as DeliveryMethod;
-  const meta = META[key] ?? META.courier;
+  const key = toTransactionDeliveryMethod(method);
+  if (!key) return null;
+  const meta = META[key];
   const Icon = meta.icon;
   return (
     <Badge variant="outline" className={cn("gap-1.5 px-2.5 py-1 rounded-full font-medium", meta.classes, className)}>
