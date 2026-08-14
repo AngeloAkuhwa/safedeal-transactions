@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Rocket, Store, Shield, Handshake, Lock, BadgeCheck, Camera } from "lucide-react";
+import { Rocket, Lock, BadgeCheck, Camera } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const trustStats = [
@@ -58,21 +58,18 @@ export function CTASection() {
             to="/marketplace"
             className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-background px-4 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:h-11 sm:w-auto"
           >
-            <Store className="h-4 w-4" />
             Browse Marketplace
           </Link>
           <Link
             to="/auth?role=seller"
             className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-success px-4 text-sm font-bold text-success-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-success/90 hover:shadow-xl sm:h-11 sm:w-auto"
           >
-            <Shield className="h-4 w-4" />
             Start Selling
           </Link>
           <Link
             to="/auth?role=seller&intent=create-transaction"
             className="tap-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-primary-foreground/40 bg-primary-foreground/10 px-4 text-sm font-bold text-primary-foreground shadow-lg backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/20 sm:h-11 sm:w-auto"
           >
-            <Handshake className="h-4 w-4" />
             Create Protected Transaction
           </Link>
         </div>

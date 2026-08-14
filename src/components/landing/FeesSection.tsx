@@ -16,7 +16,7 @@ export function FeesSection() {
         <div className="mb-5 text-center sm:mb-8">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Receipt className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-primary">Pricing</span>
+            <span className="text-xs font-semibold text-foreground">Pricing</span>
           </div>
           <h2 className="h-section font-bold text-foreground">Transparent fees</h2>
         </div>

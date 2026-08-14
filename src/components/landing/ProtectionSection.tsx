@@ -27,13 +27,12 @@ const ESCROW_STATES: {
   title: string;
   subtitle: string;
   icon: LucideIcon;
-  tone: "success" | "warning" | "primary";
 }[] = [
-  { title: "Payment Secured", subtitle: "Buyer payment received", icon: CheckCircle, tone: "success" },
-  { title: "Funds Held", subtitle: "Locked in escrow", icon: ShieldCheck, tone: "warning" },
-  { title: "Delivery in Progress", subtitle: "Expected: Dec 28", icon: Truck, tone: "primary" },
-  { title: "Buyer Verification", subtitle: "Awaiting confirmation", icon: CircleCheck, tone: "primary" },
-  { title: "Funds Released", subtitle: "Paid to seller", icon: ArrowRightLeft, tone: "success" },
+  { title: "Payment Secured", subtitle: "Buyer payment received", icon: CheckCircle },
+  { title: "Funds Held", subtitle: "Locked in escrow", icon: ShieldCheck },
+  { title: "Delivery in Progress", subtitle: "Expected: Dec 28", icon: Truck },
+  { title: "Buyer Verification", subtitle: "Awaiting confirmation", icon: CircleCheck },
+  { title: "Funds Released", subtitle: "Paid to seller", icon: ArrowRightLeft },
 ];
 
 const DISPUTE_PROMISE: { icon: LucideIcon; title: string; line: string }[] = [
@@ -61,7 +60,7 @@ export function ProtectionSection() {
         <div className="mb-5 text-center sm:mb-8">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-primary">For buyers</span>
+            <span className="text-xs font-semibold text-foreground">For buyers</span>
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Your money stays protected until you're satisfied
@@ -103,7 +102,7 @@ export function ProtectionSection() {
               key={d.title}
               className="tap-press flex h-full flex-col rounded-2xl border bg-card p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg sm:p-5"
             >
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-warning/10 text-warning">
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <d.icon className="h-5 w-5" />
               </div>
               <h3 className="mb-1.5 text-base font-bold text-foreground">{d.title}</h3>
@@ -126,7 +125,7 @@ function StepRow({
   const ref = useScrollReveal<HTMLDivElement>();
   const isLast = index === STEPS.length - 1;
   const wrap = isLast
-    ? "bg-success text-success-foreground"
+    ? "bg-muted text-success"
     : "bg-primary text-primary-foreground";
   return (
     <div
@@ -182,7 +181,7 @@ function AnimatedEscrowCard() {
           <p className="text-sm font-bold text-foreground">Example protected transaction</p>
           <p className="text-xs text-muted-foreground">Illustration · not a real deal</p>
         </div>
-        <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-success">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-foreground">
           Protected
         </span>
       </div>
@@ -198,7 +197,7 @@ function AnimatedEscrowCard() {
       <div className="mb-3">
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-success transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -235,21 +234,11 @@ function EscrowRow({
   let iconColor = "text-muted-foreground";
 
   if (isDone) {
-    wrap = "border-success/30 bg-success/10";
-    iconColor = "text-success";
+    wrap = "border-border bg-muted/50";
+    iconColor = "text-muted-foreground";
   } else if (isCurrent) {
-    const tone = {
-      success: "border-success/40 bg-success/15 ring-2 ring-success/30",
-      warning: "border-warning/40 bg-warning/15 ring-2 ring-warning/30",
-      primary: "border-primary/40 bg-primary/15 ring-2 ring-primary/30",
-    }[state.tone];
-    const ic = {
-      success: "text-success",
-      warning: "text-warning",
-      primary: "text-primary",
-    }[state.tone];
-    wrap = `${tone} scale-[1.02] shadow-sm`;
-    iconColor = ic;
+    wrap = "border-primary/40 bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-sm";
+    iconColor = "text-primary";
   }
 
   return (
