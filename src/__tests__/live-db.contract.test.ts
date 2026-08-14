@@ -45,6 +45,13 @@ d("live refund rail", () => {
         "balance_after_set",
         "refund_is_idempotent",
         "capture_refuses_missing_escrow",
+        "freeze_refuses_missing_escrow",
+        "unfreeze_refuses_missing_escrow",
+        "complete_payout_refuses_missing_escrow",
+        "complete_refund_refuses_missing_escrow",
+        "reverse_payout_refuses_missing_escrow",
+        "ledger_write_guarded_single_overload",
+        "no_positional_ledger_binding",
       ]),
     );
   });
@@ -98,6 +105,12 @@ const HARDCODED_WINDOW_BASELINE = [
   "timeout_transaction_atomic",
 ];
 
+const HARDCODED_FEE_BASELINE = [
+  "get_pricing_settings_at",
+  "selftest_refund_rail",
+  "track_pricing_setting_version",
+];
+
 function scanProcs(regex: string): string[] {
   // Dollar-quoted so the pattern reaches Postgres exactly as written.
   const out = psql(
@@ -119,5 +132,10 @@ d("live pg_proc invented-defaults scan", () => {
       String.raw`(interval\s*'[0-9]+ (day|hour)|\m(24|48|72|168)\M\s*\*?\s*(hour|::|\)))`,
     );
     expect(found.filter((f) => !HARDCODED_WINDOW_BASELINE.includes(f))).toEqual([]);
+  });
+
+  it("adds no new hardcoded fee rate, cap, or fee-setting key to a database function", () => {
+    const found = scanProcs(String.raw`(0\.0?2|\m400(?:\.0+)?\M|max_total_service_fee)`);
+    expect(found.filter((f) => !HARDCODED_FEE_BASELINE.includes(f))).toEqual([]);
   });
 });

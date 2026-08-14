@@ -43,10 +43,10 @@ export function verifyChargeAgainstSnapshot(
   const chargedRaw = Number(psData.amount ?? NaN);
   const chargedKobo = Number.isFinite(chargedRaw) ? Math.round(chargedRaw) : NaN;
 
-  const expectedCurrency = String(snapshot.currency_code || "NGN").toUpperCase();
+  const expectedCurrency = String(snapshot.currency_code ?? "").trim().toUpperCase();
   const chargedCurrency = String(psData.currency ?? "").toUpperCase();
 
-  if (chargedCurrency !== expectedCurrency) {
+  if (!expectedCurrency || chargedCurrency !== expectedCurrency) {
     return {
       ok: false,
       error: "amount_mismatch",
@@ -108,15 +108,19 @@ export interface InitiationCharge {
 export function resolveInitiationCharge(input: InitiationChargeInput): InitiationCharge {
   const snapTotal = Number(input.snapshot?.buyer_total_amount ?? NaN);
   if (input.snapshot && Number.isFinite(snapTotal) && snapTotal > 0) {
+    const snapshotCurrency = String(input.snapshot.currency_code ?? "").trim().toUpperCase();
+    if (!snapshotCurrency) throw new Error("missing_snapshot_currency");
     return {
-      currency_code: String(input.snapshot.currency_code || "NGN").toUpperCase(),
+      currency_code: snapshotCurrency,
       total_amount: snapTotal,
       amount_kobo: Math.round(snapTotal * 100),
       source: "snapshot",
     };
   }
+  const computedCurrency = String(input.computed.currency_code ?? "").trim().toUpperCase();
+  if (!computedCurrency) throw new Error("missing_computed_currency");
   return {
-    currency_code: String(input.computed.currency_code || "NGN").toUpperCase(),
+    currency_code: computedCurrency,
     total_amount: input.computed.total_amount,
     amount_kobo: Math.round(input.computed.total_amount * 100),
     source: "computed",

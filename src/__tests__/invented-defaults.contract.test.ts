@@ -909,6 +909,20 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
         "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql"
   ],
   },
+  {
+    name: "hardcoded fee rate, cap, or fee-setting key",
+    pattern: /(?<![\w.])0\.0?2(?!\d)|(?<![\w.])400(?:\.0+)?(?!\d)|max_total_service_fee/i,
+    debt: [
+      "supabase/migrations/20260718214353_7fc13186-70b1-4c65-ba35-d707bc40470b.sql",
+      "supabase/migrations/20260804095428_64f55a4f-3059-48bf-aeaa-706bc2f75e24.sql",
+      "supabase/migrations/20260804095754_f076fd17-a756-42b1-88a7-ba28194af818.sql",
+      "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql",
+      "supabase/migrations/20260814014442_d963a8fb-7584-4973-bffc-1faa27070b85.sql",
+      "supabase/migrations/20260814213855_809d1f72-4338-46e6-b116-e53479fc6bc7.sql",
+      "supabase/migrations/20260814214011_4684446c-18a8-4070-b873-44fb8fbc7162.sql",
+      "supabase/migrations/20260814214121_dafeafc2-77d6-41b7-9044-f09e453764d2.sql",
+    ],
+  },
 ];
 
 describe("the database does not invent facts either", () => {
