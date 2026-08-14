@@ -34,8 +34,8 @@ describe("permissionForPath", () => {
     expect(permissionForPath("/admin/dashboard/")).toBe("dashboard.view");
   });
 
-  it("maps the support page to dashboard.view", () => {
-    expect(permissionForPath("/admin/support")).toBe("dashboard.view");
+  it("maps the support page to the support inbox permission", () => {
+    expect(permissionForPath("/admin/support")).toBe("support.view");
   });
 
   it("ignores query strings and hashes on dashboard action hrefs", () => {
