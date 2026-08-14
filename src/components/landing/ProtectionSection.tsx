@@ -8,6 +8,9 @@ import {
   ShieldCheck,
   CheckCircle,
   Check,
+  Camera,
+  Scale,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -32,16 +35,38 @@ const ESCROW_STATES: {
   { title: "Funds Released", subtitle: "Paid to seller", icon: ArrowRightLeft, tone: "success" },
 ];
 
+const DISPUTE_PROMISE: { icon: LucideIcon; title: string; line: string }[] = [
+  {
+    icon: Camera,
+    title: "Evidence, not opinions",
+    line: "Both sides upload photos, video and delivery proof against the locked terms.",
+  },
+  {
+    icon: Scale,
+    title: "Reviewed before any payout",
+    line: "While a dispute is open, the money stays in escrow — nothing is released.",
+  },
+  {
+    icon: ShieldAlert,
+    title: "A real way out",
+    line: "Outcomes are refund, release, or partial resolution — recorded on the transaction.",
+  },
+];
+
 export function ProtectionSection() {
   return (
-    <section id="protection" className="section-y bg-background">
+    <section id="protection" className="bg-background py-12 sm:py-16">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-5 text-center sm:mb-7">
+        <div className="mb-6 text-center sm:mb-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-primary">For buyers</span>
+          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Your money stays protected until you're satisfied
           </h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            See how escrow holds your payment, step by step.
+            You pay SafeDeal, not the seller. The money only moves when the item checks out.
           </p>
         </div>
 
@@ -52,10 +77,10 @@ export function ProtectionSection() {
               <StepRow key={s.title} step={s} index={i} />
             ))}
 
-            <div className="rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-                <p className="text-[13px] font-semibold text-foreground">
+                <p className="text-sm font-semibold text-foreground">
                   Do not pay outside SafeDeal. Outside payments are not protected.
                 </p>
               </div>
@@ -64,6 +89,22 @@ export function ProtectionSection() {
 
           {/* Right — Animated escrow demo */}
           <AnimatedEscrowCard />
+        </div>
+
+        {/* Dispute promise */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {DISPUTE_PROMISE.map((d) => (
+            <div
+              key={d.title}
+              className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-shadow duration-300 hover:shadow-lg"
+            >
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                <d.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mb-1.5 text-base font-bold text-foreground">{d.title}</h3>
+              <p className="text-sm text-muted-foreground">{d.line}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -85,21 +126,21 @@ function StepRow({
   return (
     <div
       ref={ref}
-      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform group-hover:scale-110 ${wrap}`}
       >
-        <step.icon className="h-[18px] w-[18px]" />
+        <step.icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <h4 className="text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+        <h4 className="text-sm font-bold leading-tight text-foreground sm:text-base">
           {step.title}
         </h4>
-        <p className="text-[12px] leading-snug text-muted-foreground">{step.helper}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{step.helper}</p>
       </div>
-      <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+      <span className="ml-auto text-xs font-bold text-muted-foreground">
         {String(index + 1).padStart(2, "0")}
       </span>
     </div>
@@ -128,7 +169,7 @@ function AnimatedEscrowCard() {
   return (
     <div
       ref={ref}
-      className="rounded-2xl border-2 bg-card p-4 shadow-lg lg:ml-auto lg:max-w-[420px]"
+      className="rounded-2xl border bg-card p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg lg:ml-auto lg:max-w-[420px]"
     >
       {/* Header */}
       <div className="mb-3 flex items-center justify-between border-b pb-3">
@@ -136,7 +177,7 @@ function AnimatedEscrowCard() {
           <p className="text-sm font-bold text-foreground">Example protected transaction</p>
           <p className="text-xs text-muted-foreground">Illustration · not a real deal</p>
         </div>
-        <span className="rounded-full bg-success/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success">
+        <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-success">
           Protected
         </span>
       </div>
@@ -156,7 +197,7 @@ function AnimatedEscrowCard() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-1 text-right text-[10px] font-semibold text-muted-foreground">
+        <p className="mt-1 text-right text-xs font-semibold text-muted-foreground">
           Step {active + 1} of {ESCROW_STATES.length}
         </p>
       </div>
@@ -164,7 +205,7 @@ function AnimatedEscrowCard() {
       {/* Protected amount */}
       <div className="rounded-2xl bg-primary p-3 text-center">
         <p className="text-lg font-bold text-primary-foreground sm:text-xl">Buyer's full payment</p>
-        <p className="text-[11px] font-medium text-primary-foreground/80">
+        <p className="text-xs font-medium text-primary-foreground/80">
           Protected in Escrow
         </p>
       </div>
@@ -208,20 +249,20 @@ function EscrowRow({
 
   return (
     <div
-      className={`flex items-center gap-2.5 rounded-lg border p-2 transition-all duration-500 ${wrap}`}
+      className={`flex items-center gap-2.5 rounded-xl border p-2 transition-all duration-500 ${wrap}`}
     >
-      <Icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-500 ${iconColor}`} />
+      <Icon className={`h-5 w-5 shrink-0 transition-colors duration-500 ${iconColor}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-bold leading-tight text-foreground">
+        <p className="truncate text-xs font-bold leading-tight text-foreground">
           {state.title}
         </p>
-        <p className="truncate text-[11px] leading-tight text-muted-foreground">
+        <p className="truncate text-xs leading-tight text-muted-foreground">
           {state.subtitle}
         </p>
       </div>
       <span className="flex h-4 w-4 items-center justify-center">
         {isDone ? (
-          <Check className="h-3.5 w-3.5 text-success" />
+          <Check className="h-4 w-4 text-success" />
         ) : isCurrent ? (
           <span className="sd-soft-glow h-2 w-2 rounded-full bg-primary" />
         ) : null}
