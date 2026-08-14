@@ -353,7 +353,7 @@ export default function SellerUpdateDelivery() {
                 </div>
                 <div>
                   <span className="text-muted-foreground text-xs font-medium uppercase">Verification window</span>
-                  <p className="font-medium">{deliveryTerms?.verification_window_hours ?? "—"} hours</p>
+                  <p className="font-medium">{verificationWindowHours === null ? "—" : `${verificationWindowHours} hours`}</p>
                 </div>
               </div>
             </div>
