@@ -31,7 +31,7 @@ export function SellerDashboardEmptyState({ seller, metrics }: Props) {
           </Button>
           <Button asChild>
             <Link to="/seller/transactions/new">
-              Create protected transaction
+              Create a transaction
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -47,7 +47,7 @@ export function SellerDashboardEmptyState({ seller, metrics }: Props) {
       </div>
       <h2 className="text-lg font-bold text-foreground">Start your first transaction</h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-        Create a product listing or send a protected transaction link to a buyer. SafeDeal holds payment securely until the transaction is confirmed.
+        Create a product listing or send a transaction link to a buyer. SafeDeal holds the payment in escrow until the buyer confirms the item.
       </p>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
         <Button asChild variant="outline">

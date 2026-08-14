@@ -13,23 +13,20 @@ import { setStockQuantity } from "@/services/inventory.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
 import { useVendorPlan } from "@/hooks/useVendorPlan";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
-function getVerificationLabel(level: string) {
-  switch (level) {
-    case "trusted_buyer":
-    case "high_trust_buyer": return TRUST_CLAIMS.SELLER_VERIFIED.text;
-    case "basic_verified": return "Basic account";
-    default: return "Standard account";
-  }
+/**
+ * The verification claim is driven by `identity_verified` only — the declared
+ * basis of SELLER_VERIFIED. `verification_level` is an internal trust tier and
+ * never on its own earns a verification badge.
+ */
+function getVerificationLabel(identityVerified: boolean) {
+  const claim = sellerVerificationClaim({ identityVerified });
+  return claim ? claim.text : "Standard account";
 }
 
-function getVerificationDotColor(level: string) {
-  switch (level) {
-    case "trusted_buyer":
-    case "high_trust_buyer": return "bg-primary";
-    default: return "bg-muted-foreground";
-  }
+function getVerificationDotColor(identityVerified: boolean) {
+  return identityVerified ? "bg-primary" : "bg-muted-foreground";
 }
 
 const SellerStorefront = () => {
@@ -201,9 +198,9 @@ const SellerStorefront = () => {
                       <div>
                         <p className="text-xs text-muted-foreground">Store Status</p>
                         <div className="flex items-center gap-1.5">
-                          <span className={`h-2 w-2 rounded-full ${getVerificationDotColor(trust.verification_level)}`} />
+                          <span className={`h-2 w-2 rounded-full ${getVerificationDotColor(trust.identity_verified === true)}`} />
                           <p className="text-sm font-semibold text-foreground">
-                            {getVerificationLabel(trust.verification_level)}
+                            {getVerificationLabel(trust.identity_verified === true)}
                           </p>
                         </div>
                       </div>

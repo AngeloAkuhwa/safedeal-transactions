@@ -46,6 +46,7 @@ import type {
 } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { supportLink } from "@/lib/support/support-copy";
+import { sellerVerificationClaim, TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
@@ -336,7 +337,7 @@ const BuyerTransactionDetail = () => {
             <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-primary/5 border-primary/20">
               <Shield className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
               <div>
-                <p className="text-sm font-bold text-primary">Escrow Protection Active</p>
+                <p className="text-sm font-bold text-primary">{TRUST_CLAIMS.ESCROW_ACTIVE.text}</p>
                 <p className="text-xs mt-0.5 text-primary/80">
                   Your payment of <span className="font-bold">{formatMoney(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
@@ -553,9 +554,14 @@ const BuyerTransactionDetail = () => {
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
                   <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-primary mb-1">Your Money is Protected</p>
+                    {/* Present-tense claim only while funds are actually held. */}
+                    <p className="text-sm font-bold text-primary mb-1">
+                      {escrow?.state === "held" ? TRUST_CLAIMS.MONEY_PROTECTED_NOW.text : TRUST_CLAIMS.PAYMENT_WILL_BE_ESCROWED.text}
+                    </p>
                     <p className="text-xs text-primary/80 leading-relaxed">
-                      SafeDeal holds your payment in secure escrow until you confirm the item matches what was agreed. If there's an issue, you can raise a dispute.
+                      {escrow?.state === "held"
+                        ? "SafeDeal holds your payment until you confirm the item matches what was agreed. If there's an issue, you can raise a dispute."
+                        : "Once payment is made, SafeDeal holds it until you confirm the item matches what was agreed. If there's an issue, you can raise a dispute."}
                     </p>
                   </div>
                 </div>
@@ -682,9 +688,10 @@ const BuyerTransactionDetail = () => {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-xs sm:text-sm text-muted-foreground">Verification Status</span>
-                    {seller.is_verified ? (
-                      <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
-                        <BadgeCheck className="h-3 w-3 mr-1" /> Verified
+                    {sellerVerificationClaim({ identityVerified: seller.is_verified }) ? (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                        <BadgeCheck className="h-3 w-3 mr-1" />
+                        {sellerVerificationClaim({ identityVerified: seller.is_verified })!.text}
                       </Badge>
                     ) : (
                       <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Not verified</span>
@@ -754,9 +761,10 @@ const BuyerTransactionDetail = () => {
                     </div>
                     <div className="flex justify-between py-3">
                       <span className="text-muted-foreground">Verification Status</span>
-                      {seller.is_verified ? (
-                        <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
-                          <BadgeCheck className="h-3 w-3 mr-1" /> Verified
+                      {sellerVerificationClaim({ identityVerified: seller.is_verified }) ? (
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                          <BadgeCheck className="h-3 w-3 mr-1" />
+                          {sellerVerificationClaim({ identityVerified: seller.is_verified })!.text}
                         </Badge>
                       ) : (
                         <span className="font-semibold text-muted-foreground">Not verified</span>

@@ -128,7 +128,8 @@ export default function BuyerPaymentSummary() {
   });
 
   const permissions = profileData?.permissions;
-  const canPay = permissions?.canStartProtectedPayment ?? true;
+  // Fail closed: if the permission check has not resolved, payment stays blocked.
+  const canPay = permissions?.canStartProtectedPayment === true;
 
   // Determine specific lock reason for context-aware messaging
   const lockReason = !canPay && permissions ? (
@@ -140,6 +141,8 @@ export default function BuyerPaymentSummary() {
           ? "concurrency"
           : "verification"
   ) : null;
+  /** No permissions payload yet — we cannot prove the buyer may pay. */
+  const permissionsUnavailable = !canPay && !permissions;
 
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
@@ -346,7 +349,12 @@ export default function BuyerPaymentSummary() {
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-destructive shrink-0" />
                 <div>
-                  {lockReason === "region" ? (
+                  {permissionsUnavailable ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground">We couldn't confirm your account status</p>
+                      <p className="text-xs text-muted-foreground">Payment is blocked until your account checks load. Refresh the page or open Profile Settings.</p>
+                    </>
+                  ) : lockReason === "region" ? (
                     <>
                       <p className="text-sm font-bold text-foreground">Protected transactions are only available in Lagos during launch</p>
                       <p className="text-xs text-muted-foreground">Update your location to a Lagos LGA in Profile Settings</p>
@@ -660,8 +668,9 @@ export default function BuyerPaymentSummary() {
                 <div className="flex items-start gap-3 mb-4">
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-foreground mb-1">Your Payment is Protected</p>
-                    <p className="text-xs text-muted-foreground">SafeDeal holds your payment securely until you confirm the item has been received and matches the agreement. If something goes wrong, you can open a dispute and SafeDeal will review the case.</p>
+                    {/* Pre-payment screen: future tense only — nothing is in escrow yet. */}
+                    <p className="text-sm font-bold text-foreground mb-1">{TRUST_CLAIMS.PAYMENT_WILL_BE_ESCROWED.text}</p>
+                    <p className="text-xs text-muted-foreground">Once you pay, SafeDeal holds the money until you confirm the item has been received and matches the agreement. If something goes wrong, you can open a dispute and SafeDeal will review the case.</p>
                   </div>
                 </div>
                 <div className="space-y-2 pl-8">
@@ -848,12 +857,16 @@ export default function BuyerPaymentSummary() {
 
                 {!canPay ? (
                   <button
-                    onClick={() => navigate(lockReason === "concurrency" ? "/dashboard/transactions" : "/dashboard/profile#location")}
+                    onClick={() => {
+                      if (permissionsUnavailable) { window.location.reload(); return; }
+                      navigate(lockReason === "concurrency" ? "/dashboard/transactions" : "/dashboard/profile#location");
+                    }}
                     className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3"
                   >
                     <User className="h-5 w-5" />
                     <span>
-                      {lockReason === "region" ? "Update Location to Continue"
+                      {permissionsUnavailable ? "Retry Account Check"
+                        : lockReason === "region" ? "Update Location to Continue"
                         : lockReason === "concurrency" ? "View My Transactions"
                         : "Verify Account to Continue"}
                     </span>
