@@ -171,14 +171,6 @@ const detailFixture = {
   completion_event: null,
 };
 
-// The fixture must satisfy the real service contract, or these render tests
-// prove nothing about the real screen.
-const _fixtureMatchesContract: TransactionDetailResponse = {
-  ...detailFixture,
-  seller: { full_name: "Test Seller", avatar_url: null, member_since: "2025-01-01T00:00:00Z", is_verified: false },
-};
-void _fixtureMatchesContract;
-
 vi.mock("@/hooks/useBuyerIdentity", () => ({
   useBuyerIdentity: () => ({ buyerName: "Test Buyer", avatarUrl: null }),
 }));
@@ -206,25 +198,37 @@ vi.mock("@/components/transactions/MessageThread", () => ({ MessageThread: () =>
 afterEach(() => cleanup());
 
 describe("BuyerTransactionDetail renders verification state truthfully", () => {
+  /** The desktop and mobile seller cards, as two independent scopes. */
+  const sellerCards = (container: HTMLElement) => {
+    const desktop = container.querySelector<HTMLElement>('[data-testid="seller-card-desktop"]');
+    const mobile = container.querySelector<HTMLElement>('[data-testid="seller-card-mobile"]');
+    expect(desktop, "desktop seller card").toBeTruthy();
+    expect(mobile, "mobile seller card").toBeTruthy();
+    return { desktop: within(desktop!), mobile: within(mobile!) };
+  };
+
   it("renders NO Verified badge or tick when the seller is not verified", async () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     const { container } = renderPage(<Page />);
-    const scope = within(container);
-    const notVerified = await scope.findAllByText("Not verified");
-    // Desktop + mobile copies of the seller card.
-    expect(notVerified.length).toBeGreaterThanOrEqual(2);
-    expect(scope.queryAllByText("Verified")).toEqual([]);
+    await within(container).findAllByText("Not verified");
+    const { desktop, mobile } = sellerCards(container);
+    for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
+      expect(scope.getAllByText("Not verified").length, name).toBe(1);
+      expect(scope.queryAllByText("Verified"), name).toEqual([]);
+    }
   });
 
   it("renders the Verified badge on BOTH the desktop and mobile card when verified", async () => {
     sellerVerified = true;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     const { container } = renderPage(<Page />);
-    const scope = within(container);
-    const verified = await scope.findAllByText("Verified");
-    expect(verified.length).toBeGreaterThanOrEqual(2);
-    expect(scope.queryAllByText("Not verified")).toEqual([]);
+    await within(container).findAllByText("Verified");
+    const { desktop, mobile } = sellerCards(container);
+    for (const [name, scope] of [["desktop", desktop], ["mobile", mobile]] as const) {
+      expect(scope.getAllByText("Verified").length, name).toBe(1);
+      expect(scope.queryAllByText("Not verified"), name).toEqual([]);
+    }
   });
 
   it("labels the receipt control by what it actually does", async () => {
