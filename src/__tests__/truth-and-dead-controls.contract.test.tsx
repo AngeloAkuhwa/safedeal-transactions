@@ -272,10 +272,23 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
     const dead: string[] = [];
     for (const file of SURFACES) {
       const src = fs.readFileSync(file, "utf8");
-      for (const m of src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)) {
+      for (const m of src.matchAll(/<(?:button|Button)\b/g)) {
+        // Walk to the real end of the tag: `>` inside {…} or "…" is not a close.
+        let i = m.index! + m[0].length;
+        let brace = 0;
+        let quote: string | null = null;
+        for (; i < src.length; i++) {
+          const ch = src[i];
+          if (quote) { if (ch === quote) quote = null; continue; }
+          if (ch === '"' || ch === "'" || ch === "`") { quote = ch; continue; }
+          if (ch === "{") brace++;
+          else if (ch === "}") brace--;
+          else if (ch === ">" && brace === 0) break;
+        }
+        const tag = src.slice(m.index!, i + 1);
         const before = src.slice(Math.max(0, m.index! - 200), m.index!);
-        const entry = `${rel(file)}: ${m[0].slice(0, 80)}`;
-        if (isDead(m[0], before) && !(entry in PERMANENTLY_INERT)) dead.push(entry);
+        const entry = `${rel(file)}: ${tag.replace(/\s+/g, " ").slice(0, 90)}`;
+        if (isDead(tag, before) && !(entry in PERMANENTLY_INERT)) dead.push(entry);
       }
     }
     expect(dead).toEqual([]);
