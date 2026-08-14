@@ -183,6 +183,12 @@ const CURRENCY_POSITIONAL =
 const POSITIONAL_DEBT = [
 
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
+  "supabase/functions/_shared/safedeal-money-policy.ts",
+  "supabase/functions/_shared/settings-resolver.ts",
+  "supabase/functions/admin-system-settings/index.ts",
+  "supabase/functions/initiate-paystack-payment/index.ts",
+  "supabase/functions/seller-transaction-detail/index.ts",
+  "supabase/functions/transaction-agreement/index.ts",
   "src/components/admin/dashboard/KpiCards.tsx",
   "src/components/admin/dashboard/RecentActivity.tsx",
   "src/components/admin/escrow/EscrowAlertsPanel.tsx",
