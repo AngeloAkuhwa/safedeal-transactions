@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { SUPPORT_ACK_SENTENCE } from "../_shared/support-copy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +41,7 @@ async function sendAcknowledgement(to: string, name: string, reference: string |
         to: [to],
         subject: "We received your SafeDeal support message",
         html: `<p>Hi ${name},</p>
-<p>We have your message${reference ? ` about <strong>${reference}</strong>` : ""}. A support agent replies within 1 business day (Monday to Friday, 9am – 5pm WAT).</p>
+<p>We have your message${reference ? ` about <strong>${reference}</strong>` : ""}. ${SUPPORT_ACK_SENTENCE}</p>
 <p>If money is still held in escrow on a transaction, open a dispute from the transaction itself — that freezes the funds while the case is reviewed.</p>
 <p>— SafeDeal Support</p>`,
       }),
