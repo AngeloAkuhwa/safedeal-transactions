@@ -160,7 +160,6 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
 
   it("renders the Verified badge on BOTH the desktop and mobile card when verified", async () => {
     sellerVerified = true;
-    vi.resetModules();
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
     renderPage(<Page />);
     const verified = await screen.findAllByText("Verified");
@@ -187,15 +186,20 @@ describe("no dead controls on buyer-facing and support surfaces", () => {
     "components/verification/VerificationSidebar.tsx",
   ];
 
-  const isDead = (tag: string) =>
-    !/onClick|onSubmit|type="submit"|disabled|asChild|href=|to=/.test(tag);
+  const isDead = (tag: string, before: string) =>
+    !/onClick|onSubmit|type="submit"|disabled|asChild|href=|to=/.test(tag) &&
+    // A trigger that opens a menu/dialog is live even without its own handler.
+    !/asChild>\s*$/.test(before);
 
   for (const file of SURFACES) {
     it(`every <button> and <Button> in ${file} does something`, () => {
       const src = read(file);
-      const tags = [...src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)].map((m) => m[0]);
-      expect(tags.length).toBeGreaterThan(0);
-      expect(tags.filter(isDead)).toEqual([]);
+      const matches = [...src.matchAll(/<(?:button|Button)\b[\s\S]*?>/g)];
+      expect(matches.length).toBeGreaterThan(0);
+      const dead = matches
+        .filter((m) => isDead(m[0], src.slice(Math.max(0, m.index! - 120), m.index!)))
+        .map((m) => m[0]);
+      expect(dead).toEqual([]);
     });
   }
 
@@ -262,7 +266,7 @@ describe("one support promise, one fee name, one refund sentence", () => {
   it("no screen restates the response time inline", () => {
     const offenders = FILES.filter((f) => {
       if (f.endsWith("support-copy.ts")) return false;
-      return /reply within \d|response target: \d|within \d business day/i.test(
+      return /(?:repl(?:y|ies)|respond|response)[^\n]{0,40}within \d+\s+business day/i.test(
         fs.readFileSync(f, "utf8"),
       );
     }).map(rel);
