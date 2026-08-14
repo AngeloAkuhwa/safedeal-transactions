@@ -700,6 +700,12 @@ const SellerProductCreate = () => {
           </div>
         </div>
       </div>
+
+      <ProductPhotoCropDialog
+        photo={cropQueue[0] ?? null}
+        onConfirm={handleCropConfirm}
+        onSkip={dequeueCrop}
+      />
     </SidebarProvider>
   );
 };
