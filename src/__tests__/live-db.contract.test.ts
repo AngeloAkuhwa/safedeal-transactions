@@ -195,7 +195,6 @@ const NGN_LITERAL_BASELINE = [
   "apply_financial_remediation_atomic",
   "complete_payout_atomic",
   "complete_refund_atomic",
-  "create_orchestration_task",
   "freeze_funds_atomic",
   "ledger_write_guarded",
   "record_completion_release_intent_atomic",
