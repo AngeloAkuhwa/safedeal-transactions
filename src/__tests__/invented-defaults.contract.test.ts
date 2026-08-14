@@ -640,6 +640,13 @@ describe("money never falls back to zero (wrapped calls)", () => {
     const src = stripComments(
       fs.readFileSync(path.join(ROOT, "supabase/functions/resolve-share-token/index.ts"), "utf8"),
     );
+    for (const f of MONEY_ZERO_FIXED_THIS_PASS) {
+      const s = stripComments(fs.readFileSync(path.join(ROOT, f), "utf8"));
+      expect(s, `${f}: base rule`).not.toMatch(MONEY_ZERO_FALLBACK);
+      expect(s, `${f}: wrapped rule`).not.toMatch(MONEY_ZERO_WRAPPED);
+      expect(MONEY_ZERO_DEBT).not.toContain(f);
+      expect(MONEY_ZERO_WRAPPED_DEBT).not.toContain(f);
+    }
     expect(src).not.toMatch(MONEY_ZERO_WRAPPED);
     expect(src).not.toMatch(MONEY_ZERO_FALLBACK);
   });
