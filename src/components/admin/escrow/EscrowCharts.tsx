@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from "recharts";
 import type { EscrowTrends } from "@/services/admin-escrow.service";
+import { formatMoneyCompactOrDash } from "@/lib/payment/money-format";
 
 const STATE_COLORS: Record<string, string> = {
   Held: "#3b82f6",
@@ -15,12 +16,6 @@ const STATE_COLORS: Record<string, string> = {
 function fmtDay(d: string): string {
   const dt = new Date(d + "T00:00:00Z");
   return dt.toLocaleDateString("en-NG", { month: "short", day: "numeric" });
-}
-
-function fmtCompact(n: number): string {
-  if (Math.abs(n) >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `₦${(n / 1_000).toFixed(0)}k`;
-  return `₦${n}`;
 }
 
 function Panel({ title, subtitle, children, className }: { title: string; subtitle: string; children: React.ReactNode; className?: string }) {
@@ -36,6 +31,8 @@ function Panel({ title, subtitle, children, className }: { title: string; subtit
 }
 
 export function EscrowCharts({ trends }: { trends: EscrowTrends }) {
+  // Same ladder as the KPI tiles above — one formatter, one currency source.
+  const fmtMoney = (n: number) => formatMoneyCompactOrDash(n, trends.currency_code);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
       <Panel title="Escrow Balance Trend" subtitle="Total funds held over the last 30 days">
@@ -50,10 +47,10 @@ export function EscrowCharts({ trends }: { trends: EscrowTrends }) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="date" tickFormatter={fmtDay} stroke="#94a3b8" fontSize={11} />
-              <YAxis tickFormatter={fmtCompact} stroke="#94a3b8" fontSize={11} width={60} />
+              <YAxis tickFormatter={fmtMoney} stroke="#94a3b8" fontSize={11} width={72} />
               <Tooltip
                 contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: 8, color: "#fff" }}
-                formatter={(v: number) => fmtCompact(v)}
+                formatter={(v: number) => fmtMoney(v)}
                 labelFormatter={fmtDay}
               />
               <Area type="monotone" dataKey="balance" stroke="#10b981" strokeWidth={3} fill="url(#balGrad)" dot={false} />
@@ -93,10 +90,10 @@ export function EscrowCharts({ trends }: { trends: EscrowTrends }) {
             <BarChart data={trends.flow_14d} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="date" tickFormatter={fmtDay} stroke="#94a3b8" fontSize={11} />
-              <YAxis tickFormatter={fmtCompact} stroke="#94a3b8" fontSize={11} width={60} />
+              <YAxis tickFormatter={fmtMoney} stroke="#94a3b8" fontSize={11} width={72} />
               <Tooltip
                 contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: 8, color: "#fff" }}
-                formatter={(v: number) => fmtCompact(v)}
+                formatter={(v: number) => fmtMoney(v)}
                 labelFormatter={fmtDay}
               />
               <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />
