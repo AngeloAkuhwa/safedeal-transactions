@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
-  Globe, Users, Lock, Copy, Share2, ShieldCheck, Trash2,
+  Globe, Users, Lock, Share2, ShieldCheck,
   Info, ImageIcon, Banknote, Handshake, PackagePlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
