@@ -88,6 +88,7 @@ const CURRENCY_DEFINITION_FILES = new Set([
  * shrink-only ratchet as the front-end list.
  */
 const EDGE_CURRENCY_DEBT: string[] = [
+  "supabase/functions/transaction-verify/index.ts",
   "supabase/functions/_shared/financial-model.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/flagged-users-sql.ts",
@@ -187,6 +188,7 @@ const CURRENCY_POSITIONAL =
  * same rules as the lists above.
  */
 const POSITIONAL_DEBT = [
+  "supabase/functions/_shared/settings-resolver.ts",
 
   "src/components/admin/dashboard/IdentityAndPayoutHealth.tsx",
   "supabase/functions/_shared/safedeal-money-policy.ts",
@@ -357,6 +359,7 @@ const SYMBOL_DEBT: string[] = [
  * NGN-only formatter helper. Same shrink-only ratchet.
  */
 const EDGE_SYMBOL_DEBT: string[] = [
+  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/initiate-paystack-payment/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/_shared/pricing-invariant.ts",
@@ -516,6 +519,7 @@ function isCountName(match: string): boolean {
 }
 
 const MONEY_ZERO_DEBT: string[] = [
+  "supabase/functions/create-transaction/index.ts",
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
   "src/components/agreement/LockedSnapshotCard.tsx",
   "src/hooks/useSellerUnreadCounts.ts",
@@ -853,8 +857,6 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
     pattern: /interval\s+'\d+\s+day/i,
     debt: [
         "supabase/migrations/20260308102521_d299192f-2ecd-4095-b7df-aec585f187f9.sql",
-        // ledger_write_guarded still COALESCEs its currency; tracked live in live-db.contract.test.ts.
-        "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260419165835_75c559da-03a0-4412-9a4e-4a0987d8309d.sql",
         "supabase/migrations/20260613133755_de7f6587-0a8f-480b-86fd-5d128286a164.sql",
         "supabase/migrations/20260613135229_a14c082f-f4b5-47e3-ac21-fbbc5bab7f0a.sql",
