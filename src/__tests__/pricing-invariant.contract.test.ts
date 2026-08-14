@@ -40,9 +40,19 @@ describe("pricing economic invariant", () => {
     expect(verdict.message).toMatch(/minimum margin/);
   });
 
-  it("rejects a zero floor that leaves sub-margin fees on small amounts (floor-zero)", () => {
+  it("accepts a zero floor under G3, because the flat component carries the margin", () => {
+    // The ₦100 flat component replaces the old ₦250 floor as the small-ticket
+    // margin guarantee, so min_platform_fee 0 is no longer a violation.
     const verdict = checkPricingInvariant(
       { ...FALLBACK_PRICING_CONFIG, min_platform_fee: 0 },
+      compute,
+    );
+    expect(verdict.ok).toBe(true);
+  });
+
+  it("rejects a zero floor AND zero flat, which leaves sub-margin fees on small amounts", () => {
+    const verdict = checkPricingInvariant(
+      { ...FALLBACK_PRICING_CONFIG, min_platform_fee: 0, platform_fee_flat: 0 },
       compute,
     );
     expect(verdict.ok).toBe(false);

@@ -78,16 +78,18 @@ describe("pricing parity: src/lib/pricing.ts vs supabase/functions/_shared/prici
     }
   });
 
-  it("agrees on the ₦250 platform-fee floor and the ₦2,500 total-fee cap", () => {
-    // Floor: a tiny amount is floored, both sides flag it and charge the same.
-    const floored = clientComputePricing(1_000);
-    expect(floored.is_floored).toBe(true);
-    expect(floored).toEqual(serverComputePricing(1_000, "NGN", "local"));
+  it("agrees on the G3 rate + flat and the ₦5,000 platform-fee cap", () => {
+    // Small amount: 2% + ₦100, identical on both sides.
+    const small = clientComputePricing(1_000);
+    expect(small.platform_fee_amount).toBe(120);
+    expect(small).toEqual(serverComputePricing(1_000, "NGN", "local"));
 
-    // Cap: a large amount is capped at 2,500 total service fee on both sides.
+    // Cap: the platform fee is capped at ₦5,000 on both sides (₦7,000 total
+    // service fee once the ₦2,000 Paystack cap is added).
     const capped = clientComputePricing(1_000_000);
     expect(capped.is_capped).toBe(true);
-    expect(capped.service_fee_amount).toBe(2_500);
+    expect(capped.platform_fee_amount).toBe(5_000);
+    expect(capped.service_fee_amount).toBe(7_000);
     expect(capped).toEqual(serverComputePricing(1_000_000, "NGN", "local"));
   });
 
