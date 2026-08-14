@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { SnapCarousel } from "@/components/ui/snap-carousel";
 
 const STEPS: { icon: LucideIcon; title: string; helper: string }[] = [
   { icon: CreditCard, title: "Pay through SafeDeal", helper: "Money goes to escrow" },
@@ -55,9 +56,9 @@ const DISPUTE_PROMISE: { icon: LucideIcon; title: string; line: string }[] = [
 
 export function ProtectionSection() {
   return (
-    <section id="protection" className="bg-background py-12 sm:py-16">
+    <section id="protection" className="bg-background py-8 sm:py-12 lg:py-16">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-8">
+        <div className="mb-5 text-center sm:mb-8">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <ShieldCheck className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">For buyers</span>
@@ -92,11 +93,15 @@ export function ProtectionSection() {
         </div>
 
         {/* Dispute promise */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <SnapCarousel
+          ariaLabel="How SafeDeal handles disputes"
+          className="mt-6 sm:mt-8"
+          trackClassName="sm:grid-cols-3"
+        >
           {DISPUTE_PROMISE.map((d) => (
             <div
               key={d.title}
-              className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-shadow duration-300 hover:shadow-lg"
+              className="tap-press flex h-full flex-col rounded-2xl border bg-card p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg sm:p-5"
             >
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-warning/10 text-warning">
                 <d.icon className="h-5 w-5" />
@@ -105,7 +110,7 @@ export function ProtectionSection() {
               <p className="text-sm text-muted-foreground">{d.line}</p>
             </div>
           ))}
-        </div>
+        </SnapCarousel>
       </div>
     </section>
   );

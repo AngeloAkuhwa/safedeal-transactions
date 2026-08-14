@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { Share2, Store, Globe2, Shield, ArrowRight, BadgeCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { SnapCarousel } from "@/components/ui/snap-carousel";
 
 const AUDIENCES = [
   {
@@ -30,7 +31,7 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
     <div
       ref={ref}
       style={{ transitionDelay: `${index * 90}ms` }}
-      className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+      className="tap-press flex h-full flex-col rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg sm:p-5"
     >
       <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${item.tone}`}>
         <item.icon className="h-5 w-5" />
@@ -43,9 +44,9 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
 
 export function VerifiedSellersSection() {
   return (
-    <section id="for-sellers" className="bg-background py-12 sm:py-16">
+    <section id="for-sellers" className="bg-background py-8 sm:py-12 lg:py-16">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
+        <div className="mb-5 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-4 w-4 text-success" />
             <span className="text-xs font-semibold text-success">For sellers</span>
@@ -61,14 +62,14 @@ export function VerifiedSellersSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <SnapCarousel ariaLabel="Who SafeDeal is built for" trackClassName="sm:grid-cols-3">
           {AUDIENCES.map((a, i) => (
             <AudienceCard key={a.title} item={a} index={i} />
           ))}
-        </div>
+        </SnapCarousel>
 
         {/* Truthful trust strip — no invented numbers */}
-        <div className="mt-8 rounded-2xl border bg-muted/40 p-4">
+        <div className="mt-6 rounded-2xl border bg-muted/40 p-4 sm:mt-8">
           <ul className="flex flex-col items-center justify-center gap-2 text-center text-sm font-semibold text-muted-foreground sm:flex-row sm:gap-5">
             <li className="inline-flex items-center gap-1.5">
               <Lock className="h-4 w-4 text-primary" />
@@ -91,7 +92,7 @@ export function VerifiedSellersSection() {
           <Button
             asChild
             variant="outline"
-            className="group gap-2 rounded-xl border-2 px-5 py-2.5 text-sm font-semibold"
+            className="tap-press group h-12 w-full gap-2 rounded-xl border-2 px-5 text-sm font-semibold sm:h-11 sm:w-auto"
           >
             <Link to="/auth?role=seller">
               Open your free store

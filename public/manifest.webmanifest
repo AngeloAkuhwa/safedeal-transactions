@@ -1,7 +1,7 @@
 {
   "name": "SafeDeal — Protected Deals",
   "short_name": "SafeDeal",
-  "description": "SafeDeal holds the buyer's money until the item is delivered and confirmed. Protected deals for WhatsApp and Instagram vendors.",
+  "description": "SafeDeal holds the buyer's money until the item is delivered and confirmed. Protected deals for online buyers and sellers, everywhere.",
   "lang": "en-NG",
   "dir": "ltr",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "start_url": "/?source=pwa",
   "scope": "/",
   "id": "/",
-  "background_color": "#0b1220",
+  "background_color": "#0B4FA8",
   "theme_color": "#0369a1",
   "categories": ["business", "finance", "shopping"],
   "icons": [

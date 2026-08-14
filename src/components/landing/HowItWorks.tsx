@@ -69,7 +69,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="py-12 sm:py-16 bg-muted/30"
+      className="py-8 sm:py-12 lg:py-16 bg-muted/30"
     >
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
