@@ -155,7 +155,7 @@ export default function Pricing() {
                   </ul>
 
                   <Button asChild className="mt-6 w-full" variant={highlight ? "default" : "outline"}>
-                    <Link to={isFree ? "/auth?mode=signup&role=seller" : "/seller/profile?tab=plan"}>
+                    <Link to={isFree ? "/auth?mode=signup&role=seller" : "/seller/profile?section=plan"}>
                       {isFree ? "Open your free store" : `Choose ${plan.name}`}
                     </Link>
                   </Button>

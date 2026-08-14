@@ -13,6 +13,7 @@ import { DangerZoneSection } from "@/components/profile/DangerZoneSection";
 import { TrustSafetyPanel } from "@/components/profile/TrustSafetyPanel";
 import { AccountStatusCard } from "@/components/profile/AccountStatusCard";
 import { EffectiveSettingsPanel } from "@/components/profile/EffectiveSettingsPanel";
+import { VendorPlanSection } from "@/components/profile/VendorPlanSection";
 import {
   getSellerProfile,
   updateSellerProfile,
@@ -155,6 +156,7 @@ const SellerProfileSettings = () => {
               onAvatarUploaded={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
             />
             <div id="identity"><SellerVerificationSection verification={data.verification} permissions={data.permissions} isLoading={isLoading} /></div>
+            <div id="plan"><VendorPlanSection /></div>
             <SecuritySection />
             {displayPrefs && (
               <NotificationPreferencesSection
