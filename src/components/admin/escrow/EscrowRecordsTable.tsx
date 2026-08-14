@@ -65,12 +65,6 @@ function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: Escrow
       >
         <Scale className={`h-4 w-4 ${row.flagged ? "text-red-400 group-hover:text-white" : "text-slate-500"}`} />
       </button>
-      <button type="button" disabled title="Investigate (coming soon)" className={`${btn} bg-slate-800 opacity-60 cursor-not-allowed`}>
-        <SearchCheck className="h-4 w-4 text-slate-400" />
-      </button>
-      <button type="button" disabled title="Add Internal Note (coming soon)" className={`${btn} bg-slate-800 opacity-60 cursor-not-allowed`}>
-        <StickyNote className="h-4 w-4 text-slate-400" />
-      </button>
     </div>
   );
 }
