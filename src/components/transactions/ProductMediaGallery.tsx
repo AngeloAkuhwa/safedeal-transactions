@@ -8,6 +8,7 @@ import {
   getCloudinaryThumbnail,
   getCloudinaryVideoPoster,
 } from "@/lib/cloudinary";
+import { productImageSrcSet, productImageUrl } from "@/lib/product-image";
 
 export interface GalleryMediaItem {
   file_url: string | null;
@@ -39,7 +40,7 @@ function normalize(items: GalleryMediaItem[]): NormalizedItem[] {
       const poster = isVideo ? getCloudinaryVideoPoster(url, 1280, 800) : null;
       const thumb = isVideo
         ? getCloudinaryVideoPoster(url, 128, 128) ?? ""
-        : getCloudinaryThumbnail(url, 128, 128);
+        : productImageUrl(url, "thumb");
       return { url, isVideo, thumb, poster };
     })
     .filter((x): x is NormalizedItem => x !== null);
@@ -112,10 +113,15 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
           />
         ) : (
           <img
-            src={active.url}
+            src={productImageUrl(active.url, "detail") || active.url}
+            srcSet={productImageSrcSet(active.url, "zoom") || undefined}
+            sizes="(max-width: 768px) 100vw, 640px"
+            width={800}
+            height={800}
             alt={title}
             className="w-full h-full object-contain"
             loading="lazy"
+            decoding="async"
           />
         )}
 

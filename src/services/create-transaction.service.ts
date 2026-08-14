@@ -172,13 +172,17 @@ export async function uploadProductFile(
   const headers = await getAuthHeader();
   const { data: signData, error: signErr } = await supabase.functions.invoke("upload-evidence", {
     headers,
-    body: { action: "sign_upload", context: "product_evidence" },
+    body: {
+      action: "sign_upload",
+      context: "product_evidence",
+      resource_type: file.type.startsWith("video/") ? "video" : "image",
+    },
   });
   if (signErr || !signData || signData.error) {
     throw new Error(signData?.error || "Failed to get upload signature");
   }
 
-  const { timestamp, signature, api_key, cloud_name, folder, allowed_formats, max_file_size } = signData;
+  const { timestamp, signature, api_key, cloud_name, folder, allowed_formats, max_file_size, transformation } = signData;
 
   // 2. Compute hash
   const fileHash = await computeFileHash(file);
@@ -196,6 +200,8 @@ export async function uploadProductFile(
   // These were part of the signed payload, so they must be sent verbatim.
   if (allowed_formats) formDataUpload.append("allowed_formats", allowed_formats);
   if (max_file_size) formDataUpload.append("max_file_size", max_file_size);
+  // Master cap (c_limit,w_2000,h_2000,q_auto:good) — signed, so send verbatim.
+  if (transformation) formDataUpload.append("transformation", transformation);
 
   const cloudinaryResult = await new Promise<any>((resolve, reject) => {
     const xhr = new XMLHttpRequest();

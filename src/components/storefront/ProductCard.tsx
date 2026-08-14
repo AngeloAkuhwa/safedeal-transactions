@@ -5,6 +5,7 @@ import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
 import { Package, ShieldCheck, AlertTriangle } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { getAvailableQuantity } from "@/lib/inventory";
+import { ProductImage } from "@/components/common/ProductImage";
 
 interface SellerTrustSummary {
   verification_level: string;
@@ -52,11 +53,12 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
         {product.primary_image_url ? (
-          <img
-            src={product.primary_image_url}
+          <ProductImage
+            url={product.primary_image_url}
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            rendition="card"
+            sizes="(max-width: 640px) 50vw, 300px"
+            className="group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
