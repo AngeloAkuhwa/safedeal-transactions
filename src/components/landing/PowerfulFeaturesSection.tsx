@@ -525,7 +525,7 @@ export function PowerfulFeaturesSection() {
         </div>
 
         {/* Desktop — even rows of ordinary cards, hero deliberately spans the full row */}
-        <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3.5 lg:grid-cols-3">
+        <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3.5 lg:grid-cols-4">
           {FEATURES.map((f, i) => (
             <FeatureCard
               key={f.title}
@@ -533,7 +533,7 @@ export function PowerfulFeaturesSection() {
               index={i}
               isActive={activeIndex === i}
               forceHeroOnce={seen}
-              className={f.hero ? "sm:col-span-2 lg:col-span-3" : undefined}
+              className={f.hero ? "sm:col-span-2 lg:col-span-4" : undefined}
             />
           ))}
         </div>
