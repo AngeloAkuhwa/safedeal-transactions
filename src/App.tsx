@@ -173,6 +173,7 @@ const App = () => (
                   </AdminPermissionsProvider>
                 }
               >
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/transactions" element={<AdminTransactions />} />
                 <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />

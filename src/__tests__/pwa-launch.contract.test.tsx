@@ -11,12 +11,16 @@ import { isStandaloneLaunch, resolveLaunchTarget } from "@/pwa/launch-routing";
 
 let session: { user: { id: string } } | null = null;
 let roles: { role: string }[] = [];
+let internal = false;
 
 vi.mock("@/services/auth.service", () => ({
   getSession: vi.fn(async () => ({ data: { session } })),
 }));
 vi.mock("@/services/role.service", () => ({
   getUserRoles: vi.fn(async () => ({ data: roles })),
+}));
+vi.mock("@/lib/internal-role", () => ({
+  isInternalUser: vi.fn(async () => internal),
 }));
 
 function setStandalone(on: boolean) {
@@ -42,6 +46,7 @@ function renderGate() {
         <Route path="/seller" element={<div>SELLER HOME</div>} />
         <Route path="/dashboard" element={<div>BUYER HOME</div>} />
         <Route path="/role-selection" element={<div>ROLE PICKER</div>} />
+        <Route path="/admin/dashboard" element={<div>ADMIN HOME</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -50,6 +55,7 @@ function renderGate() {
 beforeEach(() => {
   session = null;
   roles = [];
+  internal = false;
 });
 afterEach(cleanup);
 
@@ -58,6 +64,16 @@ describe("resolveLaunchTarget", () => {
     expect(resolveLaunchTarget(["buyer", "seller"])).toBe("/seller");
     expect(resolveLaunchTarget(["buyer"])).toBe("/dashboard");
     expect(resolveLaunchTarget([])).toBe("/role-selection");
+  });
+
+  it("sends internal (back-office) users straight to the admin dashboard", () => {
+    expect(resolveLaunchTarget(null, { internal: true })).toBe("/admin/dashboard");
+    // Internal wins even if consumer roles somehow exist (dual-role staff).
+    expect(resolveLaunchTarget(["buyer", "seller"], { internal: true })).toBe("/admin/dashboard");
+  });
+
+  it("does not treat a non-internal user as internal", () => {
+    expect(resolveLaunchTarget(["buyer"], { internal: false })).toBe("/dashboard");
   });
 });
 
@@ -93,6 +109,25 @@ describe("LaunchGate", () => {
     setStandalone(true);
     renderGate();
     await waitFor(() => expect(screen.getByText("AUTH")).toBeTruthy());
+  });
+
+  it("standalone + internal session -> /admin/dashboard with no role-picker hop", async () => {
+    setStandalone(true);
+    session = { user: { id: "staff-1" } };
+    internal = true;
+    roles = [];
+    renderGate();
+    await waitFor(() => expect(screen.getByText("ADMIN HOME")).toBeTruthy());
+    expect(screen.queryByText("ROLE PICKER")).toBeNull();
+  });
+
+  it("standalone + suspended internal user (gate denies) -> normal consumer routing", async () => {
+    setStandalone(true);
+    session = { user: { id: "staff-suspended" } };
+    internal = false; // has_any_internal_role now denies suspended accounts
+    roles = [];
+    renderGate();
+    await waitFor(() => expect(screen.getByText("ROLE PICKER")).toBeTruthy());
   });
 
   it("not standalone -> renders the landing page", async () => {

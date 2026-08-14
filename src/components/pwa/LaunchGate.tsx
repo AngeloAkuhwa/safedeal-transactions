@@ -3,6 +3,7 @@ import { Navigate } from "react-router";
 import { Loader2 } from "lucide-react";
 import { getSession } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
+import { isInternalUser } from "@/lib/internal-role";
 import { isStandaloneLaunch, resolveLaunchTarget } from "@/pwa/launch-routing";
 
 /**
@@ -25,6 +26,14 @@ export function LaunchGate({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         if (!session) {
           setTarget("/auth");
+          return;
+        }
+        // Internal teammates first: they have no `user_roles` rows, and the
+        // RPC behind `isInternalUser` denies suspended / expired accounts.
+        const internal = await isInternalUser(session.user.id);
+        if (!mounted) return;
+        if (internal) {
+          setTarget(resolveLaunchTarget(null, { internal: true }));
           return;
         }
         const { data: roles } = await getUserRoles(session.user.id);

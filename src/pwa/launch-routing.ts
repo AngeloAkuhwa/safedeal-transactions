@@ -20,8 +20,20 @@ export function isStandaloneLaunch(win: Window | undefined = typeof window !== "
   return false;
 }
 
-/** Role home for an authenticated installed-app launch. */
-export function resolveLaunchTarget(roles: string[] | null | undefined): string {
+/**
+ * Role home for an authenticated installed-app launch.
+ *
+ * Internal (back-office) teammates have no rows in `user_roles`, so they must
+ * be resolved from their internal status — otherwise the installed app lands
+ * them on `/role-selection` and bounces to `/admin/dashboard` from that page's
+ * effect. `internal` must come from a server-trusted check
+ * (`has_any_internal_role`), which now also enforces account status.
+ */
+export function resolveLaunchTarget(
+  roles: string[] | null | undefined,
+  opts?: { internal?: boolean },
+): string {
+  if (opts?.internal) return "/admin/dashboard";
   const list = roles ?? [];
   if (list.includes("seller")) return "/seller";
   if (list.includes("buyer")) return "/dashboard";
