@@ -34,6 +34,9 @@ export function FeesSection() {
           <p className="mt-2 text-base text-muted-foreground">
             when a deal completes — capped at ₦5,000.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Nigeria pricing shown in ₦. Local pricing announced as each new region goes live.
+          </p>
 
           <ul className="mt-6 grid gap-2 text-left sm:grid-cols-3">
             {POINTS.map((p) => (

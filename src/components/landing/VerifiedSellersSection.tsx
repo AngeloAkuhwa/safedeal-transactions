@@ -1,25 +1,25 @@
 import { Link } from "react-router";
-import { Instagram, Briefcase, Store, Shield, ArrowRight, BadgeCheck, Lock } from "lucide-react";
+import { Share2, Store, Globe2, Shield, ArrowRight, BadgeCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const AUDIENCES = [
   {
-    icon: Instagram,
-    title: "Instagram & WhatsApp vendors",
-    line: "Selling through DMs and status updates? Send a protected link instead of your account number.",
+    icon: Share2,
+    title: "Social sellers",
+    line: "Selling through Instagram, WhatsApp, TikTok or Facebook? Send a protected link instead of your account number.",
     tone: "bg-primary/10 text-primary",
   },
   {
-    icon: Briefcase,
-    title: "Side hustlers",
-    line: "Building a business after work hours. Take payments safely without a website or storefront rent.",
+    icon: Store,
+    title: "Independent stores",
+    line: "No website? Get a free SafeDeal storefront your customers can trust.",
     tone: "bg-warning/10 text-warning",
   },
   {
-    icon: Store,
-    title: "Small shops",
-    line: "Serving walk-in and online customers. Give remote buyers a reason to trust you before they pay.",
+    icon: Globe2,
+    title: "Marketplace & cross-border sellers",
+    line: "Dealing with buyers you've never met? Escrow removes the leap of faith.",
     tone: "bg-success/10 text-success",
   },
 ] as const;
@@ -43,14 +43,16 @@ function AudienceCard({ item, index }: { item: (typeof AUDIENCES)[number]; index
 
 export function VerifiedSellersSection() {
   return (
-    <section id="built-for-lagos" className="bg-background py-12 sm:py-16">
+    <section id="for-sellers" className="bg-background py-12 sm:py-16">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-4 w-4 text-success" />
             <span className="text-xs font-semibold text-success">For sellers</span>
           </div>
-          <h2 className="h-section mb-2 font-bold text-foreground">Built for Lagos vendors</h2>
+          <h2 className="h-section mb-2 font-bold text-foreground">
+            Built for anyone who sells online
+          </h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             If your customers find you in DMs, SafeDeal gives both sides a safe way to close the deal.
           </p>

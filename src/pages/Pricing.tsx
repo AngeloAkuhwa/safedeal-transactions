@@ -86,6 +86,9 @@ export default function Pricing() {
             per completed deal — capped at {formatNaira(FALLBACK_PRICING_CONFIG.max_platform_fee)}.
             Nothing is charged if a deal is cancelled or refunded.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Nigeria pricing shown in ₦. Local pricing announced as each new region goes live.
+          </p>
         </section>
 
         {/* Plans */}

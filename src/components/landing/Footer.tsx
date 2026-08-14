@@ -42,7 +42,7 @@ export function Footer() {
             </p>
             <div className="mb-4 inline-flex items-center gap-1.5 text-xs text-background/65">
               <MapPin className="h-3.5 w-3.5" />
-              Currently available in Lagos, Nigeria — expanding soon
+              Live in Lagos 🇳🇬 — more cities rolling out
             </div>
             <div className="flex gap-3">
               {socials.map((s) => (

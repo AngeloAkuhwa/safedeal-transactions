@@ -52,7 +52,7 @@ const FEATURES: Feature[] = [
   {
     icon: Link2,
     title: "Direct Deal Links",
-    line: "Create a private protected link for WhatsApp, Instagram, or DM transactions.",
+    line: "Create a private protected link for deals that start in chat, DMs, or email.",
     tone: "success",
     steps: [
       { icon: Link2, label: "Create link" },

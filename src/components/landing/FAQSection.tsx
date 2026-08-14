@@ -26,15 +26,15 @@ const faqs = [
   },
   {
     q: "Can sellers create direct links?",
-    a: "Yes. Share a protected link for deals from WhatsApp, Instagram, or DMs.",
+    a: "Yes. Share a protected link for deals that start anywhere — social apps, marketplaces, email, or your own website.",
   },
   {
     q: "Are payments outside SafeDeal protected?",
     a: "No. Only payments made through SafeDeal are protected. Never pay sellers directly.",
   },
   {
-    q: "Which cities do you support?",
-    a: "Lagos, Nigeria first — more cities coming. Payments in NGN.",
+    q: "Where is SafeDeal available?",
+    a: "SafeDeal is live in Lagos, Nigeria today, with more cities and countries rolling out. Payments currently settle in Nigerian Naira (₦). Join the waitlist if you're outside a live region and we'll notify you.",
   },
   {
     q: "What do sellers verify?",

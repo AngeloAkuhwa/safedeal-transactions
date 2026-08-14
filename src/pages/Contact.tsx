@@ -24,7 +24,7 @@ export default function Contact() {
 
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">Contact support</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We are available for buyers and sellers in Lagos, Nigeria.
+          SafeDeal is live in Lagos, Nigeria today, with more cities and countries rolling out.
         </p>
 
         <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
