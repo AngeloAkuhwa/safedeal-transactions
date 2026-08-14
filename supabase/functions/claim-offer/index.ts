@@ -230,6 +230,11 @@ Deno.serve(async (req) => {
     // Reuse pre-payment tx
     const reusable = (existingTxs || []).find((t: any) => REUSABLE_PRE_PAYMENT_STATES.includes(t.status));
     if (reusable) {
+      // The gates belong to the ACT of putting a buyer in front of a payment,
+      // not to the act of inserting a row. Advancing a pre-existing draft to
+      // `awaiting_payment` is that same act, so the platform kill switch and
+      // the KYC threshold must be evaluated here too.
+      await buildOfferPlan(adminClient, offer, callerId);
       // Advance to awaiting_payment if still in draft / awaiting_buyer
       if (reusable.status === "draft" || reusable.status === "awaiting_buyer") {
         const { error: advErr } = await adminClient
