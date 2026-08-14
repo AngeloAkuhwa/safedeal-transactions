@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import {
   Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search,
-  Filter, Megaphone, Eye, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
+  Filter, Megaphone, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
   Clock, AlertCircle, Paperclip,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
