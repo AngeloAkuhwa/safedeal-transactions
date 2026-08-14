@@ -157,6 +157,15 @@ const SellerStorefront = () => {
           <div className="lg:ml-0 ml-12">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
+            {planState && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {planState.showcase_slots.used} of {planState.showcase_slots.limit} showcase slots used
+                {planState.showcase_slots.remaining === 0 ? " — " : " · "}
+                <Link to="/seller/profile?section=plan" className="text-primary hover:underline">
+                  {planState.showcase_slots.remaining === 0 ? "Add slots or upgrade" : "Manage plan"}
+                </Link>
+              </p>
+            )}
           </div>
           <Button
             onClick={() => navigate("/seller/storefront/new")}
