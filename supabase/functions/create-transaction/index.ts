@@ -333,7 +333,45 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   const notes = notesRes.data;
   const mediaFiles = mediaFilesRes.data || [];
   const buyerEmail = (draft.buyer_contact_email || "").trim().toLowerCase() || null;
-  const currencyCode = pricingRes.data?.currency_code || "NGN";
+  // The currency is a fact recorded on the draft's pricing row. Publishing a
+  // product in a currency nobody chose would mis-price every later offer.
+  const currencyCode = pricingRes.data?.currency_code || null;
+  if (!currencyCode) {
+    return jsonResponse(
+      { error: "currency_missing", reason: "This draft has no currency recorded. Reopen it and set the price again." },
+      409,
+    );
+  }
+
+  // Resolved BEFORE any product/offer insert so a refusal cannot strand rows.
+  const productDeliveryMethod = mapDeliveryToProduct(delivery.delivery_method);
+  if (!productDeliveryMethod) {
+    return jsonResponse(
+      {
+        error: "delivery_method_unmapped",
+        reason: `'${delivery.delivery_method}' is not a delivery method SafeDeal can publish.`,
+      },
+      409,
+    );
+  }
+  const rawPublishWindow =
+    delivery.verification_window_hours === null || delivery.verification_window_hours === undefined
+      ? null
+      : Number(delivery.verification_window_hours);
+  const publishWindowHours =
+    rawPublishWindow !== null && Number.isFinite(rawPublishWindow) && rawPublishWindow > 0
+      ? rawPublishWindow
+      : await resolveEffectiveTimeoutHours(userId, "buyer_verification_timeout");
+  if (publishWindowHours === null) {
+    return jsonResponse(
+      { error: "verification_window_unresolved", reason: "No buyer verification window is configured for your account." },
+      409,
+    );
+  }
+  // The delivery estimate is optional seller information, never a default.
+  const publishEstimatedDays = delivery.expected_delivery_date
+    ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
+    : null;
 
   // Build items list. Either from request (multi-item) or fallback to draft single item.
   let items: any[] = Array.isArray(body.items) && body.items.length > 0
