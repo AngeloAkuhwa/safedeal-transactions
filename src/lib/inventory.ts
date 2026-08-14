@@ -21,9 +21,16 @@ export function isOutOfStock(p: StockShape | null | undefined): boolean {
   return getAvailableQuantity(p) <= 0;
 }
 
+/**
+ * The single low-stock threshold for the whole app. Cart, checkout review and
+ * listing badges must all use this — inventing per-screen numbers (3 here, 5
+ * there) told the same buyer two different stories about the same product.
+ */
+export const LOW_STOCK_THRESHOLD = 5;
+
 export function isLowStock(p: StockShape | null | undefined): boolean {
   const a = getAvailableQuantity(p);
-  return a >= 1 && a <= 5;
+  return a >= 1 && a <= LOW_STOCK_THRESHOLD;
 }
 
 export type StockTone = "out" | "low" | "ok";
@@ -39,6 +46,6 @@ export function getStockBadge(p: StockShape | null | undefined): StockBadge {
   const available = getAvailableQuantity(p);
   const reserved = Number(p?.reserved_quantity ?? 0);
   if (available <= 0) return { label: "Out of Stock", tone: "out", available, reserved };
-  if (available <= 5) return { label: `Only ${available} left`, tone: "low", available, reserved };
+  if (available <= LOW_STOCK_THRESHOLD) return { label: `Only ${available} left`, tone: "low", available, reserved };
   return { label: "In Stock", tone: "ok", available, reserved };
 }

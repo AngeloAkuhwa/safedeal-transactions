@@ -13,6 +13,7 @@ import { toast } from "@/components/ui/sonner";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
@@ -24,7 +25,12 @@ import { viewFromRow } from "@/services/payment-flow.service";
 import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 
-const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
+/**
+ * Money in this screen speaks the checkout session's own currency. NEVER
+ * default to NGN — the currency is required so a new call site cannot silently
+ * mislabel a non-Naira order.
+ */
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -197,6 +203,7 @@ const CartCheckoutReview = () => {
   }
 
   const { session, items, productMap, sellerMap } = data;
+  const currency: string = session.currency_code;
 
   const totalItems = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
   const sellerCount = sellerGroups.size;
@@ -277,14 +284,14 @@ const CartCheckoutReview = () => {
                 <CreditCard className="h-3.5 w-3.5" />
                 Subtotal
               </div>
-              <p className="text-xl font-bold text-foreground">{formatPrice(Number(session.subtotal_amount))}</p>
+              <p className="text-xl font-bold text-foreground">{formatPrice(Number(session.subtotal_amount), currency)}</p>
             </div>
             <div className={`${glassPanel} p-4`}>
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                 <Shield className="h-3.5 w-3.5" />
                 {FEE_NAME}
               </div>
-              <p className="text-xl font-bold text-primary">{formatPrice(Number(session.total_protection_fee))}</p>
+              <p className="text-xl font-bold text-primary">{formatPrice(Number(session.total_protection_fee), currency)}</p>
             </div>
           </div>
 
@@ -303,7 +310,7 @@ const CartCheckoutReview = () => {
                 const gradient = GRADIENT_COLORS[idx % GRADIENT_COLORS.length];
 
                 const sellerSubtotal = sellerItems.reduce((sum: number, i: any) => sum + Number(i.line_total), 0);
-                const sellerPricing = computePricing(sellerSubtotal, "NGN", vendorConfigs[sellerId]);
+                const sellerPricing = computePricing(sellerSubtotal, currency, vendorConfigs[sellerId]);
                 const groupItemCount = sellerItems.reduce((sum: number, i: any) => sum + i.quantity, 0);
                 const isOpen = openBreakdowns[sellerId] ?? false;
 
@@ -338,7 +345,7 @@ const CartCheckoutReview = () => {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-xs text-muted-foreground">{groupItemCount} item{groupItemCount !== 1 ? "s" : ""}</p>
-                        <p className="text-sm font-semibold text-foreground">{formatPrice(sellerSubtotal)}</p>
+                        <p className="text-sm font-semibold text-foreground">{formatPrice(sellerSubtotal, currency)}</p>
                       </div>
                     </div>
 
@@ -349,7 +356,7 @@ const CartCheckoutReview = () => {
                         const desc = product?.short_description || "";
                         const image = product?.primary_image;
                         const stockQty = (product?.stock_quantity ?? 0) - (product?.reserved_quantity ?? 0);
-                        const isLowStock = stockQty > 0 && stockQty <= 5;
+                        const isLowStock = stockQty > 0 && stockQty <= LOW_STOCK_THRESHOLD;
 
                         return (
                           <div key={item.id} className="flex gap-3 py-3">
@@ -375,8 +382,8 @@ const CartCheckoutReview = () => {
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-sm font-semibold text-foreground">{formatPrice(Number(item.line_total))}</p>
-                              <p className="text-[10px] text-muted-foreground">{formatPrice(Number(item.unit_price))} each</p>
+                              <p className="text-sm font-semibold text-foreground">{formatPrice(Number(item.line_total), currency)}</p>
+                              <p className="text-[10px] text-muted-foreground">{formatPrice(Number(item.unit_price), currency)} each</p>
                             </div>
                           </div>
                         );
@@ -392,7 +399,7 @@ const CartCheckoutReview = () => {
                         <div className="flex items-center gap-2">
                           {pricingConfigLoading
                             ? <Skeleton className="h-4 w-20" />
-                            : <span className="font-semibold text-primary">{formatPrice(sellerPricing.service_fee_amount)}</span>}
+                            : <span className="font-semibold text-primary">{formatPrice(sellerPricing.service_fee_amount, currency)}</span>}
                           {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>
                       </CollapsibleTrigger>
@@ -427,18 +434,18 @@ const CartCheckoutReview = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{PRICING_LINE_LABELS.item_amount}</span>
-                      <span className="font-medium">{formatPrice(Number(session.subtotal_amount))}</span>
+                      <span className="font-medium">{formatPrice(Number(session.subtotal_amount), currency)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <div>
                         <span className="text-primary font-medium">{PRICING_LINE_LABELS.service_fee_amount}</span>
                         <p className="text-[10px] text-muted-foreground">{FEE_CAPTION}</p>
                       </div>
-                      <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee))}</span>
+                      <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee), currency)}</span>
                     </div>
                     <div className="border-t border-border pt-3 flex justify-between items-end">
                       <span className="font-bold text-foreground">{PRICING_LINE_LABELS.total_amount}</span>
-                      <span className="text-2xl font-bold text-foreground">{formatPrice(Number(session.total_amount))}</span>
+                      <span className="text-2xl font-bold text-foreground">{formatPrice(Number(session.total_amount), currency)}</span>
                     </div>
                   </div>
                 </div>
@@ -471,7 +478,7 @@ const CartCheckoutReview = () => {
                   title={gateBlocked ? gate.disabledReason : undefined}
                 >
                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Lock className="h-5 w-5" />}
-                  {isSubmitting ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Confirm & Pay ${formatPrice(Number(session.total_amount))}`}
+                  {isSubmitting ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Confirm & Pay ${formatPrice(Number(session.total_amount), currency)}`}
                 </Button>
                 {gateBlocked && (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
