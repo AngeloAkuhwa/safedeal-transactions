@@ -1,6 +1,10 @@
 import type { DisputeSlaBuckets, PaymentHealthRow } from "@/services/admin-dashboard.service";
 import { SEVERITY_DOT } from "./severity";
 
+/** Severity arrives from an edge function; an out-of-union value must not
+ *  silently drop the dot (`SEVERITY_DOT[x]` would render the class "undefined"). */
+const UNKNOWN_SEVERITY_DOT = "bg-slate-500";
+
 interface Props {
   sla: DisputeSlaBuckets;
   payments: PaymentHealthRow[];
@@ -53,7 +57,7 @@ export function RiskAndPaymentHealth({ sla, payments }: Props) {
           {payments.map((row) => (
             <li key={row.key} className="flex items-center justify-between py-2.5 text-sm">
               <div className="flex items-center gap-2.5">
-                <span className={`h-2 w-2 rounded-full ${SEVERITY_DOT[row.severity]}`} />
+                <span className={`h-2 w-2 rounded-full ${SEVERITY_DOT[row.severity] ?? UNKNOWN_SEVERITY_DOT}`} />
                 <span className="text-foreground/90">{row.label}</span>
               </div>
               <span className="font-semibold text-foreground tabular-nums">
