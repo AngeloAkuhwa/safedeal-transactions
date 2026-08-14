@@ -128,22 +128,8 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
             </Avatar>
             <div>
               <p className="text-sm font-bold text-foreground">{seller.full_name}</p>
-              <p className="text-xs text-muted-foreground">Verified Seller</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs mb-4">
-            <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
-              <Star className="h-3 w-3 mr-1" />
-              4.8
-            </Badge>
-            <span className="text-muted-foreground">127 transactions</span>
-          </div>
-          <Button
-            variant="outline"
-            className="w-full font-semibold py-2.5 rounded-xl text-sm border-2"
-          >
-            Contact Seller
-          </Button>
         </div>
       )}
 

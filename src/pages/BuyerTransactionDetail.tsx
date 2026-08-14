@@ -103,23 +103,34 @@ function useCountdown(deadline: string | null) {
   return remaining;
 }
 
+/** Every support control routes to /contact carrying the transaction reference. */
+function supportLink(txCode: string | null | undefined, topic: "transaction" | "report_issue") {
+  const params = new URLSearchParams({ topic });
+  if (txCode) params.set("ref", txCode);
+  return `/contact?${params.toString()}`;
+}
+
 /* ───── Next Action Card (reusable for mobile + sidebar) ───── */
 function NextActionCard({
   nextAction,
   txStatus,
   txId,
+  txCode,
   countdown,
   dispute,
   navigate,
   shareToken,
+  onPrint,
 }: {
   nextAction: TransactionDetailResponse["next_action"];
   txStatus: string;
   txId: string;
+  txCode: string | null;
   countdown: string;
   dispute: TransactionDetailResponse["dispute"];
   navigate: ReturnType<typeof useNavigate>;
   shareToken: string | null;
+  onPrint: () => void;
 }) {
   return (
     <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-6 text-warning-foreground shadow-lg">
@@ -181,13 +192,22 @@ function NextActionCard({
         <div className="mt-6 pt-6 border-t border-white/20">
           <p className="text-xs font-semibold opacity-80 mb-3">Other Actions</p>
           <div className="space-y-1.5">
-            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
+            <button
+              onClick={onPrint}
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+            >
               <Download className="h-4 w-4" /> Download Receipt
             </button>
-            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
+            <button
+              onClick={() => navigate(supportLink(txCode, "transaction"))}
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+            >
               <HelpCircle className="h-4 w-4" /> Contact Support
             </button>
-            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
+            <button
+              onClick={() => navigate(supportLink(txCode, "report_issue"))}
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+            >
               <Flag className="h-4 w-4" /> Report Issue
             </button>
           </div>
@@ -305,8 +325,12 @@ const BuyerTransactionDetail = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handlePrint}><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
-                  <DropdownMenuItem><HelpCircle className="h-4 w-4 mr-2" /> Contact Support</DropdownMenuItem>
-                  <DropdownMenuItem><Flag className="h-4 w-4 mr-2" /> Report Issue</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(supportLink(tx.transaction_code, "transaction"))}>
+                    <HelpCircle className="h-4 w-4 mr-2" /> Contact Support
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(supportLink(tx.transaction_code, "report_issue"))}>
+                    <Flag className="h-4 w-4 mr-2" /> Report Issue
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -361,10 +385,12 @@ const BuyerTransactionDetail = () => {
                   nextAction={next_action}
                   txStatus={tx.status}
                   txId={tx.id}
+                  txCode={tx.transaction_code}
                   countdown={countdown}
                   dispute={dispute}
                   navigate={navigate}
                   shareToken={tx.share_token}
+                  onPrint={handlePrint}
                 />
               </div>
             )}
@@ -482,7 +508,10 @@ const BuyerTransactionDetail = () => {
                         <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-3">Delivery Evidence</p>
                         <div className="grid grid-cols-2 gap-3">
                           {delivery_proof_files.map((pf) => (
-                            <button key={pf.id} className="h-32 overflow-hidden rounded-lg bg-muted hover:opacity-80 transition-opacity flex items-center justify-center">
+                            <button
+                              key={pf.id}
+                              onClick={() => pf.file_url && window.open(pf.file_url, "_blank", "noopener")}
+                              className="h-32 overflow-hidden rounded-lg bg-muted hover:opacity-80 transition-opacity flex items-center justify-center">
                               {pf.file_url && pf.mime_type?.startsWith("image/") ? (
                                 <img src={pf.file_url} alt={pf.file_name || "Evidence"} className="w-full h-full object-cover" />
                               ) : (
@@ -610,10 +639,12 @@ const BuyerTransactionDetail = () => {
                   nextAction={next_action}
                   txStatus={tx.status}
                   txId={tx.id}
+                  txCode={tx.transaction_code}
                   countdown={countdown}
                   dispute={dispute}
                   navigate={navigate}
                   shareToken={tx.share_token}
+                  onPrint={handlePrint}
                 />
               </div>
             )}
@@ -641,17 +672,11 @@ const BuyerTransactionDetail = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm sm:text-base font-bold text-foreground">{seller.full_name}</p>
-                      <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center">
-                        <BadgeCheck className="h-3 w-3 text-primary" />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                        4.9
-                      </span>
-                      <span>•</span>
-                      <span>127 transactions</span>
+                      {seller.is_verified && (
+                        <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center">
+                          <BadgeCheck className="h-3 w-3 text-primary" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -660,15 +685,15 @@ const BuyerTransactionDetail = () => {
                     <span className="text-xs sm:text-sm text-muted-foreground">Member Since</span>
                     <span className="text-xs sm:text-sm font-semibold text-foreground">{format(new Date(seller.member_since), "MMMM yyyy")}</span>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <span className="text-xs sm:text-sm text-muted-foreground">Response Time</span>
-                    <span className="text-xs sm:text-sm font-semibold text-foreground">Under 2 hours</span>
-                  </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-xs sm:text-sm text-muted-foreground">Verification Status</span>
-                    <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
-                      <BadgeCheck className="h-3 w-3 mr-1" /> Verified
-                    </Badge>
+                    {seller.is_verified ? (
+                      <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
+                        <BadgeCheck className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    ) : (
+                      <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Not verified</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -723,13 +748,7 @@ const BuyerTransactionDetail = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-base font-bold text-foreground">{seller.full_name}</p>
-                        <BadgeCheck className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                        <span className="font-semibold text-foreground">4.9</span>
-                        <span>•</span>
-                        <span>127 transactions</span>
+                        {seller.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
                       </div>
                     </div>
                   </div>
@@ -739,14 +758,14 @@ const BuyerTransactionDetail = () => {
                       <span className="font-semibold text-foreground">{format(new Date(seller.member_since), "MMMM yyyy")}</span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-muted-foreground">Response Time</span>
-                      <span className="font-semibold text-foreground">Under 2 hours</span>
-                    </div>
-                    <div className="flex justify-between py-3">
                       <span className="text-muted-foreground">Verification Status</span>
-                      <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
-                        <BadgeCheck className="h-3 w-3 mr-1" /> Verified
-                      </Badge>
+                      {seller.is_verified ? (
+                        <Badge className="bg-success/10 text-success border-success/20 text-xs font-bold">
+                          <BadgeCheck className="h-3 w-3 mr-1" /> Verified
+                        </Badge>
+                      ) : (
+                        <span className="font-semibold text-muted-foreground">Not verified</span>
+                      )}
                     </div>
                   </div>
                 </div>

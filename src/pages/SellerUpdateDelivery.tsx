@@ -25,6 +25,7 @@ import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchForm
 import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { formatMoney } from "@/lib/format";
+import { FEE_NAME } from "@/lib/payment/fee-policy";
 
 const fmt = (amount: number | undefined | null, currency: string) =>
   formatMoney(amount ?? 0, currency);
@@ -293,7 +294,7 @@ export default function SellerUpdateDelivery() {
                   <p className="font-semibold">{fmt(pricing.item_amount, currency)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">SafeDeal Service Fee</p>
+                  <p className="text-xs text-muted-foreground">{FEE_NAME}</p>
                   <p className="font-semibold text-destructive">−{fmt(pricing.service_fee_amount, currency)}</p>
                 </div>
                 <div>

@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { addToCart, checkInCart } from "@/services/cart.service";
@@ -28,28 +27,6 @@ import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 import { ProductImage } from "@/components/common/ProductImage";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
-
-// Placeholder reviews data matching reference
-const placeholderReviews = [
-  {
-    id: "1",
-    name: "Adebayo Ogunlesi",
-    avatar: null,
-    rating: 5,
-    date: "2 days ago",
-    text: "Excellent product! Exactly as described. The SafeDeal escrow gave me confidence to purchase.",
-    verified: true,
-  },
-  {
-    id: "2",
-    name: "Ngozi Eze",
-    avatar: null,
-    rating: 4,
-    date: "1 week ago",
-    text: "Good quality, fast delivery. Would buy again from this seller.",
-    verified: true,
-  },
-];
 
 const PublicProductDetail = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
@@ -652,74 +629,18 @@ const PublicProductDetail = () => {
           </div>
         </div>
 
-        {/* Customer Reviews */}
+        {/* Customer Reviews — real data only. No review system exists yet, so we
+            render an honest empty state instead of fabricated ratings. */}
         <div className={`${glassPanel} p-5`}>
-          <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
-            <Star className="h-5 w-5 text-amber-400" />
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 text-muted-foreground" />
             Customer Reviews
           </h2>
-
-          {/* Rating summary — horizontal layout */}
-          <div className="flex flex-col sm:flex-row gap-6 pb-5 mb-5 border-b border-border">
-            {/* Left: rating number + stars */}
-            <div className="flex flex-col items-center justify-center sm:min-w-[140px]">
-              <p className="text-5xl font-bold text-foreground mb-1">4.8</p>
-              <div className="flex gap-0.5 mb-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} className={`h-4 w-4 ${i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-400/50 text-amber-400/50"}`} />
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">Based on 127 reviews</p>
-            </div>
-
-            {/* Right: star bars */}
-            <div className="flex-1 space-y-2 justify-center flex flex-col">
-              {[
-                { label: "5 star", pct: 85 },
-                { label: "4 star", pct: 12 },
-                { label: "3 star", pct: 2 },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-12 shrink-0">{row.label}</span>
-                  <Progress value={row.pct} className="flex-1 h-2" />
-                  <span className="text-xs text-muted-foreground w-8 text-right">{row.pct}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Individual Reviews */}
-          <div className="space-y-4">
-            {placeholderReviews.map((review) => (
-              <div key={review.id} className="p-4 rounded-xl bg-muted/30 border border-border">
-                <div className="flex items-center gap-3 mb-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {review.name.split(" ").map(n => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">{review.name}</span>
-                      {review.verified && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                          VERIFIED PURCHASE
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <Star key={i} className={`h-3 w-3 ${i <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground">{review.date}</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{review.text}</p>
-              </div>
-            ))}
+          <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">
+            <p className="text-sm font-semibold text-foreground">No reviews yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Reviews appear here once buyers complete protected transactions for this item.
+            </p>
           </div>
         </div>
       </div>

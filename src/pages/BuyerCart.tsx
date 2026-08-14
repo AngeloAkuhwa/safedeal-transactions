@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
+import { FEE_NAME } from "@/lib/payment/fee-policy";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -740,7 +741,7 @@ const BuyerCart = () => {
                             <span className="font-medium">{formatPrice(selectedSubtotal)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Service Fee</span>
+                            <span className="text-muted-foreground">{FEE_NAME}</span>
                             {pricingConfigLoading
                               ? <Skeleton className="h-4 w-20" />
                               : <span className="font-medium">{formatPrice(selectedFees)}</span>}

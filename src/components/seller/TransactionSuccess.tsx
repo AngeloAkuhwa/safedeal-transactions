@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
+import { FEE_NAME } from "@/lib/payment/fee-policy";
 
 interface TransactionSuccessProps {
   publishedUrl: string;
@@ -178,7 +179,7 @@ export function TransactionSuccess({
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  SafeDeal Service Fee ({feePercent}%)
+                  {FEE_NAME} ({feePercent}%)
                   {pricing && pricing.service_fee_amount >= 2000 && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">capped</Badge>
                   )}

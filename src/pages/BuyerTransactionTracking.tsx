@@ -40,6 +40,7 @@ import { TransactionCompletionBanner } from "@/components/transactions/Transacti
 import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { cn } from "@/lib/utils";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
 
 /* ─── Helpers ─── */
 /* ─── 8-step progress tracker ─── */
@@ -531,10 +532,6 @@ const BuyerTransactionTracking = () => {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">{seller.full_name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Star className="h-3 w-3 text-warning fill-warning" />
-                      <span>4.9 · 127 transactions</span>
-                    </div>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">Member since {format(new Date(seller.member_since), "MMMM yyyy")}</p>
@@ -555,8 +552,8 @@ const BuyerTransactionTracking = () => {
                 {(pricing.service_fee_amount || 0) > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
-                      <span>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Includes payment processing</p>
+                      <span>{FEE_NAME} ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>

@@ -34,6 +34,7 @@ import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
+import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
@@ -988,10 +989,10 @@ function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate
             <span className="font-semibold text-foreground">{formatMoney(itemAmount, currencyCode)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Service Fee ({(feeRate * 100).toFixed(1)}%)</span>
+            <span className="text-muted-foreground">{FEE_NAME} ({(feeRate * 100).toFixed(1)}%)</span>
             <span className="font-semibold text-foreground">{formatMoney(feeAmount, currencyCode)}</span>
           </div>
-          <p className="text-xs text-muted-foreground -mt-1">Includes payment processing</p>
+          <p className="text-xs text-muted-foreground -mt-1">{FEE_CAPTION}</p>
           <div className="border-t pt-3" />
           <div className="flex justify-between items-center">
             <span className="text-base font-bold text-foreground">Total Amount</span>

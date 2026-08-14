@@ -42,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useMediaConfig } from "@/hooks/useMediaConfig";
 import { formatMaxMb } from "@/lib/media-rules";
+import { FEE_NAME } from "@/lib/payment/fee-policy";
 
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
@@ -709,7 +710,7 @@ const SellerCreateTransaction = () => {
                         <span className="font-medium text-foreground">{formatMoney(pricing.item_amount, form.currency_code)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">SafeDeal Fee ({(pricing.service_fee_rate * 100).toFixed(1)}%)</span>
+                        <span className="text-muted-foreground">{FEE_NAME} ({(pricing.service_fee_rate * 100).toFixed(1)}%)</span>
                         <span className="font-medium text-foreground">{formatMoney(pricing.service_fee_amount, form.currency_code)}</span>
                       </div>
                       <hr className="border-border" />

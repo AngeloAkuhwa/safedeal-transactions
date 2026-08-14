@@ -11,6 +11,7 @@ import {
 import type { AgreementData } from "@/services/agreement.service";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { formatMoney } from "@/lib/format";
+import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
 
 interface LockedSnapshotCardProps {
   data: AgreementData;
@@ -165,8 +166,8 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border">
                     <div>
-                      <span className="text-sm text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
-                      <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
+                      <span className="text-sm text-muted-foreground">{FEE_NAME} ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="text-base font-semibold text-muted-foreground">
                       {formatMoney(Number(pricing.service_fee_amount), pricing.currency_code)}

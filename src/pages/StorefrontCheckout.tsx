@@ -25,6 +25,7 @@ import { ChevronDown } from "lucide-react";
 import { describeFeeBreakdown } from "@/lib/pricing";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
+import { REFUND_BULLET } from "@/lib/payment/fee-policy";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -258,14 +259,6 @@ const StorefrontCheckout = () => {
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-sm font-medium text-foreground">4.8</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  <span className="text-sm text-muted-foreground">Verified Seller</span>
-                </div>
               </div>
             </div>
           </div>
@@ -438,7 +431,7 @@ const StorefrontCheckout = () => {
                 {[
                   "Funds held in secure escrow until you confirm receipt",
                   `${product.verification_window_hours || 48}-hour verification window after delivery`,
-                  "Full refund if item doesn't match description",
+                  REFUND_BULLET,
                   "Dedicated dispute resolution support",
                 ].map((text, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
