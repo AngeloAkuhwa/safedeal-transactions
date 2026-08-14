@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SafeDeal shield">
-  <path d="M256 40 106 96v168c0 96 62 166 150 208 88-42 150-112 150-208V96L256 40z" fill="#0369a1"/>
+  <path d="M256 40 106 96v168c0 96 62 166 150 208 88-42 150-112 150-208V96L256 40z" fill="#0F5BB3"/>
   <path d="M256 78 144 120v144c0 78 48 136 112 172 64-36 112-94 112-172V120L256 78z" fill="#cfe9fb"/>
   <circle cx="256" cy="252" r="86" fill="#00b83f"/>
   <path d="M212 252l30 30 66-66 26 26-92 92-56-56 26-26z" fill="#ffffff"/>
