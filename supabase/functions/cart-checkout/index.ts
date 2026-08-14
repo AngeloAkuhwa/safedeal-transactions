@@ -453,6 +453,30 @@ Deno.serve(async (req) => {
           await admin.from("transaction_items").insert(newItemRows);
         }
 
+        // Reconcile delivery terms with the buyer's latest selection, exactly
+        // like the `storefront-checkout` twin. Without this a retry after a
+        // change of method or address persists the OLD terms on the agreement
+        // while the response reports the new ones.
+        {
+          const firstResolved = resolvedByCartItem.get(items[0].cartItem.id)!;
+          const needsAddress =
+            firstResolved.rawMethod === "courier_shipping" || firstResolved.rawMethod === "delivery";
+          const addr = firstResolved.address ?? {};
+          await admin.from("transaction_delivery_terms").delete().eq("transaction_id", transactionId);
+          await admin.from("transaction_delivery_terms").insert({
+            transaction_id: transactionId,
+            delivery_method: firstResolved.mappedMethod,
+            expected_delivery_date: expectedDateBySeller.get(sellerId) ?? null,
+            verification_window_hours: verificationWindowBySeller.get(sellerId)!,
+            delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
+            delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,
+            delivery_city: needsAddress ? (addr.city ?? null) : null,
+            delivery_state: needsAddress ? (addr.state ?? null) : null,
+            delivery_postal_code: needsAddress ? (addr.postal_code ?? null) : null,
+            delivery_country_code: needsAddress ? (addr.country_code ?? null) : null,
+          });
+        }
+
         // Reconcile reserved_quantity per product for THIS transaction.
         // Look up previously logged reservation delta for this tx, compute
         // the desired delta, and adjust.
