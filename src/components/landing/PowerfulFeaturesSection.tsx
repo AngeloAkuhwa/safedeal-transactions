@@ -508,7 +508,7 @@ export function PowerfulFeaturesSection() {
   };
 
   return (
-    <section id="features" className="py-12 sm:py-16 bg-muted/30">
+    <section id="features" className="py-8 sm:py-12 lg:py-16 bg-muted/30">
       <style>{`
         @keyframes sd-hero-glow-shift {
           0%, 100% { opacity: 0.85; transform: translate3d(0, 0, 0); }
@@ -537,10 +537,33 @@ export function PowerfulFeaturesSection() {
           </p>
         </div>
 
-        <div
-          ref={setGridRefs}
-          className="grid gap-3 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3"
-        >
+        {/* Mobile — hero feature showcased full-width, the rest swipeable */}
+        <div ref={setGridRefs} className="sm:hidden">
+          {FEATURES.filter((f) => f.hero).map((f) => (
+            <div key={`m-${f.title}`} className="mb-4">
+              <FeatureCard
+                f={f}
+                index={FEATURES.indexOf(f)}
+                isActive={activeIndex === FEATURES.indexOf(f)}
+                forceHeroOnce={seen}
+              />
+            </div>
+          ))}
+          <SnapCarousel ariaLabel="More SafeDeal features">
+            {FEATURES.filter((f) => !f.hero).map((f) => (
+              <FeatureCard
+                key={`m-${f.title}`}
+                f={f}
+                index={FEATURES.indexOf(f)}
+                isActive={activeIndex === FEATURES.indexOf(f)}
+                forceHeroOnce={seen}
+              />
+            ))}
+          </SnapCarousel>
+        </div>
+
+        {/* Desktop — unchanged 9-card grid in original order */}
+        <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <FeatureCard
               key={f.title}
