@@ -206,20 +206,22 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
   it("renders NO Verified badge or tick when the seller is not verified", async () => {
     sellerVerified = false;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
-    renderPage(<Page />);
-    const notVerified = await screen.findAllByText("Not verified");
+    const { container } = renderPage(<Page />);
+    const scope = within(container);
+    const notVerified = await scope.findAllByText("Not verified");
     // Desktop + mobile copies of the seller card.
     expect(notVerified.length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryAllByText("Verified")).toEqual([]);
+    expect(scope.queryAllByText("Verified")).toEqual([]);
   });
 
   it("renders the Verified badge on BOTH the desktop and mobile card when verified", async () => {
     sellerVerified = true;
     const { default: Page } = await import("@/pages/BuyerTransactionDetail");
-    renderPage(<Page />);
-    const verified = await screen.findAllByText("Verified");
+    const { container } = renderPage(<Page />);
+    const scope = within(container);
+    const verified = await scope.findAllByText("Verified");
     expect(verified.length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryAllByText("Not verified")).toEqual([]);
+    expect(scope.queryAllByText("Not verified")).toEqual([]);
   });
 
   it("labels the receipt control by what it actually does", async () => {
