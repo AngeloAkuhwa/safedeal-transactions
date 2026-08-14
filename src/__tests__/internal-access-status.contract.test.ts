@@ -102,7 +102,7 @@ describe("requireAdmin / admin-me derive internal access from the gated RPC", ()
   it("requirePermission / requireAnyPermission also use the gated helpers", () => {
     const tail = AUTH_SRC.slice(AUTH_SRC.indexOf("export async function requirePermission"));
     expect(tail).not.toContain('from("internal_user_roles")');
-    expect((tail.match(/rpc\("internal_effective_permissions"/g) ?? []).length).toBe(2);
+    expect((tail.match(/rpc\(\s*\n?\s*"internal_effective_permissions"/g) ?? []).length).toBe(2);
   });
 
   it("admin-me gates on requireAdmin before reading any role rows", () => {
