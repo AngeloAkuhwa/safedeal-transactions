@@ -14,6 +14,7 @@ import type { MarketplaceProduct } from "@/services/marketplace.service";
 import { getAvailableQuantity } from "@/lib/inventory";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { ProductImage } from "@/components/common/ProductImage";
+import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
   product: MarketplaceProduct;
@@ -53,6 +54,10 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
   const lowStock = available > 0 && available <= 5;
   const seller = product.seller;
   const sellerInitial = (seller.full_name || "S")[0].toUpperCase();
+  // Same signal, same resolver as ProductCard: the mark always states its basis.
+  const sellerTrustClaim = sellerVerificationClaim({
+    identityVerified: seller.trust_summary?.identity_verified,
+  });
   // Vendor-scoped gate so per-vendor overrides disable the CTA proactively.
   const gate = useCommerceGate(seller.id);
   const cartBlocked = !gate.loading && !gate.addToCartEnabled;
