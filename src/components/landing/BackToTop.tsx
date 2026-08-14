@@ -1,61 +1,46 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { ArrowUp } from "lucide-react";
 import { getTabsForPath } from "@/components/layout/MobileTabBar";
 
-/** Selector for content the FAB must never sit on top of. */
-const CONTENT_SELECTOR = "a, button, [role='button'], input, h1, h2, h3, p, li, img, svg";
+/** Scroll distance before the FAB is eligible to appear. */
+export const SHOW_AFTER_Y = 600;
+/** Accumulated movement (px) in one direction before the state flips. */
+export const DIRECTION_HYSTERESIS = 24;
 
 export function BackToTop() {
   const { pathname } = useLocation();
   const hasTabBar = getTabsForPath(pathname) !== null;
-  const [visible, setVisible] = useState(false);
-  const [collides, setCollides] = useState(false);
+  const [shown, setShown] = useState(false);
   const ref = useRef<HTMLButtonElement | null>(null);
 
-  // Never cover page content: if anything meaningful sits under the FAB's
-  // footprint at the current scroll position, fade it out until it's clear.
-  const measure = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const pad = 8;
-    const box = {
-      left: r.left - pad,
-      right: r.right + pad,
-      top: r.top - pad,
-      bottom: r.bottom + pad,
-    };
-    const nodes = document.querySelectorAll<HTMLElement>(`main ${CONTENT_SELECTOR}`);
-    let hit = false;
-    for (const node of nodes) {
-      if (el.contains(node)) continue;
-      const n = node.getBoundingClientRect();
-      if (n.width === 0 || n.height === 0) continue;
-      if (n.left < box.right && n.right > box.left && n.top < box.bottom && n.bottom > box.top) {
-        hit = true;
-        break;
-      }
-    }
-    setCollides(hit);
-  }, []);
-
   useEffect(() => {
-    let frame = 0;
+    // Direction-based visibility: appear on scroll up (past a threshold),
+    // hide on scroll down. Hysteresis keeps jitter/momentum from blinking it.
+    let lastY = window.scrollY;
+    let accum = 0;
+
     const onScroll = () => {
-      setVisible(window.scrollY > 600);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
+      const y = window.scrollY;
+      const delta = y - lastY;
+      lastY = y;
+      if (delta === 0) return;
+
+      // Reset the accumulator whenever direction flips.
+      if ((accum > 0 && delta < 0) || (accum < 0 && delta > 0)) accum = 0;
+      accum += delta;
+
+      if (y <= SHOW_AFTER_Y) {
+        setShown(false);
+        return;
+      }
+      if (accum <= -DIRECTION_HYSTERESIS) setShown(true);
+      else if (accum >= DIRECTION_HYSTERESIS) setShown(false);
     };
-    onScroll();
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [measure]);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleClick = () => {
     const reduce =
@@ -63,8 +48,6 @@ export function BackToTop() {
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
   };
-
-  const shown = visible && !collides;
 
   return (
     <button
@@ -74,7 +57,7 @@ export function BackToTop() {
       aria-label="Back to top"
       aria-hidden={!shown}
       tabIndex={shown ? 0 : -1}
-      className={`fixed right-4 z-[60] flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:right-6 ${
+      className={`fixed right-4 z-[60] flex h-11 w-11 items-center justify-center rounded-full border border-primary-foreground/20 bg-primary/90 text-primary-foreground shadow-xl ring-1 ring-primary/30 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:right-6 ${
         shown
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0"
