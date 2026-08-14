@@ -22,7 +22,7 @@ import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
-import { FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
+import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -245,7 +245,7 @@ const CartCheckoutReview = () => {
           <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <p className="text-sm text-foreground">
-              You are making <span className="font-semibold">one payment</span> for multiple protected seller orders. Each seller will have an independent escrow and delivery tracking.
+              You are making <span className="font-semibold">one payment</span> for multiple seller orders. SafeDeal records each seller order separately.
             </p>
           </div>
 
@@ -274,7 +274,7 @@ const CartCheckoutReview = () => {
             <div className={`${glassPanel} p-4`}>
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                 <Shield className="h-3.5 w-3.5" />
-                Protection Fee
+                {FEE_NAME}
               </div>
               <p className="text-xl font-bold text-primary">{formatPrice(Number(session.total_protection_fee))}</p>
             </div>
@@ -282,7 +282,7 @@ const CartCheckoutReview = () => {
 
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Info className="h-3.5 w-3.5 shrink-0" />
-            SafeDeal calculates protection fees separately for each seller order, then combines them into one checkout total.
+            SafeDeal calculates the fee separately for each seller order, then combines the amounts into one checkout total.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -316,7 +316,7 @@ const CartCheckoutReview = () => {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">A protected transaction will be created for this seller</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">A separate transaction will be created for this seller</p>
                         {seller?.store_slug && (
                           <Link
                             to={`/store/${seller.store_slug}`}
@@ -379,7 +379,7 @@ const CartCheckoutReview = () => {
                       <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-3 border-t border-border text-sm hover:bg-muted/50 transition-colors">
                         <span className="font-medium text-foreground flex items-center gap-1.5">
                           <Shield className="h-3.5 w-3.5 text-primary" />
-                          Protection Fee Breakdown
+                           {FEE_NAME} Breakdown
                         </span>
                         <div className="flex items-center gap-2">
                           {pricingConfigLoading
@@ -438,12 +438,12 @@ const CartCheckoutReview = () => {
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2.5">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                    <span className="font-semibold text-foreground text-sm">SafeDeal Protection</span>
+                    <span className="font-semibold text-foreground text-sm">Order terms</span>
                   </div>
                   <ul className="space-y-2">
                     {[
-                      "Separate escrow per seller",
-                      "Independent fulfillment tracking",
+                      "Separate transaction record per seller",
+                      "Delivery method recorded per order",
                       REFUND_BULLET,
                       "Dispute resolution support",
                     ].map((t, i) => (

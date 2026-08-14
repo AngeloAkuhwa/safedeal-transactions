@@ -17,17 +17,18 @@ import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 
 function getVerificationLabel(level: string) {
   switch (level) {
-    case "trusted_buyer": return TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text;
-    case "basic_verified": return "Basic Verified";
-    default: return "Unverified";
+    case "trusted_buyer":
+    case "high_trust_buyer": return TRUST_CLAIMS.SELLER_VERIFIED.text;
+    case "basic_verified": return "Basic account";
+    default: return "Standard account";
   }
 }
 
 function getVerificationDotColor(level: string) {
   switch (level) {
-    case "trusted_buyer": return "bg-emerald-400";
-    case "basic_verified": return "bg-amber-400";
-    default: return "bg-gray-400";
+    case "trusted_buyer":
+    case "high_trust_buyer": return "bg-primary";
+    default: return "bg-muted-foreground";
   }
 }
 

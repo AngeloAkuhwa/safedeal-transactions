@@ -17,7 +17,7 @@ import { createStorefrontTransaction } from "@/services/storefront-checkout.serv
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
-import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
+import { TRUST_CLAIMS, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -158,11 +158,7 @@ const StorefrontCheckout = () => {
 
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
 
-  const verificationBadge = seller.verification_level === "trusted_buyer" || seller.verification_level === "high_trust_buyer"
-    ? { label: "TRUSTED", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" }
-    : seller.verification_level === "basic_verified"
-    ? { label: "Verified", cls: "bg-primary/10 text-primary border-primary/20" }
-    : null;
+  const sellerClaim = sellerVerificationClaim({ identityVerified: seller.identity_verified });
 
   const content = (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
@@ -254,9 +250,9 @@ const StorefrontCheckout = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground">{seller.full_name}</h3>
-                  {verificationBadge && (
-                    <Badge variant="outline" className={`rounded-full text-xs ${verificationBadge.cls}`}>
-                      {verificationBadge.label}
+                   {sellerClaim && (
+                     <Badge variant="outline" className="rounded-full text-xs bg-primary/10 text-primary border-primary/20">
+                       {sellerClaim.text}
                     </Badge>
                   )}
                 </div>
@@ -362,7 +358,7 @@ const StorefrontCheckout = () => {
               </h2>
               <div className="rounded-xl border-l-4 border-primary bg-primary/5 p-4">
                 <p className="text-sm font-semibold text-foreground mb-3">
-                  Terms protected by SafeDeal escrow:
+                  Terms recorded for this order:
                 </p>
                 <ul className="space-y-2">
                   {agreementBullets.map((term: string, idx: number) => (
@@ -428,11 +424,11 @@ const StorefrontCheckout = () => {
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-emerald-500" />
-                <h3 className="font-semibold text-foreground">SafeDeal Protection</h3>
+                 <h3 className="font-semibold text-foreground">Payment and dispute terms</h3>
               </div>
               <ul className="space-y-2.5">
                 {[
-                  "Funds held in secure escrow until you confirm receipt",
+                   "Payment held until release conditions are met",
                   `${product.verification_window_hours || 48}-hour verification window after delivery`,
                   REFUND_BULLET,
                   "Dedicated dispute resolution support",

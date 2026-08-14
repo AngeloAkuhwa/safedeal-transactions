@@ -10,7 +10,7 @@ import {
   FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban, ChevronRight
 } from "lucide-react";
 import { supportLink } from "@/lib/support/support-copy";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -459,7 +459,7 @@ export default function BuyerTransactionReview() {
             {[
               { icon: CreditCard, title: "1. Secure Payment", desc: "Your payment is processed through encrypted channels and held securely", color: "text-primary", bg: "bg-primary/10" },
               { icon: Lock, title: "2. Agreement Locked", desc: "Transaction terms become immutable to protect both parties", color: "text-warning", bg: "bg-warning/10" },
-              { icon: Truck, title: "3. Seller Ships", desc: "Seller fulfills order with tracking and delivery proof", color: "text-success", bg: "bg-success/10" },
+              { icon: Truck, title: "3. Seller Fulfills", desc: isTrackedDelivery(data.delivery?.delivery_method) ? TRUST_CLAIMS.DELIVERY_TRACKED.text : "Seller follows the selected handover terms", color: "text-success", bg: "bg-success/10" },
               { icon: CheckCircle, title: "4. You Verify", desc: "Confirm item or raise dispute within verification window", color: "text-destructive", bg: "bg-destructive/10" },
             ].map((step) => (
               <div key={step.title} className="text-center">
@@ -483,7 +483,7 @@ export default function BuyerTransactionReview() {
           </div>
           <div className="space-y-4">
             {[
-              { q: "What happens after I pay?", a: "Your payment is held securely by SafeDeal. The transaction agreement becomes locked, and the seller is notified to begin fulfillment. You'll receive tracking information once the item ships." },
+               { q: "What happens after I pay?", a: isTrackedDelivery(data.delivery?.delivery_method) ? "The agreement locks and the seller is notified to fulfill the order and provide courier details." : "The agreement locks and the seller is notified to fulfill the order under the selected handover terms." },
               { q: "What if the item doesn't match?", a: "You have a verification window after delivery to inspect the item. If it doesn't match this agreement, you can raise a dispute with evidence. SafeDeal will review and mediate fairly." },
               { q: "When does the seller receive payment?", a: "The seller receives payment only after you confirm the item matches the agreement, or after the verification window expires without a dispute." },
               { q: "Is my payment information secure?", a: "Yes. SafeDeal uses bank-level 256-bit SSL encryption and is PCI DSS compliant. Your payment information is never shared with the seller." },
@@ -841,7 +841,7 @@ function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; curren
       <div className="bg-success-foreground/20 rounded-xl p-3 border border-success-foreground/30">
         <div className="flex items-center gap-2 text-sm">
           <CheckCircle className="h-4 w-4" />
-          <span className="font-bold">100% Buyer Protection Guarantee</span>
+          <span className="font-bold">Payment and dispute terms recorded</span>
         </div>
       </div>
     </div>
@@ -863,7 +863,7 @@ function FraudWarningCard() {
       <div className="space-y-3 mb-5">
         {[
           { icon: X, title: "NEVER pay the seller directly", desc: "Do not use bank transfer, PayPal, cash apps, wire transfer, or cryptocurrency" },
-          { icon: ShieldAlert, title: "Off-platform payment removes ALL protection", desc: "You lose escrow protection, dispute rights, and refund eligibility" },
+          { icon: ShieldAlert, title: "Off-platform payment is outside SafeDeal", desc: "SafeDeal cannot review or reconcile payments made outside its checkout" },
           { icon: User, title: "SafeDeal holds your payment securely", desc: "Only pay through SafeDeal's secure payment system on this page" },
         ].map((item) => (
           <div key={item.title} className="bg-destructive-foreground/10 backdrop-blur-sm rounded-lg p-4 border-2 border-destructive-foreground/30">
@@ -936,7 +936,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
       <p className="text-sm opacity-80 mb-6">
         {isLocked
           ? "Resolve the issue above to unlock the secure payment for this transaction."
-          : "Complete your payment to lock this agreement and begin the protected transaction process."}
+          : "Complete your payment to lock this agreement and begin the transaction."}
       </p>
 
       {isLocked ? (
@@ -1006,7 +1006,7 @@ function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate
         <div className="bg-success/10 border border-success/20 rounded-xl p-3">
           <div className="flex items-center gap-2 text-xs text-success">
             <ShieldCheck className="h-4 w-4" />
-            <span className="font-semibold">100% Buyer Protection</span>
+            <span className="font-semibold">Payment and dispute terms</span>
           </div>
         </div>
       </CardContent>
@@ -1051,7 +1051,7 @@ function TrustIndicatorsCard() {
     <div className="bg-foreground rounded-2xl shadow-lg p-6 text-background">
       <div className="flex items-center gap-2 mb-4">
         <Award className="h-5 w-5 text-warning" />
-        <h3 className="text-base font-bold">Trusted & Secure</h3>
+        <h3 className="text-base font-bold">Payment controls</h3>
       </div>
       <div className="space-y-3">
         {["256-bit SSL Encryption", "PCI DSS Compliant", "24/7 Transaction Monitoring"].map((label) => (

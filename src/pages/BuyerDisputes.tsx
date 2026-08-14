@@ -82,7 +82,7 @@ const BuyerDisputes = () => {
             <div>
               <h1 className="sd-page-title">My Disputes</h1>
               <p className="sd-page-sub">
-                Track all active and resolved disputes related to your protected transactions.
+                Review active and resolved disputes related to your transactions.
               </p>
             </div>
             <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-xs">

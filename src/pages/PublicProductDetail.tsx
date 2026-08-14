@@ -210,10 +210,8 @@ const PublicProductDetail = () => {
 
   const sellerClaim = sellerVerificationClaim({
     identityVerified: seller.identity_verified,
-    emailVerified: seller.email_verified,
   });
-  const hasTrackedDelivery =
-    deliveryMethods.length > 0 ? deliveryMethods.some(isTrackedDelivery) : true;
+  const hasTrackedDelivery = deliveryMethods.some(isTrackedDelivery);
 
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
 
@@ -476,7 +474,7 @@ const PublicProductDetail = () => {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground text-sm">{seller.full_name}</p>
                 <div className="flex items-center gap-1.5">
-                  {seller.email_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                   {seller.identity_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
                   <span className="text-xs text-muted-foreground">
                     {sellerClaim ? sellerClaim.text : "Seller"}
                   </span>
@@ -618,15 +616,7 @@ const PublicProductDetail = () => {
                 </div>
               ))
             ) : (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Truck className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
-                  <p className="text-xs text-muted-foreground">{TRUST_CLAIMS.DELIVERY_TRACKED.text}</p>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">Contact the seller to confirm the available delivery method.</p>
             )}
           </div>
 
@@ -657,7 +647,7 @@ const PublicProductDetail = () => {
           <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">
             <p className="text-sm font-semibold text-foreground">No reviews yet</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Reviews appear here once buyers complete protected transactions for this item.
+              Reviews will appear here after eligible orders are completed.
             </p>
           </div>
         </div>

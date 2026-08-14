@@ -30,9 +30,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function BuyerMarketplace() {
   usePageMeta({
-    title: "Marketplace — Protected Listings | SafeDeal",
+    title: "Marketplace Listings | SafeDeal",
     description:
-      "Browse SafeDeal marketplace listings from verified sellers. Every purchase is paid into escrow and released only after you confirm delivery.",
+      "Browse products listed by independent sellers and review each seller's item and delivery terms before checkout.",
     path: "/marketplace",
   });
   const navigate = useNavigate();
@@ -129,12 +129,12 @@ export default function BuyerMarketplace() {
                 Marketplace
               </h1>
               <p className="sd-page-sub">
-                Browse products from verified sellers across SafeDeal
+                 Browse products from independent sellers across SafeDeal
               </p>
             </div>
             <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1">
               <Shield className="h-3.5 w-3.5 text-success" />
-              <span className="text-[11px] font-medium text-success">All purchases protected by SafeDeal escrow</span>
+              <span className="text-[11px] font-medium text-success">Checkout records payment and release terms</span>
             </div>
           </div>
 
@@ -308,22 +308,22 @@ export default function BuyerMarketplace() {
               </div>
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-foreground">
-                  SafeDeal Buyer Protection
+                  SafeDeal checkout
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Funds are held in escrow until you confirm delivery and satisfaction.
+                  Review the item, seller, delivery method, and payment terms before you pay.
                 </p>
               </div>
               <div className="flex gap-6">
                 <div className="text-center">
                   <Lock className="mx-auto h-4 w-4 text-primary mb-1" />
-                  <p className="text-xs font-semibold text-foreground">100%</p>
-                  <p className="text-[10px] text-muted-foreground">Secure</p>
+                  <p className="text-xs font-semibold text-foreground">Item terms</p>
+                  <p className="text-[10px] text-muted-foreground">Recorded</p>
                 </div>
                 <div className="text-center">
                   <Clock className="mx-auto h-4 w-4 text-primary mb-1" />
-                  <p className="text-xs font-semibold text-foreground">24hr</p>
-                  <p className="text-[10px] text-muted-foreground">Disputes</p>
+                  <p className="text-xs font-semibold text-foreground">Delivery</p>
+                  <p className="text-[10px] text-muted-foreground">Selected</p>
                 </div>
               </div>
             </div>

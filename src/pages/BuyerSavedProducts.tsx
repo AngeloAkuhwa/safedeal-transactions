@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -241,7 +242,7 @@ export default function BuyerSavedProducts() {
                         <span className="truncate text-sm font-medium text-foreground">{item.seller?.full_name}</span>
                         {isVerified && (
                           <Badge className="ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-none text-[10px] px-2 py-0.5">
-                            VERIFIED
+                            {TRUST_CLAIMS.SELLER_VERIFIED.text}
                           </Badge>
                         )}
                       </div>

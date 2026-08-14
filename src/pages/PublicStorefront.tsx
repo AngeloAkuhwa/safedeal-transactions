@@ -32,8 +32,8 @@ const PublicStorefront = () => {
 
   const storeName = data?.seller?.full_name ?? "";
   usePageMeta({
-    title: `${storeName} — Protected Store | SafeDeal`,
-    description: `Shop ${storeName} on SafeDeal. Payments are held in escrow and released only after you confirm delivery.`,
+    title: `${storeName} — Store | SafeDeal`,
+    description: `Shop ${storeName} on SafeDeal and review item, delivery, and payment terms before checkout.`,
     path: `/store/${sellerSlug ?? ""}`,
     image: data?.seller?.avatar_url ?? null,
     enabled: Boolean(storeName),

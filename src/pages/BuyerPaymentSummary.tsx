@@ -10,7 +10,7 @@ import {
   Headphones, Eye, RotateCcw, Check as CheckIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { TRUST_CLAIMS } from "@/lib/trust/trust-claims";
+import { TRUST_CLAIMS, isTrackedDelivery } from "@/lib/trust/trust-claims";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
@@ -330,6 +330,7 @@ export default function BuyerPaymentSummary() {
   const feeRate = data.pricing?.service_fee_rate ?? 0;
   const platformFeeAmount = data.pricing?.platform_fee_amount ?? 0;
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
+  const courierTracked = isTrackedDelivery(data.delivery?.delivery_method);
 
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
 
@@ -536,14 +537,18 @@ export default function BuyerPaymentSummary() {
                   {
                     step: 3,
                     title: "Seller Notified to Fulfill Order",
-                    desc: "The seller receives instant notification that payment is secured. They are required to begin fulfillment and provide tracking information within the agreed timeframe.",
+                    desc: courierTracked
+                      ? "The seller is notified to begin fulfillment and provide courier details under the agreed terms."
+                      : "The seller is notified to begin fulfillment under the selected delivery terms.",
                     bgClass: "bg-primary/10",
                     textClass: "text-primary",
                   },
                   {
                     step: 4,
-                    title: "Tracking & Delivery Updates",
-                    desc: `You'll receive real-time tracking updates. Once delivered, you'll have ${verificationHours} hours to verify the item matches the locked agreement before funds are released.`,
+                    title: courierTracked ? TRUST_CLAIMS.DELIVERY_TRACKED.text : "Delivery updates",
+                    desc: courierTracked
+                      ? `Courier details are required. After delivery, you have ${verificationHours} hours to inspect the item.`
+                      : `Follow the selected handover terms. After delivery, you have ${verificationHours} hours to inspect the item.`,
                     bgClass: "bg-primary/10",
                     textClass: "text-primary",
                   },
@@ -564,7 +569,7 @@ export default function BuyerPaymentSummary() {
                 <div className="flex items-start gap-3">
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-1">Your Protection Guarantee</p>
+                    <p className="text-sm font-semibold text-foreground mb-1">Disputes and release</p>
                     <p className="text-xs text-muted-foreground">If the item doesn't match the agreement, you can raise a dispute. Funds remain in escrow until the dispute is resolved by the SafeDeal review team.</p>
                   </div>
                 </div>
@@ -663,7 +668,7 @@ export default function BuyerPaymentSummary() {
                   {[
                     "Secure escrow payment",
                     "Buyer verification window",
-                    "Dispute protection",
+                    "Dispute review available",
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2">
                       <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
@@ -885,15 +890,15 @@ export default function BuyerPaymentSummary() {
                 <div className="mt-6 pt-6 border-t space-y-3">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                    <span>Secured by SafeDeal</span>
+                    <span>SafeDeal checkout</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Lock className="h-3.5 w-3.5 text-primary" />
-                    <span>256-bit SSL Encryption</span>
+                    <span>Encrypted connection</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Star className="h-3.5 w-3.5 text-warning" />
-                    <span>PCI DSS Compliant (via Paystack)</span>
+                    <span>Payment form provided by Paystack</span>
                   </div>
                 </div>
               </div>
@@ -926,11 +931,11 @@ export default function BuyerPaymentSummary() {
               <div className="bg-gradient-to-br from-success to-success/80 rounded-2xl shadow-lg p-6 text-success-foreground">
                 <div className="flex items-center gap-2 mb-4">
                   <Shield className="h-6 w-6" />
-                  <h3 className="text-lg font-bold">Your Protection</h3>
+                  <h3 className="text-lg font-bold">Payment terms</h3>
                 </div>
                 <ul className="space-y-3 text-sm">
                   {[
-                    `Payment held in escrow until verification`,
+                    "Payment held until release conditions are met",
                     `${verificationHours}-hour verification window`,
                     "Dispute resolution available",
                     REFUND_BULLET,
@@ -959,7 +964,7 @@ export default function BuyerPaymentSummary() {
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-center justify-center gap-2 text-sm text-primary">
                 <ShieldCheck className="h-4 w-4" />
-                <span className="font-semibold">Your payment is protected by SafeDeal</span>
+                <span className="font-semibold">Payment processing in progress</span>
               </div>
             </div>
           </div>
@@ -1004,7 +1009,7 @@ export default function BuyerPaymentSummary() {
                   <Info className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground mb-1">What happens next?</p>
-                    <p className="text-xs text-muted-foreground">The transaction agreement is now locked. The seller will be notified to begin fulfillment. You'll receive tracking information once the item ships.</p>
+                    <p className="text-xs text-muted-foreground">The transaction agreement is now locked. The seller will be notified to begin fulfillment under the selected delivery terms.</p>
                   </div>
                 </div>
               </div>
@@ -1015,7 +1020,7 @@ export default function BuyerPaymentSummary() {
                   className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 >
                   <Eye className="h-4 w-4" />
-                  <span>View Locked Agreement & Tracking</span>
+                  <span>View Locked Agreement & Delivery</span>
                 </button>
                 <button
                   onClick={() => navigate("/dashboard")}

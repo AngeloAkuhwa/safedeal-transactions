@@ -27,9 +27,10 @@ const navLinks = [
 
 function getVerificationLabel(level: string) {
   switch (level) {
-    case "trusted_buyer": return TRUST_CLAIMS.SELLER_LEVEL_VERIFIED.text;
-    case "basic_verified": return "Basic Verified";
-    default: return "Unverified";
+    case "trusted_buyer":
+    case "high_trust_buyer": return TRUST_CLAIMS.SELLER_VERIFIED.text;
+    case "basic_verified": return "Basic account";
+    default: return "Standard account";
   }
 }
 

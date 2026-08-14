@@ -8,19 +8,19 @@ const AUDIENCES = [
   {
     icon: Share2,
     title: "Social sellers",
-    line: "Selling through Instagram, WhatsApp, TikTok or Facebook? Send a protected link instead of your account number.",
+    line: "Selling through Instagram, WhatsApp, TikTok or Facebook? Send a SafeDeal checkout link instead of your account number.",
     tone: "bg-muted text-muted-foreground",
   },
   {
     icon: Store,
     title: "Independent stores",
-    line: "No website? Get a free SafeDeal storefront your customers can trust.",
+    line: "No website? Get a free SafeDeal storefront to list your products.",
     tone: "bg-muted text-muted-foreground",
   },
   {
     icon: Globe2,
     title: "Marketplace & cross-border sellers",
-    line: "Dealing with buyers you've never met? Escrow removes the leap of faith.",
+    line: "Dealing with buyers you've never met? Record the item, payment, and delivery terms before checkout.",
     tone: "bg-muted text-muted-foreground",
   },
 ] as const;
@@ -51,7 +51,7 @@ export function VerifiedSellersSection() {
             Built for anyone who sells online
           </h2>
           <p className="body-lead mx-auto max-w-xl text-left text-muted-foreground sm:text-center">
-            If your customers find you in DMs, SafeDeal gives both sides a safe way to close the deal.
+            If your customers find you in DMs, SafeDeal gives both sides one place to record and close the deal.
           </p>
           <p className="mx-auto mt-3 max-w-xl text-left text-sm font-semibold text-foreground sm:text-center">
             Your own store link, free forever — we only earn when you get paid.
@@ -74,12 +74,12 @@ export function VerifiedSellersSection() {
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
               <Shield className="h-4 w-4 text-muted-foreground" />
-              Funds held in secure escrow
+              Payment release follows recorded transaction states
             </li>
             <li aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <li className="inline-flex items-center gap-1.5">
               <BadgeCheck className="h-4 w-4 text-muted-foreground" />
-              Verified sellers only
+              Seller identity status shown where available
             </li>
           </ul>
         </div>

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Shield, Truck, CheckCircle2, Package } from "lucide-react";
+import { Lock, FileCheck2, Package } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 interface PurchaseAuthModalProps {
@@ -77,36 +77,33 @@ export function PurchaseAuthModal({
             <h3 className="text-base font-semibold text-foreground">
               Create a free SafeDeal account to complete your purchase
             </h3>
-            <p className="text-xs text-muted-foreground">
-              Join thousands of protected buyers on Nigeria's most trusted
-              marketplace
-            </p>
+            <p className="text-xs text-muted-foreground">Sign in or create an account to continue.</p>
           </div>
 
           {/* Value propositions */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Truck className="h-4 w-4 text-primary" />
+                <FileCheck2 className="h-4 w-4 text-primary" />
               </div>
               <span className="text-sm text-foreground">
-                Track your order in real time
+                Review the seller's item and delivery terms
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Shield className="h-4 w-4 text-emerald-500" />
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Lock className="h-4 w-4 text-primary" />
               </div>
               <span className="text-sm text-foreground">
-                Buyer protection on every purchase
+                Pay through the SafeDeal checkout
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="h-4 w-4 text-amber-500" />
+              <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-muted-foreground" />
               </div>
               <span className="text-sm text-foreground">
-                Access products from verified sellers across SafeDeal
+                Keep your order details in one account
               </span>
             </div>
           </div>

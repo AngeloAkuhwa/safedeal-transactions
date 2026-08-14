@@ -20,7 +20,7 @@ export function HeroSection() {
 
             <p className="body-lead animate-fade-in mx-auto mb-6 max-w-lg text-left text-muted-foreground sm:text-center lg:mx-0 lg:text-left [animation-delay:80ms]">
               SafeDeal holds the buyer&apos;s payment until the item is delivered and confirmed — so
-              nobody has to trust a stranger. Free for verified sellers.
+              both sides can review the item, delivery, and payment terms. Free for sellers.
             </p>
 
             <div className="animate-fade-in [animation-delay:140ms]">
