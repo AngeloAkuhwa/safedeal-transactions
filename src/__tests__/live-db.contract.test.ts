@@ -380,10 +380,9 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
   // Read-only escrow aggregates; raises 'forbidden' unless the caller is a
   // signed-in admin, and revoked from anon.
   "admin_escrow_kpis",
-  // Read-only helper used by triggers/RLS to resolve a transaction's parties.
-  "derive_target_user_id",
   // Read-only membership predicate used inside RLS policies; must stay
   // executable by authenticated or every transaction policy fails closed.
+  // anon is revoked: an unauthenticated caller has no policy to satisfy.
   "is_transaction_party",
 ];
 
