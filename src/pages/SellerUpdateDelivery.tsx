@@ -577,7 +577,7 @@ export default function SellerUpdateDelivery() {
                           {f.mime_type.startsWith("image/") && (
                             <img src={f.secure_url} alt={f.original_name} className="h-10 w-10 rounded object-cover" />
                           )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFile(f.file_id)}>
+                          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeFile(f.file_id)} aria-label={`Remove ${f.original_name}`}>
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
