@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search, Shield, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -128,13 +128,12 @@ const PublicStorefront = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {data.products.map((product: any) => (
-                <Link
+                <ProductCard
                   key={product.id}
-                  to={`/store/${sellerSlug}/${product.slug}`}
-                  className="block min-h-11"
-                >
-                  <ProductCard product={product} showBadges={false} />
-                </Link>
+                  product={product}
+                  showBadges={false}
+                  onClick={() => navigate(`/store/${sellerSlug}/${product.slug}`)}
+                />
               ))}
             </div>
           )}

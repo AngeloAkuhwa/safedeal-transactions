@@ -77,7 +77,6 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
       {/* The card is a plain container. The title below is the real control and
           is stretched over the whole card, so nested buttons stay valid. */}
       <div
-        onClick={onClick}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm transition-all hover:shadow-lg cursor-pointer",
           outOfStock && "opacity-80"

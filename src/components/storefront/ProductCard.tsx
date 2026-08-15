@@ -47,7 +47,6 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
        control and any future in-card action stays valid ARIA. */
     <Card
       className="relative h-full flex flex-col rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
-      onClick={onClick}
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
         {product.primary_image_url ? (

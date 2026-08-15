@@ -59,7 +59,6 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
           <Card
             key={action.title}
             className={`sd-card sd-action relative cursor-pointer group h-full hover:-translate-y-0.5 transition-transform sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
-            onClick={() => navigate(action.href)}
           >
             <CardContent className="p-4">
               <div className={`h-9 w-9 rounded-lg ${action.iconBg} flex items-center justify-center mb-2.5 transition-colors`}>
