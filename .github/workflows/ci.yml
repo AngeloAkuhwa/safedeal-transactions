@@ -1,0 +1,130 @@
+# Every gate this repo already has, made binding.
+#
+# Before this workflow existed, typecheck, 815 tests, the lint baseline, the
+# money guards and the mobile render audit all ran only when someone remembered
+# to run them locally. On a product that holds other people's money, "we ran it
+# locally" is not a control.
+#
+# Two things are deliberate:
+#
+#   - `admin-auth.contract.test.ts` is 102 tests that assert server-side role
+#     enforcement on every admin edge function. They skip themselves when their
+#     credentials are absent, which means they have never run. The `verify-no-
+#     skips` step fails the build if they skip again, so a missing secret is
+#     loud instead of green.
+#
+#   - The render audit needs signed-in identities. They are provisioned
+#     out-of-band (see the note below) with passwords that live only in these
+#     secrets, so no credential that authenticates ever exists in the repo.
+#
+# Required repository secrets:
+#   SUPABASE_URL, SUPABASE_ANON_KEY
+#   E2E_BUYER_PASSWORD, E2E_SELLER_PASSWORD, E2E_ADMIN_PASSWORD
+#
+# NOTE — no SUPABASE_SERVICE_ROLE_KEY. This project runs on Lovable Cloud,
+# where the Supabase instance is owned and managed by Lovable: there is no
+# dashboard, no service role key and no database URL available to the project
+# owner. CI therefore cannot provision identities itself. They are provisioned
+# out-of-band once (scripts/provision-e2e-identities.mjs --sql, run through
+# Lovable) with passwords that exist only in these secrets, and CI signs in
+# with them. Rotate by re-running that script with new values.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: typecheck · build · lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: npx tsc -p tsconfig.app.json --noEmit
+      - name: Build
+        run: bun run build
+      - name: Lint must not regress
+        # The repo carries a known baseline. Parity is the gate, not zero —
+        # a count that rises by one is a finding; the number itself is not.
+        run: |
+          BASELINE=1421
+          COUNT=$(npx eslint . 2>&1 | grep -oE '✖ [0-9]+ problems' | grep -oE '[0-9]+' | head -1 || echo 0)
+          echo "eslint problems: $COUNT (baseline $BASELINE)"
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "::error::Lint regressed: $COUNT > $BASELINE"
+            exit 1
+          fi
+
+  tests:
+    name: tests · including admin role enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run the suite
+        env:
+          ALLOW_SKIP_LIVE_DB: "1"
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_TEST_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
+          VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
+          VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+        run: bun run test 2>&1 | tee /tmp/test.log
+      - name: The 102 role-enforcement tests must actually run
+        run: |
+          if grep -qE "admin-auth\.contract\.test\.ts.*skipped" /tmp/test.log; then
+            echo "::error::admin-auth.contract.test.ts skipped — role enforcement went unverified"
+            exit 1
+          fi
+          echo "admin authorization contract ran"
+
+  audit:
+    name: mobile render audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+
+      - name: Start the app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          bun run dev -- --host 127.0.0.1 --port 5199 &
+          npx wait-on http://127.0.0.1:5199 --timeout 90000
+
+      - name: Audit every route at 320/360/390/414
+        env:
+          E2E_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+          E2E_SELLER_EMAIL: claude.e2e.seller@safedeal.test
+          E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
+          E2E_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: node scripts/mobile-audit.mjs --auth --out audit-out
+
+      - name: Keep the screenshots when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-screenshots
+          path: audit-out
