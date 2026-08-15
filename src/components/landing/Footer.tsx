@@ -43,13 +43,13 @@ export function Footer() {
               {productLinks.map((item) =>
                 item.href.startsWith("#") ? (
                   <li key={item.label}>
-                    <a href={item.href} className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+                    <a href={item.href} className="inline-flex min-h-11 min-w-11 items-center text-[13px] text-muted-foreground transition-colors hover:text-foreground">
                       {item.label}
                     </a>
                   </li>
                 ) : (
                   <li key={item.label}>
-                    <Link to={item.href} className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+                    <Link to={item.href} className="inline-flex min-h-11 min-w-11 items-center text-[13px] text-muted-foreground transition-colors hover:text-foreground">
                       {item.label}
                     </Link>
                   </li>
@@ -64,7 +64,7 @@ export function Footer() {
             <ul className="space-y-2">
               {supportLinks.map((item) => (
                 <li key={item.label}>
-                  <Link to={item.href} className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+                  <Link to={item.href} className="inline-flex min-h-11 min-w-11 items-center text-[13px] text-muted-foreground transition-colors hover:text-foreground">
                     {item.label}
                   </Link>
                 </li>
@@ -79,8 +79,8 @@ export function Footer() {
               © {new Date().getFullYear()} SafeDeal. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-xs text-muted-foreground">
-              <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
-              <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link to="/legal/terms" className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 hover:text-foreground">Terms</Link>
+              <Link to="/legal/privacy" className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 hover:text-foreground">Privacy</Link>
             </div>
           </div>
         </div>

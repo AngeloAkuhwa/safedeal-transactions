@@ -124,6 +124,21 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             </Badge>
           )}
 
+          {/* Stock state belongs to the product, not to the seller row.
+              Measured at 360px it was taking ~68px of a ~100px text line, which
+              squeezed the seller name down to a 6px sliver of ellipsis — the
+              name was present in the DOM and invisible on screen. On the image
+              it costs the text column nothing and reads sooner. */}
+          <div className="absolute bottom-2.5 left-2.5 z-rail">
+            {outOfStock ? (
+              <Badge variant="destructive" className="px-1.5 py-0 text-xs shadow-sm">Unavailable</Badge>
+            ) : lowStock ? (
+              <Badge className="border-warning/30 bg-warning/90 px-1.5 py-0 text-xs text-warning-foreground shadow-sm">Low Stock</Badge>
+            ) : (
+              <Badge className="border-success/30 bg-success/90 px-1.5 py-0 text-xs text-success-foreground shadow-sm">In Stock</Badge>
+            )}
+          </div>
+
           {/* Wishlist */}
           <button
             onClick={handleHeartClick}
@@ -169,21 +184,6 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 <span className="truncate max-sm:sr-only">{sellerTrustClaim}</span>
               </span>
             )}
-            <div className="ml-auto shrink-0">
-              {outOfStock ? (
-                <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                  Unavailable
-                </Badge>
-              ) : lowStock ? (
-                <Badge className="bg-warning/15 text-warning border-warning/30 px-1.5 py-0">
-                  Low Stock
-                </Badge>
-              ) : (
-                <Badge className="bg-success/15 text-success border-success/30 px-1.5 py-0">
-                  In Stock
-                </Badge>
-              )}
-            </div>
           </div>
 
           {/* Title */}
