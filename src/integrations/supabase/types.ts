@@ -1628,8 +1628,8 @@ export type Database = {
           dispute_id: string
           id?: string
           outcome_type: Database["public"]["Enums"]["dispute_outcome_type"]
-          refund_amount?: number
-          release_amount?: number
+          refund_amount: number
+          release_amount: number
           resolved_at: string
           resolved_by_user_id: string
           updated_at?: string
@@ -6107,7 +6107,7 @@ export type Database = {
           is_total_service_fee_capped?: boolean
           item_amount: number
           payment_processing_fee_amount: number
-          platform_fee_amount?: number
+          platform_fee_amount: number
           pricing_model_version: string
           seller_payout_amount: number
           transaction_id: string
@@ -6762,13 +6762,13 @@ export type Database = {
           escrow_fee_rate: number
           featured_placement?: boolean
           is_active?: boolean
-          monthly_price_naira?: number
+          monthly_price_naira: number
           name: string
           photo_slots?: number
           sort_order?: number
           tagline?: string | null
           updated_at?: string
-          yearly_price_naira?: number
+          yearly_price_naira: number
         }
         Update: {
           code?: string
@@ -7353,7 +7353,7 @@ export type Database = {
       canonical_fingerprint_v1: { Args: { p: Json }; Returns: string }
       canonical_payload_v1: { Args: { p: Json }; Returns: string }
       check_admin_rate_limit: {
-        Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
+        Args: { _action_key: string; _admin_id: string; _max_per_hour?: number }
         Returns: {
           allowed: boolean
           cap: number
