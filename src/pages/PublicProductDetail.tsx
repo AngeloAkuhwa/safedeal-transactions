@@ -90,7 +90,7 @@ const PublicProductDetail = () => {
             : undefined,
           offers: {
             "@type": "Offer",
-            priceCurrency: "NGN",
+              priceCurrency: metaProduct.currency_code,
             price: metaProduct.unit_price,
             availability:
               Math.max(0, (metaProduct.stock_quantity ?? 0) - (metaProduct.reserved_quantity ?? 0)) > 0

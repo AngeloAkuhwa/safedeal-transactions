@@ -356,7 +356,7 @@ export function SellerEvidenceSection({
 
         {/* Upload Additional Evidence CTA */}
         {permissions.canUploadAdditionalEvidence && (
-          <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
+            <div className="flex flex-col gap-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Upload className="h-5 w-5 text-primary" />
               <div>

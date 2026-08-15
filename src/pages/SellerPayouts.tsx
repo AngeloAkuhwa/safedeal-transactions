@@ -301,7 +301,15 @@ const SellerPayouts = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-auto">
+                    <div className="divide-y divide-border md:hidden">
+                      {payout_history.map((row: PayoutHistoryItem) => (
+                        <article key={row.payout_id_full} className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs">{row.payout_id}</p><p className="text-sm font-medium">{row.transaction_code}</p><p className="text-xs text-muted-foreground">{row.buyer_name} · {formatDate(row.release_date)}</p></div><p className="text-sm font-semibold">{formatMoney(row.net_payout, row.currency_code)}</p></div>
+                          <div className="flex items-center justify-between gap-2"><PayoutStatusBadge status={row.status} /><RowAction row={row} onFixPayout={() => setEditModalOpen(true)} /></div>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="hidden overflow-auto md:block">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -355,8 +363,8 @@ const SellerPayouts = () => {
                         <p className="text-xs text-muted-foreground">
                           Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total_count)} of {pagination.total_count}
                         </p>
-                        <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                         <div className="flex items-center gap-1">
+                           <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage(page - 1)}>
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
                           <span className="text-sm px-2">{page} / {pagination.total_pages}</span>
