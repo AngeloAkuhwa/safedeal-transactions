@@ -280,9 +280,9 @@ const CLIENT_MONEY_DML_ALLOWLIST = [
   // Seller writes the pricing snapshot pre-lock (sellers_{insert,update}_txn_pricing).
   "authenticated:transaction_pricing:INSERT",
   "authenticated:transaction_pricing:UPDATE",
-  // A user maintains their own payout destination.
-  "authenticated:payout_accounts:INSERT",
-  "authenticated:payout_accounts:UPDATE",
+  // payout_accounts intentionally absent: the table-level INSERT/UPDATE were
+  // replaced by COLUMN-level grants on the bank-detail columns only, so no
+  // table-level entry may reappear here.
   // Buyer opens and advances their own cart checkout session.
   "authenticated:checkout_sessions:INSERT",
   "authenticated:checkout_sessions:UPDATE",
