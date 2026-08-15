@@ -108,12 +108,14 @@ describe("mobile table fallbacks", () => {
       </table>`;
     const { labelStackedTables } = await import("@/lib/stacked-tables");
     labelStackedTables();
-    const rows = Array.from(document.querySelectorAll("tbody tr"));
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>("tbody tr"));
     const [spanningRow, plainRow] = rows;
-    const spanningCells = Array.from(spanningRow.cells);
+    const spanningCells = Array.from(spanningRow.cells) as HTMLTableCellElement[];
     expect(spanningCells[0].hasAttribute("data-label")).toBe(false);
     expect(spanningCells[1].getAttribute("data-label")).toBe("Status");
-    const plainCells = Array.from(plainRow.cells).map((c) => c.getAttribute("data-label"));
+    const plainCells = (Array.from(plainRow.cells) as HTMLTableCellElement[]).map((c) =>
+      c.getAttribute("data-label"),
+    );
     expect(plainCells).toEqual(["Ref", "Amount", "Status"]);
   });
 
