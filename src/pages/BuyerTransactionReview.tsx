@@ -42,6 +42,7 @@ import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
 export default function BuyerTransactionReview() {
+  const isMobile = useIsMobile();
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
