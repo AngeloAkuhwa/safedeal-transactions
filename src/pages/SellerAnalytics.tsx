@@ -125,20 +125,24 @@ function KpiCard({
   index: number; animate: boolean;
 }) {
   return (
-    <Link
-      to={to}
-      aria-label={ariaLabel}
-      className={cn(
-        "min-h-11 block group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        animate && "animate-fade-in",
-      )}
+    <div
+      className={cn("group relative h-full", animate && "animate-fade-in")}
       style={animate ? { animationDelay: `${index * 50}ms`, animationFillMode: "both" } : undefined}
     >
-      <Card className="rounded-lg h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
+      {/* Plain container + stretched link: one tab stop for the card, and the
+          "More info" button stays a valid, reachable sibling (a <button>
+          nested inside an <a> is invalid HTML and doubled every tab stop). */}
+      <Card className="relative rounded-lg h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
         <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-start justify-between gap-1.5">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
-              {title}
+              <Link
+                to={to}
+                aria-label={ariaLabel}
+                className="after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {title}
+              </Link>
             </p>
             <div className="flex items-center gap-0.5 shrink-0">
               <TooltipProvider delayDuration={150}><UITooltip>
@@ -147,7 +151,7 @@ function KpiCard({
                     type="button"
                     aria-label="More info"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="text-muted-foreground/60 hover:text-foreground transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
+                    className="relative z-10 text-muted-foreground/60 hover:text-foreground transition-colors inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
                   >
                     <Info className="h-3 w-3" />
                   </button>
@@ -170,7 +174,7 @@ function KpiCard({
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
 
@@ -412,7 +416,12 @@ const SellerAnalytics = () => {
                 <TooltipProvider delayDuration={150}>
                   <UITooltip>
                     <TooltipTrigger asChild>
-                      <span tabIndex={exportDisabled ? 0 : -1}>
+                      <span
+                        role={exportDisabled ? "button" : undefined}
+                        aria-disabled={exportDisabled || undefined}
+                        aria-label={exportDisabled ? "Export CSV unavailable" : undefined}
+                        tabIndex={exportDisabled ? 0 : -1}
+                      >
                         <Button
                           size="sm"
                           disabled={exportDisabled}
