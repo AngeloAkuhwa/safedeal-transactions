@@ -759,12 +759,28 @@ const INTERACTIVE_ROLES = new Set([
   "radio", "switch", "combobox", "treeitem",
 ]);
 
+/**
+ * The "stretched link" pattern: the row/card itself stays a plain container and
+ * a real `<a>`/`<button>` inside it is expanded over the whole box with
+ * `after:absolute after:inset-0`. Keyboard users reach the real control; the
+ * container `onClick` is then only a redundant mouse affordance, and nested
+ * action buttons stay reachable. Recognised by the marker class.
+ */
+const STRETCHED = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
+
+/** Text of the element starting at `index`, up to a rough end of its subtree. */
+function subtree(source: string, tag: string, index: number): string {
+  const close = source.indexOf(`</${tag}>`, index);
+  return close === -1 ? source.slice(index, index + 2000) : source.slice(index, close);
+}
+
 export function scanKeyboardSource(rawSource: string, file: string): Violation[] {
   const out: Violation[] = [];
   for (const { tag, text, index } of eachTag(rawSource)) {
     if (NATIVE_INTERACTIVE.has(tag) || DELEGATING.has(tag)) continue;
     if (!KEYBOARD_DOM_TAGS.has(tag)) continue;
     if (ownAttrIndex(text, "onClick=") === -1) continue;
+    if (STRETCHED.test(subtree(rawSource, tag, index))) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
     // A dialog/menu container is dismissed with Escape, not activated: it needs
