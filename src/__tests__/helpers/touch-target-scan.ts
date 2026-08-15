@@ -516,7 +516,11 @@ function declaresUnmeasurable(classes: string[], prefix: string): boolean {
     const parts = c.split(":");
     const token = parts[parts.length - 1];
     if (parts.length > 1 && !parts.slice(0, -1).every((v) => MOBILE_VARIANTS.has(v))) return false;
-    return token.startsWith(prefix) && unit(token.slice(prefix.length)) === null;
+    if (!token.startsWith(prefix)) return false;
+    const value = token.slice(prefix.length);
+    // `full`/`screen` are ancestor-sized (unknown here); only `auto`/`fit`/`min`
+    // are genuinely content-sized and therefore measurable from the content.
+    return value === "auto" || value === "fit" || value === "min";
   });
 }
 
