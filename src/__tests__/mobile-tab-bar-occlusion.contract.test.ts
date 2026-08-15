@@ -61,10 +61,15 @@ export function occlusionOffenders(source: string): string[] {
     // Card decoration is exempt per-token, not per-class-list: an
     // `overflow-hidden rounded-xl` on a flex layout element is still a trap
     // unless the *same* element is only a rounded/aspect clip container.
-    const decorative = tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t));
+    // Decoration = a rounded/aspect clip that is not also a layout element
+    // sized to fill the viewport or the flex column.
+    const layoutSized = tokens.some((t) =>
+      /^(h-full|flex-1|h-screen|h-dvh|h-\[100dvh\]|h-\[100vh\]|min-h-\[100dvh\]|min-h-screen)$/.test(t),
+    );
+    const decorative = tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t)) && !layoutSized;
     for (const token of tokens) {
       if (!LAYOUT_TRAP.test(token)) continue;
-      if (decorative && token === "overflow-hidden" && !tokens.some((t) => /^(flex|grid|flex-1|h-full)$/.test(t))) continue;
+      if (decorative && token === "overflow-hidden") continue;
       offenders.push(token);
     }
   }
