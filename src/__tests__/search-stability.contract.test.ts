@@ -3,16 +3,85 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * Any useQuery whose key is derived from a text search input must:
- *  1. use `placeholderData: keepPreviousData` (no jarring empty flash while typing), and
- *  2. keep the search input mounted in a single stable slot (no early return
- *     above it that unmounts it and steals focus).
+ * Repo-wide audit (the previous version only knew about eight hand-listed
+ * files, so any NEW search screen shipped un-debounced and unnoticed).
+ *
+ * Rule: if a `useQuery` key contains a state variable that a text input
+ * writes to, that screen must
+ *  1. debounce the value before it reaches the query key, and
+ *  2. pass `placeholderData: keepPreviousData` so the list never blanks.
  */
+const SRC = path.join(process.cwd(), "src");
+
 function read(relPath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relPath), "utf-8");
 }
 
+function walk(dir: string, out: string[] = []): string[] {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      if (e.name === "__tests__" || e.name === "test") continue;
+      walk(p, out);
+    } else if (/\.tsx$/.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+/** State setters wired directly to a text input's onChange in this file. */
+function searchSetters(source: string): string[] {
+  const setters = new Set<string>();
+  for (const m of source.matchAll(/onChange=\{\(e\)\s*=>\s*set([A-Za-z0-9_]+)\(e\.target\.value\)/g)) {
+    setters.add(m[1]);
+  }
+  return [...setters]
+    .map((n) => n[0].toLowerCase() + n.slice(1))
+    .filter((n) => /search|query|term|filter|^q$/i.test(n));
+}
+
+/** Query keys declared in this file, as raw key-array text. */
+function queryKeys(source: string): string[] {
+  return [...source.matchAll(/queryKey:\s*\[([^\]]*)\]/g)].map((m) => m[1]);
+}
+
+export function searchStabilityViolations(source: string): string[] {
+  const problems: string[] = [];
+  const vars = searchSetters(source);
+  if (vars.length === 0) return problems;
+  for (const v of vars) {
+    const usedInKey = queryKeys(source).some((k) => new RegExp(`\\b${v}\\b`).test(k));
+    if (!usedInKey) continue; // value never reaches a query key — nothing to debounce
+    problems.push(`\`${v}\` reaches a query key undebounced`);
+  }
+  if (problems.length && !source.includes("placeholderData: keepPreviousData")) {
+    problems.push("missing placeholderData: keepPreviousData");
+  }
+  return problems;
+}
+
 describe("search stability contract", () => {
+  it("no screen feeds a raw text input straight into a query key", () => {
+    const violations: string[] = [];
+    for (const f of walk(SRC)) {
+      const found = searchStabilityViolations(fs.readFileSync(f, "utf-8"));
+      if (found.length) violations.push(`${path.relative(process.cwd(), f)}: ${found.join("; ")}`);
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it("every screen with a debounced search also keeps previous data", () => {
+    const violations: string[] = [];
+    for (const f of walk(SRC)) {
+      const s = fs.readFileSync(f, "utf-8");
+      if (!/setDebounced[A-Za-z0-9_]*\(/.test(s)) continue;
+      if (!s.includes("useQuery")) continue;
+      if (!s.includes("placeholderData: keepPreviousData")) {
+        violations.push(path.relative(process.cwd(), f));
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
   it("BuyerTransactions query uses keepPreviousData", () => {
     const s = read("src/pages/BuyerTransactions.tsx");
     expect(s).toContain("placeholderData: keepPreviousData");
