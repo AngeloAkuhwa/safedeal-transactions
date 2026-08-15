@@ -368,7 +368,7 @@ const SellerPayouts = () => {
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
                           <span className="text-sm px-2">{page} / {pagination.total_pages}</span>
-                          <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= pagination.total_pages} onClick={() => setPage(page + 1)}>
+                          <Button variant="outline" size="icon" disabled={page >= pagination.total_pages} onClick={() => setPage(page + 1)}>
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                         </div>

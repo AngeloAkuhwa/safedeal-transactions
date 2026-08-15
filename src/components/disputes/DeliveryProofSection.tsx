@@ -128,7 +128,8 @@ function ProofThumbnail({ file }: { file: DeliveryProofSectionProps["deliveryPro
           download={file.file_name ?? "proof"}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute top-1.5 right-1.5 p-1.5 rounded-md bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+          aria-label="Download delivery proof"
+          className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-md bg-background/90 text-foreground transition-opacity hover:bg-background"
         >
           <Download className="h-3.5 w-3.5" />
         </a>

@@ -65,13 +65,14 @@ function EvidenceThumbnail({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-1.5 right-1.5 p-1.5 rounded-md bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+          aria-label="Download evidence"
+          className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-md bg-background/90 text-foreground transition-opacity hover:bg-background"
         >
           <Download className="h-3.5 w-3.5" />
         </a>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[10px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[10px] px-2 py-1 truncate">
         {format(new Date(evidence.created_at), "MMM d, h:mm a")}
       </div>
     </button>
