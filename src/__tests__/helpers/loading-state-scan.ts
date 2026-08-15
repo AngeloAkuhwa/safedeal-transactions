@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { stripComments } from "./touch-target-scan";
 
 /**
  * Rule: a loading branch that replaces page content must preserve the layout.
@@ -76,6 +77,8 @@ const lineOf = (source: string, index: number) => source.slice(0, index).split("
 
 export function scanLoadingSource(source: string, file: string): LoadingViolation[] {
   const out: LoadingViolation[] = [];
+  // A comment describing markup is not markup.
+  source = stripComments(source);
   const seen = new Set<number>();
 
   for (const m of source.matchAll(/<div\b[^>]*className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) {

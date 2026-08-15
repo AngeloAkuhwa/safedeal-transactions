@@ -1,3 +1,4 @@
+import { supportLink } from "@/lib/support/support-copy";
 import { useState } from "react";
 import { ShieldAlert, ImageIcon, FileText, Film, Download } from "lucide-react";
 import { format } from "date-fns";
@@ -34,12 +35,19 @@ function EvidenceThumbnail({
   const isImage = evidence.mime_type?.startsWith("image/");
   const [imgError, setImgError] = useState(false);
 
+  /* The container used to be a <button> with a download <a> inside it. Nested
+     interactive content is invalid HTML: it produces two tab stops per
+     thumbnail and browsers disagree on which control a click activates. The
+     container is now a plain positioned div; "view" is a stretched button
+     covering the tile, and the download link sits above it on its own tier. */
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative aspect-square rounded-lg border border-border bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-11 inline-flex items-center"
-    >
+    <div className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted transition-all hover:ring-2 hover:ring-primary/40">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`View ${evidence.file_name ?? "evidence"}`}
+        className="absolute inset-0 z-rail rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
       {isImage && evidence.file_url && !imgError ? (
         <img
           src={evidence.file_url}
@@ -57,25 +65,24 @@ function EvidenceThumbnail({
         </div>
       )}
 
-      {/* Download overlay */}
+      {/* Download sits above the stretched view button so it stays clickable. */}
       {evidence.file_url && (
         <a
           href={evidence.file_url}
           download={evidence.file_name ?? "evidence"}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Download evidence"
-          className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-md bg-background/90 text-foreground transition-opacity hover:bg-background"
+          aria-label={`Download ${evidence.file_name ?? "evidence"}`}
+          className="absolute right-1.5 top-1.5 z-sticky flex h-11 w-11 items-center justify-center rounded-md bg-background/90 text-foreground transition-opacity hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Download className="h-3.5 w-3.5" />
         </a>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-xs px-2 py-1 truncate">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-foreground/60 px-2 py-1 text-xs text-background">
         {format(new Date(evidence.created_at), "MMM d, h:mm a")}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -202,7 +209,22 @@ export function BuyerClaimSection({ reasonLabel, claim }: BuyerClaimSectionProps
           )}
 
           {claim.evidence.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">No evidence submitted yet.</p>
+            <p className="text-sm italic text-muted-foreground">No evidence submitted yet.</p>
+          )}
+
+          {/* Submitted evidence is deliberately not removable: a dispute is an
+              audit trail, and letting either side withdraw a file after the
+              other has seen it would break that. Saying so is better than a
+              silently read-only panel, which reads as a missing feature. */}
+          {claim.evidence.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Evidence stays on the case once submitted, so both sides and our
+              team see the same record.{" "}
+              <a href={supportLink()} className="font-medium text-primary underline underline-offset-2">
+                Attached the wrong file? Tell support
+              </a>{" "}
+              and it will be noted on the case.
+            </p>
           )}
         </CardContent>
       </Card>

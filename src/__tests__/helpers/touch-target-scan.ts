@@ -139,8 +139,15 @@ export class TooComplex extends Error {}
 
 type Consts = Map<string, string>;
 
-/** Strip `//` and block comments that sit inside a className expression. */
-function stripComments(src: string): string {
+/**
+ * Strip `//` and block comments, quote-aware.
+ *
+ * Exported because every source scanner needs it: a comment that *describes*
+ * markup (`the container used to be a <button> with an <a> inside`) is not
+ * markup, and a scanner that reads raw text will flag it. That is a false
+ * positive whose usual cure is weakening the rule.
+ */
+export function stripComments(src: string): string {
   let out = "";
   let quote: string | null = null;
   for (let i = 0; i < src.length; i += 1) {
