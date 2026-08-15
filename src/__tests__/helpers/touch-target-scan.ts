@@ -630,6 +630,47 @@ function isStretched(tagText: string, tag: string, classes: string[]): boolean {
   return focusable;
 }
 
+/**
+ * Height a primitive guarantees, derived from the primitive's own source
+ * rather than from a hand-maintained table (the table credited `Switch` with
+ * 44px while `ui/switch.tsx` shipped `h-6`). Falls back to the table for
+ * components whose box is not a single base class string.
+ */
+const primitiveHeightCache = new Map<string, number>();
+const PRIMITIVE_FILES: Record<string, string> = {
+  Switch: "src/components/ui/switch.tsx",
+  Checkbox: "src/components/ui/checkbox.tsx",
+  Input: "src/components/ui/input.tsx",
+  RadioGroupItem: "src/components/ui/radio-group.tsx",
+};
+
+function primitiveHeight(tag: string): number {
+  const cached = primitiveHeightCache.get(tag);
+  if (cached !== undefined) return cached;
+  const fallback = COMPONENT_DEFAULT_PX[tag] ?? 44;
+  let result = fallback;
+  const file = PRIMITIVE_FILES[tag];
+  if (file) {
+    try {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      const literal = Array.from(source.matchAll(/"([^"]{40,})"/g))
+        .map((m) => m[1])
+        .find((s) => /\b(h-|min-h-|size-)/.test(s));
+      if (literal) {
+        const classes = literal.split(/\s+/).filter(Boolean);
+        const own = [pick(classes, "h-"), pick(classes, "min-h-"), pick(classes, "size-")]
+          .filter((v): v is number => v !== null)
+          .reduce((a, b) => Math.max(a, b), 0);
+        if (own) result = own + insetBonus(classes).y;
+      }
+    } catch {
+      result = fallback;
+    }
+  }
+  primitiveHeightCache.set(tag, result);
+  return result;
+}
+
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
   const bonus = insetBonus(classes);
   if (isStretched(tagText, tag, classes)) {
