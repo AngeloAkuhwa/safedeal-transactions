@@ -415,7 +415,10 @@ d("live view surface", () => {
         " aclexplode(c.relacl) a" +
         " where n.nspname = 'public' and c.relkind in ('v','m')" +
         " and a.grantee::regrole::text in ('anon','authenticated')" +
-        " and a.privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE') order by 1",
+        // ALL privilege types, not the four write verbs: MAINTAIN, REFERENCES
+        // and TRIGGER were sitting on seven views as GRANT ALL residue and were
+        // invisible to a filter that only listed INSERT/UPDATE/DELETE/TRUNCATE.
+        " and a.privilege_type <> 'SELECT' order by 1",
     );
     expect(found ? found.split("\n") : []).toEqual([]);
   });
