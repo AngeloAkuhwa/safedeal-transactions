@@ -80,9 +80,9 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-primary font-semibold bg-primary/5 min-h-11 inline-flex items-center"
+                    ? "text-primary font-semibold bg-primary/5"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
