@@ -32,7 +32,7 @@ describe("mobile touch targets", () => {
     const tag = /<(button|a|input|select|textarea)\b[^>]*?className="([^"]*)"[^>]*>/gs;
 
     for (const absolute of tsxFiles(ROOT)) {
-      const file = relative(process.cwd(), absolute).replaceAll("\\", "/");
+      const file = relative(process.cwd(), absolute).replace(/\\/g, "/");
       const source = readFileSync(absolute, "utf8");
       for (const match of source.matchAll(tag)) {
         const classes = match[2].split(/\s+/);
@@ -52,7 +52,7 @@ describe("mobile touch targets", () => {
   it("does not hide actionable controls behind hover on touch screens", () => {
     const violations: string[] = [];
     for (const absolute of tsxFiles(ROOT)) {
-      const file = relative(process.cwd(), absolute).replaceAll("\\", "/");
+      const file = relative(process.cwd(), absolute).replace(/\\/g, "/");
       const source = readFileSync(absolute, "utf8");
       source.split("\n").forEach((line, index) => {
         if (/opacity-0.*group-hover|group-hover.*opacity-100/.test(line) && !/md:opacity-0/.test(line)) {
