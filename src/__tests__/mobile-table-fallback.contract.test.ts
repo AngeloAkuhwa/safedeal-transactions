@@ -45,12 +45,21 @@ function readOpeningTag(source: string, start: number): string {
   return source.slice(start);
 }
 
-/** Does this specific table tag carry its own mobile fallback? */
-function tableTagHasFallback(tagText: string, source: string): boolean {
+/**
+ * Does this specific table have its own mobile fallback? The tag itself may
+ * carry `sd-stack`, or be `hidden md:table`/`hidden sm:table`; more commonly
+ * in this codebase the table is wrapped in an ancestor `<div className="hidden
+ * ... md:block">` a short distance above it, with a sibling `md:hidden`/
+ * `sm:hidden` card block elsewhere in the file — both count.
+ */
+function tableTagHasFallback(tagText: string, source: string, tableStart: number): boolean {
   if (/\bsd-stack\b/.test(tagText)) return true;
-  const isHiddenDesktop = /hidden\s+(?:md|sm):table\b/.test(tagText);
-  if (!isHiddenDesktop) return false;
-  return /\b(md|sm):hidden\b/.test(source);
+  const ownTagHidden = /hidden\s+(?:md|sm):table\b/.test(tagText);
+  const ancestorWindow = source.slice(Math.max(0, tableStart - 400), tableStart);
+  const ancestorHidden = /className="[^"]*\bhidden\b[^"]*\b(?:md|sm|lg|xl):block\b[^"]*"/.test(ancestorWindow)
+    || /className="[^"]*\b(?:md|sm|lg|xl):block\b[^"]*\bhidden\b[^"]*"/.test(ancestorWindow);
+  if (!ownTagHidden && !ancestorHidden) return false;
+  return /\b(md|sm|lg|xl):hidden\b/.test(source);
 }
 
 describe("mobile table fallbacks", () => {
@@ -64,7 +73,7 @@ describe("mobile table fallbacks", () => {
       if (!tableStarts.length) continue;
       for (const start of tableStarts) {
         const tag = readOpeningTag(source, start);
-        if (!tableTagHasFallback(tag, source)) {
+        if (!tableTagHasFallback(tag, source, start)) {
           violations.push(`${file}: <table> at offset ${start} has no sd-stack and no hidden md:table/md:hidden sibling`);
         }
       }
