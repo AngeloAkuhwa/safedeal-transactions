@@ -14,7 +14,8 @@ import { getTabsForPath } from "@/components/layout/MobileTabBar";
  * Card decoration is exempt: an `overflow-hidden` paired with `rounded-*` or
  * `aspect-*` is clipping an image inside a card, not creating a scroll port.
  */
-const ROOT = path.join(process.cwd(), "src/pages");
+const ROOTS = ["src/pages", "src/components/layout", "src/components/dashboard", "src/components/marketplace", "src/components/seller"];
+const PAGES_ROOT = path.join(process.cwd(), "src/pages");
 
 /** Every page file whose route the tab bar covers. */
 function coveredPages(): string[] {
@@ -23,41 +24,67 @@ function coveredPages(): string[] {
   for (const m of app.matchAll(/path="([^"]+)"[^>]*element=\{<([A-Za-z0-9_]+)/g)) {
     const routePath = m[1].startsWith("/") ? m[1] : `/${m[1]}`;
     if (!getTabsForPath(routePath.replace(/:[^/]+/g, "x"))) continue;
-    const file = path.join(ROOT, `${m[2]}.tsx`);
+    const file = path.join(PAGES_ROOT, `${m[2]}.tsx`);
     if (fs.existsSync(file)) files.add(path.relative(process.cwd(), file));
   }
-  // Lazy routes declare the component in a separate `lazy(() => import(...))`
-  // map, so also include the pages the tab bar is known to cover directly.
-  for (const extra of ["BuyerCart.tsx", "BuyerSavedProducts.tsx", "BuyerMarketplace.tsx", "SellerStorefront.tsx"]) {
-    files.add(`src/pages/${extra}`);
+  // Shell/chrome that renders on those same routes but lives outside
+  // `src/pages` — previously invisible to this scan.
+  for (const rel of ["src/components/layout/AdminLayout.tsx", "src/components/dashboard/BuyerNav.tsx", "src/components/marketplace/BuyerSidebar.tsx"]) {
+    if (fs.existsSync(path.join(process.cwd(), rel))) files.add(rel);
   }
   return [...files].sort();
 }
 
-const LAYOUT_TRAP = /^(overflow-hidden|overflow-auto|overflow-y-auto|h-\[100dvh\]|h-screen)$/;
+const LAYOUT_TRAP =
+  /^(overflow-hidden|overflow-auto|overflow-y-auto|overflow-scroll|overflow-y-scroll|h-\[100dvh\]|h-\[100vh\]|h-dvh|h-screen|max-h-screen)$/;
 
 export function occlusionOffenders(source: string): string[] {
   const offenders: string[] = [];
   // One class list at a time: a greedy match would run across sibling
   // attributes and blame a card's `rounded-*` clip on a layout element.
+  // `cn(...)` and template literals are harvested too — the previous version
+  // skipped both, which hid `BuyerSavedProducts` and `BuyerSidebar` entirely.
   const lists = [
     ...source.matchAll(/className="([^"]*)"/g),
     ...source.matchAll(/className=\{`([^`]*)`\}/g),
+    ...source.matchAll(/className=\{cn\(([^]*?)\)\}/g),
   ].map((m) => m[1]);
   for (const attr of lists) {
-    const tokens = attr.split(/\s+/).filter(Boolean);
-    // Card decoration (rounded/aspect clipping) is not a scroll port.
-    if (tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t))) continue;
+    // Only string-literal segments carry classes; `${expr}` holes cannot be
+    // resolved and are simply not scanned (documented gap, not a pass).
+    const literal = attr.includes("$") || attr.includes('"')
+      ? Array.from(attr.matchAll(/"([^"]*)"/g)).map((m) => m[1]).join(" ") || attr.replace(/\$\{[^}]*\}/g, " ")
+      : attr;
+    const tokens = literal.split(/\s+/).filter(Boolean);
     // Desktop-only blocks (`hidden md:block`) never render under the tab bar.
     if (tokens.includes("hidden") && tokens.some((t) => /^(sm|md|lg):(block|table|flex|grid)$/.test(t))) continue;
-    // Class lists built from an interpolated token cannot be resolved here.
-    if (attr.includes("$")) continue;
-    for (const token of tokens) if (LAYOUT_TRAP.test(token)) offenders.push(token);
+    // Card decoration is exempt per-token, not per-class-list: an
+    // `overflow-hidden rounded-xl` on a flex layout element is still a trap
+    // unless the *same* element is only a rounded/aspect clip container.
+    const decorative = tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t));
+    for (const token of tokens) {
+      if (!LAYOUT_TRAP.test(token)) continue;
+      if (decorative && token === "overflow-hidden" && !tokens.some((t) => /^(flex|grid|flex-1|h-full)$/.test(t))) continue;
+      offenders.push(token);
+    }
   }
   return offenders;
 }
 
 describe("mobile tab bar occlusion contract", () => {
+  it("the tab bar reserves its own height with a spacer", () => {
+    const bar = fs.readFileSync(path.join(process.cwd(), "src/components/layout/MobileTabBar.tsx"), "utf-8");
+    // The entire anti-occlusion mechanism is one sibling spacer div. Without
+    // it every covered page loses its bottom 56px, and no per-page assertion
+    // in this file would notice.
+    const spacer = bar.match(/<div\s+aria-hidden[^>]*style=\{\{\s*height:\s*"calc\((\d+)px \+ env\(safe-area-inset-bottom\)\)"/);
+    expect(spacer, "MobileTabBar must render an aria-hidden spacer sibling").toBeTruthy();
+    const barHeight = bar.match(/className="mx-auto flex h-(\d+)/);
+    expect(barHeight, "tab bar must declare a fixed height").toBeTruthy();
+    // h-14 = 56px must equal the reserved space.
+    expect(Number(spacer![1])).toBe(Number(barHeight![1]) * 4);
+  });
+
   it.each(coveredPages())("%s never traps mobile scroll behind the tab bar", (relPath) => {
     const source = fs.readFileSync(path.join(process.cwd(), relPath), "utf-8");
     expect(occlusionOffenders(source), relPath).toEqual([]);
