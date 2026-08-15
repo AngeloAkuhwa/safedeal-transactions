@@ -906,7 +906,12 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
         "supabase/migrations/20260801170147_2d9fe0c5-9714-4421-a428-c0e7557a9280.sql",
         "supabase/migrations/20260804090017_e35f7d2c-b6dc-4c05-9cb9-fae192f05122.sql",
         "supabase/migrations/20260813222037_572828c2-b4d3-4742-ab0e-a98ea90e735d.sql",
-        "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql"
+        "supabase/migrations/20260814014150_8b804f55-9a18-47cf-96f3-9c5c97a80583.sql",
+        // selftest_refund_rail rewrite. The 'USD'/'GHS' literals are the
+        // harness deliberately choosing a currency the CALLER did not pass, so
+        // the refund-currency assertion stops being a tautology. No production
+        // path reads them.
+        "supabase/migrations/20260815011157_8b3fd08d-5e28-4dff-b42f-f26493621adb.sql"
   ],
   },
   {

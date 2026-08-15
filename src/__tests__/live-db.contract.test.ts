@@ -61,6 +61,11 @@ d("live refund rail", () => {
         "balance_after_set",
         "refund_is_idempotent",
         "refund_currency_from_snapshot",
+        // The line above is tautological in isolation (same argument seeds the
+        // snapshot and the assertion). These two are not: the snapshot is
+        // pinned to a currency the caller did not pass.
+        "refund_currency_ignores_caller_argument",
+        "ledger_currency_follows_snapshot",
         "capture_refuses_missing_escrow",
         "freeze_refuses_missing_escrow",
         "unfreeze_refuses_missing_escrow",
@@ -385,6 +390,94 @@ d("live money-table grants", () => {
 });
 
 /**
+ * ACL-GENERATOR class. Every scan above reads the ACLs that exist NOW.
+ * `pg_default_acl` decides the ACLs of objects that do not exist yet: with
+ * `postgres` granting anon/authenticated `arwdDxtm` (D = TRUNCATE) on tables,
+ * `rwU` on sequences and `X` on functions, the next `CREATE TABLE` in any
+ * migration regenerated the entire hole. A snapshot of a self-resetting value
+ * is not a control. Nothing had ever read this catalog.
+ */
+d("live default privileges", () => {
+  // supabase_admin's own default ACLs are platform-owned: our migration role
+  // is not a member of supabase_admin and cannot ALTER them. They only apply
+  // to objects CREATED BY supabase_admin, which no SafeDeal migration is —
+  // migrations run as postgres. Documented, not silently skipped.
+  const PLATFORM_OWNED_GRANTORS = ["supabase_admin"];
+
+  it("grants client roles nothing by default on future tables, sequences or functions", () => {
+    const found = psql(
+      "select d.defaclrole::regrole::text || ':' || d.defaclobjtype::text || ':' ||" +
+        " a.grantee::regrole::text || ':' || a.privilege_type" +
+        " from pg_default_acl d, aclexplode(d.defaclacl) a" +
+        " where d.defaclnamespace::regnamespace::text = 'public'" +
+        " and a.grantee::regrole::text in ('anon','authenticated','public') order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(
+      list.filter((g) => !PLATFORM_OWNED_GRANTORS.includes(g.split(":")[0])),
+    ).toEqual([]);
+  });
+
+  it("leaves anon no write privilege on any relation in public", () => {
+    // Schema-wide, not the security list: no table anywhere has a policy
+    // granting anon INSERT/UPDATE/DELETE, so any such grant is residue.
+    const found = psql(
+      "select c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind in ('r','p','v','m','f')" +
+        " and a.grantee::regrole::text = 'anon'" +
+        " and a.privilege_type <> 'SELECT' order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("leaves no MAINTAIN, REFERENCES or TRIGGER residue on any relation", () => {
+    // TRIGGER is the sharp one: it lets the grantee attach a trigger function
+    // to a table it does not own.
+    const found = psql(
+      "select a.grantee::regrole::text || ':' || c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public'" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type in ('MAINTAIN','REFERENCES','TRIGGER') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("lets no client role setval a sequence", () => {
+    // transaction_code_seq backs a UNIQUE column: setval() there is a durable
+    // collision DoS on transaction creation. relkind 'S' was scanned by nothing.
+    const found = psql(
+      "select c.relname || ':' || a.grantee::regrole::text" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind = 'S'" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type = 'UPDATE' order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps pg_net out of reach of the exposed schemas", () => {
+    // net.http_* is latent SSRF. anon holds USAGE on schema `net` and EXECUTE
+    // on the http_* functions — BOTH are owned by supabase_admin and neither
+    // the schema nor the functions can be revoked by our migration role. This
+    // is stated, not papered over: the only barrier is that `net` is not an
+    // exposed PostgREST schema. So assert the one thing we DO control — that
+    // no function in the exposed `public` schema wraps a net.http_* call and
+    // hands anon a reachable door to it.
+    const wrappers = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " where n.nspname = 'public' and pg_get_functiondef(p.oid) ~ 'net\\.http_'" +
+        " and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1",
+    );
+    expect(wrappers ? wrappers.split("\n") : []).toEqual([]);
+  });
+});
+
+/**
  * VIEW class. Nothing in this suite read pg_class for relkind 'v'/'m' until a
  * single-table, auto-updatable view (`public_seller_profiles`) with
  * `security_invoker = off`, owned by a rolbypassrls role and granted full DML
@@ -415,7 +508,10 @@ d("live view surface", () => {
         " aclexplode(c.relacl) a" +
         " where n.nspname = 'public' and c.relkind in ('v','m')" +
         " and a.grantee::regrole::text in ('anon','authenticated')" +
-        " and a.privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE') order by 1",
+        // ALL privilege types, not the four write verbs: MAINTAIN, REFERENCES
+        // and TRIGGER were sitting on seven views as GRANT ALL residue and were
+        // invisible to a filter that only listed INSERT/UPDATE/DELETE/TRUNCATE.
+        " and a.privilege_type <> 'SELECT' order by 1",
     );
     expect(found ? found.split("\n") : []).toEqual([]);
   });

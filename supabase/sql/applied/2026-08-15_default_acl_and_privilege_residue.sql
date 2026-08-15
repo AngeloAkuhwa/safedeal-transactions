@@ -1,0 +1,27 @@
+-- ============================================================================
+-- Default-ACL lockdown + privilege residue sweep. Applied 2026-08-15.
+--   1. pg_default_acl regenerated the whole hole on every CREATE TABLE:
+--      postgres/public granted anon+authenticated arwdDxtm (D = TRUNCATE) on
+--      tables, rwU on sequences and X on functions. Revoked via
+--      ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public.
+--      supabase_admin's own default ACLs are UNCHANGED: our migration role is
+--      not a member of supabase_admin. They only bind objects created BY
+--      supabase_admin; SafeDeal migrations run as postgres.
+--   2. MAINTAIN / REFERENCES / TRIGGER revoked from anon/authenticated/PUBLIC
+--      on every relation (~100 tables, 7 views). TRIGGER let a grantee attach
+--      a trigger function to a table it does not own.
+--   3. Sequence UPDATE revoked from anon/authenticated/PUBLIC on all three
+--      sequences (setval on transaction_code_seq = durable UNIQUE-collision
+--      DoS); anon also loses USAGE.
+--   4. anon INSERT/UPDATE/DELETE/TRUNCATE revoked on EVERY relation in public
+--      (70 tables still held it). Verified first against pg_policy: no table
+--      has a policy granting anon writes, so nothing legitimate depended on it.
+--   5. pg_net: REVOKE on net.http_* and on schema net both FAILED — objects are
+--      owned by supabase_admin and are not revocable by the migration role.
+--      anon retains USAGE on schema net and EXECUTE on net.http_{post,get,
+--      delete}. Containment is that `net` is not an exposed PostgREST schema.
+--      Recorded as an OPEN, platform-owned residual, not as fixed.
+--   6. selftest_refund_rail(p_currency): now rejects anything that is not an
+--      ISO-4217 alpha-3 code, and adds two non-tautological currency checks
+--      that pin the pricing snapshot to a currency the caller did not pass.
+-- (full statements as applied; see migration history)
