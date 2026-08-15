@@ -991,12 +991,11 @@ function toPx(value: number, unitName: string): number {
   }
 }
 
-/** Print/PDF surfaces laid out at a fixed paper width, never on a phone. */
-const FONT_EXEMPT = new Set(["src/components/transactions/TransactionReceipt.tsx"]);
-
-export function scanFontSource(rawSource: string, file: string): Violation[] {
+export function scanFontSource(rawSource: string, file: string, exempt: Set<string> = new Set()): Violation[] {
   const out: Violation[] = [];
-  if (FONT_EXEMPT.has(file)) return out;
+  // Exemptions live in the test's visible allowlist (with a written reason),
+  // never hidden in the helper.
+  if (exempt.has(file)) return out;
   const push = (line: number, reason: string, snippet: string) =>
     out.push({ file, line, tag: "text", reason, snippet: snippet.trim().slice(0, 150) });
 
@@ -1028,4 +1027,5 @@ function scanAll(root: string, fn: (source: string, file: string) => Violation[]
 
 export const scanRepo = (root: string) => scanAll(root, scanSource);
 export const scanKeyboardRepo = (root: string) => scanAll(root, scanKeyboardSource);
-export const scanFontRepo = (root: string) => scanAll(root, scanFontSource, [".tsx", ".ts", ".css"]);
+export const scanFontRepo = (root: string, exempt: Set<string> = new Set()) =>
+  scanAll(root, (s, f) => scanFontSource(s, f, exempt), [".tsx", ".ts", ".css"]);
