@@ -21,24 +21,31 @@ export default function AdminAccessDenied() {
           Your role does not include the permission required to open this screen.
         </p>
 
-        <dl className="mt-6 grid w-full grid-cols-2 gap-3 rounded-xl border border-border bg-muted/40 p-4 text-left text-xs">
-          <div>
+        {/* A permission key like `users_and_access.manage_permissions` is 252px
+            of unbreakable monospace. In a two-column grid on a 320px screen it
+            got an 80px box and ran straight through the cell beside it. This
+            screen only renders for a role that lacks the permission, so it was
+            invisible for as long as the audit signed in as a super admin —
+            the one role that never sees it. One column until there is room,
+            and `break-all` because a dotted key has no spaces to break on. */}
+        <dl className="mt-6 grid w-full grid-cols-1 gap-3 rounded-xl border border-border bg-muted/40 p-4 text-left text-xs sm:grid-cols-2">
+          <div className="min-w-0">
             <dt className="text-muted-foreground">Required permission</dt>
-            <dd className="mt-1 font-mono text-foreground">{required}</dd>
+            <dd className="mt-1 break-all font-mono text-foreground">{required}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-muted-foreground">Your roles</dt>
             <dd className="mt-1 text-foreground">
               {roles.length ? roles.join(", ") : "—"}
             </dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-muted-foreground">Access level</dt>
             <dd className="mt-1 text-foreground capitalize">{accessLevel}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-muted-foreground">Attempted path</dt>
-            <dd className="mt-1 font-mono text-foreground truncate">{location.pathname}</dd>
+            <dd className="mt-1 truncate font-mono text-foreground">{location.pathname}</dd>
           </div>
         </dl>
 
