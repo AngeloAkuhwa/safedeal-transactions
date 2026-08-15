@@ -31,6 +31,7 @@ import {
   supportLink,
 } from "@/lib/support/support-copy";
 import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
+import { stripComments } from "./helpers/touch-target-scan";
 
 const SRC = path.resolve(__dirname, "..");
 
@@ -274,7 +275,9 @@ describe("no dead controls anywhere under src/pages and src/components", () => {
   it("every <button> and <Button> does something", () => {
     const dead: string[] = [];
     for (const file of SURFACES) {
-      const src = fs.readFileSync(file, "utf8");
+      // Comments that describe markup are not markup. Without this, an
+      // explanatory comment mentioning `<button>` reads as a dead control.
+      const src = stripComments(fs.readFileSync(file, "utf8"));
       for (const m of src.matchAll(/<(?:button|Button)\b/g)) {
         // Walk to the real end of the tag: `>` inside {…} or "…" is not a close.
         let i = m.index! + m[0].length;
