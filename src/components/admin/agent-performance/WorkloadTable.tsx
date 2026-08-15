@@ -25,7 +25,7 @@ export interface RowActions {
 
 const TH = "px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground";
 /** Sticky column header — the page header sits above it, so no extra offset. */
-const THEAD = "sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80";
+const THEAD = "sticky top-0 z-sticky bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80";
 
 function ActionButton({ label, onClick, disabled, title }: { label: string; onClick: () => void; disabled?: boolean; title?: string }) {
   return (
@@ -90,7 +90,7 @@ export function WorkloadTable({
               <div><dt className="text-muted-foreground">Overdue</dt><dd className={cn("font-semibold", a.overdue > 0 && "text-rose-300")}>{a.overdue}</dd></div>
               <div><dt className="text-muted-foreground">Workload</dt><dd className="font-semibold">{workloadStatusLabel(workloadStatus(a))}</dd></div>
               <div><dt className="text-muted-foreground">SLA</dt><dd className="font-semibold">{a.sla_compliance}%</dd></div>
-              <div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score} <span className="block text-[12px] font-normal text-muted-foreground">{a.score_band}</span></dd></div>
+              <div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score} <span className="block text-xs font-normal text-muted-foreground">{a.score_band}</span></dd></div>
             </dl>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={() => actions.onViewDetail(a)}>View detail</Button>

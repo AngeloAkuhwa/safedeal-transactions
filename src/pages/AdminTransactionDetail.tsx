@@ -515,14 +515,14 @@ export default function AdminTransactionDetail() {
 
   // Header (desktop)
   const headerSlot = (
-    <header className={cn("sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
+    <header className={cn("sticky top-0 z-sticky hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
       <div className="flex items-center justify-between gap-4 px-6 pt-3 pb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted min-h-11" aria-label="Back">
+          <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-muted-foreground mb-0.5">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <span>Admin</span>
               <ChevronRight className="h-3 w-3" />
               <button type="button" onClick={() => navigate(returnTo)} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">Transactions</button>
@@ -534,7 +534,7 @@ export default function AdminTransactionDetail() {
               <button
                 type="button"
                 onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
-                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 min-h-11"
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
                 title="Copy code"
                 aria-label="Copy transaction code"
               >
@@ -545,7 +545,7 @@ export default function AdminTransactionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden xl:flex items-center gap-1.5 text-[12px] text-muted-foreground mr-1" title={liveDotTitle}>
+          <div className="hidden xl:flex items-center gap-1.5 text-xs text-muted-foreground mr-1" title={liveDotTitle}>
             <span className={cn("h-2 w-2 rounded-full", liveDotCls, liveSync === "live" && motionOk && "animate-pulse")} />
             <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
           </div>
@@ -657,13 +657,13 @@ export default function AdminTransactionDetail() {
   );
 
   const mobileHeaderSlot = ({ onOpenMenu }: { onOpenMenu: () => void }) => (
-    <header className="lg:hidden sticky top-0 z-30 border-b border-border bg-card">
+    <header className="lg:hidden sticky top-0 z-sticky border-b border-border bg-card">
       <div className="flex items-center justify-between px-3 py-2.5">
-        <button type="button" onClick={() => navigate(returnTo)} className="p-2 text-muted-foreground min-h-11" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
+        <button type="button" onClick={() => navigate(returnTo)} className="p-2 text-muted-foreground min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
           <ShieldCheck className="h-4 w-4 text-white" />
         </div>
-        <button type="button" onClick={onOpenMenu} className="p-2 text-muted-foreground min-h-11" aria-label="Menu"><MoreVertical className="h-4 w-4" /></button>
+        <button type="button" onClick={onOpenMenu} className="p-2 text-muted-foreground min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Menu"><MoreVertical className="h-4 w-4" /></button>
       </div>
     </header>
   );
@@ -742,7 +742,7 @@ export default function AdminTransactionDetail() {
                 {allFlags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {allFlags.slice(0, 4).map((f: any, i: number) => (
-                      <span key={i} className="rounded border border-red-500/30 bg-red-500/15 px-1.5 py-0.5 text-[12px] text-red-200">{f.label}</span>
+                      <span key={i} className="rounded border border-red-500/30 bg-red-500/15 px-1.5 py-0.5 text-xs text-red-200">{f.label}</span>
                     ))}
                   </div>
                 )}
@@ -774,17 +774,17 @@ export default function AdminTransactionDetail() {
               {/* Primary Info Row */}
               <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction</div>
                   <div className="text-foreground text-base lg:text-xl font-bold truncate">#{code}</div>
                   <div className="text-muted-foreground text-xs mt-1">Created {fmtDate(tx.createdAt)}</div>
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Last Activity</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Last Activity</div>
                   <div className="text-foreground text-sm lg:text-lg font-semibold">{relTime(tx.lastActivityAt)}</div>
                   <div className="text-muted-foreground text-xs mt-1">{fmtDate(tx.lastActivityAt)}</div>
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
                   <div
                     className="text-foreground text-base lg:text-xl font-bold tabular-nums"
                     title={`Item ${ngn(data.pricing?.itemTotal)} + Protection ${ngn(data.pricing?.protectionFee)} + Payment Processing ${ngn(data.pricing?.paymentProcessingFee ?? data.pricing?.processingFee)}`}
@@ -796,12 +796,12 @@ export default function AdminTransactionDetail() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
                   <div><StatusPill value={data.payout?.status ?? "—"} /></div>
                   {data.payout?.blockedReason && <div className="text-muted-foreground text-xs mt-1 truncate">{data.payout.blockedReason}</div>}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Provider</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Provider</div>
                   <div className="text-foreground text-sm lg:text-lg font-semibold capitalize">{data.payment?.provider ?? "—"}</div>
                   <div className="text-muted-foreground text-xs mt-1 font-mono truncate">{data.payment?.providerReference ?? "—"}</div>
                 </div>
@@ -815,11 +815,11 @@ export default function AdminTransactionDetail() {
                     <div key={k} className="flex items-center gap-3">
                       <Avatar name={p?.name} src={p?.avatarUrl} size={48} />
                       <div className="min-w-0">
-                        <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(k)}</div>
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(k)}</div>
                         <div className="text-base font-semibold text-foreground truncate flex items-center gap-1.5">
                           {p?.name ?? "—"}
                           {p?.verification?.identity && <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
-                          {p?.flagged && <span className="text-[12px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
+                          {p?.flagged && <span className="text-xs rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0, 8)}`}</div>
                       </div>
@@ -831,30 +831,30 @@ export default function AdminTransactionDetail() {
               {/* Status Grid — buyer-side reconciliation */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
                   <StatusPill value={tx.status} />
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Money Status</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Money Status</div>
                   <MoneyPill value={tx.moneyStatus} />
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.itemTotal)}</div>
                 </div>
                 <div title="SafeDeal protection/platform fee">
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.protectionFee)}</div>
                   {data.pricing?.protectionFeeCapped && (
-                    <div className="text-[12px] text-muted-foreground mt-1">cap applied</div>
+                    <div className="text-xs text-muted-foreground mt-1">cap applied</div>
                   )}
                 </div>
                 <div title="Payment vendor fee from Paystack, Flutterwave, or the active payment provider">
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Processing Fee</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Processing Fee</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.paymentProcessingFee ?? data.pricing?.processingFee)}</div>
                 </div>
                 <div title="Item Total + Protection Fee + Payment Processing Fee">
-                  <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.totalCharged ?? data.pricing?.buyerTotal)}</div>
                 </div>
               </div>
@@ -867,7 +867,7 @@ export default function AdminTransactionDetail() {
                 || tx.moneyStatus === "funds_frozen") && (
                 <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div title="Seller-side amount after applicable deductions">
-                    <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
                       {tx.moneyStatus === "funds_released" ? "Released to Seller" : escrowDisplay.label}
                     </div>
                     <div className={cn(
@@ -880,7 +880,7 @@ export default function AdminTransactionDetail() {
                         ? sellerPayoutAmount
                         : escrowDisplay.value,
                     )}</div>
-                    <div className="text-[12px] text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Seller-side amount after applicable deductions
                     </div>
                   </div>
@@ -959,7 +959,7 @@ export default function AdminTransactionDetail() {
             />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               <div className="space-y-3">
-                <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
                 {showHighRisk ? (
                   <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <div className="flex items-center gap-3">
@@ -1013,7 +1013,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
               <div className="space-y-3 lg:border-l lg:border-border lg:pl-4">
-                <div className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
                 {(data.risk?.investigationNotes ?? []).length === 0 ? (
                   <div className="text-xs text-muted-foreground">
                     {allFlags.length > 0
@@ -1025,7 +1025,7 @@ export default function AdminTransactionDetail() {
                     {data.risk.investigationNotes.map((n: any) => (
                       <li key={n.id} className="rounded-md border border-border bg-muted/30 p-3 text-xs">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-muted-foreground text-[12px]">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
+                          <span className="text-muted-foreground text-xs">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
                         </div>
                         <p className="text-foreground whitespace-pre-wrap">{n.note}</p>
                       </li>
@@ -1274,13 +1274,13 @@ export default function AdminTransactionDetail() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground">{it.title}</div>
                     {it.description && <div className="text-xs text-muted-foreground line-clamp-2">{it.description}</div>}
-                    <div className="text-[12px] text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {[titleCase(it.condition), it.brand, it.model].filter(Boolean).join(" · ")}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-semibold tabular-nums">{ngn(it.lineTotal)}</div>
-                    <div className="text-[12px] text-muted-foreground">{it.quantity} × {ngn(it.unitPrice)}</div>
+                    <div className="text-xs text-muted-foreground">{it.quantity} × {ngn(it.unitPrice)}</div>
                   </div>
                 </div>
               ))}
@@ -1528,7 +1528,7 @@ export default function AdminTransactionDetail() {
                       <span className="inline-flex items-center gap-1.5">
                         <span className="tabular-nums">{ngn(data.pricing.protectionFee)}</span>
                         {data.pricing.protectionFeeCapped && (
-                          <span className="text-[12px] rounded bg-muted text-muted-foreground px-1.5 py-0.5">capped</span>
+                          <span className="text-xs rounded bg-muted text-muted-foreground px-1.5 py-0.5">capped</span>
                         )}
                       </span>
                     }
@@ -1583,7 +1583,7 @@ export default function AdminTransactionDetail() {
                   <div>
                     <h3 className="text-sm font-medium text-foreground mb-3">Escrow Ledger (Full History)</h3>
                     <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
+                  <table className="sd-stack w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground"><tr>
                       <th className="p-2 text-left">Date</th>
                       <th className="p-2 text-left">Type</th>
@@ -1615,11 +1615,11 @@ export default function AdminTransactionDetail() {
 
       {/* Mobile sticky bottom bar */}
       {!loading && !denied && !notFound && data && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-sticky border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
             <Gavel className="h-4 w-4 mr-1.5" /> Take Action
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3">
+          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3 min-w-11 inline-flex items-center justify-center">
             <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
@@ -1814,7 +1814,7 @@ export default function AdminTransactionDetail() {
 function KV({ label, value, bold }: { label: string; value: React.ReactNode; bold?: boolean }) {
   return (
     <div>
-      <dt className="text-[12px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</dt>
+      <dt className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</dt>
       <dd className={cn("mt-1 text-sm tabular-nums text-foreground", bold && "font-semibold")}>{value ?? "—"}</dd>
     </div>
   );

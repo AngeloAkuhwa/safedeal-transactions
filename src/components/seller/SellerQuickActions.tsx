@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { Plus, FileText, BarChart3, Settings, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -58,7 +58,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
         {actions.map((action, idx) => (
           <Card
             key={action.title}
-            className={`sd-card sd-action cursor-pointer group h-full hover:-translate-y-0.5 transition-transform sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
+            className={`sd-card sd-action relative cursor-pointer group h-full hover:-translate-y-0.5 transition-transform sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
             onClick={() => navigate(action.href)}
           >
             <CardContent className="p-4">
@@ -66,7 +66,14 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
                 <action.icon className={`h-[18px] w-[18px] ${action.iconColor} transition-colors`} />
               </div>
               <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors mb-0.5">
-                {action.title}
+                {/* Stretched link: the real control keyboard users reach, sized
+                    over the whole card so the mouse target is unchanged. */}
+                <Link
+                  to={action.href}
+                  className="after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {action.title}
+                </Link>
               </h3>
               <p className="text-xs text-muted-foreground leading-snug">{action.description}</p>
             </CardContent>

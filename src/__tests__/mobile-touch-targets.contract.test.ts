@@ -47,7 +47,7 @@ describe("touch-target scanner behaves", () => {
     expect(measure(`<Button size="icon" />`, "Button").height).toBe(44);
     expect(measure(`<button className="size-6" />`, "button").height).toBe(24);
     expect(measure(`<button className="py-1 px-2.5" />`, "button").height).toBe(28);
-    expect(measure(`<button className="h-8 w-8 before:-inset-2" />`, "button").height).toBe(48);
+    expect(measure(`<button className="relative h-8 w-8 before:absolute before:content-[''] before:-inset-2" />`, "button").height).toBe(48);
   });
 
   it("flags capitalised components, not just lowercase tags", () => {

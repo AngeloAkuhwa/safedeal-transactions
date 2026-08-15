@@ -20,12 +20,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { keyActivate } from "@/lib/a11y";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -42,6 +41,16 @@ export function BuyerSidebar() {
   const location = useLocation();
   const { buyerName, avatarUrl } = useBuyerIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The scrim is decorative, so Escape is the keyboard route out of the sheet.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
   const [collapsed, setCollapsed] = useState(false);
 
   const { data: cartData } = useQuery({
@@ -127,7 +136,7 @@ export function BuyerSidebar() {
                   isCollapsed ? (
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
                   ) : (
-                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[12px] bg-primary text-primary-foreground">
+                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 bg-primary text-primary-foreground">
                       {cartCount}
                     </Badge>
                   )
@@ -161,7 +170,7 @@ export function BuyerSidebar() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/dashboard/profile")}
-                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11"
+                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11 min-w-11"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
@@ -220,7 +229,7 @@ export function BuyerSidebar() {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-[12px]"
+              className="h-auto p-0 text-xs"
               onClick={() => navigate(supportLink())}
             >
               Message support
@@ -236,15 +245,17 @@ export function BuyerSidebar() {
       {/* Normal-flow mobile rail reserves its own space instead of forcing every
           buyer page to compensate for a fixed, overlapping trigger. */}
       <div className="w-14 shrink-0 border-r border-sidebar-border bg-sidebar lg:hidden">
-        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — decorative scrim: Escape and the toggle button close
+          the sheet, so it must not be a focus stop for keyboard/AT users. */}
       {mobileOpen && (
-        <div role="button" tabIndex={0} onKeyDown={keyActivate}
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        <div
+          aria-hidden
+          className="fixed inset-0 z-overlay bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -252,7 +263,7 @@ export function BuyerSidebar() {
       {/* Mobile sidebar — always expanded */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-sheet transition-transform lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

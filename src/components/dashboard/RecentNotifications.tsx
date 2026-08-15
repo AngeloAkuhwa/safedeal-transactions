@@ -112,7 +112,7 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-0.5">
                       <h4 className="font-semibold text-foreground text-xs">{notif.title}</h4>
-                      <span className="text-[12px] text-muted-foreground whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                       </span>
                     </div>
@@ -128,7 +128,7 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
                         </Button>
                       )}
                       {notif.transaction_id && (
-                        <span className="text-[12px] font-semibold text-muted-foreground">
+                        <span className="text-xs font-semibold text-muted-foreground">
                           Transaction linked
                         </span>
                       )}

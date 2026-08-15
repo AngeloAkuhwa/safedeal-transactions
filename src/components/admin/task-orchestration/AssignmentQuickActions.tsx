@@ -90,7 +90,7 @@ export function AssignmentQuickActions({
               {busy === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <a.icon className="h-4 w-4" />}
               <span>{a.label}</span>
             </div>
-            <span className={cn("text-[12px] font-normal", a.primary ? "text-primary-foreground/80" : "text-muted-foreground")}>
+            <span className={cn("text-xs font-normal", a.primary ? "text-primary-foreground/80" : "text-muted-foreground")}>
               {a.desc}
             </span>
           </button>
@@ -111,7 +111,7 @@ export function AssignmentQuickActions({
               onChange={(e) => setSelfReason(e.target.value)}
               placeholder="Why are you taking ownership of this work?"
             />
-            <div className="mt-1 text-[12px] text-muted-foreground">{selfReason.trim().length}/8</div>
+            <div className="mt-1 text-xs text-muted-foreground">{selfReason.trim().length}/8</div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelfOpen(false)}>Cancel</Button>

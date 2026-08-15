@@ -236,7 +236,7 @@ const CartCheckoutReview = () => {
   return (
     <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 lg:overflow-auto">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           <header className="flex items-center justify-between">
             <button
@@ -333,7 +333,7 @@ const CartCheckoutReview = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-foreground">{sellerName}</p>
                           {resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified }) && (
-                            <Badge variant="secondary" className="text-[12px] gap-1 px-1.5 py-0">
+                            <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0">
                               <Phone className="h-2.5 w-2.5" /> {resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified })}
                             </Badge>
                           )}
@@ -342,7 +342,7 @@ const CartCheckoutReview = () => {
                         {seller?.store_slug && (
                           <Link
                             to={`/store/${seller.store_slug}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1 min-h-11"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Store className="h-3 w-3" />
@@ -382,7 +382,7 @@ const CartCheckoutReview = () => {
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs text-muted-foreground">Qty: {item.quantity}</span>
                                 {stockQty > 0 && (
-                                  <Badge variant={isLowStock ? "destructive" : "secondary"} className="text-[12px] px-1.5 py-0">
+                                  <Badge variant={isLowStock ? "destructive" : "secondary"} className="text-xs px-1.5 py-0">
                                     {isLowStock ? `Low Stock (${stockQty})` : "In Stock"}
                                   </Badge>
                                 )}
@@ -390,7 +390,7 @@ const CartCheckoutReview = () => {
                             </div>
                             <div className="text-right shrink-0">
                               <p className="text-sm font-semibold text-foreground">{formatPrice(Number(item.line_total), currency)}</p>
-                              <p className="text-[12px] text-muted-foreground">{formatPrice(Number(item.unit_price), currency)} each</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(Number(item.unit_price), currency)} each</p>
                             </div>
                           </div>
                         );
@@ -454,7 +454,7 @@ const CartCheckoutReview = () => {
                     <div className="flex justify-between text-sm">
                       <div>
                         <span className="text-primary font-medium">{PRICING_LINE_LABELS.service_fee_amount}</span>
-                        <p className="text-[12px] text-muted-foreground">{FEE_CAPTION}</p>
+                        <p className="text-xs text-muted-foreground">{FEE_CAPTION}</p>
                       </div>
                       <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee), currency)}</span>
                     </div>

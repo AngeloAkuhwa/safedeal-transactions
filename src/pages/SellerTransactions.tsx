@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatMoney } from "@/lib/format";
-import { useSearchParams, useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useSearchParams, useNavigate, Link } from "react-router";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
@@ -56,7 +56,7 @@ function InfoTip({ children }: { children: React.ReactNode }) {
           type="button"
           aria-label="More info"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative before:absolute before:-inset-4 before:content-['']"
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
         >
           <Info className="h-3.5 w-3.5" />
         </button>
@@ -114,6 +114,7 @@ const SellerTransactions = () => {
     queryFn: () => getSellerTransactions(filters),
     retry: 1,
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 
   if (isLoading && !data) {
@@ -169,7 +170,7 @@ const SellerTransactions = () => {
       {/* Compact header strip */}
       <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
         <div className="sd-page py-3 sm:py-4">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
             <div>
               <h1 className="sd-page-title animate-fade-in">All Transactions</h1>
@@ -191,7 +192,7 @@ const SellerTransactions = () => {
               <p className="sd-eyebrow mb-1">Transactions</p>
               <p className="sd-kpi-value tabular-nums">{summary.total}</p>
               <p className="sd-kpi-helper">All transactions you've created</p>
-              <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
                 {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}
               </p>
@@ -226,7 +227,7 @@ const SellerTransactions = () => {
               <p className="sd-kpi-value tabular-nums">{formatMoney(summary.total_earned, "NGN")}</p>
               <p className="sd-kpi-helper">Includes paid to bank and pending bank transfer.</p>
               {payoutsData && (
-                <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   {formatMoney(payoutsData.summary.total_released, "NGN")} paid · {formatMoney(payoutsData.summary.pending_release, "NGN")} pending
                 </p>
               )}
@@ -299,10 +300,10 @@ const SellerTransactions = () => {
                 key={chip.key}
                 type="button"
                 onClick={() => setStatusFilter(active ? "all" : chip.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
               >
                 {chip.label}
-                <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[12px] font-bold px-1">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-xs font-bold px-1">
                   {chip.count}
                 </span>
               </button>
@@ -332,7 +333,7 @@ const SellerTransactions = () => {
                     <button
                       type="button"
                       onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
-                      className="w-full space-y-2 px-3 py-3 text-left transition-colors active:bg-muted/50"
+                      className="w-full space-y-2 px-3 py-3 text-left transition-colors active:bg-muted/50 min-h-11"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium">
@@ -348,7 +349,7 @@ const SellerTransactions = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-sm font-bold text-foreground">{formatMoney(tx.amount, tx.currency_code)}</p>
-                          <p className="text-[12px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Net {formatMoney(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
                           </p>
                         </div>
@@ -409,10 +410,10 @@ const SellerTransactions = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Transaction Code</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Transaction Code</TableHead>
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Amount
                       <InfoTip>
@@ -424,14 +425,14 @@ const SellerTransactions = () => {
                       </InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Money Status
                       <InfoTip>Where the buyer's money currently sits in the SafeDeal escrow flow.</InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider w-32">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -452,13 +453,20 @@ const SellerTransactions = () => {
                     return (
                       <TableRow
                         key={tx.transaction_id}
-                        className="sd-row-hover cursor-pointer"
+                        className="sd-row-hover relative cursor-pointer"
                         onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
                       >
                         <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-primary shrink-0" />
-                            <span className="font-mono text-sm font-medium">{tx.transaction_code}</span>
+                            {/* Stretched link: the row's keyboard-reachable control. */}
+                            <Link
+                              to={`/seller/transactions/${tx.transaction_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-mono text-sm font-medium after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {tx.transaction_code}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 hidden sm:table-cell">
@@ -482,10 +490,10 @@ const SellerTransactions = () => {
                                         navigate(`/seller/transactions/${tx.transaction_id}#messages`);
                                       }}
                                       aria-label={`${tx.unread_message_count} unread messages`}
-                                      className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
+                                      className="relative z-rail ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
                                     >
                                       <MessageCircle className="h-4 w-4 text-primary" />
-                                      <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[12px] font-bold text-destructive-foreground">
+                                      <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground">
                                         {(tx.unread_message_count ?? 0) > 9 ? "9+" : tx.unread_message_count}
                                       </span>
                                     </button>

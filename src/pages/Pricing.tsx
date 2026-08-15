@@ -53,7 +53,7 @@ export default function Pricing() {
       <div className="mx-auto w-full max-w-5xl">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground min-h-11"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to SafeDeal

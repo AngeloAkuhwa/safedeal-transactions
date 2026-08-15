@@ -105,7 +105,7 @@ export function InternalUsersTable({
                     <div className="flex flex-wrap gap-1">
                       <RoleBadge role={u.primary_role} />
                       {u.roles.length > 1 && (
-                        <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[12px] font-semibold text-muted-foreground">
+                        <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                           +{u.roles.length - 1}
                         </span>
                       )}

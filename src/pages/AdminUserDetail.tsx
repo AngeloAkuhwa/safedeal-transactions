@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 function fmtDate(iso: string | null | undefined): string {
@@ -189,7 +190,7 @@ export default function AdminUserDetail() {
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
       <div className="bg-slate-950 text-slate-200 min-h-[100dvh] flex flex-col">
         {/* Sticky page header — pins to viewport while body scrolls under it */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-40 shadow-md shadow-black/20">
+        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-sticky shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
             <div className="flex items-center gap-3 lg:gap-4">
               <button
@@ -324,8 +325,13 @@ export default function AdminUserDetail() {
         {/* Content */}
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
           {isLoading && (
-            <div className="p-12 text-center text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading user…
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-72 rounded-xl bg-slate-800" />
+                ))}
+              </div>
+              <Skeleton className="h-48 rounded-xl bg-slate-800" />
             </div>
           )}
           {error && (
@@ -639,7 +645,7 @@ export default function AdminUserDetail() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-white text-sm font-medium">{title}</p>
                               {srcInfo && (
-                                <span className={`px-1.5 py-0.5 rounded border text-[12px] font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
+                                <span className={`px-1.5 py-0.5 rounded border text-xs font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
                                   {srcInfo.label}
                                 </span>
                               )}

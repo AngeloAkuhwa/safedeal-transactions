@@ -361,7 +361,7 @@ export default function AdminAgentPerformance() {
               <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>{body}</div>
             </section>
 
-            <p className="pb-4 text-center text-[12px] text-muted-foreground">
+            <p className="pb-4 text-center text-xs text-muted-foreground">
               Generated {new Date(data.generated_at).toLocaleString()} · Metrics derive from orchestration tasks and dispute outcomes.
             </p>
           </>

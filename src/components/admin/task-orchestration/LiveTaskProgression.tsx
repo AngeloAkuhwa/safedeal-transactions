@@ -65,14 +65,14 @@ export function LiveTaskProgression({
           <Popover>
             <PopoverTrigger asChild>
               <button className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition min-h-11",
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition min-h-11",
                 activeCount > 0
                   ? "border-primary/40 bg-primary/[0.06] text-foreground"
                   : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground",
               )}>
                 <Filter className="h-3 w-3" /> Filter
                 {activeCount > 0 && (
-                  <span className="ml-0.5 rounded-full bg-primary/20 px-1.5 text-[12px] font-semibold tabular-nums text-primary">
+                  <span className="ml-0.5 rounded-full bg-primary/20 px-1.5 text-xs font-semibold tabular-nums text-primary">
                     {activeCount}
                   </span>
                 )}
@@ -85,7 +85,7 @@ export function LiveTaskProgression({
               {activeCount > 0 && (
                 <Button
                   variant="ghost" size="sm"
-                  className="mt-2 w-full text-[12px]"
+                  className="mt-2 w-full text-xs"
                   onClick={() => { setSla("all"); setStatus("all"); }}
                 >
                   Clear filters
@@ -101,7 +101,7 @@ export function LiveTaskProgression({
       <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/40">
         <table className="w-full border-collapse text-left text-sm sd-stack">
           <thead className="sticky top-0 bg-background/80 backdrop-blur">
-            <tr className="border-b border-border/60 text-[12px] uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border/60 text-xs uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3 font-semibold">Task ID</th>
               <th className="px-2 py-3 font-semibold">Agent</th>
               <th className="px-2 py-3 font-semibold">Case Ref</th>
@@ -126,7 +126,7 @@ export function LiveTaskProgression({
                   <td className="px-4 py-3 font-medium text-foreground">#{t.task_code}</td>
                   <td className="px-2 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[12px] font-semibold">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                         {agent?.avatar_url
                           ? <img src={agent.avatar_url} className="h-full w-full rounded-full object-cover" alt="" />
                           : initialsOf(agent)}
@@ -140,11 +140,11 @@ export function LiveTaskProgression({
                   <td className="px-2 py-3 text-xs text-muted-foreground">{relative(t.updated_at)}</td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold", slaBadgeClass(t.sla_status))}>
+                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", slaBadgeClass(t.sla_status))}>
                         {slaLabel(t.sla_status)}
                       </span>
                       {chip && (
-                        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold", chip.className)}>
+                        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", chip.className)}>
                           {chip.label}
                         </span>
                       )}
@@ -183,7 +183,7 @@ function FilterGroup({ title, value, options, onChange }: {
 }) {
   return (
     <div>
-      <div className="mb-1 px-1 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
       <div className="space-y-0.5">
         {options.map(o => (
           <button

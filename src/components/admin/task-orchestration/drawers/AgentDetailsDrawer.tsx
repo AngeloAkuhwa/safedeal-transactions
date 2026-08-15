@@ -52,14 +52,14 @@ export function AgentDetailsDrawer({
         {agent && (
           <div className="mt-5 space-y-4">
             <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
-              <div className="mb-1.5 flex items-center justify-between text-[12px]">
+              <div className="mb-1.5 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Capacity</span>
                 <span className="font-semibold tabular-nums text-foreground">{agent.active} / {agent.max_active}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
                 <div className={cn("h-full transition-all", capacityTone)} style={{ width: `${capacityPct}%` }} />
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
+              <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                 {(agent.critical_active ?? 0) > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-rose-300 ring-1 ring-inset ring-rose-500/30">
                     <Flame className="h-3 w-3" /> {agent.critical_active} critical
@@ -79,7 +79,7 @@ export function AgentDetailsDrawer({
             </div>
 
             {focus === "performance" && context && (
-              <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-[12px] text-primary">
+              <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
                 Performance view{context.metricLabel ? ` · ${context.metricLabel}` : ""}
                 {context.range ? ` · ${context.range}` : ""}
                 {context.team ? ` · team ${context.team}` : ""}
@@ -97,25 +97,25 @@ export function AgentDetailsDrawer({
             </div>
 
             <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
-              <div className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Role &amp; Skills</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Role &amp; Skills</div>
               <div className="flex flex-wrap gap-1.5">
                 {(agent.role || agent.role_key) && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[12px] font-medium text-primary ring-1 ring-inset ring-primary/25">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/25">
                     <Users className="h-3 w-3" /> {agent.role ?? humanize(agent.role_key!)}
                   </span>
                 )}
                 {(agent.skills ?? []).length === 0 && !agent.role && !agent.role_key && (
-                  <span className="text-[12px] text-muted-foreground">No skills tagged.</span>
+                  <span className="text-xs text-muted-foreground">No skills tagged.</span>
                 )}
                 {(agent.skills ?? []).map(s => (
-                  <span key={s} className="rounded-md bg-muted/60 px-2 py-0.5 text-[12px] text-muted-foreground ring-1 ring-inset ring-border">
+                  <span key={s} className="rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-inset ring-border">
                     {humanize(s)}
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] text-[12px] text-muted-foreground">
+            <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] text-xs text-muted-foreground">
               {agent.email && (
                 <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {agent.email}</div>
               )}
@@ -158,7 +158,7 @@ export function AgentDetailsDrawer({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
-      <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{value}</div>
     </div>
   );

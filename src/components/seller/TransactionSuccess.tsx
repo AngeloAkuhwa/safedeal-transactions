@@ -190,7 +190,7 @@ export function TransactionSuccess({
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                   {FEE_NAME} ({feePercent})
                   {pricing?.is_capped && (
-                    <Badge variant="secondary" className="text-[12px] px-1.5 py-0">capped</Badge>
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0">capped</Badge>
                   )}
                 </span>
                 <span className="text-base font-semibold text-foreground">{pricing ? fmt(pricing.service_fee_amount) : MISSING_MONEY}</span>
@@ -317,7 +317,7 @@ export function TransactionSuccess({
             <div className="space-y-6">
               {/* Step 1 */}
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg relative z-10">
+                <div className="flex-shrink-0 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg relative z-rail">
                   <span className="text-2xl font-bold text-primary-foreground">1</span>
                 </div>
                 <div className="flex-1 bg-card border-2 border-primary/30 rounded-2xl p-6 shadow-sm">
@@ -335,7 +335,7 @@ export function TransactionSuccess({
 
               {/* Step 2 */}
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg relative z-10">
+                <div className="flex-shrink-0 w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg relative z-rail">
                   <span className="text-2xl font-bold text-primary-foreground">2</span>
                 </div>
                 <div className="flex-1 bg-card border-2 border-border rounded-2xl p-6 shadow-sm">
@@ -355,7 +355,7 @@ export function TransactionSuccess({
 
               {/* Step 3 */}
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg relative z-10">
+                <div className="flex-shrink-0 w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg relative z-rail">
                   <span className="text-2xl font-bold text-white">3</span>
                 </div>
                 <div className="flex-1 bg-card border-2 border-border rounded-2xl p-6 shadow-sm">
@@ -375,7 +375,7 @@ export function TransactionSuccess({
 
               {/* Step 4 */}
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-2xl flex items-center justify-center shadow-lg relative z-10">
+                <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-2xl flex items-center justify-center shadow-lg relative z-rail">
                   <span className="text-2xl font-bold text-muted-foreground">4</span>
                 </div>
                 <div className="flex-1 bg-muted/50 border-2 border-border rounded-2xl p-6 shadow-sm">

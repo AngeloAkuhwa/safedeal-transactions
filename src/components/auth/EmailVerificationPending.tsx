@@ -104,7 +104,7 @@ const EmailVerificationPending = ({ email, onGoToLogin }: EmailVerificationPendi
         )}
         <Link
           to="/"
-          className="inline-flex items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors min-h-11"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Home

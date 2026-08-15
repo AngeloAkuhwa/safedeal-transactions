@@ -284,7 +284,7 @@ export default function AdminPermissionMatrix() {
   const activeTabResolved: WorkspaceTab = activeTab === "role-matrix" && isMobile ? "role-detail" : activeTab;
 
   const StickySubHeader = (
-    <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-sticky border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center gap-2">
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${securityLevel.tone}`}>

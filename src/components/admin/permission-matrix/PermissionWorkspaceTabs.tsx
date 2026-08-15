@@ -49,7 +49,7 @@ export function PermissionWorkspaceTabs({
             <span className="sm:hidden">{t.short}</span>
             {count != null && count > 0 && (
               <span className={cn(
-                "ml-2 inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 font-mono text-[12px] font-semibold",
+                "ml-2 inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 font-mono text-xs font-semibold",
                 isActive ? "bg-primary/25 text-primary" : "bg-muted text-muted-foreground",
               )}>
                 {count}

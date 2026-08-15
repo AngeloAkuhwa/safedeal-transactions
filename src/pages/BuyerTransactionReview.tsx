@@ -553,9 +553,9 @@ export default function BuyerTransactionReview() {
 
 function ReviewHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-sticky w-full border-b bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
           <Shield className="h-7 w-7 text-primary" />
           <span className="text-xl font-bold text-foreground">SafeDeal</span>
         </Link>
@@ -796,7 +796,7 @@ function TimelineCard() {
           <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
           {steps.map((step, i) => (
             <div key={step.label} className={`relative flex items-start gap-4 ${i < steps.length - 1 ? "mb-6" : ""}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 shadow-lg ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-rail shadow-lg ${
                 step.status === "completed" ? "bg-success" :
                 step.status === "current" ? "bg-warning animate-pulse" : "bg-muted"
               }`}>

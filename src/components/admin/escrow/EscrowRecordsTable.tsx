@@ -48,7 +48,7 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
   return (
     <div className="mt-1.5 space-y-0.5">
       {lines.map((l, i) => (
-        <p key={i} className={`text-[12px] inline-flex items-center gap-1 ${l.className}`}>
+        <p key={i} className={`text-xs inline-flex items-center gap-1 ${l.className}`}>
           {l.icon} <span>{l.text}</span>
         </p>
       ))}
@@ -57,13 +57,13 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
 }
 
 function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: EscrowRecordRow; onOpenTx: () => void; onOpenDetail: () => void; onDispute: () => void }) {
-  const btn = "w-9 h-9 rounded-lg flex items-center justify-center transition-all group";
+  const btn = "h-11 w-11 rounded-lg flex items-center justify-center transition-all group";
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <button type="button" onClick={onOpenTx} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600 relative before:absolute before:-inset-1 before:content-['']`}>
+      <button type="button" onClick={onOpenTx} title="View Transaction" className={`min-h-11 min-w-11 inline-flex items-center justify-center ${btn} bg-slate-800 hover:bg-blue-600 relative before:absolute before:-inset-1 before:content-['']`}>
         <FileText className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
-      <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600 relative before:absolute before:-inset-1 before:content-['']`}>
+      <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`min-h-11 min-w-11 inline-flex items-center justify-center ${btn} bg-slate-800 hover:bg-emerald-600 relative before:absolute before:-inset-1 before:content-['']`}>
         <Vault className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
       <button
@@ -71,7 +71,7 @@ function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: Escrow
         onClick={onDispute}
         title={row.flagged ? "Active Dispute" : "No dispute"}
         disabled={!row.flagged}
-        className={`${btn} ${row.flagged ? "bg-red-500/20 border border-red-500/40 hover:bg-red-600" : "bg-slate-800/50 opacity-50 cursor-not-allowed"} relative before:absolute before:-inset-1 before:content-['']`}
+        className={`min-h-11 ${btn} ${row.flagged ? "bg-red-500/20 border border-red-500/40 hover:bg-red-600" : "bg-slate-800/50 opacity-50 cursor-not-allowed"} relative before:absolute before:-inset-1 before:content-['']`}
       >
         <Scale className={`h-4 w-4 ${row.flagged ? "text-red-400 group-hover:text-white" : "text-slate-500"}`} />
       </button>
@@ -194,39 +194,39 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                   {r.flagged && <Flag className="h-3 w-3 text-red-400 shrink-0" />}
                   {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
                 </div>
-                <span className={`px-2.5 py-1 rounded-full border text-[12px] font-semibold ${st.pill}`}>{st.label}</span>
+                <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>{st.label}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-[12px] uppercase">Buyer</p>
+                    <p className="text-slate-500 text-xs uppercase">Buyer</p>
                     <p className="text-white text-xs font-medium truncate">{r.buyer.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.seller.name} url={r.seller.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-[12px] uppercase">Seller</p>
+                    <p className="text-slate-500 text-xs uppercase">Seller</p>
                     <p className="text-white text-xs font-medium truncate">{r.seller.name}</p>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[12px] uppercase">Held</p>
+                  <p className="text-slate-500 text-xs uppercase">Held</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[12px] uppercase">Frozen</p>
+                  <p className="text-slate-500 text-xs uppercase">Frozen</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.frozen, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[12px] uppercase">Releasable</p>
+                  <p className="text-slate-500 text-xs uppercase">Releasable</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.releasable, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[12px] uppercase">Released</p>
+                  <p className="text-slate-500 text-xs uppercase">Released</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.released, r.currency_code)}</p>
                 </div>
               </div>

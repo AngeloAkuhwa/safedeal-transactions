@@ -221,14 +221,14 @@ const PublicProductDetail = () => {
   const originalPrice = product.original_price && product.original_price > product.unit_price ? product.original_price : null;
 
   const content = (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-rail">
       {/* Background glows */}
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
        {/* In-page toolbar is sticky only in the authenticated app shell. Public
            pages already have a sticky global header and must not stack two. */}
-       <header className={`${isAuthenticated ? "sticky top-0 z-40" : "relative z-30"} -mx-4 flex min-h-14 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8`}>
+       <header className={`${isAuthenticated ? "sticky top-0 z-sticky" : "relative z-sticky"} -mx-4 flex min-h-14 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8`}>
         <button
           onClick={() => navigate(isAuthenticated ? "/dashboard/marketplace" : `/store/${sellerSlug}`)}
           className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -266,7 +266,7 @@ const PublicProductDetail = () => {
 
       {/* Breadcrumb */}
        <div className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground">
-         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="inline-flex min-h-11 items-center px-1 hover:text-foreground">Home</Link>
+         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="inline-flex min-h-11 items-center px-1 hover:text-foreground min-w-11 justify-center">Home</Link>
         <ChevronRight className="h-3 w-3" />
         {product.category && (
           <>
@@ -320,7 +320,7 @@ const PublicProductDetail = () => {
           {/* Category + Stock inline */}
           <div className="flex items-center gap-2 flex-wrap">
             {product.category && (
-              <Badge className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+              <Badge className="rounded-full bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                 {product.category.name}
               </Badge>
             )}
@@ -692,9 +692,9 @@ const PublicProductDetail = () => {
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col">
-      <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
+      <header className="sticky top-0 z-sticky border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Shield className="h-4 w-4 text-primary-foreground" />
             </div>

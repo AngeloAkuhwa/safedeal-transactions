@@ -25,7 +25,7 @@ export function RiskAndPaymentHealth({ sla, payments }: Props) {
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Dispute SLA Pressure</h3>
-          <span className="text-[12px] text-muted-foreground">{total} open</span>
+          <span className="text-xs text-muted-foreground">{total} open</span>
         </div>
         <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-muted">
           {segments.map((s) => (

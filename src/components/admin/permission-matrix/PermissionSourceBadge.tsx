@@ -31,7 +31,7 @@ export function PermissionSourceBadge({
       title={title}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
-        size === "xs" ? "text-[12px]" : "text-xs",
+        size === "xs" ? "text-xs" : "text-xs",
         cls,
       )}
     >

@@ -90,7 +90,7 @@ function AuditHeader({
   onOpenMenu: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-card px-4 py-5 md:px-8">
+    <header className="sticky top-0 z-sticky border-b border-border bg-card px-4 py-5 md:px-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="flex items-center gap-4">
           <button
@@ -183,9 +183,9 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
   };
   return (
     <>
-      {open && <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
+      {open && <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 bg-black/50 z-overlay" onClick={onClose} />}
       <aside
-        className={`fixed top-0 right-0 h-full w-full max-w-xl bg-card border-l border-border z-50 transform transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-xl bg-card border-l border-border z-sheet transform transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
       >
         {row && (
           <div className="h-full flex flex-col">
@@ -233,7 +233,7 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Changes</div>
                   <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-xs">
+                    <table className="sd-stack w-full text-xs">
                       <thead className="bg-muted/40">
                         <tr>
                           <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Field</th>
@@ -594,7 +594,7 @@ export default function AdminAuditLogs() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="sd-stack w-full">
                 <thead className="bg-muted/40 border-b border-border">
                   <tr>
                     {["Timestamp","Action","Actor","Target","Description","Metadata","IP Address","Actions"].map((h, i) => (
@@ -628,7 +628,7 @@ export default function AdminAuditLogs() {
                             </div>
                             <div>
                               <p className="text-foreground text-sm font-medium">{r.action_label}</p>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[12px] font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-xs font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
                                 <sev.Icon className="h-3 w-3" />
                                 {sev.label}
                               </span>
@@ -698,7 +698,7 @@ export default function AdminAuditLogs() {
                               </Button>
                             )}
                             {r.target.transaction_id && (
-                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
+                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white min-w-11 inline-flex items-center justify-center">
                                 <ArrowRight className="h-3 w-3" /><span className="hidden xl:inline ml-1">TXN</span>
                               </Button>
                             )}

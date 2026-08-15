@@ -21,7 +21,6 @@ import {
   Image as ImageIcon,
   Scale,
   ChevronRight,
-  Loader2,
   RefreshCw,
   Layers,
   Tag,
@@ -289,7 +288,7 @@ const BuyerTransactionDetail = () => {
       {/* Back link bar */}
       <div className="bg-card border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
-          <Link to="/dashboard/transactions" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
+          <Link to="/dashboard/transactions" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors min-h-11">
             <ArrowLeft className="h-4 w-4" /> Back to My Purchases
           </Link>
         </div>
@@ -910,7 +909,7 @@ function TransactionTimeline({
           return (
             <div key={step.status} className="relative flex items-start gap-4 pb-6 last:pb-0">
               {/* Circle */}
-              <div className={`relative z-10 h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
+              <div className={`relative z-rail h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
                 isReached
                   ? "bg-success/10"
                   : isCurrent

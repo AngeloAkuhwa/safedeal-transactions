@@ -578,7 +578,7 @@ const SellerCreateTransaction = () => {
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[12px] px-1 py-0.5 truncate">
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 truncate">
                               {p.original_name}
                             </div>
                           </div>
@@ -626,7 +626,7 @@ const SellerCreateTransaction = () => {
                           <p className="text-sm font-medium text-foreground truncate">{video.original_name}</p>
                           <p className="text-xs text-muted-foreground">{video.fingerprint}</p>
                         </div>
-                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full min-h-11">
+                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full min-h-11 min-w-11 inline-flex items-center justify-center">
                           <X className="h-4 w-4 text-destructive" />
                         </button>
                       </div>

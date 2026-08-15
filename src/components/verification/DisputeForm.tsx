@@ -268,7 +268,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
           <Flag className="h-5 w-5 text-destructive" />
           <h2 className="text-lg font-bold text-foreground">Submit a Dispute</h2>
         </div>
-        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-2.5 before:content-['']">
+        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-2.5 before:content-[''] min-h-11 min-w-11">
           <X className="h-6 w-6" />
         </button>
       </div>
@@ -392,7 +392,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         {getFileIcon(f.mime)}
-                        <span className="text-[12px] text-muted-foreground uppercase font-medium">
+                        <span className="text-xs text-muted-foreground uppercase font-medium">
                           {f.mime.split("/")[1]?.toUpperCase() || "FILE"}
                         </span>
                       </div>
@@ -413,7 +413,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                     {f.status === "error" && (
                       <div className="absolute inset-0 bg-background/60 flex flex-col items-center justify-center gap-1 p-2">
                         <AlertTriangle className="h-5 w-5 text-destructive" />
-                        <p className="text-[12px] text-destructive text-center leading-tight">
+                        <p className="text-xs text-destructive text-center leading-tight">
                           {f.error || "Failed"}
                         </p>
                         <button
@@ -440,11 +440,11 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
 
                   {/* File info */}
                   <div className="p-1.5">
-                    <p className="text-[12px] text-foreground truncate font-medium">{f.name}</p>
+                    <p className="text-xs text-foreground truncate font-medium">{f.name}</p>
                     {f.fingerprint && (
                       <div className="flex items-center gap-0.5 mt-0.5">
                         <Hash className="h-2.5 w-2.5 text-muted-foreground" />
-                        <span className="text-[12px] text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           {f.fingerprint}
                         </span>
                       </div>

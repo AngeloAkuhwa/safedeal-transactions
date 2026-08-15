@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Lock, Clock, ChevronDown, ChevronUp, Package, ArrowRight, AlertTriangle } from "lucide-react";
+import { Lock, Clock, ChevronDown, ChevronUp, Package, ArrowRight, AlertTriangle } from "lucide-react";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getBuyerOffers, type BuyerOffer } from "@/services/buyer-offers.service";
 import { getBuyerProfile } from "@/services/profile.service";
 import { formatMoney } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BuyerPrivateOffers() {
   const [showPast, setShowPast] = useState(false);
@@ -31,7 +32,11 @@ export default function BuyerPrivateOffers() {
         <p className="sd-page-sub mb-4">Personalized offers sent directly to you by sellers.</p>
 
         {isLoading && (
-          <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 rounded-xl" />
+            ))}
+          </div>
         )}
 
         {isError && (

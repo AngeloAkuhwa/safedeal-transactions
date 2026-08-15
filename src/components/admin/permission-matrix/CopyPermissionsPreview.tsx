@@ -66,12 +66,12 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-modal flex">
       <div role="button" tabIndex={0} onKeyDown={keyActivate} className="flex-1 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <aside className="flex h-full w-full max-w-[520px] flex-col overflow-hidden border-l border-border/60 bg-card shadow-2xl">
         <header className="flex items-center justify-between border-b border-border/40 px-5 py-4">
           <div>
-            <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Preview copy</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview copy</div>
             <div className="mt-1 flex items-center gap-2 text-base font-semibold">
               <span>{ROLE_LABEL[source]}</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -81,7 +81,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted min-h-11"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -153,7 +153,7 @@ function Section({ title, tone, items, collapsed }: { title: string; tone: "emer
       <summary className="flex cursor-pointer items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground min-h-11">
         <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
         {title}
-        <span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-[12px] font-medium text-muted-foreground">{items.length}</span>
+        <span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">{items.length}</span>
       </summary>
       <ul className="mt-2 space-y-0.5">
         {items.map((k) => {
@@ -164,7 +164,7 @@ function Section({ title, tone, items, collapsed }: { title: string; tone: "emer
               <span className="font-medium">{meta.label}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground">{meta.module}</span>
-              <code className="ml-auto text-[12px] text-muted-foreground">{k}</code>
+              <code className="ml-auto text-xs text-muted-foreground">{k}</code>
             </li>
           );
         })}

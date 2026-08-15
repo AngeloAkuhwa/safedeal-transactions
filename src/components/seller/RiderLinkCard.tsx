@@ -136,7 +136,7 @@ export function RiderLinkCard({
         {/* QR */}
         <div className="bg-white p-3 rounded-xl border self-start mx-auto sm:mx-0">
           <QRCodeSVG value={riderUrl} size={132} level="M" />
-          <p className="text-[12px] text-center text-muted-foreground mt-1 flex items-center justify-center gap-1">
+          <p className="text-xs text-center text-muted-foreground mt-1 flex items-center justify-center gap-1">
             <Smartphone className="h-3 w-3" />
             Scan with rider's phone
           </p>
@@ -186,11 +186,11 @@ export function RiderLinkCard({
 
           {handoffCode && (
             <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-3">
-              <p className="text-[12px] font-semibold uppercase tracking-wider text-primary/80 mb-0.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mb-0.5">
                 Backup handoff code
               </p>
               <p className="font-mono font-bold text-lg text-primary tracking-widest">{handoffCode}</p>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Use only if OTP method is unavailable.
               </p>
             </div>

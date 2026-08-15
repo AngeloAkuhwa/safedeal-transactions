@@ -68,12 +68,12 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
               <div className="flex flex-wrap items-center gap-2">
                 <p className={`text-sm font-semibold ${c.title}`}>{alert.title || "Action needed"}</p>
                 {typeof alert.count === "number" && alert.count > 1 && (
-                  <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[12px] font-bold ${c.countBadge}`}>
+                  <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${c.countBadge}`}>
                     {alert.count}
                   </span>
                 )}
                 {dueChip && (
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-medium ${c.dueChip}`}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${c.dueChip}`}>
                     {dueChip}
                   </span>
                 )}

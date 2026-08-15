@@ -89,10 +89,10 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-sticky border-b bg-card/80 backdrop-blur-md">
       <div className="sd-page flex h-14 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
           <Shield className="h-7 w-7 text-primary" />
           <span className="text-xl font-bold text-foreground">SafeDeal</span>
         </Link>
@@ -125,7 +125,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
             <Link to="/dashboard/cart" aria-label={cartHint}>
               <ShoppingCart className="h-5 w-5" />
               {showCartBadge && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[12px] font-bold text-primary-foreground">
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">
                   {cartBadgeText}
                 </span>
               )}
@@ -139,7 +139,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
             >
               <Bell className="h-5 w-5" />
               {unreadTotal > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[12px] font-bold text-destructive-foreground">
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground">
                   {badgeText}
                 </span>
               )}

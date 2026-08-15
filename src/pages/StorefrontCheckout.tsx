@@ -171,7 +171,7 @@ const StorefrontCheckout = () => {
   const sellerClaim = sellerVerificationClaim({ identityVerified: seller.identity_verified });
 
   const content = (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-rail">
       {/* Background glows */}
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
 
@@ -222,7 +222,7 @@ const StorefrontCheckout = () => {
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   {product.category && (
-                    <Badge className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+                    <Badge className="rounded-full bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                       {product.category.name}
                     </Badge>
                   )}
@@ -428,16 +428,16 @@ const StorefrontCheckout = () => {
                     audience="buyer"
                   />
                   {isFloored && !isCapped ? (
-                    <p className="text-[12px] text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Minimum SafeDeal Fee applied.
                     </p>
                   ) : null}
                   <Collapsible className="mt-2">
-                    <CollapsibleTrigger className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+                    <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                       <ChevronDown className="h-3 w-3" />
                       How this fee is calculated
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="text-[12px] text-muted-foreground pt-1.5 leading-relaxed">
+                    <CollapsibleContent className="text-xs text-muted-foreground pt-1.5 leading-relaxed">
                       {describeFeeBreakdown({ itemAmount: itemSubtotal, config: vendorPricingConfig }, pricing)}
                     </CollapsibleContent>
                   </Collapsible>

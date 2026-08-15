@@ -142,7 +142,7 @@ export function TransactionCompletionBanner({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h3 className="text-base sm:text-lg font-bold text-foreground">{copy.title}</h3>
-            <span className={cn("text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border", meta.border, meta.iconColor, meta.iconBg)}>
+            <span className={cn("text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border", meta.border, meta.iconColor, meta.iconBg)}>
               {meta.badge}
             </span>
           </div>

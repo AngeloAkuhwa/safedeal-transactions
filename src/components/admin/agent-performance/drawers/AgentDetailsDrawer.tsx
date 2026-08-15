@@ -20,7 +20,7 @@ function Stat({ label, value, tone, hint }: { label: string; value: string; tone
     <div className={INNER_CARD_CLASS}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={cn("mt-1 text-lg font-semibold text-foreground", tone)}>{value}</div>
-      {hint && <div className="mt-0.5 text-[12px] text-muted-foreground">{hint}</div>}
+      {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
     </div>
   );
 }
@@ -31,7 +31,7 @@ function CaseTable({ rows, empty }: { rows: AgentCaseRow[]; empty: string }) {
   if (rows.length === 0) return <p className="text-xs text-muted-foreground">{empty}</p>;
   return (
     <div className="overflow-x-auto rounded-xl border border-border/60">
-      <table className="w-full text-left text-[12px] sd-stack">
+      <table className="w-full text-left text-xs sd-stack">
         <thead className="bg-muted/40 text-muted-foreground">
           <tr>
             <th className="px-2 py-2 font-medium">Reference</th>
@@ -173,7 +173,7 @@ export function AgentDetailsDrawer({
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {agent.skills.map((s) => (
-                        <Badge key={s.skill} variant="secondary" className="font-mono text-[12px]">
+                        <Badge key={s.skill} variant="secondary" className="font-mono text-xs">
                           {s.skill}{s.proficiency != null ? ` · ${s.proficiency}` : ""}
                         </Badge>
                       ))}
@@ -200,7 +200,7 @@ export function AgentDetailsDrawer({
                     </div>
                     <div className="text-xs text-muted-foreground">{agent.score_band} · Rank #{agent.rank}</div>
                   </div>
-                  <div className="max-w-[55%] space-y-1 text-[12px] text-muted-foreground">
+                  <div className="max-w-[55%] space-y-1 text-xs text-muted-foreground">
                     {(agent.score_components ?? []).map((c) => (
                       <div key={c.key} className="flex items-center justify-between gap-2">
                         <span>{c.label} · {c.weight}%</span>
@@ -276,7 +276,7 @@ export function AgentDetailsDrawer({
                       <span className="text-foreground">{e.title}</span>
                       <span className="shrink-0 text-muted-foreground">{dt(e.at)}</span>
                     </div>
-                    {e.detail && <div className="mt-0.5 text-[12px] text-muted-foreground">{e.detail}</div>}
+                    {e.detail && <div className="mt-0.5 text-xs text-muted-foreground">{e.detail}</div>}
                   </div>
                 ))}
               </TabsContent>

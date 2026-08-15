@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -123,7 +123,7 @@ const SellerDisputes = () => {
       {/* Compact header */}
       <div className="bg-gradient-to-br from-sky-50/60 via-background to-amber-50/60 dark:from-sky-950/15 dark:via-background dark:to-amber-950/15 border-b border-border/60">
         <div className="sd-page py-3 sm:py-4">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
           <h1 className="sd-page-title animate-fade-in">Disputes</h1>
           <p className="sd-page-sub max-w-2xl">
             Track buyer claims, submit your evidence, and follow dispute outcomes tied to your transactions and payouts.

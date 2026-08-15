@@ -322,7 +322,7 @@ export default function SellerUpdateDelivery() {
             <div className="flex items-center gap-2 mb-1">
               <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">MONEY STATUS</span>
-              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full text-[12px] px-2 py-0.5 ml-auto">
+              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full px-2 py-0.5 ml-auto">
                 Funds Held in Escrow
               </Badge>
             </div>
@@ -382,7 +382,7 @@ export default function SellerUpdateDelivery() {
               const isCompleted = i < activeStep;
               const isCurrent = i === activeStep;
               return (
-                <div key={step.key} className={`flex flex-col items-center flex-1 relative z-10 ${!isCompleted && !isCurrent ? "opacity-50" : ""}`}>
+                <div key={step.key} className={`flex flex-col items-center flex-1 relative z-rail ${!isCompleted && !isCurrent ? "opacity-50" : ""}`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-background transition-all ${
                     isCompleted
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
@@ -400,7 +400,7 @@ export default function SellerUpdateDelivery() {
                     {step.label}
                   </p>
                   {step.sub && (
-                    <p className="text-[12px] text-muted-foreground text-center">{step.sub}</p>
+                    <p className="text-xs text-muted-foreground text-center">{step.sub}</p>
                   )}
                 </div>
               );
@@ -460,7 +460,7 @@ export default function SellerUpdateDelivery() {
                         <p className="text-sm font-semibold">{meta.label}</p>
                         <p className="text-xs text-muted-foreground">{meta.subLabel}</p>
                         {!enabled && (
-                          <p className="text-[12px] text-muted-foreground italic mt-1">Not available from current status</p>
+                          <p className="text-xs text-muted-foreground italic mt-1">Not available from current status</p>
                         )}
                       </div>
                     </div>

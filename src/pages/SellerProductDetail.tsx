@@ -255,7 +255,7 @@ const SellerProductDetail = () => {
                   <p className="text-xs text-muted-foreground">Stock</p>
                   <p className={`text-lg font-semibold ${stockColor}`}>{availableQty}</p>
                   {reservedQty > 0 && (
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       of {product.stock_quantity} ({reservedQty} reserved)
                     </p>
                   )}
@@ -280,7 +280,7 @@ const SellerProductDetail = () => {
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
+        <div className="sticky top-0 z-sticky flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"
@@ -339,7 +339,7 @@ const SellerProductDetail = () => {
         </div>
 
         {/* Content — document scroll, no nested scroller */}
-        <div className="relative z-10 flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="relative z-rail flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           <div className="grid max-w-7xl grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-4">
             {/* Main content — col-span-3 */}
             <div className="xl:col-span-3 space-y-6">
@@ -424,7 +424,7 @@ const SellerProductDetail = () => {
                             <img src={m.file_url} alt={title} className="w-full h-full object-cover" />
                           )}
                           {idx === 0 && (
-                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[12px] font-semibold rounded">
+                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-xs font-semibold rounded">
                               Primary
                             </div>
                           )}

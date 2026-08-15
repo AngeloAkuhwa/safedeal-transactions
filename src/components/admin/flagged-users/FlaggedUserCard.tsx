@@ -28,18 +28,18 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-white font-bold text-base leading-none truncate">{row.name}</h4>
-            <span className="text-[12px] text-slate-500 font-medium whitespace-nowrap">{relative(row.flagged_at)}</span>
+            <span className="text-xs text-slate-500 font-medium whitespace-nowrap">{relative(row.flagged_at)}</span>
           </div>
           <p className="text-slate-400 text-xs mt-1 truncate">
             ID: {row.short_id}{row.email ? ` • ${row.email}` : ""}
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
             {row.reasons.slice(0, 2).map((r) => (
-              <span key={r.key} className={`px-2 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider border ${REASON_PILL[r.key] ?? "bg-slate-800 border-slate-700 text-slate-300"}`}>
+              <span key={r.key} className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${REASON_PILL[r.key] ?? "bg-slate-800 border-slate-700 text-slate-300"}`}>
                 {r.label}
               </span>
             ))}
-            <span className={`px-2 py-1 rounded-full text-[12px] font-bold uppercase border ${
+            <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase border ${
               row.risk === "critical" ? "bg-red-500/20 border-red-500/40 text-red-300"
               : row.risk === "high" ? "bg-orange-500/20 border-orange-500/40 text-orange-300"
               : row.risk === "medium" ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
@@ -53,7 +53,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
 
       {showDetails && (
         <details className="group border-t border-slate-800">
-          <summary className="flex items-center justify-between px-4 py-3 bg-slate-800/30 cursor-pointer list-none">
+          <summary className="flex items-center justify-between px-4 py-3 bg-slate-800/30 cursor-pointer list-none min-h-11">
             <span className="text-xs font-semibold text-slate-300">Fraud Context &amp; Details</span>
             <ChevronDown className="h-3 w-3 text-slate-400 transition-transform group-open:rotate-180" />
           </summary>
@@ -82,7 +82,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
             {row.auto_detected && (
               <div className="mt-2 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex items-center gap-2">
                 <Bot className="h-3 w-3 text-blue-400" />
-                <span className="text-[12px] text-blue-300">Auto-detected by fraud algorithm</span>
+                <span className="text-xs text-blue-300">Auto-detected by fraud algorithm</span>
               </div>
             )}
           </div>

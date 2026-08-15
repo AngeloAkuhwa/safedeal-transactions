@@ -12,7 +12,7 @@ const TOOLTIP_STYLE = {
   fontSize: 12,
 } as const;
 
-const AXIS = { fontSize: 11, fill: "hsl(var(--muted-foreground))" } as const;
+const AXIS = { fontSize: 12, fill: "hsl(var(--muted-foreground))" } as const;
 
 function ChartCard({
   title, subtitle, empty, children,
@@ -21,7 +21,7 @@ function ChartCard({
     <div className={INNER_CARD_CLASS}>
       <div className="mb-3">
         <div className="text-sm font-medium text-foreground">{title}</div>
-        <div className="text-[12px] text-muted-foreground">{subtitle}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
       </div>
       {empty ? (
         <div className="flex h-48 items-center justify-center text-xs text-muted-foreground">
@@ -81,7 +81,7 @@ export function PerformanceCharts({
           <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line type="monotone" dataKey="resolved" name="Resolved" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="assigned" name="Assigned" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
         </LineChart>
@@ -94,7 +94,7 @@ export function PerformanceCharts({
           <YAxis yAxisId="pct" domain={[0, 100]} tick={AXIS} tickLine={false} axisLine={false} unit="%" />
           <YAxis yAxisId="count" orientation="right" tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line yAxisId="pct" type="monotone" dataKey="compliance" name="Compliance %" stroke="hsl(152 60% 50%)" strokeWidth={2} dot={false} connectNulls />
           <Line yAxisId="count" type="monotone" dataKey="on_time" name="On time" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} />
           <Line yAxisId="count" type="monotone" dataKey="breached" name="Breached" stroke="hsl(0 84% 65%)" strokeWidth={1.5} dot={false} />
@@ -107,7 +107,7 @@ export function PerformanceCharts({
           <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} unit="h" />
           <RTooltip contentStyle={TOOLTIP_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line type="monotone" dataKey="avg_hours" name="Current" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} connectNulls />
           {!allTime && <Line type="monotone" dataKey="prev_avg_hours" name="Previous" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />}
         </LineChart>
@@ -119,7 +119,7 @@ export function PerformanceCharts({
           <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="assigned" name="Assigned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
           <Bar dataKey="resolved" name="Completed" fill="hsl(152 60% 50%)" radius={[4, 4, 0, 0]} />
         </BarChart>
@@ -131,7 +131,7 @@ export function PerformanceCharts({
           <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="active" name="Active now" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ChartCard>
@@ -139,7 +139,7 @@ export function PerformanceCharts({
       <ChartCard title="Case status distribution" subtitle="Live and completed cases across the scope" empty={statusData.length === 0}>
         <PieChart>
           <RTooltip contentStyle={TOOLTIP_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={68} paddingAngle={2}>
             {statusData.map((d) => <Cell key={d.key} fill={STATUS_COLORS[d.key] ?? "hsl(var(--muted-foreground))"} />)}
           </Pie>
@@ -152,7 +152,7 @@ export function PerformanceCharts({
           <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
           <YAxis domain={[0, 100]} tick={AXIS} tickLine={false} axisLine={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="score" name="Score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
           <Bar dataKey="sla" name="SLA %" fill="hsl(45 93% 58%)" radius={[4, 4, 0, 0]} />
         </BarChart>

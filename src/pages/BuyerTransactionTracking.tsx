@@ -94,12 +94,12 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       aria-modal="true"
       aria-label={alt || "Image preview"}
       tabIndex={-1}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      className="fixed inset-0 z-modal bg-black/90 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
       <button
-        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11"
+        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11 min-w-11 inline-flex items-center justify-center"
         onClick={onClose}
         aria-label="Close"
       >
@@ -262,7 +262,7 @@ const BuyerTransactionTracking = () => {
                         )} />
                       </div>
                       <span className={cn(
-                        "text-[12px] font-semibold text-center leading-tight max-w-[64px]",
+                        "text-xs font-semibold text-center leading-tight max-w-[64px]",
                         state === "completed" && "text-success",
                         state === "current" && "text-primary",
                         state === "upcoming" && "text-muted-foreground/50",
@@ -471,7 +471,7 @@ const BuyerTransactionTracking = () => {
                   <div className="space-y-0">
                     {[...status_history].reverse().map((entry, i) => (
                       <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
-                        <div className="relative z-10 h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shrink-0">
+                        <div className="relative z-rail h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shrink-0">
                           <CheckCircle className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
@@ -563,7 +563,7 @@ const BuyerTransactionTracking = () => {
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
                       <span>{FEE_NAME}{typeof pricing.service_fee_rate === "number" ? ` (${(pricing.service_fee_rate * 100).toFixed(1)}%)` : ""}</span>
-                      <p className="text-[12px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>

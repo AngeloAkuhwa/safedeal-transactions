@@ -71,7 +71,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
           <h2 className="text-base font-semibold tracking-tight text-foreground">Agent Roster</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Availability &amp; live workload</p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[12px] text-emerald-300">
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="tabular-nums">{online}</span> Online
         </div>
@@ -86,7 +86,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
               type="button"
               onClick={() => setFilter(f.key)}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition backdrop-blur-sm min-h-11",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition backdrop-blur-sm min-h-11",
                 active
                   ? "border-primary/40 bg-primary/10 text-primary shadow-[0_1px_0_hsl(var(--primary)/0.2)_inset]"
                   : "border-border/60 bg-card/40 text-muted-foreground hover:border-border hover:text-foreground",
@@ -96,7 +96,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
                 <span className={cn("h-1.5 w-1.5 rounded-full", availabilityDot(f.key))} />
               )}
               {f.label}
-              <span className="rounded-full bg-background/60 px-1.5 py-0 text-[12px] font-semibold tabular-nums text-muted-foreground">
+              <span className="rounded-full bg-background/60 px-1.5 py-0 text-xs font-semibold tabular-nums text-muted-foreground">
                 {counts[f.key]}
               </span>
             </button>
@@ -104,7 +104,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
         })}
       </div>
 
-      <div className="mb-3 flex items-center gap-1.5 text-[12px]">
+      <div className="mb-3 flex items-center gap-1.5 text-xs">
         <span className="text-muted-foreground">Set my status:</span>
         {(["available","busy","offline"] as const).map(s => (
           <button

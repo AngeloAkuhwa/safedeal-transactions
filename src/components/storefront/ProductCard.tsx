@@ -43,8 +43,10 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
   const trustClaim = sellerVerificationClaim({ identityVerified: sellerTrustSummary?.identity_verified });
 
   return (
+    /* Plain container + stretched title button: keyboard users get a real
+       control and any future in-card action stays valid ARIA. */
     <Card
-      className="h-full flex flex-col rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
+      className="relative h-full flex flex-col rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
       onClick={onClick}
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
@@ -79,7 +81,13 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
       </div>
       <CardContent className="flex-1 p-4">
         <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-1 group-hover:text-primary transition-colors">
-          {product.title}
+          <button
+            type="button"
+            onClick={onClick}
+            className="text-left after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {product.title}
+          </button>
         </h3>
         {product.short_description && (
           <p className="text-xs text-muted-foreground line-clamp-1 mb-2">

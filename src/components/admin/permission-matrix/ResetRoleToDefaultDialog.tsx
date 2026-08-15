@@ -70,13 +70,13 @@ export function ResetRoleToDefaultDialog({
             </div>
           )}
           {diff && requiresApproval && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[12px] text-amber-200">
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
               <ShieldAlert className="mt-0.5 h-3 w-3" />
               <span>Reset touches privileged permissions. Super Admin approval is required.</span>
             </div>
           )}
           <label className="block">
-            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Reason (optional)</span>
+            <span className="mb-1 block text-xs uppercase text-muted-foreground">Reason (optional)</span>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
               className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Why reset now?" />
           </label>

@@ -95,7 +95,7 @@ export function PendingApprovalTable({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
-                <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
+                <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">Request ID</th>
                   <th className="px-3 py-2 text-left font-medium">Type</th>
                   <th className="px-3 py-2 text-left font-medium">Target</th>
@@ -116,7 +116,7 @@ export function PendingApprovalTable({
                       className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                       onClick={() => onRowClick?.(r)}
                     >
-                      <td className="px-3 py-3 align-middle font-mono text-[12px] text-muted-foreground">{r.id.slice(0, 8)}…</td>
+                      <td className="px-3 py-3 align-middle font-mono text-xs text-muted-foreground">{r.id.slice(0, 8)}…</td>
                       <td className="px-3 py-3 align-middle text-xs capitalize">
                         {r.target_scope === "orchestration_rules" ? "Assignment rules" : r.target_scope}
                       </td>
@@ -125,7 +125,7 @@ export function PendingApprovalTable({
                           <Link
                             to={`/admin/task-orchestration?rules_change=${r.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline min-h-11"
                           >
                             {r.target_label}
                             <ExternalLink className="h-3 w-3" />
@@ -138,13 +138,13 @@ export function PendingApprovalTable({
                         <span className="text-rose-400">−{r.removed_keys.length}</span>
                       </td>
                       <td className="px-3 py-3 align-middle">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold uppercase ring-1 ${RISK_CLR[r.risk] ?? RISK_CLR.low}`}>{r.risk}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold uppercase ring-1 ${RISK_CLR[r.risk] ?? RISK_CLR.low}`}>{r.risk}</span>
                       </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.requested_by_name ?? "—"}</td>
                       <td className="px-3 py-3 align-middle whitespace-nowrap text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.requested_at), { addSuffix: true })}</td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.required_approver ?? <span className="italic">—</span>}</td>
                       <td className="px-3 py-3 align-middle">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
                       </td>
                     </tr>
                   );

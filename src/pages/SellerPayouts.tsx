@@ -3,7 +3,7 @@ import { formatMoney } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import {
-  Loader2, RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
+  RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
   Search, Filter, Download, Clock, CheckCircle2,
   CreditCard, Banknote, Send, RotateCcw,
   Eye, FileText, AlertCircle, ChevronLeft, ChevronRight, Info,
@@ -38,7 +38,7 @@ function CardInfoTip({ children }: { children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground relative before:absolute before:-inset-4 before:content-['']">
+        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground relative before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11">
           <Info className="h-3.5 w-3.5" />
         </button>
       </TooltipTrigger>
@@ -202,7 +202,7 @@ const SellerPayouts = () => {
             badgeLabel="Pending"
             badgeBg="bg-warning/10 text-warning"
             tooltip={
-              "Money the buyer has released to you but that hasn't been deposited to your bank account yet." +
+              "Money the buyer has released to you but that hasn't been deposited to your bank account yet. " +
               (settlementCopy ? ` Usually settles in ${settlementCopy}.` : "")
             }
           />
@@ -252,7 +252,7 @@ const SellerPayouts = () => {
                     <step.icon className="h-4 w-4 text-primary" />
                   </div>
                   <span className="text-xs font-semibold text-foreground">{step.label}</span>
-                  <span className="text-[12px] text-muted-foreground leading-snug">{step.desc}</span>
+                  <span className="text-xs text-muted-foreground leading-snug">{step.desc}</span>
                 </div>
               ))}
             </div>
@@ -450,11 +450,11 @@ const SellerPayouts = () => {
                         ) : (
                           <span className="text-xs font-mono">{r.transaction_code}</span>
                         )}
-                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[12px] py-0">{r.release_trigger}</Badge>
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs py-0">{r.release_trigger}</Badge>
                       </div>
                       <p className="text-xs font-medium text-foreground truncate">{r.item_title}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] text-muted-foreground">{r.buyer_name}</span>
+                        <span className="text-xs text-muted-foreground">{r.buyer_name}</span>
                         <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(r.amount, r.currency_code)}</span>
                       </div>
                     </div>
@@ -483,15 +483,15 @@ const SellerPayouts = () => {
                         ) : (
                           <span className="text-xs font-mono">{b.transaction_code}</span>
                         )}
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[12px] py-0">On Hold</Badge>
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs py-0">On Hold</Badge>
                       </div>
                       <p className="text-xs font-medium text-foreground truncate">{b.item_title}</p>
                       <div className="flex items-center gap-1.5">
                         <AlertCircle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-                        <span className="text-[12px] text-warning">{b.blocker_reason}</span>
+                        <span className="text-xs text-warning">{b.blocker_reason}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] text-muted-foreground">{b.buyer_name}</span>
+                        <span className="text-xs text-muted-foreground">{b.buyer_name}</span>
                         <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(b.amount, b.currency_code)}</span>
                       </div>
                       {/* Context-aware action for blocked funds */}
@@ -528,7 +528,7 @@ const SellerPayouts = () => {
                     <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-semibold text-warning">Finish Payout Setup</p>
-                      <p className="text-[12px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {payoutAccountStateExplainer(payout_account.account_state)}
                       </p>
                       <Button size="sm" className="mt-2 h-11 text-xs" onClick={() => setEditModalOpen(true)}>
@@ -602,7 +602,7 @@ function SummaryCard({
           <div className={`h-7 w-7 rounded-md ${iconBg} flex items-center justify-center`}>
             <Icon className={`h-[14px] w-[14px] ${iconColor}`} />
           </div>
-          <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[12px] font-semibold ${badgeBg}`}>
+          <span className={`inline-flex items-center px-1.5 py-px rounded-full text-xs font-semibold ${badgeBg}`}>
             {badgeLabel}
           </span>
         </div>

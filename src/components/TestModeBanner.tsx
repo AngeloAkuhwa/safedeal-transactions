@@ -43,7 +43,7 @@ export function TestModeBanner() {
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss test mode notice"
-        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 hover:bg-warning/20 min-h-11"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 hover:bg-warning/20 min-h-11 min-w-11 inline-flex items-center justify-center"
       >
         <X className="h-3.5 w-3.5" />
       </button>

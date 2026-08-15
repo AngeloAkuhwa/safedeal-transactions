@@ -52,7 +52,7 @@ export function TestConfigurationDialog({
                   { l: "Per-agent avg", v: result.distribution_summary.per_agent_average },
                 ].map((c) => (
                   <div key={c.l} className="rounded-lg border border-border/60 bg-background/40 p-3">
-                    <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{c.l}</div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">{c.l}</div>
                     <div className="mt-1 text-xl font-semibold">{c.v}</div>
                   </div>
                 ))}
@@ -61,7 +61,7 @@ export function TestConfigurationDialog({
             <TabsContent value="sample" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <table className="w-full text-sm sd-stack">
-                  <thead className="bg-muted/40 text-[12px] uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="p-2 text-left">Task</th>
                       <th className="p-2 text-left">Priority</th>
@@ -88,7 +88,7 @@ export function TestConfigurationDialog({
             <TabsContent value="unassigned" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <table className="w-full text-sm sd-stack">
-                  <thead className="bg-muted/40 text-[12px] uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr><th className="p-2 text-left">Task</th><th className="p-2 text-left">Reason</th></tr>
                   </thead>
                   <tbody>
@@ -108,7 +108,7 @@ export function TestConfigurationDialog({
             <TabsContent value="capacity" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <table className="w-full text-sm sd-stack">
-                  <thead className="bg-muted/40 text-[12px] uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="p-2 text-left">Agent</th>
                       <th className="p-2 text-right">Current</th>

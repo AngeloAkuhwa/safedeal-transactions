@@ -311,9 +311,9 @@ const BuyerCart = () => {
   const needsAttentionCount = items.filter((i) => !getStockStatus(i).canCheckout).length;
 
   return (
-    <div className="flex min-h-[100dvh] bg-background">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <BuyerSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 relative lg:overflow-y-auto">
         <div className="sd-page sd-page-y space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -378,8 +378,17 @@ const BuyerCart = () => {
           )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 rounded-xl" />
+                ))}
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))}
+              </div>
             </div>
           ) : items.length === 0 ? (
             <div className="rounded-xl border border-border bg-card p-8 text-center space-y-3">
@@ -539,7 +548,7 @@ const BuyerCart = () => {
                                     {stock.label}
                                   </Badge>
                                   {isLocked && (
-                                    <p className="text-[12px] text-muted-foreground mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                       Finish or cancel this checkout to edit.
                                     </p>
                                   )}
@@ -577,7 +586,7 @@ const BuyerCart = () => {
                               <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                               <p className="text-xs font-semibold text-foreground">Delivery method</p>
                               {draftInvalid && (
-                                <span className="text-[12px] text-destructive">Required</span>
+                                <span className="text-xs text-destructive">Required</span>
                               )}
                             </div>
                             {enabledMethods.length === 1 ? (

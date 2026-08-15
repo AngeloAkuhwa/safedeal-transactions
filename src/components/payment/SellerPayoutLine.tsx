@@ -42,7 +42,7 @@ export function SellerPayoutLine({ snapshot, amount, currency, className }: Prop
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="inline-flex text-muted-foreground hover:text-foreground relative items-center justify-center before:absolute before:-inset-4 before:content-['']"
+                className="inline-flex text-muted-foreground hover:text-foreground relative items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
                 aria-label="About Seller Payout"
               >
                 <Info className="h-3.5 w-3.5" />

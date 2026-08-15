@@ -59,7 +59,7 @@ function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-white text-sm font-medium leading-snug">{gate.label}</p>
-          <span className={`text-[12px] uppercase tracking-wide font-semibold shrink-0 ${
+          <span className={`text-xs uppercase tracking-wide font-semibold shrink-0 ${
             gate.pass ? "text-emerald-400" : "text-red-400"}`}>
             {gate.pass ? "Pass" : "Action needed"}
           </span>
@@ -160,7 +160,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
+        <div className="sticky top-0 z-sticky bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
           <h3 className="text-white text-lg font-semibold">Payout Details</h3>
           <button
             onClick={onClose}
@@ -267,7 +267,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   {detail.pricing.release_amount_mismatch && (
                     <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
                       <p className="text-amber-300 text-xs font-semibold">Release amount mismatch</p>
-                      <p className="text-amber-200/80 text-[12px] mt-1">
+                      <p className="text-amber-200/80 text-xs mt-1">
                         Agreement snapshot says{" "}
                         {detail.pricing.seller_payout != null
                           ? formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)

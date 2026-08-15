@@ -72,7 +72,7 @@ function EvidenceThumbnail({
         </a>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[12px] px-2 py-1 truncate">
+      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-xs px-2 py-1 truncate">
         {format(new Date(evidence.created_at), "MMM d, h:mm a")}
       </div>
     </button>
@@ -169,7 +169,7 @@ export function BuyerClaimSection({ reasonLabel, claim }: BuyerClaimSectionProps
               <ShieldAlert className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-bold text-foreground">Your Evidence</h3>
             </div>
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+            <Badge className="bg-primary/10 text-primary border-primary/20">
               Claimant
             </Badge>
           </div>

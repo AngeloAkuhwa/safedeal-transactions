@@ -150,7 +150,7 @@ export function ExportPayoutsDialog({
           <div className="flex flex-col gap-2 w-full lg:w-auto">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1">
-                <Label className="text-[12px] text-muted-foreground">Scope</Label>
+                <Label className="text-xs text-muted-foreground">Scope</Label>
                 <Select value={scope} onValueChange={setScope}>
                   <SelectTrigger className="w-48 bg-background h-11">
                     <SelectValue placeholder="Export Scope" />
@@ -167,7 +167,7 @@ export function ExportPayoutsDialog({
                 </Select>
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor="from-date" className="text-[12px] text-muted-foreground">Date from</Label>
+                <Label htmlFor="from-date" className="text-xs text-muted-foreground">Date from</Label>
                 <Input
                   id="from-date"
                   type="date"
@@ -178,7 +178,7 @@ export function ExportPayoutsDialog({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor="to-date" className="text-[12px] text-muted-foreground">Date to</Label>
+                <Label htmlFor="to-date" className="text-xs text-muted-foreground">Date to</Label>
                 <Input
                   id="to-date"
                   type="date"
@@ -201,7 +201,7 @@ export function ExportPayoutsDialog({
               )}
               {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mb-2" />}
             </div>
-            <p className={`text-[12px] ${dateError ? "text-destructive" : "text-muted-foreground/70"}`}>
+            <p className={`text-xs ${dateError ? "text-destructive" : "text-muted-foreground/70"}`}>
               {dateError ?? helperText}
             </p>
           </div>
@@ -265,7 +265,7 @@ export function ExportPayoutsDialog({
                       <td className="py-2.5 pr-3 text-right hidden sm:table-cell text-xs text-muted-foreground">-{fmtCurrency(r.fees)}</td>
                       <td className="py-2.5 pr-3 text-right font-semibold text-xs">{fmtCurrency(r.net_payout)}</td>
                       <td className="py-2.5 pr-3">
-                        <Badge variant="outline" className="text-[12px]">
+                        <Badge variant="outline" className="text-xs">
                           {statusLabel[r.status] ?? r.status}
                         </Badge>
                       </td>

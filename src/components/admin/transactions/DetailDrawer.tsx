@@ -50,7 +50,7 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
               {(data.timeline ?? []).length === 0 && (<li className="text-muted-foreground">No events recorded.</li>)}
               {(data.timeline ?? []).map((e: any, i: number) => (
                 <li key={e.id ?? i} className="border-l-2 border-border pl-3">
-                  <div className="text-[12px] text-muted-foreground">{fmtDate(e.at)} · {e.type ?? e.kind}</div>
+                  <div className="text-xs text-muted-foreground">{fmtDate(e.at)} · {e.type ?? e.kind}</div>
                   <div className="text-foreground"><span className="font-medium">{e.title ?? e.to}</span></div>
                   {(e.description ?? e.note) && <div className="text-xs text-muted-foreground">{e.description ?? e.note}</div>}
                 </li>
@@ -75,7 +75,7 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
                   </tbody>
                 </table>
               </div>
-              <p className="text-[12px] text-muted-foreground">Read-only on the monitor screen.</p>
+              <p className="text-xs text-muted-foreground">Read-only on the monitor screen.</p>
             </div>
           )}
           {!loading && !err && data && section === "messages" && (
@@ -83,7 +83,7 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
               {(data.messages ?? []).length === 0 && (<li className="text-muted-foreground">No messages.</li>)}
               {(data.messages ?? []).map((m: any) => (
                 <li key={m.id} className="rounded-md border border-border bg-muted/30 p-2">
-                  <div className="text-[12px] text-muted-foreground">{fmtDate(m.created_at)}</div>
+                  <div className="text-xs text-muted-foreground">{fmtDate(m.created_at)}</div>
                   <div className="text-foreground">{m.message_text}</div>
                 </li>
               ))}

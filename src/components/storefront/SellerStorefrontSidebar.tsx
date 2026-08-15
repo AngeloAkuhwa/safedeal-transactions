@@ -58,7 +58,7 @@ function SidebarInner({ sellerName, avatarUrl, identityVerified, onNavigate }: S
     <div className="flex flex-col h-full bg-card border-r border-border">
       {/* Logo */}
       <div className="px-5 py-6">
-        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity min-h-11">
           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
             <Shield className="h-5 w-5 text-white" />
           </div>
@@ -140,7 +140,7 @@ export function SellerStorefrontSidebar(props: SellerStorefrontSidebarProps) {
       {/* This normal-flow rail reserves the trigger's space on every seller
           screen; pages no longer copy fragile left-padding compensations. */}
       <div className="w-14 shrink-0 border-r border-border bg-card lg:hidden">
-        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5 border border-border bg-card/90" onClick={() => setMobileOpen(true)} aria-label="Open seller navigation">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5 border border-border bg-card/90" onClick={() => setMobileOpen(true)} aria-label="Open seller navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </div>

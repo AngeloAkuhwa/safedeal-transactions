@@ -177,12 +177,12 @@ const SellerProductPreview = () => {
         identityVerified={identityVerified}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="relative flex flex-1 flex-col lg:overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-border relative z-10">
+        <div className="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-border relative z-rail">
           <div className="flex items-center gap-4 lg:ml-0 ml-12">
             <Button
               variant="ghost"
@@ -223,7 +223,7 @@ const SellerProductPreview = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 relative z-rail">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl">
             {/* Main content — 2 cols */}
             <div className="xl:col-span-2 space-y-6">
@@ -427,7 +427,7 @@ const SellerProductPreview = () => {
                     <span className="text-xs text-muted-foreground">Stock</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">{product.stock_quantity} units</span>
-                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full border ${stockBadgeClass}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${stockBadgeClass}`}>
                         {stockLabel}
                       </span>
                     </div>

@@ -35,7 +35,7 @@ export function HeroSection() {
               <div className="mt-3">
                 <Link
                   to="/marketplace"
-                  className="group inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  className="group inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline min-h-11"
                 >
                   I&apos;m buying — check a deal
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

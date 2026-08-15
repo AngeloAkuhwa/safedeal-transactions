@@ -168,9 +168,9 @@ export function SuspendPermissionDialog({
                               <span className="truncate">{o.label}</span>
                               <span className="flex items-center gap-2">
                                 {!o.assignable && (
-                                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[12px] uppercase tracking-wider text-amber-300">Suspended</span>
+                                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-xs uppercase tracking-wider text-amber-300">Suspended</span>
                                 )}
-                                <span className="text-[12px] text-muted-foreground">{o.key}</span>
+                                <span className="text-xs text-muted-foreground">{o.key}</span>
                               </span>
                             </div>
                           </CommandItem>
@@ -186,7 +186,7 @@ export function SuspendPermissionDialog({
               <div className="rounded-md border border-border/60 bg-background/40 p-2 text-xs">
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-muted-foreground">Assignable</span>
-                  <span className={`rounded-full border px-1.5 py-0.5 text-[12px] uppercase tracking-wider ${currentlyAssignable ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}>
+                  <span className={`rounded-full border px-1.5 py-0.5 text-xs uppercase tracking-wider ${currentlyAssignable ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}>
                     {currentlyAssignable ? "Yes" : "No"}
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export function SuspendPermissionDialog({
               <Label className="text-xs uppercase text-muted-foreground">Reason (min 20 chars, audited)</Label>
               <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder={currentlyAssignable ? "Why is new assignment being suspended?" : "Why is this permission being reinstated?"} />
-              <div className="text-[12px] text-muted-foreground">{reason.trim().length}/20</div>
+              <div className="text-xs text-muted-foreground">{reason.trim().length}/20</div>
             </div>
           </div>
         )}

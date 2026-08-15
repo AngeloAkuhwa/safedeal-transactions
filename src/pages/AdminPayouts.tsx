@@ -243,7 +243,7 @@ export default function AdminPayouts() {
   }
 
   const headerSlot = (
-    <div className="sticky top-0 z-30 hidden border-b border-border bg-card lg:block">
+    <div className="sticky top-0 z-sticky hidden border-b border-border bg-card lg:block">
       <div className="flex items-start justify-between gap-4 px-8 py-5">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold leading-tight text-foreground">Payout Management</h1>
@@ -261,7 +261,7 @@ export default function AdminPayouts() {
           >
             <Play className="h-4 w-4" /> Process Batch
             {eligibleSelectedCount > 0 && (
-              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[12px]">{eligibleSelectedCount}</span>
+              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-xs">{eligibleSelectedCount}</span>
             )}
           </Button>
         </div>

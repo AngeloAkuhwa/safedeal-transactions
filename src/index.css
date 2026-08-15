@@ -236,9 +236,9 @@
   .sd-metric      { min-height: 96px; }
   .sd-action      { min-height: 110px; }
   .sd-alert       { min-height: 64px; }
-  .sd-eyebrow     { @apply text-[12px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight; }
+  .sd-eyebrow     { @apply text-xs font-semibold uppercase tracking-wide text-muted-foreground leading-tight; }
   .sd-kpi-value   { @apply text-base sm:text-lg lg:text-xl font-bold text-foreground leading-tight tracking-tight; }
-  .sd-kpi-helper  { @apply text-[12px] text-muted-foreground leading-snug; }
+  .sd-kpi-helper  { @apply text-xs text-muted-foreground leading-snug; }
   .sd-row-hover   { @apply hover:bg-muted/40 transition-colors; }
 
   .sd-fade-in-stagger {
@@ -323,11 +323,46 @@
     flex: 0 0 auto;
     max-width: 45%;
     text-align: left;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: hsl(var(--muted-foreground));
   }
   table.sd-stack td:empty { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion budget
+   Decorative "live" pulses (animate-pulse / animate-ping) and spinners
+   (animate-spin) are purely aesthetic signals. Users who ask the OS for
+   reduced motion should not have to see them — genuine loading spinners can
+   opt back in with `.sd-keep-motion`.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-ping {
+    animation: none !important;
+  }
+  .animate-spin:not(.sd-keep-motion) {
+    animation: none !important;
+  }
+}
+
+/* Standard 6px pulsing "live" status dot. Use at most one per viewport
+   region — it already includes the pulse animation, so do not also add
+   `animate-pulse` alongside it. */
+.sd-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: currentColor;
+  color: hsl(var(--success));
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-live-dot {
+    animation: none;
+  }
 }

@@ -110,7 +110,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="text-white font-bold truncate min-h-11 inline-flex items-center">{r.full_name || "Unnamed"}</button>
-                    <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-tight ${chip.cls}`}>{chip.label}</span>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded border uppercase tracking-tight ${chip.cls}`}>{chip.label}</span>
                   </div>
                   <p className="text-slate-500 text-xs truncate">
                     {r.handle} • {r.last_active_at ? `Active ${relative(r.last_active_at)}` : new Date(r.joined_at ?? Date.now()).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
@@ -123,7 +123,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 {isTrustedSeller ? (
                   <>
                     <div>
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Verification</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Verification</p>
                       <div className="flex gap-1.5">
                         <Mail className={`h-3 w-3 ${r.verification.email ? "text-emerald-400" : "text-slate-500"}`} />
                         <Phone className={`h-3 w-3 ${r.verification.phone ? "text-emerald-400" : "text-slate-500"}`} />
@@ -131,18 +131,18 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Volume</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Volume</p>
                       <p className="text-emerald-400 font-bold text-lg">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}</p>
                     </div>
                   </>
                 ) : isBusinessUnverified ? (
                   <>
                     <div>
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Type</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Type</p>
                       <span className="text-purple-400 font-bold text-sm">Business Account</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
                       <p className="text-white font-bold text-sm">
                         {r.disputes.active > 0 ? `${r.disputes.active} In Progress` : r.disputes.total > 0 ? `${r.disputes.total} Total` : "Clean"}
                       </p>
@@ -151,10 +151,10 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 ) : (
                   <>
                     <div>
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Transactions</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Transactions</p>
                       <p className="text-white font-bold text-lg">
                         {r.transactions.count}{" "}
-                        <span className="text-[12px] font-normal text-slate-400">
+                        <span className="text-xs font-normal text-slate-400">
                           ({r.transactions.resolved > 0
                             ? `${r.transactions.resolved} resolved`
                             : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"})
@@ -162,7 +162,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[12px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
                       {r.disputes.active > 0
                         ? <p className="text-red-400 font-bold text-sm">Active disputes</p>
                         : r.disputes.total > 0
@@ -178,21 +178,21 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               <div role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2 min-h-11"
                 >
                   <UserIcon className="h-3.5 w-3.5" /> Profile
                 </button>
                 {isFlaggedish ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/admin/flagged-users?u=${r.user_id}`); }}
-                    className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2 min-h-11"
                   >
                     <ShieldHalf className="h-3.5 w-3.5" /> Review
                   </button>
                 ) : isTrustedSeller ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }}
-                    className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-600/20 active:scale-95 inline-flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-600/20 active:scale-95 inline-flex items-center justify-center gap-2 min-h-11"
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" /> Transactions
                   </button>
@@ -200,7 +200,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }}
                     disabled={r.disputes.total === 0}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
+                    className={`min-h-11 flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
                       r.disputes.total === 0 ? "bg-slate-800/60 text-slate-500" : "bg-slate-800 text-slate-300"
                     }`}
                   >

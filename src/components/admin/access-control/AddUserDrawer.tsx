@@ -233,10 +233,10 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                   </div>
                 </div>
                 {emailTaken === true && (
-                  <div className="text-[12px] text-rose-400">Already assigned to an internal user.</div>
+                  <div className="text-xs text-rose-400">Already assigned to an internal user.</div>
                 )}
                 {emailTaken === false && email.trim() && !emailChecking && (
-                  <div className="text-[12px] text-emerald-400">Email is available.</div>
+                  <div className="text-xs text-emerald-400">Email is available.</div>
                 )}
               </div>
               <div className="space-y-1.5">
@@ -251,7 +251,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                   />
                   <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 </div>
-                <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Info className="h-3 w-3" /> Assigned by the system — cannot be edited.
                 </div>
               </div>
@@ -324,7 +324,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                     </SelectContent>
                   </Select>
                   {selectedManager && (
-                    <div className="text-[12px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       Reports to <span className="text-foreground/80">{selectedManager.full_name}</span>
                       {selectedManager.role && (
                         <> · <span className="text-foreground/60">{ROLE_LABEL[selectedManager.role]}</span></>
@@ -346,7 +346,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                 <Label>Roles (star marks primary)<span className="text-rose-400"> *</span></Label>
                 <RolePicker roles={roles} primaryRole={primary} onChange={(r, p) => { setRoles(r); setPrimary(p); }} />
                 {primary && (
-                  <div className="text-[12px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     Primary role: <span className="text-foreground/80">{primaryLabel}</span>
                     {selectedManager && <> · Reports to <span className="text-foreground/80">{selectedManager.full_name}</span></>}
                   </div>

@@ -227,7 +227,7 @@ export function ContactSellerModal({
                   <span className="truncate">{af.file.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeFile(af.id); }}
-                    className="ml-1 shrink-0 text-muted-foreground hover:text-destructive transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
+                    className="ml-1 shrink-0 text-muted-foreground hover:text-destructive transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
                     aria-label="Remove file"
                   >
                     <X className="h-3.5 w-3.5" />

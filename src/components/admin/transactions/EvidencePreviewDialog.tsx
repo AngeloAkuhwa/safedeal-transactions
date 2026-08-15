@@ -104,7 +104,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
                     href={pdfUrl ?? "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 underline"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 underline min-h-11"
                   >
                     Open PDF in new tab <ExternalLink className="h-3.5 w-3.5" />
                   </a>

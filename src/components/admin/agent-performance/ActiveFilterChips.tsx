@@ -51,7 +51,7 @@ export function ActiveFilterChips({
   if (chips.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
-      <span className="text-[12px] uppercase tracking-wider text-muted-foreground">Filters</span>
+      <span className="text-xs uppercase tracking-wider text-muted-foreground">Filters</span>
       {chips.map((c) => (
         <button
           key={String(c.key)}

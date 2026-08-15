@@ -233,7 +233,7 @@ export function SellerResponseForm({
                 ) : file.mimeType.startsWith("video/") ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <FileVideo className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-[12px] text-muted-foreground mt-1 truncate max-w-[70px] px-1">
+                    <span className="text-xs text-muted-foreground mt-1 truncate max-w-[70px] px-1">
                       {file.fileName}
                     </span>
                   </div>

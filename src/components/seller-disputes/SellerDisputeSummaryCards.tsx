@@ -82,7 +82,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
               <div className={`h-7 w-7 rounded-md ${card.iconBg} flex items-center justify-center`}>
                 <card.icon className={`h-[14px] w-[14px] ${card.iconColor}`} />
               </div>
-              <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[12px] font-semibold ${card.badgeBg}`}>
+              <span className={`inline-flex items-center px-1.5 py-px rounded-full text-xs font-semibold ${card.badgeBg}`}>
                 {card.badgeLabel}
               </span>
             </div>
@@ -92,7 +92,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
                 {("tooltip" in card) && card.tooltip && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label="More info" className="inline-flex text-muted-foreground/60 hover:text-muted-foreground relative items-center justify-center before:absolute before:-inset-4 before:content-['']">
+                      <button type="button" aria-label="More info" className="inline-flex text-muted-foreground/60 hover:text-muted-foreground relative items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11">
                         <Info className="h-3 w-3" />
                       </button>
                     </TooltipTrigger>

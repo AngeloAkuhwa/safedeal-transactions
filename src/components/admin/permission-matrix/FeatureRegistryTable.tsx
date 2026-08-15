@@ -20,7 +20,7 @@ function StatusPill({ status }: { status: "active" | "suspended" | "deprecated" 
     suspended: "border-amber-500/30 bg-amber-500/10 text-amber-300",
     deprecated: "border-border bg-muted/40 text-muted-foreground line-through",
   } as const;
-  return <span className={`rounded-full border px-2 py-0.5 text-[12px] font-semibold uppercase ${map[status]}`}>{status}</span>;
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold uppercase ${map[status]}`}>{status}</span>;
 }
 
 export function FeatureRegistryTable({
@@ -104,7 +104,7 @@ export function FeatureRegistryTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1100px] border-separate border-spacing-y-1 text-sm sd-stack">
           <thead>
-            <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
+            <tr className="text-xs uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">Permission</th>
               <th className="px-4 py-2 text-left font-medium">Module</th>
               <th className="px-4 py-2 text-left font-medium">Action</th>
@@ -127,8 +127,8 @@ export function FeatureRegistryTable({
               >
                 <td className="px-4 py-3 align-middle">
                   <div className="text-sm font-medium text-foreground">{r.label.split("—")[1]?.trim() ?? r.label}</div>
-                  <div className="text-[12px] font-mono text-muted-foreground">{r.key}</div>
-                  {r.description && <div className="mt-1 line-clamp-1 text-[12px] text-muted-foreground">{r.description}</div>}
+                  <div className="text-xs font-mono text-muted-foreground">{r.key}</div>
+                  {r.description && <div className="mt-1 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>}
                 </td>
                 <td className="px-4 py-3 align-middle text-sm text-muted-foreground">{r.module}</td>
                 <td className="px-4 py-3 align-middle text-xs font-mono text-muted-foreground">{r.action}</td>
@@ -139,7 +139,7 @@ export function FeatureRegistryTable({
                     : <span className="text-muted-foreground">Direct</span>}
                 </td>
                 <td className="px-4 py-3 align-middle"><StatusPill status={r.status} /></td>
-                <td className="px-4 py-3 align-middle text-[12px] text-muted-foreground">
+                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">
                   {r.environments.map((e) => e[0].toUpperCase() + e.slice(1, 4)).join(" · ")}
                 </td>
                 <td className="px-4 py-3 align-middle text-xs text-muted-foreground">
@@ -149,7 +149,7 @@ export function FeatureRegistryTable({
                   {r.grantedRoles.length ? r.grantedRoles.slice(0, 3).join(", ") + (r.grantedRoles.length > 3 ? ` +${r.grantedRoles.length - 3}` : "") : <span className="italic">No roles</span>}
                 </td>
                 <td className="px-4 py-3 align-middle text-right font-mono text-xs">{r.overrideCount}</td>
-                <td className="px-4 py-3 align-middle text-[12px] text-muted-foreground">
+                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">
                   {r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "—"}
                 </td>
               </tr>

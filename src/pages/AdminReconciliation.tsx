@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatMoney } from "@/lib/format";
 import { FinancialRemediationTable } from "@/components/admin/reconciliation/FinancialRemediationTable";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchReconciliationOverview,
   triggerReconciliationRun,
@@ -134,7 +135,11 @@ export default function AdminReconciliation() {
           <TabsContent value="drift" className="mt-4">
             <Card className="p-0 overflow-hidden">
               {loading ? (
-                <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+                <div className="p-4 space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-9 w-full rounded-md" />
+                  ))}
+                </div>
               ) : drift.length === 0 ? (
                 <div className="p-8 text-sm text-muted-foreground">
                   No drift in the latest run. {data?.latest_run ? "Ledger and Paystack agree." : "Trigger a run to populate."}
@@ -206,7 +211,11 @@ export default function AdminReconciliation() {
 
             <Card className="p-0 overflow-hidden">
               {loading ? (
-                <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+                <div className="p-4 space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-9 w-full rounded-md" />
+                  ))}
+                </div>
               ) : audit.length === 0 ? (
                 <div className="p-8 text-sm text-muted-foreground">All post-payment transactions have a complete canonical snapshot.</div>
               ) : (

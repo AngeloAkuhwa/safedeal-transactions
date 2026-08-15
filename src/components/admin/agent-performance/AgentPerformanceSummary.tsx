@@ -114,7 +114,7 @@ export function AgentPerformanceSummary({
   return (
    <TooltipProvider delayDuration={200}>
     <section className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] lg:p-6">
-      <div className="mb-3 text-[12px] text-muted-foreground">
+      <div className="mb-3 text-xs text-muted-foreground">
         Range: <span className="text-foreground">{rangeLabel}</span> · Live now:{" "}
         <span className="text-foreground">{summary.live_agents}</span>
       </div>

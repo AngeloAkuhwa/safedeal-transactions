@@ -17,7 +17,7 @@ function compactTotal(n: number): string {
 
 export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlineCount = 0, offlineCount = 0 }: Props) {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-4 lg:hidden">
+    <header className="sticky top-0 z-sticky border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-4 lg:hidden">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -32,7 +32,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
             <h2 className="text-white font-bold text-lg leading-tight">Users</h2>
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-400 text-[12px] uppercase font-bold tracking-tight">
+              <span className="text-slate-400 text-xs uppercase font-bold tracking-tight">
                 {compactTotal(totalUsers)} Total · {onlineCount} on · {offlineCount} off
               </span>
             </div>

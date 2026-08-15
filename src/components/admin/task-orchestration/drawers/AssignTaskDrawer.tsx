@@ -74,21 +74,21 @@ export function AssignTaskDrawer({
             <div className="rounded-xl border border-border/60 bg-card/40 p-3 text-sm">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">#{task.task_code}</span>
-                <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold", priorityBadgeClass(task.priority))}>
+                <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-semibold", priorityBadgeClass(task.priority))}>
                   {humanize(task.priority)}
                 </span>
                 {requiredRole && (
-                  <span className="inline-flex rounded-full bg-sky-500/10 px-2 py-0.5 text-[12px] font-semibold text-sky-300 ring-1 ring-inset ring-sky-500/30">
+                  <span className="inline-flex rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-300 ring-1 ring-inset ring-sky-500/30">
                     needs {humanize(requiredRole)}
                   </span>
                 )}
                 {isFinancial && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[12px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-500/30">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-300 ring-1 ring-inset ring-amber-500/30">
                     <ShieldAlert className="h-2.5 w-2.5" /> Financial · SoD active
                   </span>
                 )}
               </div>
-              <div className="text-[12px] text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {humanize(task.type)} · {currencyFmt(task.amount, task.currency)}
               </div>
             </div>
@@ -128,7 +128,7 @@ export function AssignTaskDrawer({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <div className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[12px] font-semibold">
+                        <div className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                           {a.avatar_url
                             ? <img src={a.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
                             : initialsOf(a)}
@@ -139,7 +139,7 @@ export function AssignTaskDrawer({
                             <span className="truncate text-xs font-medium text-foreground">{nameOf(a)}</span>
                             {selectedRow && <CheckCircle2 className="h-3 w-3 text-primary" />}
                           </div>
-                          <div className="flex items-center gap-2 text-[12px]">
+                          <div className="flex items-center gap-2 text-xs">
                             <span className={cn("font-medium", availabilityTextColor(a.availability))}>
                               {availabilityLabel(a.availability)}
                             </span>
@@ -148,7 +148,7 @@ export function AssignTaskDrawer({
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[12px] text-muted-foreground">Load</div>
+                        <div className="text-xs text-muted-foreground">Load</div>
                         <div className="text-xs font-semibold tabular-nums text-foreground">
                           {a.active}<span className="text-muted-foreground">/{a.max_active}</span>
                         </div>
@@ -157,7 +157,7 @@ export function AssignTaskDrawer({
                     <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border/60">
                       <div className={cn("h-full transition-all", barTone)} style={{ width: `${loadPct}%` }} />
                     </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[12px]">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
                       {(a.overdue ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-300 ring-1 ring-inset ring-rose-500/30">
                           <Flame className="h-2.5 w-2.5" /> {a.overdue} overdue

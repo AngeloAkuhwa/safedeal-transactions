@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Filter, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,24 @@ export function AgentPerformanceFilters({
   teams: string[];
   roles: { key: string; name: string }[];
 }) {
+  // Local, immediately-responsive search text — the debounced value is what
+  // actually reaches `onChange` (and therefore the query key), so typing
+  // never fires a request per keystroke.
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onChange({ search: value }), 300);
+  };
+
   const activeExtra =
     (filters.role !== "all" ? 1 : 0) +
     (filters.availability !== "all" ? 1 : 0) +
@@ -103,7 +122,7 @@ export function AgentPerformanceFilters({
       <div
         role="group"
         aria-label="Statistics scope"
-        className="inline-flex h-9 items-center rounded-lg border border-border/60 bg-card/60 p-0.5"
+        className="inline-flex min-h-11 items-center rounded-lg border border-border/60 bg-card/60 p-0.5"
       >
         {(["range", "all_time"] as const).map((s) => (
           <button
@@ -112,7 +131,7 @@ export function AgentPerformanceFilters({
             aria-pressed={filters.scope === s}
             onClick={() => onChange({ scope: s })}
             className={
-              "rounded-md px-3 py-1 text-xs font-medium transition min-h-11" +
+              "rounded-md px-3 py-1 text-xs font-medium transition min-h-11 " +
               (filters.scope === s
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground")
@@ -129,7 +148,7 @@ export function AgentPerformanceFilters({
             <Filter className="mr-2 h-4 w-4" />
             More Filters
             {activeExtra > 0 && (
-              <span className="ml-2 rounded-full bg-primary/15 px-1.5 text-[12px] font-semibold text-primary">
+              <span className="ml-2 rounded-full bg-primary/15 px-1.5 text-xs font-semibold text-primary">
                 {activeExtra}
               </span>
             )}
@@ -141,8 +160,8 @@ export function AgentPerformanceFilters({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
               <Input
-                value={filters.search}
-                onChange={(e) => onChange({ search: e.target.value })}
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Name, user ID or email"
                 className="h-11 pl-8"
               />
