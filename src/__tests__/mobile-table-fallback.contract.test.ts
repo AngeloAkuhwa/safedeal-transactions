@@ -17,7 +17,13 @@ function tsxFiles(dir: string): string[] {
   });
 }
 
-const IGNORED = new Set(["src/components/ui/table.tsx"]);
+const IGNORED = new Map<string, string>([
+  ["src/components/ui/table.tsx", "shadcn primitive; consumers opt into sd-stack"],
+  [
+    "src/components/transactions/TransactionReceipt.tsx",
+    "print/PDF receipt rendered with inline styles at a fixed paper width, never laid out on a phone viewport",
+  ],
+]);
 
 describe("mobile table fallbacks", () => {
   it("every table has a card fallback or is stacked", () => {
@@ -35,6 +41,10 @@ describe("mobile table fallbacks", () => {
       violations.push(`${file}: ${tables.length} table(s), ${stacked} stacked, no card fallback`);
     }
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("documents a reason for every exempt file", () => {
+    for (const reason of IGNORED.values()) expect(reason.length).toBeGreaterThan(20);
   });
 
   it("the stacked-table labeller mirrors headers into cells", async () => {
