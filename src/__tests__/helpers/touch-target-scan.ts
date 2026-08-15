@@ -91,8 +91,27 @@ function readBalanced(source: string, openIndex: number): string {
   return source.slice(openIndex);
 }
 
+/** Index of the tag's *own* className attribute (depth 0 only, so nested JSX props are ignored). */
+function ownClassNameIndex(tagText: string): number {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < tagText.length; i += 1) {
+    const ch = tagText[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+    else if (ch === "{") depth += 1;
+    else if (ch === "}") depth -= 1;
+    else if (depth === 0 && tagText.startsWith("className=", i)) return i;
+  }
+  return -1;
+}
+
 export function classNamesOf(tagText: string): string[] {
-  const idx = tagText.indexOf("className=");
+  const idx = ownClassNameIndex(tagText);
   if (idx === -1) return [];
   const after = idx + "className=".length;
   const ch = tagText[after];
@@ -191,6 +210,7 @@ export function scanSource(source: string, file: string): Violation[] {
     const interactive = RAW_TAGS.has(tag) || COMPONENT_TAGS.has(tag) || clickable;
     if (!interactive) continue;
     if (tag === "input" && /type="hidden"/.test(text)) continue;
+    if (tag === "textarea" || tag === "Textarea") continue; // multi-line inputs are sized by rows
     if (tag === "a" && !/className=/.test(text) && !clickable) continue;
 
     const { height, width, classes } = measure(text, tag);
