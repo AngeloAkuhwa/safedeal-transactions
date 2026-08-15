@@ -152,7 +152,7 @@ function RowActionsMenu({ u, actions }: { u: InternalUser; actions: RowActions }
   const expiresMs = u.access_expires_at ? new Date(u.access_expires_at).getTime() : null;
   const isExpired = expiresMs !== null && expiresMs < nowMs;
   const nearExpiry = expiresMs !== null && expiresMs - nowMs < 14 * 24 * 60 * 60 * 1000;
-  const canResend = invited || (u as any).invitation_status === "expired";
+  const canResend = invited || (u as { invitation_status?: string }).invitation_status === "expired";
   const canExtend = expiresMs !== null && (isExpired || nearExpiry);
   const canHardDelete = invited || deactivated;
   const {
