@@ -1,0 +1,25 @@
+-- ============================================================================
+-- View / TRUNCATE / unified-list lockdown. Applied 2026-08-15.
+--   1. public_seller_profiles was an auto-updatable view owned by a
+--      rolbypassrls role with security_invoker=off and full DML granted to
+--      anon — an unauthenticated write path straight into public.profiles.
+--      Rebuilt as security_invoker=on over the SECURITY DEFINER SRF
+--      public.storefront_seller_profiles(), which makes the view
+--      structurally non-auto-updatable (pg_relation_is_updatable = 0) and
+--      keeps the nine-column public projection without opening a profiles
+--      SELECT policy that would leak email/phone to signed-in users.
+--      Grants: SELECT only, to anon/authenticated/service_role.
+--   2. INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER revoked from
+--      PUBLIC/anon/authenticated on EVERY view and materialized view.
+--   3. TRUNCATE revoked from PUBLIC/anon/authenticated on every public table
+--      (82 tables held it; RLS never applies to TRUNCATE).
+--   4. One unified 32-table security list: anon DML revoked, FORCE ROW LEVEL
+--      SECURITY on all 32, authenticated re-granted only policy-backed
+--      privileges. Adds financial_idempotency_conflicts, admin_rate_limits,
+--      system_settings(_history), internal_users(+roles), user_roles,
+--      permissions, role_permissions, user_permission_overrides, audit_logs,
+--      admin_actions, vendor_plans, profiles.
+--   5. escrow_reconciliation_results: DEFAULT 0 dropped from ledger_balance,
+--      expected_ledger_balance, paystack_collected, paystack_paid_out,
+--      paystack_refunded, delta — a partial row now reads NULL, not zero.
+-- (full statements as applied; see migration history)
