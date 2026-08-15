@@ -164,7 +164,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
           <h3 className="text-white text-lg font-semibold">Payout Details</h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all"
+            className="w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all"
           >
             <X className="h-4 w-4" />
           </button>

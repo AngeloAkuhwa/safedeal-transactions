@@ -59,7 +59,7 @@ export function PermissionFilters({
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/40"
+              className="h-11 w-full rounded-md border border-border bg-background/60 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/40"
               placeholder="Search features, permissions, users…"
               value={value.search}
               onChange={(e) => onChange({ ...value, search: e.target.value })}
@@ -71,7 +71,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.role}
             onChange={(e) => onChange({ ...value, role: e.target.value })}
           >
@@ -86,7 +86,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Feature Group</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.module}
             onChange={(e) => onChange({ ...value, module: e.target.value })}
           >
@@ -101,7 +101,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Action</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.action ?? "all"}
             onChange={(e) => onChange({ ...value, action: e.target.value })}
           >
@@ -116,7 +116,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Risk</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.risk}
             onChange={(e) => onChange({ ...value, risk: e.target.value })}
           >
@@ -130,7 +130,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Status</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.status ?? "all"}
             onChange={(e) => onChange({ ...value, status: e.target.value })}
           >
@@ -145,7 +145,7 @@ export function PermissionFilters({
         <label>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Approval</span>
           <select
-            className="h-9 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
+            className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.approval ?? "all"}
             onChange={(e) => onChange({ ...value, approval: e.target.value })}
           >

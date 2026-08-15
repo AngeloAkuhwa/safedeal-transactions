@@ -67,7 +67,7 @@ export function FlaggedUsersTable(props: Props) {
           <button
             type="button"
             onClick={onSortToggle}
-            className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium"
+            className="min-h-11 px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium"
           >
             Sort by {sort === "risk" ? "Risk" : "Recent"}
           </button>
@@ -78,7 +78,7 @@ export function FlaggedUsersTable(props: Props) {
           <thead className="bg-slate-800 border-b border-slate-700">
             <tr>
               <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">
-                <input type="checkbox" checked={allChecked} onChange={onToggleAll} className="w-4 h-4 accent-red-600" />
+                <input type="checkbox" checked={allChecked} onChange={onToggleAll} className="h-11 w-11 accent-red-600" />
               </th>
               <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">User</th>
               <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Flag Reason</th>
@@ -98,7 +98,7 @@ export function FlaggedUsersTable(props: Props) {
               return (
                 <tr key={r.user_id} className={`hover:bg-slate-800/50 transition-all border-l-4 ${RISK_BORDER[r.risk]}`}>
                   <td className="p-4">
-                    <input type="checkbox" checked={selected.has(r.user_id)} onChange={() => onToggleSelect(r.user_id)} className="w-4 h-4 accent-red-600" />
+                    <input type="checkbox" checked={selected.has(r.user_id)} onChange={() => onToggleSelect(r.user_id)} className="h-11 w-11 accent-red-600" />
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">

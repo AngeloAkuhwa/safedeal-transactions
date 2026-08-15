@@ -131,7 +131,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
             type="button"
             size="icon"
             variant="secondary"
-            className="h-8 w-8 shadow-md"
+            className="h-11 w-11 shadow-md"
             onClick={() => setLightboxOpen(true)}
             aria-label="Open fullscreen"
           >
@@ -142,7 +142,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
             asChild
             size="icon"
             variant="secondary"
-            className="h-8 w-8 shadow-md"
+            className="h-11 w-11 shadow-md"
             aria-label="Download"
           >
             <a href={downloadUrl} download target="_blank" rel="noopener noreferrer">
@@ -158,7 +158,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
               type="button"
               onClick={prev}
               aria-label="Previous media"
-              className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -166,7 +166,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
               type="button"
               onClick={next}
               aria-label="Next media"
-              className="absolute right-2 bottom-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute right-2 bottom-2 h-11 w-11 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -251,7 +251,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
                   type="button"
                   onClick={prev}
                   aria-label="Previous media"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -259,7 +259,7 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
                   type="button"
                   onClick={next}
                   aria-label="Next media"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center hover:bg-background transition-colors"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>

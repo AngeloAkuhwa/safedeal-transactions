@@ -360,7 +360,7 @@ export default function AdminDisputes() {
                 type="button"
                 onClick={onOpenMenu}
                 aria-label="Open navigation menu"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -653,7 +653,7 @@ export default function AdminDisputes() {
                                 </Button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0" onClick={(e) => e.stopPropagation()}>
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>

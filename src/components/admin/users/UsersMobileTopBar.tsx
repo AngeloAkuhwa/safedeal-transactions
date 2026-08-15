@@ -23,7 +23,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
           <button
             type="button"
             onClick={onOpenMenu}
-            className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95 transition-transform"
+            className="w-11 h-11 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95 transition-transform"
             aria-label="Open menu"
           >
             <Menu className="h-4 w-4" />
@@ -42,7 +42,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
           <button
             type="button"
             onClick={() => onSearchFocus?.()}
-            className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95"
+            className="w-11 h-11 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95"
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
@@ -50,7 +50,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
           <button
             type="button"
             onClick={() => toast({ title: "Add User is coming soon." })}
-            className="w-10 h-10 flex items-center justify-center bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-900/20 active:scale-95"
+            className="w-11 h-11 flex items-center justify-center bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-900/20 active:scale-95"
             aria-label="Add user"
           >
             <Plus className="h-4 w-4" />

@@ -48,7 +48,7 @@ export function HowPermissionsWorkPanel() {
           type="button"
           onClick={toggle}
           aria-label={open ? "Collapse" : "Expand"}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60"
         >
           <ChevronDown className={cn("h-4 w-4 transition", open && "rotate-180")} />
         </button>

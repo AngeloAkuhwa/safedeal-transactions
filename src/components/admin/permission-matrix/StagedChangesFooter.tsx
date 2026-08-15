@@ -53,21 +53,21 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
                 <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">Approval required</span>
               )}
             </div>
-            <button type="button" onClick={() => setExpanded((e) => !e)} className="mt-0.5 text-xs text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={() => setExpanded((e) => !e)} className="mt-0.5 inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-foreground">
               {expanded ? "Hide details" : "Show details"}
             </button>
           </div>
           <button
             type="button"
             onClick={onDiscard}
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:bg-muted"
+            className="inline-flex h-11 items-center gap-1 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:bg-muted"
           >
             <XCircle className="h-3.5 w-3.5" /> Discard
           </button>
           <button
             type="button"
             onClick={onReview}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+            className="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <ClipboardList className="h-3.5 w-3.5" />
             Review changes

@@ -57,7 +57,7 @@ function MultiPopover<T extends string>({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:border-primary/40"
+        className="inline-flex h-11 items-center gap-1.5 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:border-primary/40"
       >
         {label}
         {selected.length > 0 && (
@@ -111,7 +111,7 @@ export function RoleMatrixToolbar({
             type="button"
             onClick={() => onModeChange("all")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition",
+              "inline-flex items-center gap-1.5 rounded-md min-h-11 px-3 py-1.5 text-xs font-semibold transition",
               filters.mode === "all" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -121,7 +121,7 @@ export function RoleMatrixToolbar({
             type="button"
             onClick={() => onModeChange("compare")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition",
+              "inline-flex items-center gap-1.5 rounded-md min-h-11 px-3 py-1.5 text-xs font-semibold transition",
               filters.mode === "compare" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -132,7 +132,7 @@ export function RoleMatrixToolbar({
         <div className="relative flex-1 min-w-[220px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-3 text-sm outline-none focus:border-primary"
+            className="h-11 w-full rounded-md border border-border bg-background/60 pl-9 pr-3 text-sm outline-none focus:border-primary"
             placeholder="Search by name, description or permission key…"
             value={filters.search}
             onChange={(e) => set("search", e.target.value)}
@@ -177,7 +177,7 @@ export function RoleMatrixToolbar({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex h-11 items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3 w-3" /> Clear ({activeFilterCount})
           </button>

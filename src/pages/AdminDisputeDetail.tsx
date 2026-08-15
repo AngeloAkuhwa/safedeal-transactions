@@ -465,7 +465,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               type="button"
               onClick={onOpenMenu}
               aria-label="Open navigation menu"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -2204,7 +2204,7 @@ function LinkedTile({ icon, title, subtitle, onClick, tone = "blue", showDot = f
     >
       <div className="flex items-start justify-between">
         <span className="relative inline-flex">
-          <span className={cn("grid h-9 w-9 place-items-center rounded-lg", toneCls[tone])}>{icon}</span>
+          <span className={cn("grid h-11 w-11 place-items-center rounded-lg", toneCls[tone])}>{icon}</span>
           {showDot && (
             <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background" />
           )}

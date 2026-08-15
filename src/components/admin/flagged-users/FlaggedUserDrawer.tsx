@@ -115,7 +115,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
             <Flag className="h-4 w-4 text-red-400" />
             <h3 className="text-white font-semibold text-base">Flagged user</h3>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="h-9 w-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+          <button type="button" onClick={onClose} aria-label="Close" className="h-11 w-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
         </div>

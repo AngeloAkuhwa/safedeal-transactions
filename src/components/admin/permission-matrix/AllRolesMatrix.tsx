@@ -186,7 +186,7 @@ function ModuleGroup({
                       <button
                         type="button"
                         onClick={() => setMenuRole(menuRole === r.key ? null : r.key)}
-                        className="ml-0.5 rounded p-0.5 opacity-0 hover:bg-muted group-hover:opacity-100"
+                        className="ml-0.5 inline-flex h-11 w-11 items-center justify-center rounded hover:bg-muted"
                         title="Bulk actions"
                       >
                         <MoreVertical className="h-3 w-3" />
@@ -196,10 +196,10 @@ function ModuleGroup({
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setMenuRole(null)} />
                         <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
-                          <button type="button" onClick={() => bulkGrant(r.key)} className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted">
+                          <button type="button" onClick={() => bulkGrant(r.key)} className="block min-h-11 w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted">
                             Grant all in module
                           </button>
-                          <button type="button" onClick={() => bulkRevoke(r.key)} className="block w-full rounded px-2 py-1.5 text-left text-xs text-rose-300 hover:bg-muted">
+                          <button type="button" onClick={() => bulkRevoke(r.key)} className="block min-h-11 w-full rounded px-2 py-1.5 text-left text-xs text-rose-300 hover:bg-muted">
                             Revoke all in module
                           </button>
                         </div>
