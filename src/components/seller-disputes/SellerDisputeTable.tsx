@@ -55,7 +55,16 @@ export function SellerDisputeTable({ items }: Props) {
               </div>
               <p className="text-xs text-muted-foreground">{d.reason_label}</p>
               <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
-              <Button className="min-h-11 w-full" variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}>{d.primary_action.label}</Button>
+              <Button
+                className="min-h-11 w-full"
+                variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(d.primary_action.route);
+                }}
+              >
+                {d.primary_action.label}
+              </Button>
             </article>
           );
         })}
