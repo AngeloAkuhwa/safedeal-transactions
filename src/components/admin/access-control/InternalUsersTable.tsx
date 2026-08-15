@@ -51,7 +51,7 @@ export function InternalUsersTable({
       <div className="divide-y divide-border lg:hidden">
         {rows.map((u) => (
           <article key={u.id} className="space-y-3 p-4" onClick={() => onOpen(u)}>
-            <div className="flex items-start gap-3"><InitialsAvatar name={u.full_name} ring={ringFor(u)} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name}</p><p className="truncate text-xs text-muted-foreground">{u.email}</p><p className="text-xs text-muted-foreground">#{u.display_id} · {u.department ?? "No team"}</p></div><StatusBadge status={u.status} /></div>
+            <div className="flex items-start gap-3"><InitialsAvatar name={u.full_name} ring={ringFor(u)} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name}</p><p className="truncate text-xs text-muted-foreground">{u.email}</p><p className="text-xs text-muted-foreground">#{u.display_id} · {u.department ?? "No team"} · Last active {relativeTime(u.last_active_at)}</p></div><div className="flex shrink-0 items-center gap-1"><StatusBadge status={u.status} /><span onClick={(e) => e.stopPropagation()}><RowActionsMenu u={u} actions={{ onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend, onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess }} /></span></div></div>
             <div className="flex flex-wrap gap-2"><RoleBadge role={u.primary_role} /><AccessLevelPill level={u.access_level} /></div>
             <button type="button" className="min-h-11 w-full rounded-md border border-border px-3 text-sm font-medium" onClick={(e) => { e.stopPropagation(); onOpen(u); }}>View access details</button>
           </article>
@@ -125,74 +125,7 @@ export function InternalUsersTable({
                   <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                   <td className="px-5 py-4 text-xs text-muted-foreground">{relativeTime(u.last_active_at)}</td>
                   <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          title="Row actions"
-                          aria-label={`Actions for ${u.full_name}`}
-                           className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={() => onOpen(u)}>
-                          <Eye className="mr-2 h-4 w-4" /> View User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onChangeRole(u)}>
-                          <RefreshCcw className="mr-2 h-4 w-4" /> Change Role
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onReviewPermissions(u)}>
-                          <KeyRound className="mr-2 h-4 w-4" /> Review Permissions
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onViewHistory(u)}>
-                          <History className="mr-2 h-4 w-4" /> View Access History
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {canResend && (
-                          <DropdownMenuItem onClick={() => onResendInvite(u)}>
-                            <MailPlus className="mr-2 h-4 w-4" /> Resend Invitation
-                          </DropdownMenuItem>
-                        )}
-                        {canExtend && (
-                          <DropdownMenuItem onClick={() => onExtendAccess(u)}>
-                            <CalendarClock className="mr-2 h-4 w-4" /> Extend Access
-                          </DropdownMenuItem>
-                        )}
-                        {suspended ? (
-                          <DropdownMenuItem onClick={() => onReactivate(u)}>
-                            <Undo2 className="mr-2 h-4 w-4" /> Reactivate User
-                          </DropdownMenuItem>
-                        ) : (
-                          u.status === "active" && (
-                            <DropdownMenuItem
-                              onClick={() => onSuspend(u)}
-                              className="text-red-500 focus:text-red-500"
-                            >
-                              <Ban className="mr-2 h-4 w-4" /> Suspend User
-                            </DropdownMenuItem>
-                          )
-                        )}
-                        {!deactivated && (
-                          <DropdownMenuItem
-                            onClick={() => onDeactivate(u)}
-                            className="text-red-500 focus:text-red-500"
-                          >
-                            <UserMinus className="mr-2 h-4 w-4" /> Deactivate User
-                          </DropdownMenuItem>
-                        )}
-                        {canHardDelete && (
-                          <DropdownMenuItem
-                            onClick={() => onDeleteInvited(u)}
-                            className="text-red-500 focus:text-red-500"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {invited ? "Delete Invited User" : "Delete User"}
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <RowActionsMenu u={u} actions={{ onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend, onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess }} />
                   </td>
                 </tr>
               );
@@ -208,5 +141,103 @@ export function InternalUsersTable({
         </table>
       </div>
     </div>
+  );
+}
+
+
+type RowActions = Pick<
+  Props,
+  "onOpen" | "onChangeRole" | "onReviewPermissions" | "onViewHistory" | "onSuspend" |
+  "onReactivate" | "onDeactivate" | "onResendInvite" | "onDeleteInvited" | "onExtendAccess"
+>;
+
+/**
+ * The complete row action set. Shared by the desktop table cell and the mobile
+ * card so no action is lost below the lg breakpoint.
+ */
+function RowActionsMenu({ u, actions }: { u: InternalUser; actions: RowActions }) {
+  const suspended = u.status === "suspended" || u.status === "locked";
+  const deactivated = u.status === "deactivated";
+  const invited = u.status === "invited";
+  const nowMs = Date.now();
+  const expiresMs = u.access_expires_at ? new Date(u.access_expires_at).getTime() : null;
+  const isExpired = expiresMs !== null && expiresMs < nowMs;
+  const nearExpiry = expiresMs !== null && expiresMs - nowMs < 14 * 24 * 60 * 60 * 1000;
+  const canResend = invited || (u as any).invitation_status === "expired";
+  const canExtend = expiresMs !== null && (isExpired || nearExpiry);
+  const canHardDelete = invited || deactivated;
+  const {
+    onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend,
+    onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess,
+  } = actions;
+  return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title="Row actions"
+            aria-label={`Actions for ${u.full_name}`}
+             className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onClick={() => onOpen(u)}>
+            <Eye className="mr-2 h-4 w-4" /> View User
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onChangeRole(u)}>
+            <RefreshCcw className="mr-2 h-4 w-4" /> Change Role
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onReviewPermissions(u)}>
+            <KeyRound className="mr-2 h-4 w-4" /> Review Permissions
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onViewHistory(u)}>
+            <History className="mr-2 h-4 w-4" /> View Access History
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {canResend && (
+            <DropdownMenuItem onClick={() => onResendInvite(u)}>
+              <MailPlus className="mr-2 h-4 w-4" /> Resend Invitation
+            </DropdownMenuItem>
+          )}
+          {canExtend && (
+            <DropdownMenuItem onClick={() => onExtendAccess(u)}>
+              <CalendarClock className="mr-2 h-4 w-4" /> Extend Access
+            </DropdownMenuItem>
+          )}
+          {suspended ? (
+            <DropdownMenuItem onClick={() => onReactivate(u)}>
+              <Undo2 className="mr-2 h-4 w-4" /> Reactivate User
+            </DropdownMenuItem>
+          ) : (
+            u.status === "active" && (
+              <DropdownMenuItem
+                onClick={() => onSuspend(u)}
+                className="text-red-500 focus:text-red-500"
+              >
+                <Ban className="mr-2 h-4 w-4" /> Suspend User
+              </DropdownMenuItem>
+            )
+          )}
+          {!deactivated && (
+            <DropdownMenuItem
+              onClick={() => onDeactivate(u)}
+              className="text-red-500 focus:text-red-500"
+            >
+              <UserMinus className="mr-2 h-4 w-4" /> Deactivate User
+            </DropdownMenuItem>
+          )}
+          {canHardDelete && (
+            <DropdownMenuItem
+              onClick={() => onDeleteInvited(u)}
+              className="text-red-500 focus:text-red-500"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {invited ? "Delete Invited User" : "Delete User"}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
   );
 }
