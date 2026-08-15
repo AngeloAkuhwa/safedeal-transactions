@@ -18,6 +18,16 @@
  *
  *   node scripts/provision-e2e-identities.mjs            # set passwords, enable
  *   node scripts/provision-e2e-identities.mjs --disable  # revoke again
+ *   node scripts/provision-e2e-identities.mjs --sql      # print SQL instead
+ *
+ * ON LOVABLE CLOUD THERE IS NO SERVICE ROLE KEY. Supabase's own documentation
+ * is explicit: a Lovable Cloud project's Supabase instance is "owned and
+ * managed by Lovable, not by your personal Supabase account", and the owner
+ * has no access to the dashboard, the service role key, or the database URL.
+ *
+ * So the admin-API path above cannot be used there. `--sql` prints statements
+ * to run through Lovable's SQL access instead; it reads the same environment
+ * variables and never prints a password it was not given.
  *
  * The accounts, their roles and the seeded product are all still created by the
  * migration — only the credential is dynamic. That keeps the fixture data in
@@ -30,7 +40,40 @@ const ACCOUNTS = [
   { id: "0e2e0001-0000-4000-8000-000000000003", email: "claude.e2e.admin@safedeal.test", env: "E2E_ADMIN_PASSWORD" },
 ];
 
+const ACCOUNTS_FOR_SQL = () => ACCOUNTS;
+
 const DISABLE = process.argv.includes("--disable");
+const AS_SQL = process.argv.includes("--sql");
+
+if (AS_SQL) {
+  // No service role key needed — this is the Lovable Cloud path.
+  const lines = [
+    "-- Provision the disposable audit identities.",
+    "-- Passwords come from the environment; nothing here is committed.",
+  ];
+  for (const a of ACCOUNTS_FOR_SQL()) {
+    if (DISABLE) {
+      lines.push(
+        `UPDATE auth.users SET encrypted_password = crypt(gen_random_uuid()::text || gen_random_uuid()::text, gen_salt('bf')), updated_at = now() WHERE email = '${a.email}';`,
+      );
+      continue;
+    }
+    const pw = process.env[a.env];
+    if (!pw) {
+      console.error(`-- MISSING ${a.env}: ${a.email} skipped`);
+      continue;
+    }
+    if (pw.length < 16) {
+      console.error(`-- ${a.env} is under 16 characters; refusing`);
+      continue;
+    }
+    lines.push(
+      `UPDATE auth.users SET encrypted_password = crypt('${pw.replace(/'/g, "''")}', gen_salt('bf')), banned_until = NULL, email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE email = '${a.email}';`,
+    );
+  }
+  console.log(lines.join("\n"));
+  process.exit(0);
+}
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
