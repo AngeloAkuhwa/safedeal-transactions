@@ -313,7 +313,7 @@ const BuyerCart = () => {
   return (
     <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <BuyerSidebar />
-      <main className="flex-1 relative lg:overflow-y-auto">
+      <main className="relative min-w-0 flex-1 lg:overflow-y-auto">
         <div className="sd-page sd-page-y space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -495,9 +495,9 @@ const BuyerCart = () => {
                             const canNavigate = !isSoldOut && !!item.product?.seller_slug && !!item.product?.slug;
                             const clickableContent = (
                               <div
-                                className={`relative flex gap-4 flex-1 min-w-0 ${canNavigate ? "cursor-pointer group/item" : ""}`}
+                                className={`relative flex min-w-0 flex-1 gap-3 sm:gap-4 ${canNavigate ? "cursor-pointer group/item" : ""}`}
                               >
-                                <div className={`h-20 w-20 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
+                                <div className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-32 sm:w-32 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
                                   {item.product?.primary_image ? (
                                     <ProductImage url={item.product.primary_image} alt="" rendition="card" sizes="(max-width: 640px) 80px, 128px" />
                                   ) : (
@@ -529,13 +529,15 @@ const BuyerCart = () => {
                                   {item.product?.short_description && (
                                     <p className="text-xs text-muted-foreground line-clamp-2">{item.product.short_description}</p>
                                   )}
-                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  {/* At 320px this column is ~60px wide; the
+                                      seller link needs its own line to reach 44px. */}
+                                  <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                                     <span>Sold by</span>
                                     {item.product?.seller_slug ? (
                                       <Link
                                         to={`/store/${item.product.seller_slug}`}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="relative z-rail font-medium text-foreground hover:text-primary transition-colors"
+                                        className="relative z-rail inline-flex min-h-11 min-w-11 items-center font-medium text-foreground transition-colors hover:text-primary"
                                       >
                                         {item.product?.seller_name || "Seller"}
                                       </Link>

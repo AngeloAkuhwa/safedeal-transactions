@@ -122,7 +122,7 @@ export default function BuyerMarketplace() {
       <div className="flex flex-1 lg:overflow-hidden">
       {isAuthenticated && <BuyerSidebar />}
 
-      <main className="flex-1 relative lg:overflow-y-auto">
+      <main className="relative min-w-0 flex-1 lg:overflow-y-auto">
         {/* Background glows */}
         <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />

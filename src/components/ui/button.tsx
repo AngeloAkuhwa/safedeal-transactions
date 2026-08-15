@@ -4,8 +4,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// `min-w-11` alongside the per-size `h-11`.
+//
+// Every size below already guarantees a 44px height, and none of them
+// guarantees a width — width is left to the content. That is invisible for a
+// button with a label and wrong for a button with only an icon, which comes
+// out 40-42px wide and fails WCAG 2.5.5 on one axis while passing on the
+// other. It has now been found four times in four different places
+// (`Refresh` on buyer transactions, an icon button on the seller storefront,
+// the password reveals on /auth, and the tabs fixed last week), so the floor
+// belongs here rather than at the fifth call site. A button with a text label
+// is always wider than 44px, so this changes nothing for them.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

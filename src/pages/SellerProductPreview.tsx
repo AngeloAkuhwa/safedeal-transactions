@@ -171,13 +171,15 @@ const SellerProductPreview = () => {
         identityVerified={identityVerified}
       />
 
-      <div className="relative flex flex-1 flex-col lg:overflow-hidden">
+      {/* min-w-0 — see SellerStorefront: without it this pane cannot shrink
+          below its content's min-content width on a phone. */}
+      <div className="relative flex min-w-0 flex-1 flex-col lg:overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-border relative z-rail">
-          <div className="flex items-center gap-4 lg:ml-0 ml-12">
+        <div className="relative z-rail flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
@@ -191,9 +193,11 @@ const SellerProductPreview = () => {
                 <img src={heroImage.file_url} alt="" className="w-full h-full object-cover" />
               </div>
             )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-foreground truncate max-w-[300px]">{product.title}</h1>
+            <div className="min-w-0">
+              {/* min-w-0 on both: `truncate` cannot engage inside a flex row
+                  whose default min-width is auto. */}
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="max-w-full truncate text-xl font-bold text-foreground sm:max-w-[300px]">{product.title}</h1>
                 <ProductStatusBadge status={product.status} />
               </div>
               <p className="text-sm text-muted-foreground">Product preview — read-only view</p>
@@ -285,7 +289,7 @@ const SellerProductPreview = () => {
                     <h3 className="text-sm font-semibold text-foreground mb-1.5">Full Details</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description || "—"}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 pt-4 border-t border-border">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Condition</p>
                       <p className="text-sm font-medium text-foreground">{formatCondition(product.condition_label)}</p>
@@ -386,7 +390,9 @@ const SellerProductPreview = () => {
                       <p className="text-sm text-muted-foreground mb-3">
                         Member since {memberSince}
                       </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Two columns leave ~43px per label at 320px, and
+                          "Completed Sales" needs 62px. */}
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Rating</p>
                           <div className="flex items-center gap-1">
