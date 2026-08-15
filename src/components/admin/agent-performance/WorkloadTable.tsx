@@ -81,8 +81,27 @@ export function WorkloadTable({
         {paged.map((a) => (
           <article key={a.user_id} className={cn("space-y-3 rounded-lg border border-border p-4", rowRingClass(a))}>
             <div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{agentShortName(a)}</p><p className="text-xs text-muted-foreground">{a.role_label} · {availabilityLabel(a.availability)}</p></div><span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold", rankBadgeClass(a.rank))}>{a.rank}</span></div>
-            <dl className="grid grid-cols-3 gap-2 text-center text-xs"><div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold">{a.active_cases}</dd></div><div><dt className="text-muted-foreground">Overdue</dt><dd className="font-semibold">{a.overdue}</dd></div><div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score}</dd></div></dl>
-            <div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => actions.onViewDetail(a)}>View detail</Button>{actions.canViewCases && <Button variant="outline" onClick={() => actions.onViewCases(a)}>View cases</Button>}</div>
+            <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold">{a.active_cases} / {a.max_active}</dd></div>
+              <div><dt className="text-muted-foreground">Waiting</dt><dd className="font-semibold">{a.waiting_cases}</dd></div>
+              <div><dt className="text-muted-foreground">Critical</dt><dd className={cn("font-semibold", a.critical_cases > 0 && "text-amber-300")}>{a.critical_cases}</dd></div>
+              <div><dt className="text-muted-foreground">Resolved</dt><dd className="font-semibold">{a.resolved}</dd></div>
+              <div><dt className="text-muted-foreground">Avg time</dt><dd className="font-semibold">{hoursLabel(a.avg_resolution_hours)}</dd></div>
+              <div><dt className="text-muted-foreground">Overdue</dt><dd className={cn("font-semibold", a.overdue > 0 && "text-rose-300")}>{a.overdue}</dd></div>
+              <div><dt className="text-muted-foreground">Workload</dt><dd className="font-semibold">{workloadStatusLabel(workloadStatus(a))}</dd></div>
+              <div><dt className="text-muted-foreground">SLA</dt><dd className="font-semibold">{a.sla_compliance}%</dd></div>
+              <div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score} <span className="block text-[10px] font-normal text-muted-foreground">{a.score_band}</span></dd></div>
+            </dl>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => actions.onViewDetail(a)}>View detail</Button>
+              {actions.canViewCases && <Button variant="outline" onClick={() => actions.onViewCases(a)}>View cases</Button>}
+              {(a.overdue > 0 || a.breached > 0) && actions.canReviewSla && (
+                <Button variant="outline" onClick={() => actions.onReviewSla(a)}>Review SLA</Button>
+              )}
+              {(a.at_capacity || a.overdue > 0) && actions.canRebalance && (
+                <Button variant="outline" onClick={() => actions.onRebalance(a)}>Rebalance</Button>
+              )}
+            </div>
           </article>
         ))}
       </div>
