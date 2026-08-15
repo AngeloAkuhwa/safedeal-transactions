@@ -161,7 +161,7 @@ export function BuyerSidebar() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/dashboard/profile")}
-                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11"
+                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11 min-w-11"
                 >
                   <Settings className="h-4 w-4" />
                 </button>

@@ -288,7 +288,7 @@ export function TaskDetailsDrawer({
                             <div className="text-xs text-muted-foreground">{humanize(e.kind)} · {relative(e.created_at)}</div>
                           </div>
                           {e.url && (
-                            <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                            <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline min-h-11">
                               Open <ExtLink className="h-3 w-3" />
                             </a>
                           )}
@@ -441,7 +441,7 @@ function RecordCard({ title, data, linkLabel, href }: {
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
         {href && linkLabel && (
-          <Link to={href} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <Link to={href} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline min-h-11">
             {linkLabel} <ExternalLink className="h-3 w-3" />
           </Link>
         )}
@@ -472,7 +472,7 @@ function PartyCard({ title, data }: { title: string; data: Record<string, any> |
       <div className="mb-1.5 flex items-center justify-between">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
         {data.id && (
-          <Link to={`/admin/users/${data.id}/profile`} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <Link to={`/admin/users/${data.id}/profile`} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline min-h-11">
             View profile <ExtLink className="h-3 w-3" />
           </Link>
         )}
@@ -482,13 +482,13 @@ function PartyCard({ title, data }: { title: string; data: Record<string, any> |
         {email && (
           <div className="flex items-center gap-1.5">
             <span>{email}</span>
-            <button type="button" onClick={() => navigator.clipboard.writeText(email)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"><Copy className="h-3 w-3" /></button>
+            <button type="button" onClick={() => navigator.clipboard.writeText(email)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"><Copy className="h-3 w-3" /></button>
           </div>
         )}
         {phone && (
           <div className="flex items-center gap-1.5">
             <span>{phone}</span>
-            <button type="button" onClick={() => navigator.clipboard.writeText(phone)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"><Copy className="h-3 w-3" /></button>
+            <button type="button" onClick={() => navigator.clipboard.writeText(phone)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"><Copy className="h-3 w-3" /></button>
           </div>
         )}
       </div>

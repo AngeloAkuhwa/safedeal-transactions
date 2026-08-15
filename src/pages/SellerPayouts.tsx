@@ -38,7 +38,7 @@ function CardInfoTip({ children }: { children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground relative before:absolute before:-inset-4 before:content-['']">
+        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground relative before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11">
           <Info className="h-3.5 w-3.5" />
         </button>
       </TooltipTrigger>

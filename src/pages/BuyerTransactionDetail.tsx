@@ -289,7 +289,7 @@ const BuyerTransactionDetail = () => {
       {/* Back link bar */}
       <div className="bg-card border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
-          <Link to="/dashboard/transactions" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
+          <Link to="/dashboard/transactions" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors min-h-11">
             <ArrowLeft className="h-4 w-4" /> Back to My Purchases
           </Link>
         </div>

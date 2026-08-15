@@ -962,7 +962,7 @@ export default function BuyerPaymentSummary() {
                 <button
                   onClick={() => navigate(`/t/${shareToken}`)}
                   disabled={isProcessing}
-                  className="w-full bg-transparent border-2 border-border text-foreground font-semibold py-3 rounded-xl hover:bg-muted transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full bg-transparent border-2 border-border text-foreground font-semibold py-3 rounded-xl hover:bg-muted transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-11"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   <span>Back to Review</span>

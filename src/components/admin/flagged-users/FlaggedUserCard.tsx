@@ -53,7 +53,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
 
       {showDetails && (
         <details className="group border-t border-slate-800">
-          <summary className="flex items-center justify-between px-4 py-3 bg-slate-800/30 cursor-pointer list-none">
+          <summary className="flex items-center justify-between px-4 py-3 bg-slate-800/30 cursor-pointer list-none min-h-11">
             <span className="text-xs font-semibold text-slate-300">Fraud Context &amp; Details</span>
             <ChevronDown className="h-3 w-3 text-slate-400 transition-transform group-open:rotate-180" />
           </summary>

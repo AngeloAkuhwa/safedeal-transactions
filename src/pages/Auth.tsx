@@ -83,7 +83,7 @@ const Auth = () => {
       <div className="lg:hidden p-4">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
@@ -98,7 +98,7 @@ const Auth = () => {
           {/* Right panel */}
           <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
             {/* Mobile logo */}
-            <Link to="/" className="flex items-center justify-center gap-2 mb-6 lg:hidden hover:opacity-80 transition-opacity">
+            <Link to="/" className="flex items-center justify-center gap-2 mb-6 lg:hidden hover:opacity-80 transition-opacity min-h-11">
               <Shield className="h-7 w-7 text-primary" />
               <span className="text-xl font-bold text-foreground">SafeDeal</span>
             </Link>

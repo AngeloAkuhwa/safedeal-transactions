@@ -65,7 +65,7 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-card/85 backdrop-blur-lg shadow-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity min-h-11">
           <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
             <Shield className="h-5 w-5 text-primary-foreground" />
           </div>

@@ -35,7 +35,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
       <SheetContent side="right" className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 text-slate-200 p-0 overflow-y-auto">
         <div className="sticky top-0 bg-slate-900 border-b border-slate-800 px-5 py-4 flex items-center justify-between z-10">
           <h3 className="text-white font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> User Detail</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded min-h-11"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded min-h-11 min-w-11 inline-flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
 
         {isLoading && (

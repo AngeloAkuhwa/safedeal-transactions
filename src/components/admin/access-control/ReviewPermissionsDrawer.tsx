@@ -348,7 +348,7 @@ function OverrideList({
             type="button"
             onClick={() => onRequestRemove(o.permission_key)}
             title={tone === "emerald" ? "Request revoke" : "Request re-grant"}
-            className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
+            className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
           >
             <X className="h-3.5 w-3.5" />
           </button>

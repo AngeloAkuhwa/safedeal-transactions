@@ -342,7 +342,7 @@ const CartCheckoutReview = () => {
                         {seller?.store_slug && (
                           <Link
                             to={`/store/${seller.store_slug}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1 min-h-11"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Store className="h-3 w-3" />

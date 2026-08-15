@@ -53,7 +53,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
               <div className="text-xs text-muted-foreground">Mute this segregation-of-duties finding with a reason.</div>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted min-h-11" aria-label="Close">
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </header>

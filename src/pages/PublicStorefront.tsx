@@ -75,7 +75,7 @@ const PublicStorefront = () => {
       {/* Minimal header */}
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Shield className="h-4 w-4 text-primary-foreground" />
             </div>
@@ -129,7 +129,7 @@ const PublicStorefront = () => {
                 <Link
                   key={product.id}
                   to={`/store/${sellerSlug}/${product.slug}`}
-                  className="block"
+                  className="block min-h-11"
                 >
                   <ProductCard product={product} showBadges={false} />
                 </Link>

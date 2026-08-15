@@ -81,7 +81,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted min-h-11"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

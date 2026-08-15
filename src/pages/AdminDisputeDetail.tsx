@@ -472,7 +472,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           )}
           <button
             onClick={() => navigate("/admin/disputes")}
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted min-h-11"
+            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center"
             aria-label="Back to disputes"
           >
             <ArrowLeft className="h-4 w-4" />

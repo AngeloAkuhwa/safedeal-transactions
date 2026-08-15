@@ -698,7 +698,7 @@ export default function AdminAuditLogs() {
                               </Button>
                             )}
                             {r.target.transaction_id && (
-                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
+                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white min-w-11 inline-flex items-center justify-center">
                                 <ArrowRight className="h-3 w-3" /><span className="hidden xl:inline ml-1">TXN</span>
                               </Button>
                             )}

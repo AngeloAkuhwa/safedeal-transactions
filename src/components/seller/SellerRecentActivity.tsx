@@ -191,7 +191,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             return (
               <div role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={row.transaction_id}
-                className="px-4 py-3 sd-row-hover cursor-pointer"
+                className="px-4 py-3 sd-row-hover cursor-pointer min-h-11"
                 onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">

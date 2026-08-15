@@ -218,14 +218,14 @@ export function UnassignedTaskQueue({
             <button
               disabled={pageNum <= 1}
               onClick={() => onFiltersChange({ page: pageNum - 1 })}
-              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11"
+              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11 min-w-11 inline-flex items-center justify-center"
             >
               <ChevronLeft className="h-3 w-3" />
             </button>
             <button
               disabled={pageNum * perPage >= total}
               onClick={() => onFiltersChange({ page: pageNum + 1 })}
-              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11"
+              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11 min-w-11 inline-flex items-center justify-center"
             >
               <ChevronRight className="h-3 w-3" />
             </button>

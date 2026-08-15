@@ -261,7 +261,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
             type="button"
             onClick={handleLogout}
             aria-label="Log out"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11 min-w-11 inline-flex items-center justify-center"
           >
             <LogOut className="h-4 w-4" />
           </button>

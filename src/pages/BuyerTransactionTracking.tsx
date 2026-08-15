@@ -99,7 +99,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
       <button
-        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11"
+        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11 min-w-11 inline-flex items-center justify-center"
         onClick={onClose}
         aria-label="Close"
       >

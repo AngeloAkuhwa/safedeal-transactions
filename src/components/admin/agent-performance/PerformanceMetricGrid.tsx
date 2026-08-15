@@ -115,7 +115,7 @@ export function PerformanceMetricGrid({
               <span className="text-xs uppercase tracking-wide text-muted-foreground">{t.label}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label={`About ${t.label}`} className="text-muted-foreground/70 hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']">
+                  <button type="button" aria-label={`About ${t.label}`} className="text-muted-foreground/70 hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11">
                     <Info className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>

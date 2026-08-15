@@ -56,7 +56,7 @@ function InfoTip({ children }: { children: React.ReactNode }) {
           type="button"
           aria-label="More info"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative before:absolute before:-inset-4 before:content-['']"
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
         >
           <Info className="h-3.5 w-3.5" />
         </button>
@@ -332,7 +332,7 @@ const SellerTransactions = () => {
                     <button
                       type="button"
                       onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
-                      className="w-full space-y-2 px-3 py-3 text-left transition-colors active:bg-muted/50"
+                      className="w-full space-y-2 px-3 py-3 text-left transition-colors active:bg-muted/50 min-h-11"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium">

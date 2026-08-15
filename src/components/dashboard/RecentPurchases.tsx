@@ -88,7 +88,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
         </div>
         <Link
           to="/dashboard/transactions"
-          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 min-h-11"
         >
           View All
           <ArrowRight className="h-3 w-3" />

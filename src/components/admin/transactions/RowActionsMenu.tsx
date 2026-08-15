@@ -41,7 +41,7 @@ export function RowActionsMenu({ row, handlers, align = "end", trigger }: { row:
               type="button"
               aria-label="More actions"
               onClick={(e) => e.stopPropagation()}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11 min-w-11 inline-flex items-center justify-center"
             >
               <MoreVertical className="h-4 w-4" />
             </button>

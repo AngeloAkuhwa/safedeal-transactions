@@ -626,7 +626,7 @@ const SellerCreateTransaction = () => {
                           <p className="text-sm font-medium text-foreground truncate">{video.original_name}</p>
                           <p className="text-xs text-muted-foreground">{video.fingerprint}</p>
                         </div>
-                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full min-h-11">
+                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full min-h-11 min-w-11 inline-flex items-center justify-center">
                           <X className="h-4 w-4 text-destructive" />
                         </button>
                       </div>

@@ -125,7 +125,7 @@ export function PendingApprovalTable({
                           <Link
                             to={`/admin/task-orchestration?rules_change=${r.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline min-h-11"
                           >
                             {r.target_label}
                             <ExternalLink className="h-3 w-3" />

@@ -115,7 +115,7 @@ export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [],
               href={tracking.tracking_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline min-h-11"
             >
               <ExternalLink className="h-4 w-4" /> Track shipment with carrier
             </a>

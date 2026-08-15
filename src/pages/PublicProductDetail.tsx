@@ -266,7 +266,7 @@ const PublicProductDetail = () => {
 
       {/* Breadcrumb */}
        <div className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground">
-         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="inline-flex min-h-11 items-center px-1 hover:text-foreground">Home</Link>
+         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="inline-flex min-h-11 items-center px-1 hover:text-foreground min-w-11 justify-center">Home</Link>
         <ChevronRight className="h-3 w-3" />
         {product.category && (
           <>
@@ -694,7 +694,7 @@ const PublicProductDetail = () => {
     <div className="min-h-[100dvh] bg-background flex flex-col">
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Shield className="h-4 w-4 text-primary-foreground" />
             </div>
