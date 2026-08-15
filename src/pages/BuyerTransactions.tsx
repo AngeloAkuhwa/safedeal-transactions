@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -56,6 +56,7 @@ const BuyerTransactions = () => {
     queryFn: () => getBuyerTransactions(filters),
     retry: 1,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
   const hasActiveFilters =
@@ -108,23 +109,24 @@ const BuyerTransactions = () => {
         </section>
 
         <div className="sd-page sd-page-y space-y-4">
+          {/* Filters — always mounted in this one slot so the input never
+              unmounts (and loses focus) across loading/error/success states. */}
+          <div className="sd-fade-in-stagger sd-delay-1">
+            <TransactionFilters
+              search={search}
+              onSearchChange={setSearch}
+              transactionStatus={transactionStatus}
+              onTransactionStatusChange={setTransactionStatus}
+              moneyStatus={moneyStatus}
+              onMoneyStatusChange={setMoneyStatus}
+              statusCounts={data?.status_counts ?? null}
+              onClearFilters={clearFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
+          </div>
+
           {/* Loading */}
-          {isLoading && (
-            <>
-              <TransactionFilters
-                search={search}
-                onSearchChange={setSearch}
-                transactionStatus={transactionStatus}
-                onTransactionStatusChange={setTransactionStatus}
-                moneyStatus={moneyStatus}
-                onMoneyStatusChange={setMoneyStatus}
-                statusCounts={null}
-                onClearFilters={clearFilters}
-                hasActiveFilters={hasActiveFilters}
-              />
-              <TransactionTable transactions={[]} isLoading audience="buyer" />
-            </>
-          )}
+          {isLoading && <TransactionTable transactions={[]} isLoading audience="buyer" />}
 
           {/* Error */}
           {isError && !isLoading && (
@@ -149,20 +151,6 @@ const BuyerTransactions = () => {
           {/* Success */}
           {data && !isLoading && !isError && (
             <>
-              <div className="sd-fade-in-stagger sd-delay-1">
-              <TransactionFilters
-                search={search}
-                onSearchChange={setSearch}
-                transactionStatus={transactionStatus}
-                onTransactionStatusChange={setTransactionStatus}
-                moneyStatus={moneyStatus}
-                onMoneyStatusChange={setMoneyStatus}
-                statusCounts={data.status_counts}
-                onClearFilters={clearFilters}
-                hasActiveFilters={hasActiveFilters}
-              />
-              </div>
-
               {isNoData && (
                 <TransactionsEmptyState variant="no-data" />
               )}

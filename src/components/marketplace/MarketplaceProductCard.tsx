@@ -132,7 +132,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             className={cn(
               // Visual size stays 32px; the pseudo-element expands the real hit
               // area to 48x48 (>=44px) without shifting layout.
-              "absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
+              "absolute right-2.5 top-2.5 z-rail flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
               "before:absolute before:-inset-2 before:content-['']",
               isSaved ? "text-destructive" : "text-muted-foreground hover:text-destructive"
             )}
@@ -150,7 +150,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 e.stopPropagation();
                 if (seller.store_slug) navigate(`/store/${seller.store_slug}`);
               }}
-              className="relative z-10 flex min-h-11 min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
+              className="relative z-rail flex min-h-11 min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
             >
               <div
                 className={cn(
@@ -214,7 +214,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               size="icon"
               variant={outOfStock ? "outline" : "default"}
               aria-label={outOfStock ? "Notify me when back in stock" : "Add to cart"}
-              className="relative z-10 h-8 w-8 shrink-0 rounded-lg before:absolute before:-inset-2 before:content-['']"
+              className="relative z-rail h-8 w-8 shrink-0 rounded-lg before:absolute before:-inset-2 before:content-['']"
               disabled={outOfStock || addingToCart}
               onClick={async (e) => {
                 e.stopPropagation();

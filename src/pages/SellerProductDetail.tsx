@@ -339,7 +339,7 @@ const SellerProductDetail = () => {
         </div>
 
         {/* Content — document scroll, no nested scroller */}
-        <div className="relative z-10 flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="relative z-rail flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           <div className="grid max-w-7xl grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-4">
             {/* Main content — col-span-3 */}
             <div className="xl:col-span-3 space-y-6">

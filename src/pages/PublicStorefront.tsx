@@ -47,7 +47,9 @@ const PublicStorefront = () => {
     enabled: Boolean(storeName),
   });
 
-  if (isLoading) {
+  const showInitialSkeleton = isLoading;
+
+  if (showInitialSkeleton && !data) {
     return (
       <div className="min-h-[100dvh] bg-background">
         <Skeleton className="h-14 w-full rounded-none" />

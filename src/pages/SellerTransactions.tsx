@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatMoney } from "@/lib/format";
 import { useSearchParams, useNavigate, Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
@@ -114,6 +114,7 @@ const SellerTransactions = () => {
     queryFn: () => getSellerTransactions(filters),
     retry: 1,
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 
   if (isLoading && !data) {
@@ -489,7 +490,7 @@ const SellerTransactions = () => {
                                         navigate(`/seller/transactions/${tx.transaction_id}#messages`);
                                       }}
                                       aria-label={`${tx.unread_message_count} unread messages`}
-                                      className="relative z-10 ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
+                                      className="relative z-rail ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
                                     >
                                       <MessageCircle className="h-4 w-4 text-primary" />
                                       <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground">
