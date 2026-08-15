@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import {
   Shield, Lock, AlertTriangle, ShieldAlert, ShieldCheck, CreditCard,
@@ -162,7 +163,7 @@ export default function BuyerTransactionReview() {
         <div className="max-w-7xl mx-auto px-4 py-8 w-full space-y-6">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid gap-5 sm:gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
               <Skeleton className="h-64 w-full rounded-2xl" />
               <Skeleton className="h-80 w-full rounded-2xl" />
@@ -327,16 +328,20 @@ export default function BuyerTransactionReview() {
 
       {/* Lock state — green confirmation when locked, red warning when not */}
       {data.transaction.agreement_locked_at ? (
-        <section className="py-6 bg-success/5">
+        <section className="bg-success/5 py-3 sm:py-6">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="bg-card border-2 border-success/40 rounded-2xl shadow-lg p-6">
+            <div className="rounded-2xl border-2 border-success/40 bg-card p-4 shadow-lg sm:p-6">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 bg-success/10 rounded-xl flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-7 w-7 text-success" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-foreground mb-3">Agreement Locked &amp; Funds Held Securely</h3>
-                  <div className="space-y-2 mb-4">
+                  <details open={!isMobile} className="mb-4 group">
+                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden">
+                      What is locked
+                    </summary>
+                  <div className="space-y-2">
                     {[
                       { bold: "Item details", rest: "are now frozen and cannot be edited" },
                       { bold: "Quantity, condition, and price", rest: "are immutable" },
@@ -351,6 +356,7 @@ export default function BuyerTransactionReview() {
                       </div>
                     ))}
                   </div>
+                  </details>
                   <div className="bg-success/10 border border-success/30 rounded-lg p-3 mb-4">
                     <div className="flex items-center gap-2 text-sm text-success">
                       <Lock className="h-4 w-4 shrink-0" />
@@ -369,16 +375,20 @@ export default function BuyerTransactionReview() {
           </div>
         </section>
       ) : (
-        <section className="py-6 bg-destructive/5">
+        <section className="bg-destructive/5 py-3 sm:py-6">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="bg-card border-2 border-destructive/40 rounded-2xl shadow-lg p-6">
+            <div className="rounded-2xl border-2 border-destructive/40 bg-card p-4 shadow-lg sm:p-6">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 bg-destructive/10 rounded-xl flex items-center justify-center shrink-0">
                   <Lock className="h-7 w-7 text-destructive" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-foreground mb-3">Critical: Agreement Becomes Permanently Locked After Payment</h3>
-                  <div className="space-y-2 mb-4">
+                  <details open={!isMobile} className="mb-4">
+                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden">
+                      What gets locked after payment
+                    </summary>
+                  <div className="space-y-2">
                     {[
                       { bold: "Item details", rest: "(title, description, images) cannot be changed" },
                       { bold: "Quantity and condition", rest: "specifications are frozen" },
@@ -393,6 +403,7 @@ export default function BuyerTransactionReview() {
                       </div>
                     ))}
                   </div>
+                  </details>
                   <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
                     <div className="flex items-center gap-2 text-sm text-destructive">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -415,8 +426,8 @@ export default function BuyerTransactionReview() {
       )}
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 w-full">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-4 sm:py-8">
+        <div className="grid gap-5 sm:gap-8 lg:grid-cols-3">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             <SellerIdentityCard data={data} />
