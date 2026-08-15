@@ -502,7 +502,7 @@ const BuyerCart = () => {
                                       {item.product?.title || "Unknown Product"}
                                     </h3>
                                     {canNavigate && (
-                                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                     )}
                                   </div>
                                   {item.product?.short_description && (
