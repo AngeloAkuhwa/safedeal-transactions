@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,12 @@ const SellerStorefront = () => {
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  // Debounced so the list keeps rendering (and the input keeps focus) while typing.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [manageProduct, setManageProduct] = useState<any>(null);
   const [stockProduct, setStockProduct] = useState<any>(null);
   const [actionPending, setActionPending] = useState(false);
@@ -76,15 +82,16 @@ const SellerStorefront = () => {
   });
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["seller-products", statusFilter, visibilityFilter, categoryFilter, search],
+    queryKey: ["seller-products", statusFilter, visibilityFilter, categoryFilter, debouncedSearch],
     queryFn: () =>
       getSellerProducts({
         status: statusFilter === "low_stock" ? "all" : statusFilter,
         visibility: visibilityFilter,
         category: categoryFilter,
-        search,
+        search: debouncedSearch,
       }),
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 
   const isLowStockProduct = (p: any) => {
