@@ -23,6 +23,7 @@ import {
   validateProductImageStandard,
 } from "@/lib/image-quality";
 import { useMediaConfig } from "@/hooks/useMediaConfig";
+import { useVendorPlan } from "@/hooks/useVendorPlan";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/sonner";
 import { createProduct, getProductCategories } from "@/services/seller-storefront.service";
@@ -77,6 +78,19 @@ const SellerProductCreate = () => {
   const [deliveryScope, setDeliveryScope] = useState("");
   const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState("");
   const { config: mediaConfig } = useMediaConfig();
+  const { state: planState } = useVendorPlan();
+  // Photo capacity is a PLAN limit, enforced server-side. Surfacing it here
+  // stops the server rejecting a listing after the seller already paid the
+  // upload bandwidth. When the plan has not loaded we fall back to the media
+  // config cap rather than inventing a number.
+  const planPhotoSlots =
+    planState
+      ? (planState.plans.find((p) => p.code === planState.current.plan_code)?.photo_slots ?? null)
+      : null;
+  const effectiveMaxImages =
+    planPhotoSlots === null
+      ? mediaConfig.productMaxImages
+      : Math.min(mediaConfig.productMaxImages, planPhotoSlots + planState!.current.extra_photo_slots);
   const acceptAttr = [
     ...mediaConfig.imageAllowedFormats.map((f) => `image/${f}`),
     ...mediaConfig.videoAllowedFormats.map((f) => `video/${f}`),
@@ -146,8 +160,12 @@ const SellerProductCreate = () => {
           continue;
         }
       } else {
-        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= mediaConfig.productMaxImages) {
-          toast.error(`Maximum ${mediaConfig.productMaxImages} images allowed.`);
+        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= effectiveMaxImages) {
+          toast.error(
+            planPhotoSlots !== null && effectiveMaxImages < mediaConfig.productMaxImages
+              ? `Your plan includes ${effectiveMaxImages} photo slots. Buy extra slots to add more.`
+              : `Maximum ${effectiveMaxImages} images allowed.`,
+          );
           continue;
         }
       }
