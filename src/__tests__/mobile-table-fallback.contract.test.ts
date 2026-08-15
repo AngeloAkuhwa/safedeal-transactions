@@ -164,12 +164,23 @@ describe("mobile table fallbacks", () => {
           idents.add(im[1]);
         }
       }
+      // Substring matching made this test soft: `total` was "found" inside
+      // `subtotal`, and a leaf name mentioned in a comment or a Tailwind class
+      // string counted as rendered. Strip comments + class literals, then match
+      // on word boundaries only.
+      const searchable = mobileRegion
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, " ")
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/\/\/[^\n]*/g, " ")
+        .replace(/className=(?:"[^"]*"|\{`[^`]*`\})/g, " ")
+        .replace(/aria-label="[^"]*"/g, " ");
+
       for (const ident of idents) {
         // The leaf property name is what matters for parity (e.g. `isUrgent`
         // out of `d.isUrgent`); the mobile branch may reach it via a
         // differently-named local variable derived from the same field.
         const leaf = ident.split(/\??\./).pop()!;
-        if (!mobileRegion.includes(leaf)) {
+        if (!new RegExp(`\\b${leaf}\\b`).test(searchable)) {
           violations.push(`${file}: desktop-only field "${leaf}" (from ${ident}) missing from the mobile card branch`);
         }
       }
