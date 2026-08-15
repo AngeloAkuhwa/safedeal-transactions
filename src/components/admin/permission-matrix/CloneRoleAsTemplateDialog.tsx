@@ -49,7 +49,7 @@ export function CloneRoleAsTemplateDialog({
           </p>
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Template name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm" />
           </label>
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Description</span>

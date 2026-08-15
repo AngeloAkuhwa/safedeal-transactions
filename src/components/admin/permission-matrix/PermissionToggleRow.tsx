@@ -68,7 +68,7 @@ export function PermissionToggleRow({
           onClick={() => onToggle(role, permissionKey, currentlyGranted)}
           title={(guard as any).message ?? (canManage ? (effectivelyGranted ? "Stage revoke" : "Stage grant") : "Read-only")}
           className={cn(
-            "inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[10px] font-semibold transition",
+            "inline-flex h-11 items-center gap-0.5 rounded-full border px-1.5 text-[10px] font-semibold transition",
             disabled && "cursor-not-allowed opacity-50",
             effectivelyGranted
               ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"

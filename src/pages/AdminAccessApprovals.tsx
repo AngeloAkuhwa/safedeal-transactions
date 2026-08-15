@@ -120,7 +120,7 @@ export default function AdminAccessApprovals() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm sd-stack">
             <thead className="bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 text-left">Type</th>

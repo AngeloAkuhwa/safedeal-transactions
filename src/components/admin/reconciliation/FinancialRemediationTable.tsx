@@ -48,7 +48,7 @@ export function FinancialRemediationTable({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm sd-stack">
               <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="p-3 w-8" />

@@ -310,7 +310,7 @@ const BuyerCart = () => {
   const needsAttentionCount = items.filter((i) => !getStockStatus(i).canCheckout).length;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         <div className="sd-page sd-page-y space-y-4">
@@ -326,7 +326,7 @@ const BuyerCart = () => {
               </h1>
               <p className="sd-page-sub">Review your saved items and proceed to checkout</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-8 text-xs">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-11 text-xs">
               <ShoppingBag className="h-3.5 w-3.5" />
               Continue Shopping
             </Button>
@@ -367,7 +367,7 @@ const BuyerCart = () => {
               </div>
               <Button
                 size="sm"
-                className="gap-1.5 h-8 text-xs shrink-0"
+                className="gap-1.5 h-11 text-xs shrink-0"
                 onClick={() => navigate(`/dashboard/cart/checkout?session=${activeSessionId}`)}
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -385,7 +385,7 @@ const BuyerCart = () => {
               <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
               <h2 className="text-base font-semibold text-foreground">Your cart is empty</h2>
               <p className="text-sm text-muted-foreground">Browse the marketplace to find products</p>
-              <Button size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-8 text-xs">
+              <Button size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-11 text-xs">
                 <ShoppingBag className="h-3.5 w-3.5" /> Browse Marketplace
               </Button>
             </div>
@@ -610,13 +610,13 @@ const BuyerCart = () => {
                                   placeholder="Address line 1 *"
                                   value={draft.delivery_address.line1 || ""}
                                   onChange={(e) => updateDraftAddress(item.id, { line1: e.target.value })}
-                                  className="h-8 text-xs sm:col-span-2"
+                                  className="h-11 text-xs sm:col-span-2"
                                 />
                                 <Input
                                   placeholder="Address line 2"
                                   value={draft.delivery_address.line2 || ""}
                                   onChange={(e) => updateDraftAddress(item.id, { line2: e.target.value })}
-                                  className="h-8 text-xs sm:col-span-2"
+                                  className="h-11 text-xs sm:col-span-2"
                                 />
                                 <Input
                                   placeholder="City *"
@@ -697,7 +697,7 @@ const BuyerCart = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                                  className="gap-1.5 h-11 text-xs border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
                                   onClick={() => navigate(`/dashboard/cart/checkout?session=${item.product!.active_checkout_session_id}`)}
                                 >
                                   <ShieldCheck className="h-3.5 w-3.5" />

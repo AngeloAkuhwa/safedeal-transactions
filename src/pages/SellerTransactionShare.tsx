@@ -28,7 +28,7 @@ const SellerTransactionShare = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -36,7 +36,7 @@ const SellerTransactionShare = () => {
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <RefreshCw className="h-7 w-7 text-destructive" />
         <h2 className="text-xl font-bold text-foreground">Could not load transaction</h2>
         <p className="text-muted-foreground text-sm">{(error as Error)?.message}</p>
@@ -79,7 +79,7 @@ const SellerTransactionShare = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav
         sellerName={navData?.seller.full_name ?? "Seller"}
         avatarUrl={navData?.seller.avatar_url ?? null}

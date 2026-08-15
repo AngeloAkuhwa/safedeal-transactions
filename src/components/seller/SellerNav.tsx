@@ -80,7 +80,7 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "text-primary font-semibold bg-primary/5"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -141,7 +141,7 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
               key={link.href}
               to={link.href}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors min-h-11"
             >
               <link.icon className="h-4 w-4" />
               {link.label}
@@ -149,7 +149,7 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
           ))}
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-11"
           >
             <LogOut className="h-4 w-4" />
             Sign Out

@@ -518,7 +518,7 @@ export default function AdminTransactionDetail() {
     <header className={cn("sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
       <div className="flex items-center justify-between gap-4 px-6 pt-3 pb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted" aria-label="Back">
+          <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted min-h-11" aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
@@ -534,7 +534,7 @@ export default function AdminTransactionDetail() {
               <button
                 type="button"
                 onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
-                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 min-h-11"
                 title="Copy code"
                 aria-label="Copy transaction code"
               >
@@ -640,7 +640,7 @@ export default function AdminTransactionDetail() {
                   type="button"
                   onClick={() => scrollToId(s.id)}
                   className={cn(
-                    "px-2.5 py-1 rounded-md whitespace-nowrap transition-colors",
+                    "px-2.5 py-1 rounded-md whitespace-nowrap transition-colors min-h-11",
                     activeAnchor === s.id
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -659,11 +659,11 @@ export default function AdminTransactionDetail() {
   const mobileHeaderSlot = ({ onOpenMenu }: { onOpenMenu: () => void }) => (
     <header className="lg:hidden sticky top-0 z-30 border-b border-border bg-card">
       <div className="flex items-center justify-between px-3 py-2.5">
-        <button type="button" onClick={() => navigate(returnTo)} className="p-2 text-muted-foreground" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
+        <button type="button" onClick={() => navigate(returnTo)} className="p-2 text-muted-foreground min-h-11" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
           <ShieldCheck className="h-4 w-4 text-white" />
         </div>
-        <button type="button" onClick={onOpenMenu} className="p-2 text-muted-foreground" aria-label="Menu"><MoreVertical className="h-4 w-4" /></button>
+        <button type="button" onClick={onOpenMenu} className="p-2 text-muted-foreground min-h-11" aria-label="Menu"><MoreVertical className="h-4 w-4" /></button>
       </div>
     </header>
   );
@@ -1075,7 +1075,7 @@ export default function AdminTransactionDetail() {
                     type="button"
                     onClick={() => setTlFilter(f.key)}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs border",
+                      "rounded-full px-3 py-1 text-xs border min-h-11",
                       tlFilter === f.key
                         ? "bg-primary/15 border-primary/40 text-primary"
                         : "border-border text-muted-foreground hover:text-foreground",
@@ -1481,7 +1481,7 @@ export default function AdminTransactionDetail() {
                                 type="button"
                                 onClick={() => !unavailable && setEvidencePreview(ev)}
                                 disabled={unavailable}
-                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent min-h-11"
                               >
                                 <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                   <Icon className="h-4 w-4 text-muted-foreground" />

@@ -10,7 +10,7 @@ export default function LegalPrivacy() {
   usePageMeta({ title: TITLE, description: DESCRIPTION, path: "/legal/privacy" });
 
   return (
-    <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-6">
+    <main className="min-h-[100dvh] bg-background px-4 py-12 text-foreground sm:px-6">
       <div className="mx-auto w-full max-w-3xl">
         <Link
           to="/"

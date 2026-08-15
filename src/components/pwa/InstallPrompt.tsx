@@ -150,13 +150,13 @@ export function InstallPrompt() {
             Open your transactions in one tap.
           </p>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" className="tap-press h-10 flex-1 rounded-xl" onClick={install}>
+            <Button size="sm" className="tap-press h-11 flex-1 rounded-xl" onClick={install}>
               Add
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              className="tap-press h-10 flex-1 rounded-xl"
+              className="tap-press h-11 flex-1 rounded-xl"
               onClick={dismiss}
             >
               Not now
@@ -167,7 +167,7 @@ export function InstallPrompt() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss install prompt"
-          className="tap-press -mr-1 -mt-1 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="tap-press -mr-1 -mt-1 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

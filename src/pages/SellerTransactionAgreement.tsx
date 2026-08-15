@@ -42,7 +42,7 @@ export default function SellerTransactionAgreement() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] bg-background">
         <SellerNav sellerName={sellerName} avatarUrl={avatarUrl} />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
           <h2 className="text-2xl font-bold text-foreground mb-4">Unable to Load Agreement</h2>
@@ -61,7 +61,7 @@ export default function SellerTransactionAgreement() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] bg-background">
         <SellerNav sellerName={sellerName} avatarUrl={avatarUrl} />
         <div className="max-w-5xl mx-auto px-4 py-16 space-y-8">
           <Skeleton className="h-64 w-full rounded-2xl" />
@@ -78,7 +78,7 @@ export default function SellerTransactionAgreement() {
     data.transaction.money_status !== "payment_pending";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <SellerNav sellerName={sellerName} avatarUrl={avatarUrl} />
       <AgreementHero isLocked={isLocked} />
       <LockedSnapshotCard data={data} />

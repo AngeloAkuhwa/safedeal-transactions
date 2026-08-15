@@ -90,12 +90,12 @@ export function SellerDisputeFilters({
           placeholder="Search by code, buyer, item, or reason..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9 h-9"
+          className="pl-9 h-11"
         />
       </div>
 
       <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger className="h-9 w-52">
+        <SelectTrigger className="h-11 w-52">
           <Filter className="h-3.5 w-3.5 mr-1.5" />
           <SelectValue placeholder="All Status" />
         </SelectTrigger>
@@ -109,7 +109,7 @@ export function SellerDisputeFilters({
       </Select>
 
       <Select value={reason} onValueChange={onReasonChange}>
-        <SelectTrigger className="h-9 w-52">
+        <SelectTrigger className="h-11 w-52">
           <SelectValue placeholder="All Reasons" />
         </SelectTrigger>
         <SelectContent>
@@ -127,7 +127,7 @@ export function SellerDisputeFilters({
       <Button
         variant="outline"
         size="sm"
-        className="h-9 gap-1.5"
+        className="h-11 gap-1.5"
         onClick={() => onExportClick?.()}
       >
         <Download className="h-3.5 w-3.5" />
@@ -135,7 +135,7 @@ export function SellerDisputeFilters({
       </Button>
 
       {hasActiveFilters && (
-        <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground" onClick={onClearFilters}>
+        <Button variant="ghost" size="sm" className="h-11 gap-1.5 text-muted-foreground" onClick={onClearFilters}>
           <X className="h-3.5 w-3.5" />
           Clear ({totalCount})
         </Button>

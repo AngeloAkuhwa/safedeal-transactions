@@ -34,7 +34,7 @@ export function SellerDashboardHero({ sellerName, identityVerified }: SellerDash
           </div>
           <Button
             size="sm"
-            className="bg-success hover:bg-success/90 text-success-foreground h-8 text-xs shrink-0"
+            className="bg-success hover:bg-success/90 text-success-foreground h-11 text-xs shrink-0"
             onClick={() => navigate("/seller/transactions/new")}
           >
             <PlusCircle className="h-3.5 w-3.5 mr-1.5" />

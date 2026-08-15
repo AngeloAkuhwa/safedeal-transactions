@@ -309,7 +309,7 @@ export default function AdminPermissionMatrix() {
             type="button"
             disabled={!canManage}
             onClick={() => navigate("/admin/access-control")}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_1px_0_hsl(var(--primary-foreground)/0.2)_inset] hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_1px_0_hsl(var(--primary-foreground)/0.2)_inset] hover:bg-primary/90 disabled:opacity-50 min-h-11"
             title={canManage ? "Edit role assignments in Users & Access" : "You do not have permission to edit"}
           >
             Manage in Users &amp; Access <ArrowUpRight className="h-3 w-3" />
@@ -374,7 +374,7 @@ export default function AdminPermissionMatrix() {
                 <button
                   type="button"
                   onClick={() => { setEditKey(null); setRegisterOpen(true); }}
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 min-h-11"
                 >
                   <Plus className="h-3.5 w-3.5" /> Register new permission
                 </button>

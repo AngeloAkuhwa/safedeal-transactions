@@ -70,7 +70,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={() => start()}
             aria-label="Start reading mode"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-3.5 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-opacity hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-3.5 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-opacity hover:bg-muted min-h-11"
           >
             <BookOpen className="h-3.5 w-3.5" />
             Reading Mode
@@ -142,7 +142,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={() => start()}
             aria-label="Start reading mode"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm text-foreground shadow-lg backdrop-blur hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm text-foreground shadow-lg backdrop-blur hover:bg-muted min-h-11"
           >
             <BookOpen className="h-4 w-4" />
             Reading Mode
@@ -206,7 +206,7 @@ export function AdminReadingModeControl({ variant }: Props) {
                 type="button"
                 onClick={onPlayPause}
                 aria-label="Start reading mode"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted min-h-11"
               >
                 <BookOpen className="h-4 w-4" />
                 Reading Mode

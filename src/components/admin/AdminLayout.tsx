@@ -44,11 +44,11 @@ export function AdminLayout({
 
   return (
     <ReadingModeProvider>
-    <div className={fullHeight ? "min-h-screen bg-background text-foreground lg:h-screen lg:overflow-hidden" : "min-h-screen bg-background text-foreground"}>
-      <div className={fullHeight ? "flex min-h-screen lg:h-screen lg:overflow-hidden" : "flex min-h-screen"}>
+    <div className={fullHeight ? "min-h-[100dvh] bg-background text-foreground lg:h-screen lg:overflow-hidden" : "min-h-[100dvh] bg-background text-foreground"}>
+      <div className={fullHeight ? "flex min-h-[100dvh] lg:h-screen lg:overflow-hidden" : "flex min-h-[100dvh]"}>
         {/* Desktop sidebar */}
         <div className="hidden w-72 shrink-0 border-r border-border lg:block">
-          <div className="sticky top-0 h-screen overflow-hidden">
+          <div className="sticky top-0 h-[100dvh] overflow-hidden">
             <AdminSidebar badges={badges} />
           </div>
         </div>
@@ -99,7 +99,7 @@ export function AdminLayout({
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation menu"
-          className="fixed left-3 top-3 z-50 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/90 text-foreground shadow-md backdrop-blur hover:bg-muted lg:hidden"
+          className="fixed left-3 top-3 z-50 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/90 text-foreground shadow-md backdrop-blur hover:bg-muted lg:hidden relative before:absolute before:-inset-2 before:content-['']"
         >
           <Menu className="h-5 w-5" />
         </button>

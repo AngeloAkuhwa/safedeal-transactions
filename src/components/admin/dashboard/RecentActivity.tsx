@@ -43,7 +43,7 @@ export function RecentActivity({ items }: Props) {
               <li
                 key={it.id}
                 onClick={() => it.action_href && go(it.action_href, it.title)}
-                className={`flex items-center justify-between gap-3 py-2.5 ${it.action_href ? "cursor-pointer hover:bg-muted/40" : ""}`}
+                className={`flex items-center justify-between gap-3 py-2.5 ${it.action_href ? "cursor-pointer hover:bg-muted/40" : ""} min-h-11`}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-md ${cfg.cls}`}>

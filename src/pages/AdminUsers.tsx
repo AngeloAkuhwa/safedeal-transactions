@@ -140,7 +140,7 @@ export default function AdminUsers() {
         />
       )}
     >
-      <div className="mx-auto w-full max-w-[1400px] lg:px-8 lg:py-6 lg:space-y-8 bg-slate-950 min-h-screen">
+      <div className="mx-auto w-full max-w-[1400px] lg:px-8 lg:py-6 lg:space-y-8 bg-slate-950 min-h-[100dvh]">
         {isLoading || !data ? (
           <div className="px-4 py-5 sm:px-6 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">

@@ -69,14 +69,14 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
           <label className="block text-sm">
             <span className="mb-1 block">Reason</span>
             <select value={category} onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-11">
               {REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           {category === "Other" && (
             <input value={otherReason} onChange={(e) => setOtherReason(e.target.value)}
               placeholder="Describe the reason (min 8 chars)"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-11" />
           )}
           <fieldset className="space-y-1.5">
             <legend className="text-sm mb-1">Target state</legend>
@@ -119,9 +119,9 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
         </div>
         <DialogFooter>
           <button onClick={() => close(false)} disabled={submitting}
-            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm">Cancel</button>
+            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm min-h-11">Cancel</button>
           <button onClick={submit} disabled={!canSubmit}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm font-medium disabled:opacity-60">
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm font-medium disabled:opacity-60 min-h-11">
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Unfreeze
           </button>

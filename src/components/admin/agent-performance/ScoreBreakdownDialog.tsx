@@ -45,7 +45,7 @@ export function ScoreBreakdownDialog({
             </div>
 
             <div className="overflow-hidden rounded-xl border border-border/60">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs sd-stack">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">Component</th>

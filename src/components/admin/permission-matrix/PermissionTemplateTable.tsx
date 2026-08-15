@@ -77,11 +77,11 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border/60 bg-card/40 p-3">
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search templates…"
-          className="h-9 min-w-[220px] flex-1 rounded-md border border-border bg-background px-3 text-sm" />
-        <select value={scope} onChange={(e) => setScope(e.target.value as any)} className="h-9 rounded-md border border-border bg-background px-2 text-sm">
+          className="h-11 min-w-[220px] flex-1 rounded-md border border-border bg-background px-3 text-sm" />
+        <select value={scope} onChange={(e) => setScope(e.target.value as any)} className="h-9 rounded-md border border-border bg-background px-2 text-sm relative before:absolute before:-inset-2 before:content-['']">
           <option value="all">All scopes</option><option value="system">System</option><option value="custom">Custom</option>
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="h-9 rounded-md border border-border bg-background px-2 text-sm">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="h-9 rounded-md border border-border bg-background px-2 text-sm relative before:absolute before:-inset-2 before:content-['']">
           <option value="active">Active</option><option value="archived">Archived</option><option value="all">All statuses</option>
         </select>
         {canEdit && (
@@ -96,7 +96,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
       ) : (
         <div className="rounded-2xl border border-border/50 bg-card/60 p-2">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-separate border-spacing-y-1 text-sm">
+            <table className="w-full min-w-[900px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2 text-left font-medium">Template</th>
@@ -175,7 +175,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
 
 function IconBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11">
       {icon}{label}
     </button>
   );
@@ -253,7 +253,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
         <div className="space-y-3 text-sm">
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Target role</span>
-            <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+            <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-11 w-full rounded-md border border-border bg-background px-2">
               {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
             </select>
           </label>
@@ -345,14 +345,14 @@ function CloneTemplateDialog({ request, onOpenChange, onDone }: {
           {isNew && (
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Source role</span>
-              <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
               </select>
             </label>
           )}
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Template name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2" placeholder="Template name" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2" placeholder="Template name" />
           </label>
         </div>
         <DialogFooter>

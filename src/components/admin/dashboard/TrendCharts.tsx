@@ -75,15 +75,14 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
                 onClick={() => setWin(w)}
                 className={`rounded-sm px-2.5 py-1 transition-colors ${
                   win === w ? "bg-blue-500/20 text-blue-300" : "text-muted-foreground hover:text-foreground"
-                }`}
+                } min-h-11 min-w-11 justify-center`}
               >
                 {w}
               </button>
             ))}
             </div>
           </div>
-        }
-      >
+        }>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={txSeries.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />

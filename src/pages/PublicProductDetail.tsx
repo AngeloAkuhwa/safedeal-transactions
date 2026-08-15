@@ -122,7 +122,7 @@ const PublicProductDetail = () => {
 
   if (isError || !data?.product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <Package className="h-16 w-16 text-muted-foreground/30" />
         <h1 className="text-2xl font-bold">Product not found</h1>
         <Button asChild>

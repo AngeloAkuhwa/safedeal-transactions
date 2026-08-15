@@ -38,7 +38,7 @@ export function TableToolbar({ total, page, pageSize, sortBy, sortDir, onSort, o
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Sort</span>
           <Select value={sortBy} onValueChange={(v) => onSort(v as SortBy, sortDir)}>
-            <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11 w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.keys(SORT_LABEL) as SortBy[]).map((k) => (
                 <SelectItem key={k} value={k}>{SORT_LABEL[k]}</SelectItem>
@@ -57,7 +57,7 @@ export function TableToolbar({ total, page, pageSize, sortBy, sortDir, onSort, o
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Rows</span>
           <Select value={String(pageSize)} onValueChange={(v) => onPageSize(Number(v))}>
-            <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11 w-[80px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {[10, 25, 50, 100].map((n) => (
                 <SelectItem key={n} value={String(n)}>{n}</SelectItem>

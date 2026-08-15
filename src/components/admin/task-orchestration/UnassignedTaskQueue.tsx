@@ -67,7 +67,7 @@ export function UnassignedTaskQueue({
             <select
               value={perPage}
               onChange={e => onFiltersChange({ perPage: Number(e.target.value), page: 1 })}
-              className="rounded border border-border/60 bg-background/60 px-1.5 py-0.5"
+              className="rounded border border-border/60 bg-background/60 px-1.5 py-0.5 min-h-11"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -167,7 +167,7 @@ export function UnassignedTaskQueue({
                   <td className="px-2 py-3 text-[11px] text-muted-foreground">{t.queue ? humanize(t.queue) : "Default"}</td>
                   <td className="px-2 py-3 text-[11px] text-muted-foreground">{suggested ? shortNameOf(suggested) : "Auto"}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" onClick={() => onAssignRow(t)} className="h-7 px-3 text-xs">Assign</Button>
+                    <Button size="sm" onClick={() => onAssignRow(t)} className="h-11 px-3 text-xs">Assign</Button>
                   </td>
                 </tr>
               );
@@ -203,7 +203,7 @@ export function UnassignedTaskQueue({
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Suggested: {suggested ? shortNameOf(suggested) : "Auto"}</span>
-                <Button size="sm" onClick={() => onAssignRow(t)} className="h-7 px-3 text-xs">Assign</Button>
+                <Button size="sm" onClick={() => onAssignRow(t)} className="h-11 px-3 text-xs">Assign</Button>
               </div>
             </div>
           );
@@ -218,14 +218,14 @@ export function UnassignedTaskQueue({
             <button
               disabled={pageNum <= 1}
               onClick={() => onFiltersChange({ page: pageNum - 1 })}
-              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40"
+              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11"
             >
               <ChevronLeft className="h-3 w-3" />
             </button>
             <button
               disabled={pageNum * perPage >= total}
               onClick={() => onFiltersChange({ page: pageNum + 1 })}
-              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40"
+              className="rounded border border-border/60 bg-background/60 px-2 py-1 disabled:opacity-40 min-h-11"
             >
               <ChevronRight className="h-3 w-3" />
             </button>

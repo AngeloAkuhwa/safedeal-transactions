@@ -100,7 +100,7 @@ export function ProductPhotoCropDialog({ photo, onConfirm, onSkip }: Props) {
               type="button"
               onClick={dismissGuidance}
               aria-label="Dismiss photo tips"
-              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"
             >
               <X className="h-4 w-4" />
             </button>

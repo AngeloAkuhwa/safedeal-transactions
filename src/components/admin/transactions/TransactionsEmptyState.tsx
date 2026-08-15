@@ -57,7 +57,7 @@ export function TransactionsEmptyState({
         <button
           type="button"
           onClick={onClearFilters}
-          className="mt-2 rounded-md border border-border bg-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+          className="mt-2 rounded-md border border-border bg-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11"
         >
           {cta}
         </button>

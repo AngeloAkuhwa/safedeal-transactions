@@ -257,7 +257,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!canSuspend || !!pending}
                 onClick={() => runAction("suspend_user")}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
               >
                 {pending === "suspend_user" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                 Suspend
@@ -265,7 +265,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!canClear || !!pending}
                 onClick={() => runAction("clear_flag")}
-                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
               >
                 {pending === "clear_flag" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Clear Flag
@@ -273,7 +273,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!canEscalate || !!pending}
                 onClick={() => runAction("escalate_case")}
-                className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+                className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
               >
                 {pending === "escalate_case" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
                 Escalate
@@ -281,7 +281,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!!pending}
                 onClick={() => runAction("add_note")}
-                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
               >
                 {pending === "add_note" ? <Loader2 className="h-4 w-4 animate-spin" /> : <StickyNote className="h-4 w-4" />}
                 Add Note
@@ -290,7 +290,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
                 <button
                   type="button" disabled={!!pending}
                   onClick={() => runAction("unsuspend_user")}
-                  className="col-span-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-emerald-300 text-sm font-semibold"
+                  className="col-span-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-emerald-300 text-sm font-semibold min-h-11"
                 >
                   {pending === "unsuspend_user" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                   Unsuspend Account

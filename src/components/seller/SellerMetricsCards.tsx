@@ -181,7 +181,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                       <button
                         type="button"
                         aria-label={`More info about ${card.label}`}
-                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0"
+                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0 relative before:absolute before:-inset-4 before:content-['']"
                       >
                         <Info className="h-3 w-3" />
                       </button>
@@ -213,7 +213,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
             <Link
               key={chip.key}
               to={chip.href}
-              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone}`}
+              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone} min-h-11 min-w-11 justify-center`}
             >
               <span className="inline-flex items-center gap-1.5">
                 <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />

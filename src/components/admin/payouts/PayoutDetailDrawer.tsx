@@ -87,7 +87,7 @@ function fmtDateTime(iso?: string | null) {
   catch { return iso; }
 }
 
-const actionBtn = "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+const actionBtn = "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all min-h-11 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, onActionDone }: Props) {
   const navigate = useNavigate();
@@ -340,12 +340,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 <h4 className="text-white font-semibold text-sm">Linked records</h4>
                 <div className="flex flex-col gap-2">
                   {detail.transaction?.id && (
-                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
+                    <button className={`${actionBtn} justify-between min-h-11`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
                       Open Transaction <ExternalLink className="h-4 w-4" />
                     </button>
                   )}
                   {detail.dispute && (
-                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
+                    <button className={`${actionBtn} justify-between min-h-11`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
                       Open Dispute <ExternalLink className="h-4 w-4" />
                     </button>
                   )}
@@ -378,7 +378,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   <button
                     className={
                       releaseEnabled
-                        ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-11"
                         : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed"
                     }
                     disabled={!releaseEnabled || busy === "release"}
@@ -390,7 +390,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   <button
                     className={
                       retryEnabled
-                        ? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all justify-center"
+                        ? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all justify-center min-h-11"
                         : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center"
                     }
                     disabled={!retryEnabled || busy === "retry"}

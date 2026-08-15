@@ -183,7 +183,7 @@ export function SellerPayoutImpactCard({ impact }: SellerPayoutImpactCardProps) 
 
         {/* Link to payouts */}
         {payout_exists && (
-          <Button variant="outline" size="sm" className="w-full text-xs h-8 gap-1.5" asChild>
+          <Button variant="outline" size="sm" className="w-full text-xs h-11 gap-1.5" asChild>
             <Link to="/seller/payouts">
               <ExternalLink className="h-3.5 w-3.5" />
               View Payouts

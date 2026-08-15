@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { scanSource } from "./helpers/touch-target-scan";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
@@ -55,16 +56,16 @@ describe("tap targets reach 44px without changing visual size", () => {
   });
 
   it("computed hit areas are >= 44px in both dimensions", () => {
-    const visual = 32; // h-8 / w-8
-    const inset = 8; // -inset-2 => 0.5rem
-    expect(visual + inset * 2).toBeGreaterThanOrEqual(44);
+    const violations = scanSource(src, "src/components/marketplace/MarketplaceProductCard.tsx");
+    expect(violations.map((v) => `${v.line} ${v.reason}`), JSON.stringify(violations, null, 2)).toEqual([]);
   });
 
-  it("expanded hit areas of the two controls cannot overlap", () => {
-    // Heart sits in the square media well (top-right); the cart button sits in
-    // the content block below the title. Separation far exceeds 2x8px.
-    const separationPx = 100;
-    expect(separationPx).toBeGreaterThan(8 * 2);
+  it("the heart lives in the media well and the cart control in the content block", () => {
+    const heart = src.indexOf("before:-inset-2");
+    const cart = src.indexOf("relative h-8 w-8 rounded-lg shrink-0");
+    expect(heart).toBeGreaterThan(-1);
+    expect(cart).toBeGreaterThan(heart);
+    expect(src.slice(heart, cart)).toContain("</div>");
   });
 
   it("the cart control is hidden (not disabled) when add-to-cart is off", () => {

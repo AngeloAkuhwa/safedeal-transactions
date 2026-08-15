@@ -52,7 +52,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
               <div className="text-[11px] text-muted-foreground">Mute this segregation-of-duties finding with a reason.</div>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Close">
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted min-h-11" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </header>
@@ -82,7 +82,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
         <select
           value={expiresIn}
           onChange={(e) => setExpiresIn(e.target.value as typeof expiresIn)}
-          className="mt-1 h-9 w-full rounded-md border border-border bg-background/60 px-2 text-xs outline-none focus:border-primary"
+          className="mt-1 h-11 w-full rounded-md border border-border bg-background/60 px-2 text-xs outline-none focus:border-primary"
         >
           <option value="never">Never (permanent until revoked)</option>
           <option value="30d">In 30 days</option>
@@ -94,7 +94,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-border bg-background/60 px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            className="rounded-md border border-border bg-background/60 px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
           >
             Cancel
           </button>
@@ -102,7 +102,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
             type="button"
             disabled={!canSubmit}
             onClick={handleSubmit}
-            className="rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 min-h-11"
           >
             {submitting ? "Saving…" : "Acknowledge"}
           </button>

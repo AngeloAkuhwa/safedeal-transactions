@@ -215,7 +215,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                       onClick={() => handleClick(item)}
                       aria-current={active ? "page" : undefined}
                       className={[
-                        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors min-h-11",
                         active
                           ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
                           : "text-foreground/90 hover:bg-muted/70 hover:text-foreground",
@@ -261,7 +261,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
             type="button"
             onClick={handleLogout}
             aria-label="Log out"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
           >
             <LogOut className="h-4 w-4" />
           </button>

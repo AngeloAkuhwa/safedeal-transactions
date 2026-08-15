@@ -56,7 +56,7 @@ function InfoTip({ children }: { children: React.ReactNode }) {
           type="button"
           aria-label="More info"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative before:absolute before:-inset-4 before:content-['']"
         >
           <Info className="h-3.5 w-3.5" />
         </button>
@@ -137,7 +137,7 @@ const SellerTransactions = () => {
 
   if (isError && !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <RefreshCw className="h-7 w-7 text-destructive" />
         <h2 className="text-xl font-bold text-foreground">Could not load transactions</h2>
         <p className="text-muted-foreground text-sm">{(error as Error)?.message}</p>
@@ -160,7 +160,7 @@ const SellerTransactions = () => {
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav
         sellerName={navData?.seller.full_name ?? "Seller"}
         avatarUrl={navData?.seller.avatar_url ?? null}
@@ -175,7 +175,7 @@ const SellerTransactions = () => {
               <h1 className="sd-page-title animate-fade-in">All Transactions</h1>
               <p className="sd-page-sub">Monitor and manage all your protected transactions</p>
             </div>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate("/seller/transactions/new")}>
+            <Button size="sm" className="h-11 text-xs gap-1.5" onClick={() => navigate("/seller/transactions/new")}>
               <Plus className="h-3.5 w-3.5" />
               Create New Transaction
             </Button>
@@ -245,11 +245,11 @@ const SellerTransactions = () => {
               placeholder="Search by code, buyer, or item..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 h-8 border border-border rounded-md text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full pl-8 pr-3 py-1.5 h-11 border border-border rounded-md text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="min-w-[140px] flex-1 sm:flex-none sm:w-44 h-8 text-xs">
+            <SelectTrigger className="min-w-[140px] flex-1 sm:flex-none sm:w-44 h-11 text-xs">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -266,7 +266,7 @@ const SellerTransactions = () => {
             </SelectContent>
           </Select>
           <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-36 h-8 text-xs">
+            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-36 h-11 text-xs">
               <SelectValue placeholder="All Time" />
             </SelectTrigger>
             <SelectContent>
@@ -277,7 +277,7 @@ const SellerTransactions = () => {
               <SelectItem value="this-quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setExportOpen(true)}>
+          <Button variant="outline" size="sm" className="gap-1.5 h-11 text-xs" onClick={() => setExportOpen(true)}>
             <Download className="h-3.5 w-3.5" />
             Export
           </Button>
@@ -299,7 +299,7 @@ const SellerTransactions = () => {
                 key={chip.key}
                 type="button"
                 onClick={() => setStatusFilter(active ? "all" : chip.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""}`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
               >
                 {chip.label}
                 <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[9px] font-bold px-1">
@@ -482,7 +482,7 @@ const SellerTransactions = () => {
                                         navigate(`/seller/transactions/${tx.transaction_id}#messages`);
                                       }}
                                       aria-label={`${tx.unread_message_count} unread messages`}
-                                      className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors"
+                                      className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
                                     >
                                       <MessageCircle className="h-4 w-4 text-primary" />
                                       <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
@@ -539,7 +539,7 @@ const SellerTransactions = () => {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-8 w-8 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                                className="h-8 w-8 shrink-0 border-primary/30 text-primary hover:bg-primary/10 relative before:absolute before:-inset-2 before:content-['']"
                                 title="Rider confirmation link"
                                 onClick={(e) => {
                                   e.stopPropagation();

@@ -88,7 +88,7 @@ export function EnvironmentSwitcher({ className }: { className?: string }) {
             type="button"
             onClick={() => setEnv(env)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded px-2.5 py-1 font-semibold transition-colors",
+              "inline-flex items-center gap-1.5 rounded px-2.5 py-1 font-semibold transition-colors min-h-11",
               active
                 ? cn("ring-1 shadow-sm", meta.ring, meta.tint)
                 : "text-muted-foreground hover:text-foreground",

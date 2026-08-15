@@ -23,7 +23,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
           <button
             type="button"
             onClick={() => go(null, "Filters")}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted min-h-11"
           >
             <Filter className="h-4 w-4" />
             Filters

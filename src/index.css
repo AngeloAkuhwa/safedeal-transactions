@@ -284,3 +284,50 @@
     hsl(0 84% 60% / 0.05) 20px
   );
 }
+
+/* ---------------------------------------------------------------------------
+   Stacked tables (mobile fallback)
+   Any <table class="sd-stack"> collapses into one card per row below md.
+   Cell labels come from the matching <th>, copied into data-label at runtime
+   by src/lib/stacked-tables.ts, so no column is dropped on small screens.
+--------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  table.sd-stack { display: block; width: 100%; min-width: 0 !important; }
+  table.sd-stack thead { display: none; }
+  table.sd-stack tbody,
+  table.sd-stack tfoot { display: block; width: 100%; }
+  table.sd-stack tr {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.625rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: hsl(var(--card));
+  }
+  table.sd-stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.4rem 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table.sd-stack td + td { border-top: 1px solid hsl(var(--border) / 0.5); }
+  table.sd-stack td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: hsl(var(--muted-foreground));
+  }
+  table.sd-stack td:empty { display: none; }
+}

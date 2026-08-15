@@ -93,7 +93,7 @@ export default function OfferClaimLanding() {
   // Loading
   if (loading || authed === null || claiming) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground">
@@ -173,7 +173,7 @@ export default function OfferClaimLanding() {
   // ready_to_claim fallback (anon → just signed in but auto-claim didn't fire)
   if (data.scenario === "ready_to_claim") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center p-6">
         <Card className="max-w-md w-full">
           <CardContent className="p-6 text-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
@@ -202,7 +202,7 @@ function AnonymousPreview({
   const currency = items[0]?.currency_code || "NGN";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-primary/5 via-background to-background">
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
         <div className="text-center mb-8">
           <Badge className="mb-3 bg-primary/10 text-primary border-primary/30 hover:bg-primary/15">
@@ -277,7 +277,7 @@ function ErrorScreen({
 }) {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background p-6">
       <Card className="max-w-md w-full">
         <CardContent className="p-8 text-center space-y-4">
           <div className="flex justify-center">{icon || <AlertTriangle className="h-10 w-10 text-warning" />}</div>

@@ -162,7 +162,7 @@ const BuyerNotifications = () => {
   const isFilterEmpty = data && data.items.length === 0 && hasActiveFilters;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       {/* Compact header */}
@@ -178,7 +178,7 @@ const BuyerNotifications = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 h-8 text-xs"
+              className="gap-1.5 h-11 text-xs"
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isPending || (data?.summary.unread_count === 0)}
             >

@@ -57,7 +57,7 @@ export function ExportPerformanceDialog({
           <div className="space-y-1.5">
             <Label className="text-sm">Report type</Label>
             <Select value={report} onValueChange={setReport}>
-              <SelectTrigger className="h-9" aria-label="Report type"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11" aria-label="Report type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REPORT_TYPES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
               </SelectContent>
@@ -68,7 +68,7 @@ export function ExportPerformanceDialog({
             <div className="space-y-1.5">
               <Label className="text-sm">Agent</Label>
               <Select value={agentId} onValueChange={setAgentId}>
-                <SelectTrigger className="h-9" aria-label="Agent to export">
+                <SelectTrigger className="h-11" aria-label="Agent to export">
                   <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>
                 <SelectContent>

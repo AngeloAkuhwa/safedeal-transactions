@@ -68,7 +68,7 @@ export default function BuyerSavedProducts() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         <div className="sd-page sd-page-y space-y-4">
@@ -94,7 +94,7 @@ export default function BuyerSavedProducts() {
               <p className="text-sm text-muted-foreground">
                 Saved products may sell out or be removed by the seller. Purchase soon to avoid disappointment.
               </p>
-              <button onClick={() => setShowBanner(false)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => setShowBanner(false)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -108,11 +108,11 @@ export default function BuyerSavedProducts() {
                 placeholder="Search saved products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-xs"
+                className="pl-8 h-11 text-xs"
               />
             </div>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-8 text-xs sm:w-44">
+              <SelectTrigger className="h-11 text-xs sm:w-44">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -123,7 +123,7 @@ export default function BuyerSavedProducts() {
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="h-8 text-xs sm:w-44">
+              <SelectTrigger className="h-11 text-xs sm:w-44">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -208,7 +208,7 @@ export default function BuyerSavedProducts() {
                       {/* Heart button — top right */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleUnsave(item.id); }}
-                        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 backdrop-blur-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 backdrop-blur-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors relative before:absolute before:-inset-2 before:content-['']"
                       >
                         <Heart className="h-5 w-5 fill-current" />
                       </button>

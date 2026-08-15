@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,12 @@ const SellerStorefront = () => {
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  // Debounced so the list keeps rendering (and the input keeps focus) while typing.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [manageProduct, setManageProduct] = useState<any>(null);
   const [stockProduct, setStockProduct] = useState<any>(null);
   const [actionPending, setActionPending] = useState(false);
@@ -76,15 +82,16 @@ const SellerStorefront = () => {
   });
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["seller-products", statusFilter, visibilityFilter, categoryFilter, search],
+    queryKey: ["seller-products", statusFilter, visibilityFilter, categoryFilter, debouncedSearch],
     queryFn: () =>
       getSellerProducts({
         status: statusFilter === "low_stock" ? "all" : statusFilter,
         visibility: visibilityFilter,
         category: categoryFilter,
-        search,
+        search: debouncedSearch,
       }),
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 
   const isLowStockProduct = (p: any) => {
@@ -142,7 +149,7 @@ const SellerStorefront = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
@@ -179,7 +186,7 @@ const SellerStorefront = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 space-y-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 space-y-6 relative z-10">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -250,13 +257,13 @@ const SellerStorefront = () => {
                       placeholder="Search products..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30"
+                      className="w-full pl-9 pr-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 min-h-11"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none min-h-11"
                   >
                     <option value="all">All Status</option>
                     <option value="draft">Draft</option>
@@ -267,7 +274,7 @@ const SellerStorefront = () => {
                   <select
                     value={visibilityFilter}
                     onChange={(e) => setVisibilityFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none min-h-11"
                   >
                     <option value="all">All Visibility</option>
                     <option value="public">Public</option>
@@ -277,7 +284,7 @@ const SellerStorefront = () => {
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none min-h-11"
                   >
                     <option value="all">All Categories</option>
                     {(categories || []).map((cat: any) => (

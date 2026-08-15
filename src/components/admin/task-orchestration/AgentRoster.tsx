@@ -86,7 +86,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
               type="button"
               onClick={() => setFilter(f.key)}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition backdrop-blur-sm",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition backdrop-blur-sm min-h-11",
                 active
                   ? "border-primary/40 bg-primary/10 text-primary shadow-[0_1px_0_hsl(var(--primary)/0.2)_inset]"
                   : "border-border/60 bg-card/40 text-muted-foreground hover:border-border hover:text-foreground",
@@ -112,7 +112,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
             type="button"
             disabled={saving !== null}
             onClick={() => setMyStatus(s)}
-            className="rounded-full border border-border/60 bg-background/40 px-2 py-0.5 capitalize text-muted-foreground transition hover:text-foreground hover:border-border disabled:opacity-50"
+            className="rounded-full border border-border/60 bg-background/40 px-2 py-0.5 capitalize text-muted-foreground transition hover:text-foreground hover:border-border disabled:opacity-50 min-h-11"
           >
             {s}
           </button>

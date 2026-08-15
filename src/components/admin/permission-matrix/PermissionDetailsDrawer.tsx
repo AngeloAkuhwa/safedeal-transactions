@@ -129,7 +129,7 @@ export function PermissionDetailsDrawer({
                   <label className="flex-1">
                     <span className="mb-1 block text-[10px] uppercase text-muted-foreground">Extend by (days)</span>
                     <input value={extendDays} onChange={(e) => setExtendDays(e.target.value)} type="number" min={1} max={365}
-                      className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs" />
+                      className="h-11 w-full rounded-md border border-border bg-background px-2 text-xs" />
                   </label>
                   <Button size="sm" variant="outline" disabled={busy} onClick={doExtend}>
                     <TimerReset className="mr-1 h-3 w-3" /> Extend
@@ -152,7 +152,7 @@ export function PermissionDetailsDrawer({
               </Button>
               <Link
                 to={`/admin/access-control?user=${override.user_id}`}
-                className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground min-h-11"
               >
                 Manage in Users &amp; Access
               </Link>

@@ -490,7 +490,7 @@ export default function AdminAuditLogs() {
                   <select
                     value={filters.action_type ?? "all"}
                     onChange={(e) => setFilters((f) => ({ ...f, action_type: e.target.value }))}
-                    className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-11 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="all">All Actions</option>
                     {actionOptions.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -501,7 +501,7 @@ export default function AdminAuditLogs() {
                   <select
                     value={filters.actor_id ?? "all"}
                     onChange={(e) => setFilters((f) => ({ ...f, actor_id: e.target.value }))}
-                    className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-11 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="all">All Actors</option>
                     {actorOptions.map((a) => (
@@ -514,7 +514,7 @@ export default function AdminAuditLogs() {
                   <select
                     value={filters.severity ?? "all"}
                     onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value as any }))}
-                    className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-11 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="all">All Severities</option>
                     <option value="critical">Critical</option>
@@ -535,7 +535,7 @@ export default function AdminAuditLogs() {
                       size="sm"
                       variant={quickRange === r.key ? "default" : "outline"}
                       onClick={() => applyQuickRange(r.key)}
-                      className="h-7 px-3 text-xs"
+                      className="h-11 px-3 text-xs"
                     >
                       {r.label}
                     </Button>
@@ -549,7 +549,7 @@ export default function AdminAuditLogs() {
                     type="datetime-local"
                     value={filters.from ?? ""}
                     onChange={(e) => { setFilters((f) => ({ ...f, from: e.target.value })); setQuickRange("custom"); }}
-                    className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-11 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
                 <div>
@@ -558,7 +558,7 @@ export default function AdminAuditLogs() {
                     type="datetime-local"
                     value={filters.to ?? ""}
                     onChange={(e) => { setFilters((f) => ({ ...f, to: e.target.value })); setQuickRange("custom"); }}
-                    className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full h-11 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
               </div>
@@ -679,7 +679,7 @@ export default function AdminAuditLogs() {
                           <p className="text-foreground/90 text-sm max-w-xs">{r.description}</p>
                         </td>
                         <td className="p-3 align-top">
-                          <Button onClick={() => setDrawerRow(r)} variant="outline" size="sm" className="h-7 px-2 text-xs">
+                          <Button onClick={() => setDrawerRow(r)} variant="outline" size="sm" className="h-11 px-2 text-xs">
                             <Code2 className="h-3 w-3 mr-1" /> View JSON
                           </Button>
                         </td>
@@ -688,25 +688,25 @@ export default function AdminAuditLogs() {
                         </td>
                         <td className="p-3 align-top">
                           <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                            <Button onClick={() => setDrawerRow(r)} title="View Details" size="sm" className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-500 text-white">
+                            <Button onClick={() => setDrawerRow(r)} title="View Details" size="sm" className="h-11 px-2 text-xs bg-blue-600 hover:bg-blue-500 text-white">
                               <Eye className="h-3 w-3" /><span className="hidden xl:inline ml-1">Details</span>
                             </Button>
                             {r.target.user_id && (
-                              <Button onClick={() => navigate(`/admin/users/${r.target.user_id}`)} title="View User" size="sm" className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-500 text-white">
+                              <Button onClick={() => navigate(`/admin/users/${r.target.user_id}`)} title="View User" size="sm" className="h-11 px-2 text-xs bg-purple-600 hover:bg-purple-500 text-white">
                                 <User className="h-3 w-3" /><span className="hidden xl:inline ml-1">User</span>
                               </Button>
                             )}
                             {r.target.transaction_id && (
-                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-7 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
+                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
                                 <ArrowRight className="h-3 w-3" /><span className="hidden xl:inline ml-1">TXN</span>
                               </Button>
                             )}
                             {r.target.dispute_id && (
-                              <Button onClick={() => navigate(`/admin/disputes/${r.target.dispute_id}`)} title="View Dispute" size="sm" className="h-7 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
+                              <Button onClick={() => navigate(`/admin/disputes/${r.target.dispute_id}`)} title="View Dispute" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
                                 <Scale className="h-3 w-3" /><span className="hidden xl:inline ml-1">Dispute</span>
                               </Button>
                             )}
-                            <Button onClick={() => { navigator.clipboard.writeText(r.id); toast("ID copied"); }} title="Copy ID" variant="outline" size="sm" className="h-7 w-7 p-0">
+                            <Button onClick={() => { navigator.clipboard.writeText(r.id); toast("ID copied"); }} title="Copy ID" variant="outline" size="sm" className="h-7 w-7 p-0 relative before:absolute before:-inset-2 before:content-['']">
                               <Copy className="h-3 w-3" />
                             </Button>
                           </div>
@@ -728,7 +728,7 @@ export default function AdminAuditLogs() {
                     <select
                       value={applied.page_size ?? PAGE_SIZE}
                       onChange={(e) => setApplied((a) => ({ ...a, page_size: Number(e.target.value), page: 1 }))}
-                      className="h-7 bg-background border border-border rounded px-2 text-xs"
+                      className="h-11 bg-background border border-border rounded px-2 text-xs"
                     >
                       {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                     </select>

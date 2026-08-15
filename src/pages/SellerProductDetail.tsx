@@ -188,7 +188,7 @@ const SellerProductDetail = () => {
 
   if (isError || !data?.product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4">
         <h2 className="text-xl font-bold text-foreground">Product not found</h2>
         <Button onClick={() => navigate("/seller/storefront")}>Back to Storefront</Button>
       </div>

@@ -95,7 +95,7 @@ export default function AdminIdentity() {
                   status === t.key
                     ? "border-primary/40 bg-primary/15 text-primary"
                     : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
-                }`}
+                } min-h-11`}
               >
                 {t.label}
               </button>

@@ -59,7 +59,7 @@ const PublicStorefront = () => {
 
   if (isError || !data?.seller) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <Store className="h-16 w-16 text-muted-foreground/30" />
         <h1 className="text-2xl font-bold">Store not found</h1>
         <p className="text-muted-foreground">This store doesn't exist or has no products.</p>

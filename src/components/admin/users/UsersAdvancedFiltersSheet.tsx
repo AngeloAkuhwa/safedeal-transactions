@@ -20,7 +20,7 @@ export function UsersAdvancedFiltersSheet(props: Props) {
         <SheetTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 text-xs font-semibold active:scale-95"
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 text-xs font-semibold active:scale-95 min-h-11"
           >
             <Filter className="h-3.5 w-3.5" /> Filters
           </button>

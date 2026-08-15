@@ -20,7 +20,7 @@ export default function BuyerPrivateOffers() {
   const avatarUrl = profile?.profile?.avatar_url || null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       <div className="sd-page sd-page-y">

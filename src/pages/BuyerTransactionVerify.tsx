@@ -66,7 +66,7 @@ const BuyerTransactionVerify = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -77,13 +77,13 @@ const BuyerTransactionVerify = () => {
     // If we're about to redirect, show a loading state instead of error
     if ((error as any)?.redirect) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-background">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       );
     }
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4">
         <ShieldAlert className="h-12 w-12 text-destructive" />
         <p className="text-sm text-muted-foreground">
           {(error as Error)?.message || "Unable to load verification data"}
@@ -111,7 +111,7 @@ const BuyerTransactionVerify = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
+    <div className="min-h-[100dvh] bg-muted/30 flex flex-col">
       <BuyerNav
         buyerName={profile?.profile.full_name || ""}
         avatarUrl={profile?.profile.avatar_url}
@@ -198,7 +198,7 @@ const BuyerTransactionVerify = () => {
               </div>
               <button
                 onClick={() => setAlertDismissed(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"
               >
                 <X className="h-4 w-4" />
               </button>

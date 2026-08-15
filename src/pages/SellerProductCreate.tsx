@@ -531,7 +531,7 @@ const SellerProductCreate = () => {
                           <div className="absolute inset-0 bg-destructive/60 flex flex-col items-center justify-center gap-2">
                             <AlertCircle className="h-5 w-5 text-primary-foreground" />
                             <span className="text-primary-foreground text-xs">Failed</span>
-                            <button onClick={() => retryUpload(idx)} className="flex items-center gap-1 bg-background/20 text-primary-foreground text-xs px-2 py-1 rounded hover:bg-background/30">
+                            <button onClick={() => retryUpload(idx)} className="flex items-center gap-1 bg-background/20 text-primary-foreground text-xs px-2 py-1 rounded hover:bg-background/30 min-h-11">
                               <RotateCcw className="h-3 w-3" /> Retry
                             </button>
                           </div>
@@ -687,7 +687,7 @@ const SellerProductCreate = () => {
                     <p className="text-xs text-muted-foreground mb-2">Select all delivery methods your business supports.</p>
                     <div className="grid grid-cols-2 gap-3">
                       {DELIVERY_OPTIONS.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                        <label key={opt.value} className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors min-h-11">
                           <Checkbox
                             checked={deliveryMethods.includes(opt.value)}
                             onCheckedChange={(checked) => {

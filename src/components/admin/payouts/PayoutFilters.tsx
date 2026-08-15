@@ -15,7 +15,7 @@ export function PayoutFilters({ search, onSearch }: Props) {
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search seller, transaction, payout ID..."
-          className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full lg:w-80 text-sm"
+          className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full lg:w-80 text-sm min-h-11"
         />
       </div>
     </div>

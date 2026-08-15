@@ -268,7 +268,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
           <Flag className="h-5 w-5 text-destructive" />
           <h2 className="text-lg font-bold text-foreground">Submit a Dispute</h2>
         </div>
-        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-2.5 before:content-['']">
           <X className="h-6 w-6" />
         </button>
       </div>

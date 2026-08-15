@@ -187,7 +187,7 @@ export default function AdminUserDetail() {
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
-      <div className="bg-slate-950 text-slate-200 min-h-screen flex flex-col">
+      <div className="bg-slate-950 text-slate-200 min-h-[100dvh] flex flex-col">
         {/* Sticky page header — pins to viewport while body scrolls under it */}
         <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-40 shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
@@ -195,7 +195,7 @@ export default function AdminUserDetail() {
               <button
                 onClick={() => navigate(-1)}
                 aria-label="Back"
-                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-all"
+                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-all relative before:absolute before:-inset-2 before:content-['']"
               >
                 <ArrowLeft className="h-4 w-4 text-slate-300" />
               </button>
@@ -207,7 +207,7 @@ export default function AdminUserDetail() {
             <div className="flex items-center gap-2 flex-wrap">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button disabled={!data || !!exporting} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
+                  <button disabled={!data || !!exporting} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50 min-h-11">
                     {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     Export <ChevronDown className="h-3.5 w-3.5" />
                   </button>
@@ -223,10 +223,10 @@ export default function AdminUserDetail() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
+              <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50 min-h-11">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
+              <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20 min-h-11">
                 <Search className="h-4 w-4" /> View Transactions
               </button>
             </div>
@@ -295,23 +295,23 @@ export default function AdminUserDetail() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {data.user.is_flagged ? (
-                    <button onClick={() => setPendingAction({ kind: "clear_flag" })} className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium inline-flex items-center gap-2">
+                    <button onClick={() => setPendingAction({ kind: "clear_flag" })} className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-400 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <FlagOff className="h-4 w-4" /> Unflag User
                     </button>
                   ) : (
-                    <button onClick={() => setPendingAction({ kind: "flag" })} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                    <button onClick={() => setPendingAction({ kind: "flag" })} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <Flag className="h-4 w-4" /> Flag User
                     </button>
                   )}
-                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                     <StickyNote className="h-4 w-4" /> Add Note
                   </button>
                   {data.user.is_suspended ? (
-                    <button onClick={() => setPendingAction({ kind: "unsuspend" })} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all text-sm font-medium inline-flex items-center gap-2">
+                    <button onClick={() => setPendingAction({ kind: "unsuspend" })} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <ShieldCheck className="h-4 w-4" /> Unsuspend
                     </button>
                   ) : (
-                    <button onClick={() => setPendingAction({ kind: "suspend" })} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                    <button onClick={() => setPendingAction({ kind: "suspend" })} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <Ban className="h-4 w-4" /> Suspend
                     </button>
                   )}
@@ -507,21 +507,21 @@ export default function AdminUserDetail() {
                         <button
                           disabled={vs === "active"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "active" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Set Active
                         </button>
                         <button
                           disabled={vs === "disabled"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "disabled" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
                         >
                           <Ban className="h-3.5 w-3.5" /> Disable Vendor
                         </button>
                         <button
                           disabled={vs === "suspended"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "suspended" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
                         >
                           <AlertCircle className="h-3.5 w-3.5" /> Suspend Vendor
                         </button>
@@ -662,10 +662,10 @@ export default function AdminUserDetail() {
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
+                    <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 min-h-11">
                       Open in Flagged Users
                     </button>
-                    <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                    <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <Plus className="h-4 w-4" /> Add Note
                     </button>
                   </div>

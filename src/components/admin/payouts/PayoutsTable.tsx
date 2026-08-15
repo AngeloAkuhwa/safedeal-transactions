@@ -58,8 +58,8 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
-const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed";
-const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap";
+const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 disabled:opacity-50 disabled:cursor-not-allowed";
+const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap min-h-11";
 
 const iconSquareBtn = "w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
 
@@ -230,7 +230,7 @@ function RowMenu({
   }
 
   if (row.status === "failed") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none";
+    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
@@ -258,7 +258,7 @@ function RowMenu({
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -267,7 +267,7 @@ function RowMenu({
   }
 
   if (row.status === "pending" || row.status === "processing") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none";
+    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
@@ -291,11 +291,11 @@ function RowMenu({
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={onPause}>
+        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400 min-h-11`} onClick={onPause}>
           <span className={iconSlot}><FaPause className="text-orange-400" /></span>
           <span>Pause Payout</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -309,24 +309,24 @@ function RowMenu({
         align="end"
         className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
       >
-        <DropdownMenuItem onClick={onOpen} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpen} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
           <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
           <span>View Completion Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenSeller} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpenSeller} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
           <span className="w-4 flex justify-center text-slate-300"><FaUser /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenTransaction} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpenTransaction} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
           <span className="w-4 flex justify-center text-slate-300"><FaReceipt /></span>
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem onClick={onDownloadReceipt} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onDownloadReceipt} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
           <span className="w-4 flex justify-center text-slate-300"><FaDownload /></span>
           <span>Download Receipt</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onAddNote} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onAddNote} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
           <span className="w-4 flex justify-center text-slate-300"><FaNoteSticky /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
@@ -385,7 +385,7 @@ export function PayoutsTable({
           <div className="flex items-center gap-3">
             <span className="text-slate-400 text-sm">{totalCount} payouts found</span>
             {onRefresh && (
-              <button onClick={onRefresh} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded text-sm hover:bg-slate-700 transition-all flex items-center gap-1.5">
+              <button onClick={onRefresh} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded text-sm hover:bg-slate-700 transition-all flex items-center gap-1.5 min-h-11">
                 <FaArrowsRotate className="text-xs" /> Refresh
               </button>
             )}
@@ -412,7 +412,7 @@ export function PayoutsTable({
       ) : (
       <>
       <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-      <table className="w-full min-w-[1200px]">
+      <table className="w-full min-w-[1200px] sd-stack">
         <thead>
           <tr className="bg-slate-800 border-b border-slate-700">
             <th className="text-left p-4"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
@@ -590,7 +590,7 @@ export function PayoutsTable({
         <div className="text-slate-400 text-xs">Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
         <div className="flex items-center gap-1">
           <button disabled={page <= 1} onClick={() => onPageChange?.(page - 1)} aria-label="Previous page"
-            className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all relative before:absolute before:-inset-2 before:content-['']">
             <FaChevronLeft className="text-xs" />
           </button>
           {pageList.map((p, i) =>
@@ -600,11 +600,11 @@ export function PayoutsTable({
               /* Current page indicator — static, not a control. */
               <span key={p} className="w-9 h-9 inline-flex items-center justify-center bg-emerald-500 text-white rounded-lg font-semibold text-sm">{p}</span>
             ) : (
-              <button key={p} onClick={() => onPageChange?.(p)} className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all">{p}</button>
+              <button key={p} onClick={() => onPageChange?.(p)} className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all relative before:absolute before:-inset-2 before:content-['']">{p}</button>
             )
           )}
           <button disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)} aria-label="Next page"
-            className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all relative before:absolute before:-inset-2 before:content-['']">
             <FaChevronRight className="text-xs" />
           </button>
         </div>

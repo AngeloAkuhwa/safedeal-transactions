@@ -57,14 +57,14 @@ export function ActiveFilterChips({
           key={String(c.key)}
           type="button"
           onClick={() => onChange(c.reset)}
-          className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs text-primary transition-colors hover:bg-primary/20"
+          className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs text-primary transition-colors hover:bg-primary/20 min-h-11"
           aria-label={`Remove filter ${c.label}`}
         >
           {c.label}
           <X className="h-3 w-3" aria-hidden />
         </button>
       ))}
-      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onClear}>
+      <Button variant="ghost" size="sm" className="h-11 px-2 text-xs" onClick={onClear}>
         Clear Filters
       </Button>
     </div>

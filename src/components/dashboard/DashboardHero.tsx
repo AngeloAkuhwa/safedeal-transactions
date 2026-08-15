@@ -22,13 +22,13 @@ export function DashboardHero({ buyerName }: DashboardHeroProps) {
             <p className="sd-page-sub">Your purchases at a glance</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button asChild size="sm" className="h-8 text-xs gap-1.5">
+            <Button asChild size="sm" className="h-11 text-xs gap-1.5">
               <Link to="/dashboard/transactions">
                 <Search className="h-3.5 w-3.5" />
                 Track Purchase
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5">
+            <Button asChild size="sm" variant="outline" className="h-11 text-xs gap-1.5">
               <Link to="/#faq">
                 <HelpCircle className="h-3.5 w-3.5" />
                 Need Help?

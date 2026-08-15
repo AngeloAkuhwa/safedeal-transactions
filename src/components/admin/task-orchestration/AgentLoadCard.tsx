@@ -75,7 +75,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           <button
             type="button" onClick={onSelect} disabled={offline}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition hover:border-primary/40 hover:text-foreground",
+              "flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition hover:border-primary/40 hover:text-foreground relative before:absolute before:-inset-2 before:content-['']",
               offline && "cursor-not-allowed opacity-50",
             )}
             aria-label="Agent details"

@@ -107,17 +107,17 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
                   <p className="text-slate-500 text-xs truncate">{formatRelative(r.entered_queue_at)}</p>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {r.release_blocked ? (
-                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={() => onUnblock(r)}>Unblock</Button>
+                      <Button size="sm" variant="outline" className="h-11 px-3 text-xs" onClick={() => onUnblock(r)}>Unblock</Button>
                     ) : r.status === "failed" && r.retry_allowed ? (
-                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs" onClick={() => onRetry(r)}>Retry</Button>
+                      <Button size="sm" variant="outline" className="h-11 px-3 text-xs" onClick={() => onRetry(r)}>Retry</Button>
                     ) : r.status === "awaiting_release" ? (
-                      <Button size="sm" className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      <Button size="sm" className="h-11 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                         disabled={!e.ok || releasingId === r.id}
                         onClick={() => onRelease(r)}>
                         {releasingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Release"}
                       </Button>
                     ) : null}
-                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1" onClick={() => onOpen(r)}>
+                    <Button size="sm" variant="outline" className="h-11 px-3 text-xs gap-1" onClick={() => onOpen(r)}>
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
                   </div>

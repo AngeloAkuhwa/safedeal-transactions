@@ -48,7 +48,7 @@ export function QuickActionsMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+          <Button variant="outline" size="sm" className="h-11 gap-1 text-xs">
             Quick actions <ChevronDown className="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>

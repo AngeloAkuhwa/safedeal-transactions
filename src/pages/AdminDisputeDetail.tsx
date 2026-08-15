@@ -472,7 +472,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           )}
           <button
             onClick={() => navigate("/admin/disputes")}
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted min-h-11"
             aria-label="Back to disputes"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1084,7 +1084,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         <div className="grid grid-cols-[1fr_1fr_48px] gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" disabled className={cn("w-full gap-2 h-10 rounded-lg whitespace-nowrap", callBtnCls, "opacity-100 disabled:opacity-100")}>
+              <Button size="sm" disabled className={cn("w-full gap-2 h-11 rounded-lg whitespace-nowrap", callBtnCls, "opacity-100 disabled:opacity-100")}>
                 <Phone className="h-4 w-4" /> Call
               </Button>
             </TooltipTrigger>
@@ -1092,7 +1092,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" disabled className="w-full gap-2 h-10 rounded-lg whitespace-nowrap">
+              <Button size="sm" variant="outline" disabled className="w-full gap-2 h-11 rounded-lg whitespace-nowrap">
                 <Mail className="h-4 w-4" /> Email
               </Button>
             </TooltipTrigger>
@@ -1100,7 +1100,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="h-10 w-12 p-0 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+              <Button size="sm" variant="outline" className="h-11 w-12 p-0 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
                 <UserIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -1111,13 +1111,13 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         {/* Only internal divider, then secondary action row */}
         <div className="mt-5 pt-5 border-t border-border">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/users/${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-2 h-11 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/users/${party.id}`)}>
               <UserIcon className="h-3.5 w-3.5 shrink-0" /> View Profile
             </Button>
-            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?q=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-2 h-11 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?q=${party.id}`)}>
               <Scale className="h-3.5 w-3.5 shrink-0" /> Dispute History
             </Button>
-            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?q=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-2 h-11 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?q=${party.id}`)}>
               <Receipt className="h-3.5 w-3.5 shrink-0" /> Transactions
             </Button>
           </div>
@@ -1744,7 +1744,7 @@ function CaseCommunicationSection(props: {
                   value={msgType}
                   onChange={(e) => setMsgType(e.target.value)}
                   className={cn(
-                    "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg focus:outline-none text-xs font-medium",
+                    "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg focus:outline-none text-xs font-medium min-h-11",
                     accent.focus
                   )}
                 >
@@ -1761,7 +1761,7 @@ function CaseCommunicationSection(props: {
                 disabled={activeTab !== "internal"}
                 title={activeTab !== "internal" ? "Outbound messaging not yet wired" : undefined}
                 className={cn(
-                  "px-5 py-2 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center",
+                  "px-5 py-2 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center min-h-11",
                   accent.send,
                   activeTab !== "internal" && "opacity-50 cursor-not-allowed"
                 )}
@@ -1786,7 +1786,7 @@ function QuickActionChip({ icon, label, hoverClass, onClick, disabled, title }: 
       disabled={disabled}
       title={title}
       className={cn(
-        "px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
+        "px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center min-h-11",
         disabled ? "opacity-50 cursor-not-allowed" : hoverClass
       )}
     >

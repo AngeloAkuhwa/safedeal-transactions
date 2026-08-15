@@ -152,7 +152,7 @@ export function RoleDetailPanel({
                   setInternal(v);
                   onRoleChange?.(v);
                 }}
-                className="h-10 min-w-[240px] rounded-md border border-border bg-background px-3 text-sm font-semibold"
+                className="h-10 min-w-[240px] rounded-md border border-border bg-background px-3 text-sm font-semibold relative before:absolute before:-inset-2 before:content-['']"
               >
                 {INTERNAL_ROLES.map((r) => (
                   <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>
@@ -175,14 +175,14 @@ export function RoleDetailPanel({
             <button
               type="button"
               onClick={() => onCompare?.(role)}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
             >
               <ShieldCheck className="h-3.5 w-3.5" /> Compare role
             </button>
             <button
               type="button"
               onClick={() => onCloneAsTemplate?.(role)}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
             >
               <Copy className="h-3.5 w-3.5" /> Clone as template
             </button>
@@ -191,21 +191,21 @@ export function RoleDetailPanel({
               disabled={protectedRole}
               onClick={() => !protectedRole && onResetToDefault?.(role)}
               title={protectedRole ? "Protected roles cannot be reset" : "Reset to default"}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40 min-h-11"
             >
               <RotateCcw className="h-3.5 w-3.5" /> Reset to default
             </button>
             <button
               type="button"
               onClick={() => onViewHistory?.(role)}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
             >
               <History className="h-3.5 w-3.5" /> View change history
             </button>
             <button
               type="button"
               onClick={() => navigate(`/admin/access-control?role=${role}`)}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
             >
               <Users className="h-3.5 w-3.5" /> View users <ExternalLink className="h-3 w-3" />
             </button>

@@ -72,7 +72,7 @@ const BuyerDisputes = () => {
   const isFilterEmpty = data && data.items.length === 0 && (hasActiveFilters || totalAll > 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       {/* Compact header */}
@@ -85,7 +85,7 @@ const BuyerDisputes = () => {
                 Review active and resolved disputes related to your transactions.
               </p>
             </div>
-            <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+            <Button asChild variant="outline" size="sm" className="gap-1.5 h-11 text-xs">
               <Link to={supportLink(null, "dispute")}>
                 <HelpCircle className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Dispute Help</span>

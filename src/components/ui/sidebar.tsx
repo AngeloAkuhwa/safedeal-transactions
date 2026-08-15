@@ -226,7 +226,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
         data-sidebar="trigger"
         variant="ghost"
         size="icon"
-        className={cn("h-7 w-7", className)}
+        className={cn("h-7 w-7 relative before:absolute before:-inset-2 before:content-['']", className)}
         onClick={(event) => {
           onClick?.(event);
           toggleSidebar();
@@ -291,7 +291,7 @@ const SidebarInput = React.forwardRef<React.ElementRef<typeof Input>, React.Comp
         ref={ref}
         data-sidebar="input"
         className={cn(
-          "h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          "h-11 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
           className,
         )}
         {...props}

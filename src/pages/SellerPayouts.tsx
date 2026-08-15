@@ -37,7 +37,7 @@ function CardInfoTip({ children }: { children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground">
+        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground relative before:absolute before:-inset-4 before:content-['']">
           <Info className="h-3.5 w-3.5" />
         </button>
       </TooltipTrigger>
@@ -55,7 +55,7 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
   if (row.status === "completed") {
     if (!row.transaction_id) return null;
     return (
-      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+      <Button variant="ghost" size="sm" className="h-11 text-xs" asChild>
         <Link to={`/seller/transactions/${row.transaction_id}`}>
           <Eye className="h-3 w-3 mr-1" /> View Payout
         </Link>
@@ -64,7 +64,7 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
   }
   if (row.status === "failed") {
     return (
-      <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" asChild>
+      <Button variant="ghost" size="sm" className="h-11 text-xs text-destructive" asChild>
         <Link to="/seller/profile?section=payout">
           <RotateCcw className="h-3 w-3 mr-1" /> Fix payout account
         </Link>
@@ -74,7 +74,7 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
   if (row.status === "pending" || row.status === "processing") {
     if (!row.transaction_id) return null;
     return (
-      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+      <Button variant="ghost" size="sm" className="h-11 text-xs" asChild>
         <Link to={`/seller/transactions/${row.transaction_id}`}>
           <Eye className="h-3 w-3 mr-1" /> View Transaction
         </Link>
@@ -125,7 +125,7 @@ const SellerPayouts = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -133,7 +133,7 @@ const SellerPayouts = () => {
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
           <RefreshCw className="h-7 w-7 text-destructive" />
         </div>
@@ -157,7 +157,7 @@ const SellerPayouts = () => {
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <SellerNav sellerName={seller.full_name} avatarUrl={seller.avatar_url} />
 
       <main className="sd-page sd-page-y sd-section-y">
@@ -263,14 +263,14 @@ const SellerPayouts = () => {
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="Search..."
-                        className="pl-8 h-8 w-44 text-xs"
+                        className="pl-8 h-11 w-44 text-xs"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                       />
                     </div>
                     <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
-                      <SelectTrigger className="h-8 w-36 text-xs">
+                      <SelectTrigger className="h-11 w-36 text-xs">
                         <Filter className="h-3.5 w-3.5 mr-1.5" />
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
@@ -282,7 +282,7 @@ const SellerPayouts = () => {
                         <SelectItem value="failed">Failed</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setExportOpen(true)}>
+                    <Button variant="outline" size="sm" className="h-11 text-xs" onClick={() => setExportOpen(true)}>
                       <Download className="h-3.5 w-3.5 mr-1.5" /> Export
                     </Button>
                   </div>
@@ -487,12 +487,12 @@ const SellerPayouts = () => {
                       </div>
                       {/* Context-aware action for blocked funds */}
                       {b.blocker_reason.includes("Dispute") && b.transaction_id && (
-                        <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>
+                        <Button variant="outline" size="sm" className="w-full h-11 text-xs mt-1" asChild>
                           <Link to={`/seller/transactions/${b.transaction_id}`}>View Dispute</Link>
                         </Button>
                       )}
                       {b.blocker_reason.includes("verification") && (
-                        <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => setEditModalOpen(true)}>
+                        <Button variant="outline" size="sm" className="w-full h-11 text-xs mt-1" onClick={() => setEditModalOpen(true)}>
                           Fix Payout Details
                         </Button>
                       )}
@@ -522,7 +522,7 @@ const SellerPayouts = () => {
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {payoutAccountStateExplainer(payout_account.account_state)}
                       </p>
-                      <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => setEditModalOpen(true)}>
+                      <Button size="sm" className="mt-2 h-11 text-xs" onClick={() => setEditModalOpen(true)}>
                         Complete Verification
                       </Button>
                     </div>
@@ -546,7 +546,7 @@ const SellerPayouts = () => {
                   <Row label="Processing Time" value={payout_account.typical_processing_time} />
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full mt-2 h-8 text-xs" onClick={() => setEditModalOpen(true)}>
+                <Button variant="outline" size="sm" className="w-full mt-2 h-11 text-xs" onClick={() => setEditModalOpen(true)}>
                   <FileText className="h-3.5 w-3.5 mr-1.5" /> Edit Payout Details
                 </Button>
               </CardContent>

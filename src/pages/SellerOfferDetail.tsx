@@ -77,7 +77,7 @@ export default function SellerOfferDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <SellerNav sellerName={navData?.seller?.full_name ?? "Seller"} avatarUrl={navData?.seller?.avatar_url ?? null} />
         <div className="flex-1 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         <Footer />
@@ -87,7 +87,7 @@ export default function SellerOfferDetail() {
 
   if (isError || !offer) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <SellerNav sellerName={navData?.seller?.full_name ?? "Seller"} avatarUrl={navData?.seller?.avatar_url ?? null} />
         <div className="flex-1 p-8 text-destructive">Failed to load offer.</div>
         <Footer />
@@ -109,7 +109,7 @@ export default function SellerOfferDetail() {
   const shareText = `Hi ${buyerLabel}, here's your private SafeDeal offer: ${offerUrl}`;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav sellerName={navData?.seller?.full_name ?? "Seller"} avatarUrl={navData?.seller?.avatar_url ?? null} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">

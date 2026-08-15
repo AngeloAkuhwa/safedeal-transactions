@@ -118,7 +118,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
 
         {/* Stock */}
         <div
-          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded-lg transition-colors min-h-11"
           onClick={(e) => {
             e.stopPropagation();
             onUpdateStock?.();

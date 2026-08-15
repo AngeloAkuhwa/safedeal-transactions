@@ -60,10 +60,10 @@ function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: Escrow
   const btn = "w-9 h-9 rounded-lg flex items-center justify-center transition-all group";
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <button type="button" onClick={onOpenTx} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600`}>
+      <button type="button" onClick={onOpenTx} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600 relative before:absolute before:-inset-1 before:content-['']`}>
         <FileText className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
-      <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600`}>
+      <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600 relative before:absolute before:-inset-1 before:content-['']`}>
         <Vault className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
       <button
@@ -71,7 +71,7 @@ function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: Escrow
         onClick={onDispute}
         title={row.flagged ? "Active Dispute" : "No dispute"}
         disabled={!row.flagged}
-        className={`${btn} ${row.flagged ? "bg-red-500/20 border border-red-500/40 hover:bg-red-600" : "bg-slate-800/50 opacity-50 cursor-not-allowed"}`}
+        className={`${btn} ${row.flagged ? "bg-red-500/20 border border-red-500/40 hover:bg-red-600" : "bg-slate-800/50 opacity-50 cursor-not-allowed"} relative before:absolute before:-inset-1 before:content-['']`}
       >
         <Scale className={`h-4 w-4 ${row.flagged ? "text-red-400 group-hover:text-white" : "text-slate-500"}`} />
       </button>
@@ -247,9 +247,9 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
           <span className="text-slate-400">Page {page} of {lastPage}</span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}
-              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed min-h-11">Prev</button>
             <button type="button" disabled={page >= lastPage} onClick={() => onPage(page + 1)}
-              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed min-h-11">Next</button>
           </div>
         </div>
       )}

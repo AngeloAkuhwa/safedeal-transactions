@@ -141,7 +141,7 @@ export default function AdminReconciliation() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm sd-stack">
                     <thead className="bg-muted/50 text-left">
                       <tr>
                         <th className="p-2">Tx</th>
@@ -211,7 +211,7 @@ export default function AdminReconciliation() {
                 <div className="p-8 text-sm text-muted-foreground">All post-payment transactions have a complete canonical snapshot.</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm sd-stack">
                     <thead className="bg-muted/50 text-left">
                       <tr>
                         <th className="p-2">Tx</th>

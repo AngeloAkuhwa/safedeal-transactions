@@ -643,7 +643,7 @@ export default function AdminTransactions() {
                 onClick={handleExport}
                 disabled={exporting}
                 aria-label="Export transactions"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 disabled:opacity-60 min-h-11"
               >
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 {exporting ? "Exporting…" : "Export"}
@@ -653,7 +653,7 @@ export default function AdminTransactions() {
                 onClick={handleRefresh}
                 disabled={isFetching}
                 aria-label="Refresh transactions"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11"
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
@@ -690,8 +690,7 @@ export default function AdminTransactions() {
             </button>
           </div>
         </header>
-      )}
-    >
+      )}>
       {/* Error banner */}
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
@@ -702,7 +701,7 @@ export default function AdminTransactions() {
           <button
             type="button"
             onClick={fetchData}
-            className="rounded-md border border-red-500/40 px-3 py-1 text-xs font-medium hover:bg-red-500/15"
+            className="rounded-md border border-red-500/40 px-3 py-1 text-xs font-medium hover:bg-red-500/15 min-h-11"
           >
             Retry
           </button>
@@ -764,7 +763,7 @@ export default function AdminTransactions() {
                 active
                   ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              } min-h-11`}
             >
               {f.label}
             </button>
@@ -786,7 +785,7 @@ export default function AdminTransactions() {
           <button
             type="button"
             onClick={() => setMobileSheetOpen(true)}
-            className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted lg:hidden"
+            className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted lg:hidden min-h-11"
           >
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4" /> Filters
@@ -829,7 +828,7 @@ export default function AdminTransactions() {
             <button
               type="button"
               onClick={clearAllFilters}
-              className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+              className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted min-h-11"
             >
               Clear Filters
             </button>
@@ -1129,7 +1128,7 @@ export default function AdminTransactions() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); goToDetail(t); }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11"
                   aria-label={`View details for ${t.transactionCode}`}
                 >
                   <Eye className="h-3.5 w-3.5" aria-hidden /> View
@@ -1187,14 +1186,14 @@ export default function AdminTransactions() {
             <button
               type="button"
               onClick={clearAllFilters}
-              className="flex-1 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+              className="flex-1 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted min-h-11"
             >
               Clear
             </button>
             <button
               type="button"
               onClick={() => setMobileSheetOpen(false)}
-              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 min-h-11"
             >
               Apply
             </button>
@@ -1274,7 +1273,7 @@ function IconBtn({ children, onClick, label }: { children: React.ReactNode; onCl
           type="button"
           aria-label={label}
           onClick={(e) => { e.stopPropagation(); onClick(); }}
-          className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none"
+          className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none min-h-11"
         >
           {children}
         </button>
@@ -1306,7 +1305,7 @@ function BottomNav({
       aria-current={active ? "page" : undefined}
       className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
         active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
-      }`}
+      } min-h-11`}
     >
       <Icon className="h-5 w-5" aria-hidden />
       {label}
@@ -1337,7 +1336,7 @@ function PaginationBar({
           type="button"
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50 min-h-11"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Prev
         </button>
@@ -1345,7 +1344,7 @@ function PaginationBar({
           type="button"
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50 min-h-11"
         >
           Next <ChevronRight className="h-3.5 w-3.5" />
         </button>
@@ -1372,7 +1371,7 @@ function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (
       onChange={(e) => onChange(e.target.value)}
       placeholder={isLg ? "Search transaction code..." : "Search transactions..."}
       aria-label="Search transactions"
-      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
     />
   );
 }
@@ -1390,7 +1389,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
       >
         <option value="">All</option>
         {options.map((o) => (
@@ -1415,7 +1414,7 @@ function SortMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+          className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted min-h-11"
         >
           <span className="inline-flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4" />
@@ -1475,7 +1474,7 @@ function FilterInput({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
       />
     </label>
   );

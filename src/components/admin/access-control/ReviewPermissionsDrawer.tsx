@@ -348,7 +348,7 @@ function OverrideList({
             type="button"
             onClick={() => onRequestRemove(o.permission_key)}
             title={tone === "emerald" ? "Request revoke" : "Request re-grant"}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -477,7 +477,7 @@ function RequestOverrideDialog({
               type="date"
               value={expires}
               onChange={(e) => setExpires(e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm"
             />
           </div>
           <div className="space-y-1.5">

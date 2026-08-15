@@ -126,7 +126,7 @@ function Body({ d }: { d: EscrowDetail }) {
           <Row label="Opened" value={formatRelative(d.dispute.opened_at)} />
           <button
             onClick={() => nav(`/admin/disputes/${d.dispute!.id}`)}
-            className="mt-2 w-full px-3 py-2 bg-red-500/15 text-red-300 border border-red-500/30 rounded text-xs font-semibold inline-flex items-center justify-center gap-2"
+            className="mt-2 w-full px-3 py-2 bg-red-500/15 text-red-300 border border-red-500/30 rounded text-xs font-semibold inline-flex items-center justify-center gap-2 min-h-11"
           >
             <AlertCircle className="h-3 w-3" /> Open dispute case
           </button>
@@ -136,7 +136,7 @@ function Body({ d }: { d: EscrowDetail }) {
       <div className="flex gap-2">
         <button
           onClick={() => nav(`/admin/transactions/${d.transaction.id}`)}
-          className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 min-h-11"
         >
           <FileText className="h-4 w-4" /> Full transaction
           <ExternalLink className="h-3 w-3" />
@@ -162,7 +162,7 @@ export function EscrowRecordDrawer({
         <SheetHeader className="mb-4">
           <SheetTitle className="text-white flex items-center justify-between">
             <span>Escrow record</span>
-            <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
+            <button onClick={onClose} className="text-slate-400 hover:text-white relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"><X className="h-4 w-4" /></button>
           </SheetTitle>
         </SheetHeader>
         {isLoading || !txId ? (

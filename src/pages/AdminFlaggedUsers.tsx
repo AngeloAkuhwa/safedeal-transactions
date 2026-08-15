@@ -113,7 +113,7 @@ export default function AdminFlaggedUsers() {
         <FlaggedMobileTopBar onOpenMenu={onOpenMenu} activeFlags={summary?.total_flagged ?? 0} />
       )}
     >
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-6 lg:space-y-8 bg-slate-950 min-h-screen">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-6 lg:space-y-8 bg-slate-950 min-h-[100dvh]">
         {isLoading || !data ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">

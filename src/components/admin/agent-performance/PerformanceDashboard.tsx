@@ -41,7 +41,7 @@ export function PerformanceDashboard({
       />
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px]">
+        <table className="w-full min-w-[880px] sd-stack">
           <thead>
             <tr className="border-b border-border/70">
               {["Agent", "Resolved", allTime ? "Lifetime" : "Prev Period", "Avg Resolution", "Avg First Action", "Escalations", "Score"].map((h, i) => (

@@ -102,7 +102,7 @@ export function AssignTaskDrawer({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search agent…"
-                className="h-8 bg-background/60 pl-7 text-xs"
+                className="h-11 bg-background/60 pl-7 text-xs"
               />
             </div>
             <div className="mt-2 max-h-[46vh] space-y-1 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-1.5">
@@ -119,7 +119,7 @@ export function AssignTaskDrawer({
                     disabled={blocked}
                     onClick={() => setAgentId(a.user_id)}
                     className={cn(
-                      "w-full rounded-lg border p-2.5 text-left transition-all",
+                      "w-full rounded-lg border p-2.5 text-left transition-all min-h-11",
                       selectedRow
                         ? "border-primary/60 bg-primary/[0.06] ring-1 ring-primary/30"
                         : "border-border/60 bg-card/30 hover:border-primary/40",

@@ -80,7 +80,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted min-h-11"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -113,7 +113,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-border bg-background/60 px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            className="rounded-md border border-border bg-background/60 px-3 py-1.5 text-xs font-medium hover:bg-muted min-h-11"
           >
             Cancel
           </button>
@@ -121,7 +121,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
             type="button"
             disabled={targetProtected || totalChanges === 0}
             onClick={handleStage}
-            className="rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 min-h-11"
           >
             Stage changes
           </button>

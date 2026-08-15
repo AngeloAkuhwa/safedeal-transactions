@@ -14,7 +14,7 @@ export function PermissionDiffTable({ rows, className }: { rows: DiffRow[]; clas
   if (!rows.length) return <div className="rounded border border-border/60 bg-background/40 p-3 text-xs text-muted-foreground">No changes.</div>;
   return (
     <div className={cn("overflow-x-auto rounded-lg border border-border/60 bg-background/40", className)}>
-      <table className="w-full min-w-[720px] text-xs">
+      <table className="w-full min-w-[720px] text-xs sd-stack">
         <thead>
           <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="px-3 py-2 text-left font-medium">Permission</th>

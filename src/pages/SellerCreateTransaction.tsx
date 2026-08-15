@@ -360,7 +360,7 @@ const SellerCreateTransaction = () => {
     const conditionLabel = CONDITION_OPTIONS.find((c) => c.value === form.item_condition)?.label ?? form.item_condition;
     const deliveryLabel = DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? form.delivery_method;
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
         <TransactionSuccess
           publishedUrl={publishedUrl}
@@ -377,7 +377,7 @@ const SellerCreateTransaction = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
 
       {/* Hero */}
@@ -501,7 +501,7 @@ const SellerCreateTransaction = () => {
 
               {/* Inline info card */}
               <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
-                <Link className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <Link className="h-5 w-5 text-primary mt-0.5 shrink-0 relative before:absolute before:-inset-3 before:content-['']" />
                 <div>
                   <h3 className="text-sm font-medium text-foreground">Secure Transaction Link</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed mt-1">
@@ -626,7 +626,7 @@ const SellerCreateTransaction = () => {
                           <p className="text-sm font-medium text-foreground truncate">{video.original_name}</p>
                           <p className="text-xs text-muted-foreground">{video.fingerprint}</p>
                         </div>
-                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full">
+                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full min-h-11">
                           <X className="h-4 w-4 text-destructive" />
                         </button>
                       </div>

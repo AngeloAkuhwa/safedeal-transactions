@@ -33,7 +33,7 @@ function RuleNumber({ label, hint, value, unit, onChange, disabled }: { label: s
     <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
       <Label className="mb-2 block text-sm font-medium text-foreground">{label}</Label>
       <div className="flex items-center gap-3">
-        <Input type="number" value={value} onChange={e => onChange(Number(e.target.value) || 0)} className="h-9 flex-1 bg-background/60" disabled={disabled} />
+        <Input type="number" value={value} onChange={e => onChange(Number(e.target.value) || 0)} className="h-11 flex-1 bg-background/60" disabled={disabled} />
         <span className="text-[11px] text-muted-foreground">{unit}</span>
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
@@ -89,7 +89,7 @@ export function AssignmentRulesPanel({
           <div className="flex items-center gap-3">
             <Input value={(draft as any).queue_scope ?? "global"}
               onChange={e => set("queue_scope" as any, e.target.value as any)}
-              placeholder="global" disabled={!canManage} className="h-9 max-w-[240px] bg-background/60" />
+              placeholder="global" disabled={!canManage} className="h-11 max-w-[240px] bg-background/60" />
             <span className="text-[11px] text-muted-foreground">Applies these rules to a specific queue key. Defaults to <code>global</code>.</span>
           </div>
         </div>
@@ -119,7 +119,7 @@ export function AssignmentRulesPanel({
                 <Label className="mb-2 block text-sm font-medium text-foreground">Escalation queue</Label>
                 <Input value={draft.stale_escalation_queue ?? ""}
                   onChange={e => set("stale_escalation_queue", e.target.value)}
-                  placeholder="senior_pool" disabled={!canManage} className="h-9 bg-background/60" />
+                  placeholder="senior_pool" disabled={!canManage} className="h-11 bg-background/60" />
                 <p className="mt-2 text-[11px] text-muted-foreground">Target queue for stale-task escalation</p>
               </div>
             </div>
@@ -133,7 +133,7 @@ export function AssignmentRulesPanel({
           <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
             <Label className="mb-2 block text-sm font-medium text-foreground">Fallback Assignment Target</Label>
             <Select value={draft.fallback_target ?? "senior_agent_pool"} onValueChange={v => set("fallback_target", v)} disabled={!canManage}>
-              <SelectTrigger className="h-9 bg-background/60"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11 bg-background/60"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FALLBACK_TARGETS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
@@ -144,7 +144,7 @@ export function AssignmentRulesPanel({
             <Label className="mb-2 block text-sm font-medium text-foreground">Senior pool queue</Label>
             <Input value={draft.senior_pool_queue ?? ""}
               onChange={e => set("senior_pool_queue", e.target.value)}
-              placeholder="senior_pool" disabled={!canManage} className="h-9 bg-background/60" />
+              placeholder="senior_pool" disabled={!canManage} className="h-11 bg-background/60" />
             <p className="mt-2 text-[11px] text-muted-foreground">Queue key used by Priority Cases &amp; escalation routing</p>
           </div>
           <RuleToggle label="Super Admin Self-Assignment" desc="Allow super admin to override and assign to self"

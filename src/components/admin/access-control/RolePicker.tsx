@@ -43,7 +43,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                   type="button"
                   onClick={() => toggle(r.key)}
                   className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                    selected ? "border-blue-500 bg-blue-600 text-white" : "border-border bg-background"
+                    selected ? "border-blue-500 bg-blue-600 text-white relative before:absolute before:-inset-4 before:content-['']" : "border-border bg-background"
                   }`}
                   aria-pressed={selected}
                 >
@@ -62,7 +62,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                         type="button"
                         onClick={() => setPrimary(r.key)}
                         title={isPrimary ? "Primary role" : "Set as primary"}
-                        className={`ml-auto rounded p-0.5 ${isPrimary ? "text-amber-400" : "text-muted-foreground hover:text-amber-400"}`}
+                        className={`ml-auto rounded p-0.5 ${isPrimary ? "text-amber-400" : "text-muted-foreground hover:text-amber-400"} min-h-11 min-w-11 justify-center`}
                       >
                         <Star className="h-3.5 w-3.5" fill={isPrimary ? "currentColor" : "none"} />
                       </button>

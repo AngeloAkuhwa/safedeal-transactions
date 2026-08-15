@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { MIN_TARGET_PX, scanRepo, scanSource, measure, classNamesOf, readOpeningTag } from "./helpers/touch-target-scan";
 
 const ROOT = join(process.cwd(), "src");
-const SMALL = new Set(["3", "3.5", "4", "5", "6", "7", "8", "9", "10"]);
 
 function tsxFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -12,42 +12,50 @@ function tsxFiles(dir: string): string[] {
   });
 }
 
-function linesBefore(source: string, index: number) {
-  return source.slice(0, index).split("\n").length;
-}
-
 /**
  * Intentionally narrow exceptions. These are visual primitives whose actual
  * interactive parent owns the 44px hit area, not standalone controls.
  */
 const ALLOWLIST: Array<{ file: string; contains: string; reason: string }> = [];
 
+describe("touch-target scanner behaves", () => {
+  it("parses past arrow functions inside the opening tag", () => {
+    const src = `<button onClick={() => go()} className="h-8 w-8" />`;
+    expect(classNamesOf(readOpeningTag(src, 0)!.text)).toContain("h-8");
+  });
+
+  it("resolves cn() and template-literal classNames", () => {
+    expect(classNamesOf(`<Button className={cn("h-9 px-2", other)} />`)).toContain("h-9");
+    expect(classNamesOf("<Button className={`h-7 ${x}`} />")).toContain("h-7");
+  });
+
+  it("ignores className props belonging to nested JSX", () => {
+    expect(classNamesOf(`<Tile icon={<Eye className="h-3 w-3" />} onClick={() => {}} />`)).toEqual([]);
+  });
+
+  it("understands shadcn size variants, size-*, min-h-* and padding", () => {
+    expect(measure(`<Button size="icon" />`, "Button").height).toBe(44);
+    expect(measure(`<button className="size-6" />`, "button").height).toBe(24);
+    expect(measure(`<button className="py-1 px-2.5" />`, "button").height).toBe(28);
+    expect(measure(`<button className="h-8 w-8 before:-inset-2" />`, "button").height).toBe(48);
+  });
+
+  it("flags capitalised components, not just lowercase tags", () => {
+    expect(scanSource(`<SelectTrigger className="h-8 sm:w-52" />`, "x.tsx")).toHaveLength(1);
+    expect(scanSource(`<Checkbox className="h-3.5 w-3.5" />`, "x.tsx")).toHaveLength(1);
+  });
+});
+
 describe("mobile touch targets", () => {
   it("has a documented reason for every exception", () => {
     for (const item of ALLOWLIST) expect(item.reason.trim().length).toBeGreaterThan(20);
   });
 
-  it("finds no explicit sub-44px raw interactive target", () => {
-    const violations: string[] = [];
-    const tag = /<(button|a|input|select|textarea)(?=\s|>)[^>]*>/gs;
-
-    for (const absolute of tsxFiles(ROOT)) {
-      const file = relative(process.cwd(), absolute).replace(/\\/g, "/");
-      const source = readFileSync(absolute, "utf8");
-      for (const match of source.matchAll(tag)) {
-        const literalClass = match[0].match(/className="([^"]*)"/s);
-        if (!literalClass) continue;
-        const classes = literalClass[1].split(/\s+/);
-        const smallHeight = classes.find((c) => c.startsWith("h-") && SMALL.has(c.slice(2)));
-        const smallWidth = classes.find((c) => c.startsWith("w-") && SMALL.has(c.slice(2)));
-        if (!smallHeight && !(smallWidth && classes.some((c) => c.startsWith("h-")))) continue;
-        if (classes.some((c) => c === "h-11" || c === "min-h-11" || c.includes("before:-inset"))) continue;
-
-        const allowed = ALLOWLIST.some((item) => item.file === file && match[0].includes(item.contains));
-        if (!allowed) violations.push(`${file}:${linesBefore(source, match.index ?? 0)} ${smallHeight ?? ""} ${smallWidth ?? ""}`.trim());
-      }
-    }
-
+  it(`finds no interactive target under ${MIN_TARGET_PX}px`, () => {
+    const violations = scanRepo("src")
+      .filter((v) => !v.file.includes("__tests__"))
+      .filter((v) => !ALLOWLIST.some((a) => a.file === v.file && v.snippet.includes(a.contains)))
+      .map((v) => `${v.file}:${v.line} <${v.tag}> ${v.reason} | ${v.snippet.slice(0, 120)}`);
     expect(violations, violations.join("\n")).toEqual([]);
   });
 

@@ -65,7 +65,7 @@ export function LiveTaskProgression({
           <Popover>
             <PopoverTrigger asChild>
               <button className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition",
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition min-h-11",
                 activeCount > 0
                   ? "border-primary/40 bg-primary/[0.06] text-foreground"
                   : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground",
@@ -99,7 +99,7 @@ export function LiveTaskProgression({
         </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/40">
-        <table className="w-full border-collapse text-left text-sm">
+        <table className="w-full border-collapse text-left text-sm sd-stack">
           <thead className="sticky top-0 bg-background/80 backdrop-blur">
             <tr className="border-b border-border/60 text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3 font-semibold">Task ID</th>
@@ -190,7 +190,7 @@ function FilterGroup({ title, value, options, onChange }: {
             key={o.value} type="button"
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition",
+              "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition min-h-11",
               value === o.value ? "bg-primary/[0.08] text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
             )}
           >

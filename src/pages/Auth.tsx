@@ -78,7 +78,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-success/5">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-primary/5 via-background to-success/5">
       {/* Back link - mobile */}
       <div className="lg:hidden p-4">
         <Link
@@ -90,7 +90,7 @@ const Auth = () => {
         </Link>
       </div>
 
-      <div className="flex min-h-screen items-center justify-center p-4 lg:p-8">
+      <div className="flex min-h-[100dvh] items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 rounded-2xl border bg-card shadow-xl overflow-hidden">
           {/* Left panel */}
           <AuthInfoPanel />

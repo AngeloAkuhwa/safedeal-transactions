@@ -72,7 +72,7 @@ export function AllRolesMatrix({
   return (
     <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm md:p-3">
       <div className="relative overflow-x-auto">
-        <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm sd-stack">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="sticky left-0 top-0 z-20 min-w-[300px] bg-card/95 px-4 py-2.5 text-left font-semibold backdrop-blur">
@@ -160,7 +160,7 @@ function ModuleGroup({
             <button
               type="button"
               onClick={onToggle}
-              className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-sm font-semibold hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-sm font-semibold hover:bg-muted min-h-11"
             >
               {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               {mod.label}
@@ -239,7 +239,7 @@ function ModuleGroup({
                   onClick={() => onStage(r.key, p.key, held)}
                   title={editable ? "Click to stage change" : isProtectedRole(r.key) ? "Protected role — cannot edit" : "Read-only"}
                   className={cn(
-                    "inline-flex h-6 w-9 items-center justify-center rounded-full transition",
+                    "inline-flex h-11 w-9 items-center justify-center rounded-full transition",
                     effectiveGranted
                       ? "bg-emerald-500/20 text-emerald-300"
                       : "bg-muted/40 text-muted-foreground",

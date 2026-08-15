@@ -122,7 +122,7 @@ const SellerProductPreview = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -130,7 +130,7 @@ const SellerProductPreview = () => {
 
   if (isError || !data?.product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4">
         <h2 className="text-xl font-bold text-foreground">Product not found</h2>
         <Button onClick={() => navigate("/seller/storefront")}>Back to Storefront</Button>
       </div>
@@ -170,7 +170,7 @@ const SellerProductPreview = () => {
     : "—";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
@@ -223,7 +223,7 @@ const SellerProductPreview = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 relative z-10">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl">
             {/* Main content — 2 cols */}
             <div className="xl:col-span-2 space-y-6">

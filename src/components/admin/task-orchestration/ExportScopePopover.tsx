@@ -47,7 +47,7 @@ export function ExportScopePopover({
                 setOpen(false);
                 await onExport({ scope: s.value, includePii, includeFinancial });
               }}
-              className="w-full rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:border-border/60 hover:bg-muted/40">
+              className="w-full rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:border-border/60 hover:bg-muted/40 min-h-11">
               <div className="font-medium">{s.label}</div>
               <div className="text-[11px] text-muted-foreground">{s.desc}</div>
             </button>

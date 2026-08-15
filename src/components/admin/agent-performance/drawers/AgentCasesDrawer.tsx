@@ -133,7 +133,7 @@ export function AgentCasesDrawer({
                 type="button"
                 onClick={() => setScopeOverride(s)}
                 className={cn(
-                  "rounded-md px-3 py-1 text-xs font-medium transition",
+                  "rounded-md px-3 py-1 text-xs font-medium transition min-h-11",
                   scope === s ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -184,7 +184,7 @@ export function AgentCasesDrawer({
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40 min-h-11"
                 >
                   Previous
                 </button>
@@ -192,7 +192,7 @@ export function AgentCasesDrawer({
                   type="button"
                   disabled={!hasMore}
                   onClick={() => setPage(page + 1)}
-                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40 min-h-11"
                 >
                   Next
                 </button>

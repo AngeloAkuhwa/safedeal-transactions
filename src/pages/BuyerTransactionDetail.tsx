@@ -190,19 +190,19 @@ function NextActionCard({
           <div className="space-y-1.5">
             <button
               onClick={onPrint}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <Printer className="h-4 w-4" /> Print receipt
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "transaction"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <HelpCircle className="h-4 w-4" /> Contact Support
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "report_issue"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <Flag className="h-4 w-4" /> Report Issue
             </button>
@@ -234,7 +234,7 @@ const BuyerTransactionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -242,7 +242,7 @@ const BuyerTransactionDetail = () => {
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
           <RefreshCw className="h-7 w-7 text-destructive" />
         </div>
@@ -274,7 +274,7 @@ const BuyerTransactionDetail = () => {
   const mBadge = { label: mEntry.label, className: TONE_CLASSNAMES[mEntry.tone] };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
+    <div className="min-h-[100dvh] bg-muted/30 flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       {/* Back link bar */}

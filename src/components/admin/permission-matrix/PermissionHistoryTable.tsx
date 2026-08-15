@@ -71,10 +71,10 @@ export function PermissionHistoryTable({
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-card/40 p-2 backdrop-blur-sm">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, actor, reason, or ref" className="h-8 pl-7 text-xs" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, actor, reason, or ref" className="h-11 pl-7 text-xs" />
         </div>
         <Select value={scope} onValueChange={setScope}>
-          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Scope" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[150px] text-xs"><SelectValue placeholder="Scope" /></SelectTrigger>
           <SelectContent>
             {[{ v: "any", l: "All scopes" }, { v: "role", l: "Role" }, { v: "user", l: "User" }, { v: "template", l: "Template" }, { v: "permission", l: "Permission" }].map((i) => (
               <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
@@ -82,7 +82,7 @@ export function PermissionHistoryTable({
           </SelectContent>
         </Select>
         <Select value={result} onValueChange={setResult}>
-          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Result" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[150px] text-xs"><SelectValue placeholder="Result" /></SelectTrigger>
           <SelectContent>
             {[{ v: "any", l: "All results" }, { v: "applied", l: "Applied" }, { v: "rejected", l: "Rejected" }, { v: "cancelled", l: "Cancelled" }, { v: "failed", l: "Failed" }].map((i) => (
               <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
@@ -90,28 +90,28 @@ export function PermissionHistoryTable({
           </SelectContent>
         </Select>
         <Select value={actor} onValueChange={setActor}>
-          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Actor" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[160px] text-xs"><SelectValue placeholder="Actor" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="any" className="text-xs">Any actor</SelectItem>
             {actorOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>))}
           </SelectContent>
         </Select>
         <Select value={module} onValueChange={setModule}>
-          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Module" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[160px] text-xs"><SelectValue placeholder="Module" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="any" className="text-xs">Any module</SelectItem>
             {moduleOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>))}
           </SelectContent>
         </Select>
         <Select value={permission} onValueChange={setPermission}>
-          <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Permission" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[180px] text-xs"><SelectValue placeholder="Permission" /></SelectTrigger>
           <SelectContent className="max-h-[280px]">
             <SelectItem value="any" className="text-xs">Any permission</SelectItem>
             {permissionOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs font-mono">{i.l}</SelectItem>))}
           </SelectContent>
         </Select>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Date" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-[140px] text-xs"><SelectValue placeholder="Date" /></SelectTrigger>
           <SelectContent>
             {[{ v: "any", l: "Any time" }, { v: "1d", l: "Last 24h" }, { v: "7d", l: "Last 7 days" }, { v: "30d", l: "Last 30 days" }].map((i) => (
               <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
@@ -125,7 +125,7 @@ export function PermissionHistoryTable({
       ) : (
         <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-separate border-spacing-y-1 text-sm">
+            <table className="w-full min-w-[1100px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">When</th>
@@ -169,7 +169,7 @@ export function PermissionHistoryTable({
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onRecreate(r); }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted min-h-11"
                             title="Stage the inverse of this change as a draft for review"
                           >
                             <RotateCcw className="h-3 w-3" /> Recreate

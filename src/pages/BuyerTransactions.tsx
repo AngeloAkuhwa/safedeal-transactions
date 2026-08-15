@@ -80,7 +80,7 @@ const BuyerTransactions = () => {
     data.transactions.length === 0;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       <main className="flex-1">
@@ -98,7 +98,7 @@ const BuyerTransactions = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => refetch()}
-                className="gap-1.5 h-8 text-xs"
+                className="gap-1.5 h-11 text-xs"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Refresh</span>
