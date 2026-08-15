@@ -680,6 +680,24 @@ const NATIVE_INTERACTIVE = new Set([
   ...RAW_TAGS, "Link", "NavLink", ...Array.from(COMPONENT_TAGS).filter((t) => !DELEGATING.has(t)),
 ]);
 
+/**
+ * Elements that render real, non-interactive DOM. An `onClick` on any of these
+ * is a mouse-only control. Capitalised shadcn wrappers are included because
+ * `<Card onClick>` and `<TableRow onClick>` are plain `div`/`tr` at runtime —
+ * the lowercase-only list is what kept `storefront/ProductCard` invisible.
+ * Locally defined or imported *application* components are excluded: there the
+ * `onClick` is a prop, and the DOM it lands on is scanned in its own file.
+ */
+const KEYBOARD_DOM_TAGS = new Set([
+  "div", "span", "li", "ul", "ol", "tr", "td", "th", "p", "section", "article", "header", "footer",
+  "nav", "img", "figure", "main", "aside", "form", "table", "tbody", "thead", "svg", "path",
+  "Card", "CardHeader", "CardContent", "CardFooter", "CardTitle", "CardDescription",
+  "TableRow", "TableCell", "TableHead", "Badge", "Avatar", "AvatarImage", "Separator", "Alert",
+]);
+
+/** Container roles: not controls, but they must still be escapable. */
+const CONTAINER_ROLES = new Set(["dialog", "alertdialog", "menu", "listbox", "tablist", "grid"]);
+
 const INTERACTIVE_ROLES = new Set([
   "button", "link", "menuitem", "menuitemcheckbox", "menuitemradio", "option", "tab", "checkbox",
   "radio", "switch", "combobox", "treeitem",
@@ -689,9 +707,23 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
   const out: Violation[] = [];
   for (const { tag, text, index } of eachTag(rawSource)) {
     if (NATIVE_INTERACTIVE.has(tag) || DELEGATING.has(tag)) continue;
+    if (!KEYBOARD_DOM_TAGS.has(tag)) continue;
     if (ownAttrIndex(text, "onClick=") === -1) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
+    // A dialog/menu container is dismissed with Escape, not activated: it needs
+    // a key handler, but not a control role.
+    if (role !== null && CONTAINER_ROLES.has(role)) {
+      if (/onKey(?:Down|Up)=/.test(text)) continue;
+      out.push({
+        file,
+        line: lineOf(rawSource, index),
+        tag,
+        reason: `clickable <${tag}> with role="${role}" has no key handler`,
+        snippet: text.replace(/\s+/g, " ").slice(0, 150),
+      });
+      continue;
+    }
     if (role === null || !INTERACTIVE_ROLES.has(role)) missing.push(role === null ? "role" : `interactive role (got "${role}")`);
     const tabIndexRaw = text.match(/tabIndex=\{(-?\d+)\}|tabIndex="(-?\d+)"/);
     const tabIndex = tabIndexRaw ? Number(tabIndexRaw[1] ?? tabIndexRaw[2]) : null;
