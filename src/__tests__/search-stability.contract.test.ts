@@ -36,7 +36,7 @@ function searchSetters(source: string): string[] {
   }
   return [...setters]
     .map((n) => n[0].toLowerCase() + n.slice(1))
-    .filter((n) => /search|query|term|filter|^q$/i.test(n));
+    .filter((n) => /search|query|term|^q$/i.test(n));
 }
 
 /** Query keys declared in this file, as raw key-array text. */
