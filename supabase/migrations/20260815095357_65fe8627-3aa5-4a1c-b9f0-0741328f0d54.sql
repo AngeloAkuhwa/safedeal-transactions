@@ -1,6 +1,15 @@
+-- safedeal:seed-fixture
 -- =====================================================================
 -- E2E AUDIT SEED — three disposable accounts. All rows tagged with the
 -- 'claude.e2e.' email prefix and/or e2e_seed=true in JSON metadata.
+--
+-- The marker above exempts this file from the invented-defaults SQL rules
+-- in src/__tests__/invented-defaults.contract.test.ts. It inserts rows it
+-- owns and states their values outright; the literal 'NGN' and the enum
+-- literals below are this fixture describing its own disposable product,
+-- not a default imposed on anyone else's data. The exemption holds only
+-- while this file declares no schema — add a CREATE, an ALTER or a DEFAULT
+-- here and the rules apply again.
 -- =====================================================================
 
 -- 1. AUTH USERS (email-confirmed per-user; global confirm setting untouched)
