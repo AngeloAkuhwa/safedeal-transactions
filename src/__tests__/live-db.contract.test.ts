@@ -262,6 +262,14 @@ const MONEY_TABLE_LIST = [
   "payout_accounts",
   "checkout_sessions",
   "release_review_queue",
+  // Added after the grant-inversion test was found to skip these BY
+  // CONSTRUCTION: they carried anon INSERT/UPDATE/DELETE with
+  // relforcerowsecurity = false because they were absent from this list.
+  // A scan is only as wide as its subject list.
+  "transactions",
+  "transaction_items",
+  "transaction_delivery_terms",
+  "checkout_session_items",
 ];
 
 const MONEY_TABLE_SQL_ARRAY = `array[${MONEY_TABLE_LIST.map((t) => `'${t}'`).join(",")}]`;
@@ -272,15 +280,25 @@ const CLIENT_MONEY_DML_ALLOWLIST = [
   // Seller writes the pricing snapshot pre-lock (sellers_{insert,update}_txn_pricing).
   "authenticated:transaction_pricing:INSERT",
   "authenticated:transaction_pricing:UPDATE",
-  // A user maintains their own payout destination.
-  "authenticated:payout_accounts:INSERT",
-  "authenticated:payout_accounts:UPDATE",
+  // payout_accounts intentionally absent: the table-level INSERT/UPDATE were
+  // replaced by COLUMN-level grants on the bank-detail columns only, so no
+  // table-level entry may reappear here.
   // Buyer opens and advances their own cart checkout session.
   "authenticated:checkout_sessions:INSERT",
   "authenticated:checkout_sessions:UPDATE",
   // Staff triage of the release queue (policies require has_role admin).
   "authenticated:release_review_queue:INSERT",
   "authenticated:release_review_queue:UPDATE",
+  // Seller opens a transaction and its items/terms pre-lock; every one of
+  // these is backed by a sellers_* policy. No UPDATE on transactions: the
+  // state machine moves them through SECURITY DEFINER functions only.
+  "authenticated:transactions:INSERT",
+  "authenticated:transaction_items:INSERT",
+  "authenticated:transaction_items:UPDATE",
+  "authenticated:transaction_delivery_terms:INSERT",
+  "authenticated:transaction_delivery_terms:UPDATE",
+  // Buyer writes their own checkout line items (buyers_insert_own_checkout_items).
+  "authenticated:checkout_session_items:INSERT",
 ];
 
 d("live money-table grants", () => {
@@ -327,16 +345,69 @@ d("live value-consistency constraints", () => {
     expect(def).toContain("stock_quantity");
   });
 
-  it("value-checks the money-writing client policies, not just ownership", () => {
-    // Ownership-only WITH CHECK on a table with money columns is the shape
-    // this phase kept finding; every one of these must reference the guard.
-    const policies = psql(
-      "select tablename || '.' || policyname from pg_policies" +
-        " where schemaname = 'public' and cmd in ('INSERT','UPDATE')" +
-        " and tablename in ('transaction_pricing','checkout_sessions','release_review_queue')" +
-        " and coalesce(with_check,'') !~ 'is_finite_money' order by 1",
+  it("ties checkout line items to their components", () => {
+    const defs = psql(
+      "select conname from pg_constraint" +
+        " where conrelid = 'public.checkout_session_items'::regclass" +
+        " and conname in ('checkout_items_quantity_positive'," +
+        "'checkout_items_line_total_matches_components') order by 1",
     );
-    expect(policies ? policies.split("\n") : []).toEqual([]);
+    expect(defs ? defs.split("\n") : []).toEqual([
+      "checkout_items_line_total_matches_components",
+      "checkout_items_quantity_positive",
+    ]);
+  });
+
+  /**
+   * Widened from three hardcoded table names to EVERY money table with a
+   * client write policy. Scoping this scan by name is why an ownership-only
+   * payout_accounts policy stayed invisible while its neighbours were fixed.
+   *
+   * A client write policy passes when the VALUES it admits are constrained —
+   * either by the policy itself (`is_finite_money` in WITH CHECK) or by a
+   * schema CHECK covering every numeric column of that table. A table with no
+   * numeric column has no amount to invent and passes by construction.
+   */
+  it("value-checks every money-table client write policy, not just ownership", () => {
+    const offenders = psql(
+      "with unguarded_cols as (" +
+        "  select c.relname as tbl" +
+        "  from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        "  join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped" +
+        `  where n.nspname = 'public' and c.relname = any(${MONEY_TABLE_SQL_ARRAY})` +
+        "    and format_type(a.atttypid, null) in ('numeric','double precision','real','money')" +
+        "    and not exists (" +
+        "      select 1 from pg_constraint k where k.conrelid = c.oid and k.contype = 'c'" +
+        "        and pg_get_constraintdef(k.oid) ~ ('\\m' || a.attname || '\\M')" +
+        "        and pg_get_constraintdef(k.oid) ~ 'Infinity')" +
+        ")" +
+        " select p.tablename || '.' || p.policyname from pg_policies p" +
+        " where p.schemaname = 'public' and p.cmd in ('INSERT','UPDATE')" +
+        ` and p.tablename = any(${MONEY_TABLE_SQL_ARRAY})` +
+        " and p.tablename in (select tbl from unguarded_cols)" +
+        " and coalesce(p.with_check,'') !~ 'is_finite_money' order by 1",
+    );
+    expect(offenders ? offenders.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps payout verification fields off the client role", () => {
+    // The seller decides WHERE money lands; they must not also decide that
+    // the destination is verified.
+    const writable = psql(
+      "select a.attname from pg_attribute a, aclexplode(a.attacl) x" +
+        " where a.attrelid = 'public.payout_accounts'::regclass" +
+        " and x.grantee::regrole::text in ('anon','authenticated')" +
+        " and x.privilege_type in ('INSERT','UPDATE')" +
+        " and a.attname in ('verification_status','provider_recipient_code'," +
+        "'provider_recipient_id','last_verified_at','provider_response') order by 1",
+    );
+    expect(writable ? writable.split("\n") : []).toEqual([]);
+
+    const trig = psql(
+      "select tgname from pg_trigger where tgrelid = 'public.payout_accounts'::regclass" +
+        " and tgname = 'payout_accounts_pin_privileged_fields'",
+    );
+    expect(trig).toBe("payout_accounts_pin_privileged_fields");
   });
 });
 
@@ -367,10 +438,18 @@ d("live helper reachability", () => {
  * Inversion, like the column and guard scans: everything touching a money
  * table is a finding unless it appears in the commented allowlist below.
  */
+// Widened from "tables holding amounts" to "tables whose contents are
+// security-relevant". `admin_rate_limits` and `system_settings_history` hold
+// no money, and two anon-executable SECURITY DEFINER writers over them went
+// unseen for exactly that reason.
 const MONEY_TABLES =
   "escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing" +
   "|dispute_outcomes|financial_remediations|transactions|money_status_history" +
-  "|vendor_plan_purchases";
+  "|vendor_plan_purchases|payout_accounts|checkout_sessions|checkout_session_items" +
+  "|release_review_queue|escrow_reconciliation_results|transaction_items" +
+  "|transaction_delivery_terms|admin_rate_limits|system_settings|system_settings_history" +
+  "|internal_users|internal_user_roles|user_roles|permissions|role_permissions" +
+  "|user_permission_overrides|audit_logs|admin_actions|vendor_plans";
 
 // Each entry is READ-ONLY over money tables and justified individually.
 const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
@@ -384,6 +463,40 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
   // executable by authenticated or every transaction policy fails closed.
   // anon is revoked: an unauthenticated caller has no policy to satisfy.
   "is_transaction_party",
+  // ---- Surfaced by widening MONEY_TABLES beyond amount-bearing tables. ----
+  // Read-only counter over flagged users; revoked from anon, page-gated.
+  "admin_flagged_users_count",
+  // Read-only counter of approvals awaiting a given actor; revoked from anon.
+  "count_pending_approvals_for_actor",
+  // Read-only role/access predicates evaluated INSIDE RLS policies. Revoking
+  // authenticated fails every policy closed; they return booleans only.
+  "has_role",
+  "has_any_internal_role",
+  "has_internal_role",
+  "is_internal_admin",
+  "internal_access_active",
+  "internal_actor_rank",
+  "internal_effective_access_level",
+  "internal_effective_permissions",
+  "internal_users_mfa_status",
+  // Read-only settings resolvers. Public pricing and the storefront read fee
+  // configuration before sign-in, so anon EXECUTE is deliberate.
+  "get_effective_setting",
+  "get_effective_settings",
+  "get_pricing_settings_at",
+  // Read-only plan/slot resolvers backing the public pricing page.
+  "effective_vendor_plan_code",
+  "vendor_photo_slot_limit",
+];
+
+// SECURITY DEFINER WRITERS a signed-in client may reach. Each must carry its
+// own authorization check in the body — the grant is not the control.
+const CLIENT_REACHABLE_DEFINER_WRITERS: string[] = [
+  // super_admin check + self-approval guard in the body; revoked from anon.
+  "apply_permission_change_set",
+  // Writes only `internal_users.last_active_at WHERE id = auth.uid()`:
+  // self-scoped by construction, revoked from anon.
+  "touch_internal_user_last_active",
 ];
 
 d("live SECURITY DEFINER EXECUTE grants", () => {
@@ -398,7 +511,13 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
         " order by 1",
     );
     const list = found ? found.split("\n") : [];
-    expect(list.filter((f) => !CLIENT_REACHABLE_MONEY_DEFINERS.includes(f))).toEqual([]);
+    expect(
+      list.filter(
+        (f) =>
+          !CLIENT_REACHABLE_MONEY_DEFINERS.includes(f) &&
+          !CLIENT_REACHABLE_DEFINER_WRITERS.includes(f),
+      ),
+    ).toEqual([]);
   });
 
   it("never lets a client role reach a SECURITY DEFINER money WRITER", () => {
@@ -414,7 +533,8 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
         ` $re$(insert\\s+into|update|delete\\s+from)\\s+(public\\.)?(${MONEY_TABLES})\\M$re$` +
         " order by 1",
     );
-    expect(writers ? writers.split("\n") : []).toEqual([]);
+    const list = writers ? writers.split("\n") : [];
+    expect(list.filter((f) => !CLIENT_REACHABLE_DEFINER_WRITERS.includes(f))).toEqual([]);
   });
 
   it("keeps the refund self-test harness off the client roles", () => {
@@ -531,6 +651,20 @@ d("live pg_proc invented-defaults scan", () => {
     expect(found.filter((f) => !HARDCODED_FEE_BASELINE.includes(f))).toEqual([]);
   });
 
+  // Zero is NOT carved out of the scan any more: "money coerced to zero by
+  // column default" is the same class as any other invented default. Each
+  // remaining entry is a running accumulator that legitimately starts empty
+  // and is only ever moved by a guarded ledger write.
+  const ZERO_DEFAULT_BASELINE = [
+    "checkout_sessions.subtotal_amount = 0",
+    "checkout_sessions.total_amount = 0",
+    "checkout_sessions.total_protection_fee = 0",
+    "escrow_states.frozen_amount = 0",
+    "escrow_states.held_amount = 0",
+    "escrow_states.refunded_amount = 0",
+    "escrow_states.released_amount = 0",
+  ];
+
   it("adds no fee rate, cap, or price literal to a column default", () => {
     // The proc scan reads pg_proc only, so `vendor_plans.escrow_fee_rate
     // DEFAULT 0.0200` — a fabricated 2% — was invisible to it.
@@ -540,9 +674,10 @@ d("live pg_proc invented-defaults scan", () => {
         " join pg_namespace n on n.oid = c.relnamespace" +
         " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
         " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
-        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|0|0\\.0+|false|true|now\\(\\))$'" +
+        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|false|true|now\\(\\))$'" +
         " order by 1",
     );
-    expect(found ? found.split("\n") : []).toEqual([]);
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((f) => !ZERO_DEFAULT_BASELINE.includes(f))).toEqual([]);
   });
 });

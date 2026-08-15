@@ -18,7 +18,12 @@ function latestApplyRpcSql(): string {
   let last = "";
   for (const f of files) {
     const sql = readFileSync(`${dir}/${f}`, "utf8");
-    if (sql.includes("FUNCTION public.apply_permission_change_set")) last = sql;
+    // Must be the DEFINITION, not merely a mention: a later migration that
+    // only REVOKEs EXECUTE on the function would otherwise be read as the
+    // newest body and blank out every assertion below.
+    if (/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.apply_permission_change_set/i.test(sql)) {
+      last = sql;
+    }
   }
   return last;
 }
