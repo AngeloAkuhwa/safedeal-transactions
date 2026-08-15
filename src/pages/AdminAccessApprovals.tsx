@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import {
   listAccessChangeRequests,
@@ -105,8 +106,10 @@ export default function AdminAccessApprovals() {
       </Tabs>
 
       {q.isLoading ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Loading requests…
+        <div className="overflow-hidden rounded-xl border border-border bg-card p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-md" />
+          ))}
         </div>
       ) : q.isError ? (
         <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center text-sm text-destructive">

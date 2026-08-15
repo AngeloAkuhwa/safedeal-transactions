@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { History, Loader2, ArrowDownRight, ArrowUpRight, RotateCw, ShoppingCart, Settings2 } from "lucide-react";
+import { History, ArrowDownRight, ArrowUpRight, RotateCw, ShoppingCart, Settings2 } from "lucide-react";
 import { getInventoryLogs, type InventoryLogEntry } from "@/services/inventory.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InventoryLogTableProps {
   productId: string;
@@ -59,8 +60,10 @@ export function InventoryLogTable({ productId }: InventoryLogTableProps) {
 
       <div className="p-2">
         {isLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="space-y-2 px-4 py-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
           </div>
         ) : !logs || logs.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
