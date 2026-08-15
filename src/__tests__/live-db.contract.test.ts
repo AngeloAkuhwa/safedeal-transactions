@@ -440,10 +440,18 @@ d("live helper reachability", () => {
  * Inversion, like the column and guard scans: everything touching a money
  * table is a finding unless it appears in the commented allowlist below.
  */
+// Widened from "tables holding amounts" to "tables whose contents are
+// security-relevant". `admin_rate_limits` and `system_settings_history` hold
+// no money, and two anon-executable SECURITY DEFINER writers over them went
+// unseen for exactly that reason.
 const MONEY_TABLES =
   "escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing" +
   "|dispute_outcomes|financial_remediations|transactions|money_status_history" +
-  "|vendor_plan_purchases";
+  "|vendor_plan_purchases|payout_accounts|checkout_sessions|checkout_session_items" +
+  "|release_review_queue|escrow_reconciliation_results|transaction_items" +
+  "|transaction_delivery_terms|admin_rate_limits|system_settings|system_settings_history" +
+  "|internal_users|internal_user_roles|user_roles|permissions|role_permissions" +
+  "|user_permission_overrides|audit_logs|admin_actions|vendor_plans";
 
 // Each entry is READ-ONLY over money tables and justified individually.
 const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
