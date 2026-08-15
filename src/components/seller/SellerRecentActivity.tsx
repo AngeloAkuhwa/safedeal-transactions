@@ -10,7 +10,6 @@ import {
 import { ArrowLeftRight, Shield, Search, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
-import { keyActivate } from "@/lib/a11y";
 
 interface SellerRecentActivityProps {
   activity: SellerActivity[];

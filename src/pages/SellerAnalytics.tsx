@@ -130,8 +130,8 @@ function KpiCard({
       style={animate ? { animationDelay: `${index * 50}ms`, animationFillMode: "both" } : undefined}
     >
       {/* Plain container + stretched link: one tab stop for the card, and the
-          "More info" button stays a valid, reachable sibling (a <button>
-          nested inside an <a> is invalid HTML and doubled every tab stop). */}
+          "More info" button stays a valid, reachable sibling; a button
+          nested inside an anchor is invalid HTML and doubles every tab stop. */}
       <Card className="relative rounded-lg h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
         <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-start justify-between gap-1.5">

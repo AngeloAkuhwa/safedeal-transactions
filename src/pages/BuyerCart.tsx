@@ -35,7 +35,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
-import { keyActivate } from "@/lib/a11y";
 
 /** Currency is required — a cart row always carries its own `currency_code`. */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
