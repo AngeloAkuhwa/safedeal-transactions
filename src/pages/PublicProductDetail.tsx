@@ -25,6 +25,7 @@ import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 import { ProductImage } from "@/components/common/ProductImage";
+import { Skeleton } from "@/components/ui/skeleton";
 import { alwaysClaim, resolveClaim, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -113,8 +114,8 @@ const PublicProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background px-4 py-6">
+        <div className="mx-auto max-w-7xl space-y-5"><Skeleton className="h-14 w-full" /><div className="grid gap-8 lg:grid-cols-2"><Skeleton className="aspect-square rounded-lg" /><div className="space-y-4"><Skeleton className="h-8 w-3/4" /><Skeleton className="h-24 w-full" /><Skeleton className="h-44 w-full" /></div></div></div>
       </div>
     );
   }
@@ -225,11 +226,12 @@ const PublicProductDetail = () => {
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
-      {/* Sticky top bar */}
-      <header className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md h-14 flex items-center justify-between">
+       {/* In-page toolbar is sticky only in the authenticated app shell. Public
+           pages already have a sticky global header and must not stack two. */}
+       <header className={`${isAuthenticated ? "sticky top-0 z-40" : "relative z-30"} -mx-4 flex min-h-14 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8`}>
         <button
           onClick={() => navigate(isAuthenticated ? "/dashboard/marketplace" : `/store/${sellerSlug}`)}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           {isAuthenticated ? "Back to Marketplace" : `Back to ${seller.full_name}'s Store`}
@@ -241,20 +243,20 @@ const PublicProductDetail = () => {
               toggleSave.mutate({ productId: product.id, saved: !!isSaved });
               toast.success(isSaved ? "Removed from saved" : "Saved for later");
             }}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            className="h-11 w-11 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
           >
             <Heart className={`h-4 w-4 ${isSaved ? "fill-current text-destructive" : "text-muted-foreground"}`} />
           </button>
           <button
             onClick={handleShare}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            className="h-11 w-11 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
             aria-label="Copy product link"
           >
             <Share2 className="h-4 w-4 text-muted-foreground" />
           </button>
           <button
             onClick={handleWhatsAppShare}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            className="h-11 w-11 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
             aria-label="Share on WhatsApp"
           >
             <MessageCircle className="h-4 w-4 text-emerald-500" />
@@ -263,8 +265,8 @@ const PublicProductDetail = () => {
       </header>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="hover:text-foreground">Home</Link>
+       <div className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground">
+         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="inline-flex min-h-11 items-center px-1 hover:text-foreground">Home</Link>
         <ChevronRight className="h-3 w-3" />
         {product.category && (
           <>
@@ -392,14 +394,14 @@ const PublicProductDetail = () => {
             <span className="text-sm font-medium text-foreground">Quantity:</span>
             <div className="flex items-center gap-1">
               <button
-                className="h-9 w-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors"
+                 className="h-11 w-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
               <button
-                className="h-9 w-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
+                 className="h-11 w-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
                 onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
                 disabled={quantity >= availableQty}
               >
@@ -678,9 +680,9 @@ const PublicProductDetail = () => {
 
   if (isAuthenticated) {
     return (
-      <div className="flex h-screen bg-background overflow-hidden">
+       <div className="flex min-h-[100dvh] bg-background">
         <BuyerSidebar />
-        <main className="flex-1 overflow-y-auto relative">
+         <main className="relative min-w-0 flex-1">
           {content}
         </main>
         {authModal}
@@ -689,7 +691,7 @@ const PublicProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
