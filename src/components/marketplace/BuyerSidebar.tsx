@@ -241,10 +241,9 @@ export function BuyerSidebar() {
         </Button>
       </div>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — decorative scrim: Escape and the toggle button close
+          the sheet, so it must not be a focus stop for keyboard/AT users. */}
       {mobileOpen && (
-        {/* Decorative scrim: Escape and the toggle button close the sheet, so
-            the overlay must not be a focus stop for keyboard/AT users. */}
         <div
           aria-hidden
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
