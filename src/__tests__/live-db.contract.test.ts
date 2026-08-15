@@ -247,6 +247,10 @@ d("live refund rail", () => {
  * finding even when no policy exists today, because the next policy someone
  * writes inherits that surface.
  */
+// ONE list, used by every scan in this file (grants, forced RLS, policy value
+// checks, and the SECURITY DEFINER regex). Two lists of different widths is
+// how `financial_idempotency_conflicts` sat outside the grant scan while the
+// definer scan covered it.
 const MONEY_TABLE_LIST = [
   "payments",
   "payouts",
@@ -270,6 +274,22 @@ const MONEY_TABLE_LIST = [
   "transaction_items",
   "transaction_delivery_terms",
   "checkout_session_items",
+  // ---- Merged in from the (previously wider) definer regex. Security-relevant
+  // contents, not amounts: settings, audit trail, roles, staff and identity. ----
+  "financial_idempotency_conflicts",
+  "admin_rate_limits",
+  "system_settings",
+  "system_settings_history",
+  "internal_users",
+  "internal_user_roles",
+  "user_roles",
+  "permissions",
+  "role_permissions",
+  "user_permission_overrides",
+  "audit_logs",
+  "admin_actions",
+  "vendor_plans",
+  "profiles",
 ];
 
 const MONEY_TABLE_SQL_ARRAY = `array[${MONEY_TABLE_LIST.map((t) => `'${t}'`).join(",")}]`;
@@ -299,6 +319,30 @@ const CLIENT_MONEY_DML_ALLOWLIST = [
   "authenticated:transaction_delivery_terms:UPDATE",
   // Buyer writes their own checkout line items (buyers_insert_own_checkout_items).
   "authenticated:checkout_session_items:INSERT",
+  // ---- Policy-backed staff/self writes on the merged security tables. ----
+  "authenticated:admin_actions:INSERT", // admins_insert_admin_actions
+  "authenticated:user_roles:INSERT", // users_insert_own_non_admin_role
+  "authenticated:profiles:UPDATE", // users_update_own_profile (self-scoped)
+  "authenticated:system_settings:INSERT", // admins_insert_system_settings
+  "authenticated:system_settings:UPDATE", // admins_update_system_settings
+  "authenticated:internal_users:INSERT", // staff manage internal_users
+  "authenticated:internal_users:UPDATE",
+  "authenticated:internal_users:DELETE",
+  "authenticated:internal_user_roles:INSERT", // staff manage user_roles
+  "authenticated:internal_user_roles:UPDATE",
+  "authenticated:internal_user_roles:DELETE",
+  "authenticated:permissions:INSERT", // super admin manage permissions
+  "authenticated:permissions:UPDATE",
+  "authenticated:permissions:DELETE",
+  "authenticated:role_permissions:INSERT", // super_admin manage role_permissions
+  "authenticated:role_permissions:UPDATE",
+  "authenticated:role_permissions:DELETE",
+  "authenticated:user_permission_overrides:INSERT", // super_admin manage overrides
+  "authenticated:user_permission_overrides:UPDATE",
+  "authenticated:user_permission_overrides:DELETE",
+  "authenticated:vendor_plans:INSERT", // Internal admins manage plan catalogue
+  "authenticated:vendor_plans:UPDATE",
+  "authenticated:vendor_plans:DELETE",
 ];
 
 d("live money-table grants", () => {
