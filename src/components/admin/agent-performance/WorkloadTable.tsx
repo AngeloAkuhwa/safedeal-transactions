@@ -165,7 +165,7 @@ export function WorkloadTable({
                   <button
                     type="button"
                     onClick={() => setExpanded((id) => (id === a.user_id ? null : a.user_id))}
-                    className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground min-h-11"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
                     aria-expanded={expanded === a.user_id}
                     aria-label={`${expanded === a.user_id ? "Hide" : "Show"} details for ${agentShortName(a)}`}
                   >

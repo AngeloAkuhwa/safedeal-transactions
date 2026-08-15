@@ -263,7 +263,7 @@ export default function AdminUserDetail() {
                         <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="text-slate-300 truncate">{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
                         {data.user.email && (
-                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 inline-flex items-center" aria-label="Toggle email">
+                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Toggle email">
                             {revealingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedEmail !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
@@ -272,7 +272,7 @@ export default function AdminUserDetail() {
                         <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="text-slate-300">{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
                         {data.user.phone && (
-                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 inline-flex items-center" aria-label="Toggle phone">
+                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Toggle phone">
                             {revealingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedPhone !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}

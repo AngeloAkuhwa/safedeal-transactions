@@ -160,7 +160,7 @@ export function LiveTaskProgression({
                           Reassign
                         </button>
                       )}
-                      <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground min-h-11 inline-flex items-center">
+                      <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground min-h-11 inline-flex items-center px-3">
                         View
                       </button>
                     </div>

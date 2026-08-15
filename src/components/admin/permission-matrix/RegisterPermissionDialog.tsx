@@ -238,7 +238,7 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
           {value.map((k) => (
             <span key={k} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">
               {k}
-              <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive min-h-11 inline-flex items-center">×</button>
+              <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive min-h-11 min-w-11 inline-flex items-center justify-center">×</button>
             </span>
           ))}
         </div>

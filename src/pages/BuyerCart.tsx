@@ -437,7 +437,7 @@ const BuyerCart = () => {
                   {/* Select all bar */}
                   <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
                     <label className="flex items-center gap-3 cursor-pointer min-h-11">
-                      <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+                      <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} aria-label="Select all items for checkout" />
                       <span className="text-sm font-medium text-foreground">
                         Select All ({selectableItems.length} eligible)
                       </span>
@@ -487,6 +487,7 @@ const BuyerCart = () => {
                               checked={isSelected}
                               onCheckedChange={() => toggleSelect(item.id)}
                               disabled={!stock.canCheckout || isLocked}
+                              aria-label={`Select ${item.product?.title || "Unknown Product"} for checkout`}
                             />
                           </div>
                           {(() => {

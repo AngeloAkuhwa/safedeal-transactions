@@ -595,8 +595,19 @@ export function contentWidthPx(body: string): number | null {
   let resolved = inner;
   let unknown = false;
   resolved = resolved.replace(/\{([^{}]*)\}/g, (_all, expr: string) => {
-    const literals = Array.from(String(expr).matchAll(/"([^"]*)"|'([^']*)'/g)).map((m) => m[1] ?? m[2]);
+    const raw = String(expr);
+    // A nested JSX element inside the expression is an icon or child element,
+    // never label text. Its attribute values must not be harvested as visible
+    // characters — `{cond && <Lock className="h-2.5 w-2.5" />}` used to
+    // contribute 11 characters of phantom width and hide a 26px control.
+    const hasJsx = /<[A-Za-z]/.test(raw);
+    const withoutJsx = raw.replace(/<[^>]*>/g, "");
+    const literals = Array.from(withoutJsx.matchAll(/"([^"]*)"|'([^']*)'/g)).map((m) => m[1] ?? m[2]);
     if (!literals.length) {
+      // JSX-only expression: conditionally rendered children contribute
+      // nothing in the worst case. A bare identifier (`{label}`) is genuinely
+      // unknowable and must not be guessed at.
+      if (hasJsx) return "";
       unknown = true;
       return "";
     }
@@ -675,6 +686,10 @@ function primitiveHeight(tag: string): number {
   return result;
 }
 
+/** Tags whose default CSS display is inline-level, so they are content-sized. */
+const INLINE_BY_DEFAULT = new Set(["button", "a", "span", "label", "Link", "NavLink"]);
+const BLOCKISH = ["block", "flex", "grid", "w-full", "flex-1", "grow", "absolute", "fixed"];
+
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
   const bonus = insetBonus(classes);
   if (isStretched(tagText, tag, classes)) {
@@ -719,6 +734,18 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
     width = width ?? 360;
   }
   if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
+  // An inline-level control with no declared width and no horizontal padding is
+  // sized by its content — that is measurable, and leaving it `null` (a pass)
+  // is what hid every short-label button behind `min-h-11`. Block-level and
+  // flex-child elements genuinely fill their parent, so those stay unknown.
+  if (width === null && px === null && !has(classes, "absolute") && !has(classes, "fixed")) {
+    const inlineLevel =
+      has(classes, "inline-flex") ||
+      has(classes, "inline-block") ||
+      has(classes, "inline") ||
+      (INLINE_BY_DEFAULT.has(tag) && !BLOCKISH.some((c) => has(classes, c)));
+    if (inlineLevel) width = contentWidthPx(body);
+  }
 
   return {
     classes,
