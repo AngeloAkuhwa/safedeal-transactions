@@ -768,10 +768,28 @@ const INTERACTIVE_ROLES = new Set([
  */
 const STRETCHED = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
 
-/** Text of the element starting at `index`, up to a rough end of its subtree. */
+/** Text of the element starting at `index`, up to its matching close tag. */
 function subtree(source: string, tag: string, index: number): string {
-  const close = source.indexOf(`</${tag}>`, index);
-  return close === -1 ? source.slice(index, index + 2000) : source.slice(index, close);
+  const open = new RegExp(`<${tag}(?=[\\s/>])`, "g");
+  const close = new RegExp(`</${tag}>`, "g");
+  let depth = 0;
+  let cursor = index;
+  while (cursor < source.length) {
+    open.lastIndex = cursor;
+    close.lastIndex = cursor;
+    const o = open.exec(source);
+    const c = close.exec(source);
+    if (!c) break;
+    if (o && o.index < c.index) {
+      depth += 1;
+      cursor = o.index + o[0].length;
+      continue;
+    }
+    depth -= 1;
+    if (depth <= 0) return source.slice(index, c.index);
+    cursor = c.index + c[0].length;
+  }
+  return source.slice(index);
 }
 
 export function scanKeyboardSource(rawSource: string, file: string): Violation[] {
@@ -780,6 +798,8 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
     if (NATIVE_INTERACTIVE.has(tag) || DELEGATING.has(tag)) continue;
     if (!KEYBOARD_DOM_TAGS.has(tag)) continue;
     if (ownAttrIndex(text, "onClick=") === -1) continue;
+    // A scrim is decoration, not a control: Escape and a real button close it.
+    if (ownAttrIndex(text, "aria-hidden") !== -1) continue;
     if (STRETCHED.test(subtree(rawSource, tag, index))) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
