@@ -87,10 +87,11 @@ describe("motion budget", () => {
       const unconditional = fs
         .readFileSync(f, "utf-8")
         .split("\n")
-        .filter((line) => /sd-live-dot|animate-pulse/.test(line))
+        // Only live dots: bulk `animate-pulse` skeletons are governed by the
+        // two tests above.
+        .filter((line) => line.includes("sd-live-dot"))
         // A conditional expression on the same line means the dot is gated.
         .filter((line) => !/[?&]{1,2}|\bcn\(/.test(line))
-        // Loading skeletons are allowed to pulse in bulk.
         .filter((line) => !/Skeleton|skeleton/.test(line));
       if (unconditional.length > 1) violations.push(`${rel} → ${unconditional.length}`);
     }
