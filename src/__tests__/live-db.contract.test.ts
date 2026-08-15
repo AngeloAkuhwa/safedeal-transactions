@@ -612,6 +612,20 @@ d("live pg_proc invented-defaults scan", () => {
     expect(found.filter((f) => !HARDCODED_FEE_BASELINE.includes(f))).toEqual([]);
   });
 
+  // Zero is NOT carved out of the scan any more: "money coerced to zero by
+  // column default" is the same class as any other invented default. Each
+  // remaining entry is a running accumulator that legitimately starts empty
+  // and is only ever moved by a guarded ledger write.
+  const ZERO_DEFAULT_BASELINE = [
+    "checkout_sessions.subtotal_amount = 0",
+    "checkout_sessions.total_amount = 0",
+    "checkout_sessions.total_protection_fee = 0",
+    "escrow_states.frozen_amount = 0",
+    "escrow_states.held_amount = 0",
+    "escrow_states.refunded_amount = 0",
+    "escrow_states.released_amount = 0",
+  ];
+
   it("adds no fee rate, cap, or price literal to a column default", () => {
     // The proc scan reads pg_proc only, so `vendor_plans.escrow_fee_rate
     // DEFAULT 0.0200` — a fabricated 2% — was invisible to it.
@@ -621,9 +635,10 @@ d("live pg_proc invented-defaults scan", () => {
         " join pg_namespace n on n.oid = c.relnamespace" +
         " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
         " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
-        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|0|0\\.0+|false|true|now\\(\\))$'" +
+        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|false|true|now\\(\\))$'" +
         " order by 1",
     );
-    expect(found ? found.split("\n") : []).toEqual([]);
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((f) => !ZERO_DEFAULT_BASELINE.includes(f))).toEqual([]);
   });
 });
