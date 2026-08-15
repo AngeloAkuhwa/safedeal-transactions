@@ -367,6 +367,66 @@ d("live money-table grants", () => {
     );
     expect(missing ? missing.split("\n") : []).toEqual([]);
   });
+
+  /**
+   * TRUNCATE is NOT subject to row level security — neither relrowsecurity nor
+   * relforcerowsecurity mitigates it — so it is scanned across EVERY public
+   * table, not just the list above.
+   */
+  it("leaves TRUNCATE on no public table for any client role", () => {
+    const found = psql(
+      "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        " where n.nspname = 'public' and c.relkind in ('r','p')" +
+        " and (has_table_privilege('anon', c.oid, 'TRUNCATE')" +
+        " or has_table_privilege('authenticated', c.oid, 'TRUNCATE')) order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+});
+
+/**
+ * VIEW class. Nothing in this suite read pg_class for relkind 'v'/'m' until a
+ * single-table, auto-updatable view (`public_seller_profiles`) with
+ * `security_invoker = off`, owned by a rolbypassrls role and granted full DML
+ * to anon, turned out to be an unauthenticated write path into `profiles`.
+ * Functions, then column defaults, now views: a catalog nobody reads is where
+ * the next defect lives.
+ */
+d("live view surface", () => {
+  // Individually justified exceptions. Empty by design — a definer view is a
+  // deliberate RLS bypass and must be argued for in writing, here.
+  const SECURITY_DEFINER_VIEW_BASELINE: string[] = [];
+
+  it("runs every view with security_invoker = on", () => {
+    const found = psql(
+      "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        " where n.nspname = 'public' and c.relkind = 'v'" +
+        " and not coalesce(array_to_string(c.reloptions, ',') ~ 'security_invoker=(on|true)', false)" +
+        " order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((v) => !SECURITY_DEFINER_VIEW_BASELINE.includes(v))).toEqual([]);
+  });
+
+  it("gives client roles no DML on any view or materialized view", () => {
+    const found = psql(
+      "select a.grantee::regrole::text || ':' || c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind in ('v','m')" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps the public storefront projection structurally non-writable", () => {
+    // Sourced from a SECURITY DEFINER set-returning function, so PostgreSQL
+    // cannot make it auto-updatable even if a grant is restored by mistake.
+    expect(
+      psql("select pg_relation_is_updatable('public.public_seller_profiles'::regclass, false)"),
+    ).toBe("0");
+  });
 });
 
 d("live value-consistency constraints", () => {
