@@ -54,6 +54,10 @@ export function SellerDisputeTable({ items }: Props) {
                 <p className="shrink-0 text-sm font-semibold">{formatNaira(d.seller_net_amount)}</p>
               </div>
               <p className="text-xs text-muted-foreground">{d.reason_label}</p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Deadline:</span>{" "}
+                {d.seller_response_status !== "responded" ? formatDeadline(d.seller_response_due_at) : "Responded"}
+              </p>
               <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
               <Button
                 className="min-h-11 w-full"
