@@ -262,6 +262,14 @@ const MONEY_TABLE_LIST = [
   "payout_accounts",
   "checkout_sessions",
   "release_review_queue",
+  // Added after the grant-inversion test was found to skip these BY
+  // CONSTRUCTION: they carried anon INSERT/UPDATE/DELETE with
+  // relforcerowsecurity = false because they were absent from this list.
+  // A scan is only as wide as its subject list.
+  "transactions",
+  "transaction_items",
+  "transaction_delivery_terms",
+  "checkout_session_items",
 ];
 
 const MONEY_TABLE_SQL_ARRAY = `array[${MONEY_TABLE_LIST.map((t) => `'${t}'`).join(",")}]`;
@@ -281,6 +289,16 @@ const CLIENT_MONEY_DML_ALLOWLIST = [
   // Staff triage of the release queue (policies require has_role admin).
   "authenticated:release_review_queue:INSERT",
   "authenticated:release_review_queue:UPDATE",
+  // Seller opens a transaction and its items/terms pre-lock; every one of
+  // these is backed by a sellers_* policy. No UPDATE on transactions: the
+  // state machine moves them through SECURITY DEFINER functions only.
+  "authenticated:transactions:INSERT",
+  "authenticated:transaction_items:INSERT",
+  "authenticated:transaction_items:UPDATE",
+  "authenticated:transaction_delivery_terms:INSERT",
+  "authenticated:transaction_delivery_terms:UPDATE",
+  // Buyer writes their own checkout line items (buyers_insert_own_checkout_items).
+  "authenticated:checkout_session_items:INSERT",
 ];
 
 d("live money-table grants", () => {
