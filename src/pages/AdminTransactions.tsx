@@ -690,7 +690,7 @@ export default function AdminTransactions() {
             </button>
           </div>
         </header>
-      )} className="min-h-11">
+      )}>
       {/* Error banner */}
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">

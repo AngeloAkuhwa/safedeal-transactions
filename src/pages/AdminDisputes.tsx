@@ -387,7 +387,7 @@ export default function AdminDisputes() {
             </div>
           </div>
         </header>
-      )} className="min-h-11">
+      )}>
       <TooltipProvider delayDuration={200}>
         <div className="w-full min-w-0">
         <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">

@@ -82,7 +82,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
             ))}
             </div>
           </div>
-        } className="min-h-11">
+        }>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={txSeries.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
