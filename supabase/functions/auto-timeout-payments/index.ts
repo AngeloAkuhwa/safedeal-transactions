@@ -10,11 +10,25 @@ Deno.serve(async (req) => {
   if (!auth.ok) return auth.res;
 
   const client = admin();
-  const cutoffIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const errors: Array<{ id: string; reason: string }> = [];
   let updated = 0;
 
   try {
+    // The window is configuration, not a constant. `timeout_transaction_atomic`
+    // re-verifies it authoritatively; this pre-filter must not disagree with it.
+    const { data: setting, error: settingErr } = await client
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "transactions.payment_window_hours")
+      .eq("scope", "platform")
+      .maybeSingle();
+    if (settingErr) throw settingErr;
+    const windowHours = Number(setting?.setting_value);
+    if (!Number.isFinite(windowHours) || windowHours <= 0) {
+      throw new Error("payment_window_not_configured");
+    }
+    const cutoffIso = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+
     const { data: rows, error } = await client
       .from("transactions")
       .select("id")

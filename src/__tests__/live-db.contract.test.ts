@@ -145,7 +145,7 @@ d("live refund rail", () => {
     expect(unguarded ? unguarded.split("\n") : []).toEqual([]);
   });
 
-  it("binds every multi-argument SECURITY DEFINER money helper by name", () => {
+  it("binds every SECURITY DEFINER money helper by name, whatever its arity", () => {
     const positional = psql(
       "with callees as (select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace" +
         // No arity filter: the single-argument escrow balance helpers are
@@ -205,6 +205,113 @@ d("live refund rail", () => {
     );
     expect(Number(n)).toBe(1);
   });
+
+  it("keeps exactly one pricing-lock trigger on transaction_pricing", () => {
+    // Two BEFORE-row lock triggers fire alphabetically, so the unconditional
+    // one raised before the override-aware one could ever run and
+    // admin_correct_pricing could not correct a locked agreement.
+    const triggers = psql(
+      "select p.proname from pg_trigger t join pg_proc p on p.oid = t.tgfoid" +
+        " where t.tgrelid = 'public.transaction_pricing'::regclass and not t.tgisinternal" +
+        " and pg_get_functiondef(p.oid) ~* 'locked|lock' order by 1",
+    );
+    expect(triggers ? triggers.split("\n") : []).toEqual(["prevent_pricing_update_after_lock"]);
+  });
+
+  it("verifies the elapsed payment window before timing a transaction out", () => {
+    const def = psql(
+      "select pg_get_functiondef(oid) from pg_proc where proname = 'timeout_transaction_atomic'" +
+        " and pronamespace = 'public'::regnamespace",
+    );
+    expect(def).toContain("payment_window_not_configured");
+    expect(def).toContain("window_not_elapsed");
+  });
+});
+
+/**
+ * EXECUTE-grant class. Postgres grants EXECUTE to PUBLIC by default, so a
+ * SECURITY DEFINER function is reachable by `anon` unless someone revoked it.
+ * Inversion, like the column and guard scans: everything touching a money
+ * table is a finding unless it appears in the commented allowlist below.
+ */
+const MONEY_TABLES =
+  "escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing" +
+  "|dispute_outcomes|financial_remediations|transactions|money_status_history" +
+  "|vendor_plan_purchases";
+
+// Each entry is READ-ONLY over money tables and justified individually.
+const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
+  // Read-only daily counts (transactions/disputes), staff dashboards only:
+  // revoked from anon, and the page behind it is permission-gated.
+  "admin_daily_activity_counts",
+  // Read-only escrow aggregates; raises 'forbidden' unless the caller is a
+  // signed-in admin, and revoked from anon.
+  "admin_escrow_kpis",
+  // Read-only helper used by triggers/RLS to resolve a transaction's parties.
+  "derive_target_user_id",
+  // Read-only membership predicate used inside RLS policies; must stay
+  // executable by authenticated or every transaction policy fails closed.
+  "is_transaction_party",
+];
+
+d("live SECURITY DEFINER EXECUTE grants", () => {
+  it("exposes no money-touching SECURITY DEFINER function to anon or authenticated", () => {
+    const found = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " join pg_type t on t.oid = p.prorettype" +
+        " where n.nspname = 'public' and p.prosecdef and t.typname <> 'trigger'" +
+        " and (has_function_privilege('anon', p.oid, 'execute')" +
+        " or has_function_privilege('authenticated', p.oid, 'execute'))" +
+        ` and pg_get_functiondef(p.oid) ~* $re$\\m(${MONEY_TABLES})\\M$re$` +
+        " order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((f) => !CLIENT_REACHABLE_MONEY_DEFINERS.includes(f))).toEqual([]);
+  });
+
+  it("never lets a client role reach a SECURITY DEFINER money WRITER", () => {
+    // Allowlist entries are read-only by contract — this proves it, so a
+    // later body change cannot smuggle a write in under an existing entry.
+    const writers = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " join pg_type t on t.oid = p.prorettype" +
+        " where n.nspname = 'public' and p.prosecdef and t.typname <> 'trigger'" +
+        " and (has_function_privilege('anon', p.oid, 'execute')" +
+        " or has_function_privilege('authenticated', p.oid, 'execute'))" +
+        " and pg_get_functiondef(p.oid) ~*" +
+        ` $re$(insert\\s+into|update|delete\\s+from)\\s+(public\\.)?(${MONEY_TABLES})\\M$re$` +
+        " order by 1",
+    );
+    expect(writers ? writers.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps the refund self-test harness off the client roles", () => {
+    const reachable = psql(
+      "select has_function_privilege('anon','public.selftest_refund_rail(text)','execute')" +
+        " or has_function_privilege('authenticated','public.selftest_refund_rail(text)','execute')",
+    );
+    expect(reachable).toBe("f");
+  });
+
+  it("keeps no SECURITY DEFINER admin function callable by anon", () => {
+    const found = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " join pg_type t on t.oid = p.prorettype" +
+        " where n.nspname = 'public' and p.prosecdef and t.typname <> 'trigger'" +
+        " and p.proname like 'admin\\_%'" +
+        " and has_function_privilege('anon', p.oid, 'execute') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("has no fail-open authorization guard (uid IS NOT NULL AND NOT ...)", () => {
+    const found = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " where n.nspname = 'public' and p.prosecdef and pg_get_functiondef(p.oid) ~" +
+        " $re$(v_uid|auth\\.uid\\(\\)) IS NOT NULL\\s+AND NOT public\\.$re$ order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
 });
 
 /**
@@ -238,6 +345,9 @@ const HARDCODED_WINDOW_BASELINE = [
 ];
 
 const HARDCODED_FEE_BASELINE = [
+  // Reads the cap from system_settings; the match is the setting KEY, not a
+  // literal amount.
+  "admin_correct_pricing",
   "get_pricing_settings_at",
   "selftest_refund_rail",
   "track_pricing_setting_version",
@@ -282,7 +392,25 @@ d("live pg_proc invented-defaults scan", () => {
   });
 
   it("adds no new hardcoded fee rate, cap, or fee-setting key to a database function", () => {
-    const found = scanProcs(String.raw`(0\.0?2|\m400(?:\.0+)?\M|max_total_service_fee)`);
+    // 2500 is the RETIRED cap; it must never reappear anywhere.
+    const found = scanProcs(
+      String.raw`(0\.0?2|\m400(?:\.0+)?\M|\m2500\M|max_total_service_fee)`,
+    );
     expect(found.filter((f) => !HARDCODED_FEE_BASELINE.includes(f))).toEqual([]);
+  });
+
+  it("adds no fee rate, cap, or price literal to a column default", () => {
+    // The proc scan reads pg_proc only, so `vendor_plans.escrow_fee_rate
+    // DEFAULT 0.0200` — a fabricated 2% — was invisible to it.
+    const found = psql(
+      "select c.relname || '.' || a.attname || ' = ' || pg_get_expr(d.adbin, d.adrelid)" +
+        " from pg_attrdef d join pg_class c on c.oid = d.adrelid" +
+        " join pg_namespace n on n.oid = c.relnamespace" +
+        " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
+        " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
+        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|0|0\\.0+|false|true|now\\(\\))$'" +
+        " order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
   });
 });
