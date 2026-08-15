@@ -921,6 +921,10 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
       "supabase/migrations/20260814213855_809d1f72-4338-46e6-b116-e53479fc6bc7.sql",
       "supabase/migrations/20260814214011_4684446c-18a8-4070-b873-44fb8fbc7162.sql",
       "supabase/migrations/20260814214121_dafeafc2-77d6-41b7-9044-f09e453764d2.sql",
+      // Reads the cap from system_settings (`pricing.max_total_service_fee_ngn`)
+      // and drops the retired 2,500 literal from admin_correct_pricing. The
+      // match is the setting KEY, not an invented amount.
+      "supabase/migrations/20260814235948_e9a9a6eb-1e0e-4e2b-b8b5-5cb984767bf4.sql",
     ],
   },
 ];
