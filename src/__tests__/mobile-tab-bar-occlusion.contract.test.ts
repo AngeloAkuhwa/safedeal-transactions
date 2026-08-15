@@ -1,61 +1,55 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { getTabsForPath } from "@/components/layout/MobileTabBar";
 
 /**
- * MobileTabBar is a fixed bottom bar shown on every /dashboard* and /seller*
- * route. Any page in that surface that establishes its own scroll container
- * (overflow-hidden/overflow-auto/overflow-y-auto) or a fixed viewport height
- * (h-[100dvh]/h-screen) on an ungated root/main element hides content behind
- * the tab bar on mobile. Those utilities must always carry an lg:/md: prefix.
+ * MobileTabBar is a `fixed bottom-0` bar shown on every /dashboard* and
+ * /seller* route. Any page in that surface that establishes its own scroll
+ * container (`overflow-hidden` / `overflow-auto` / `overflow-y-auto`) or pins a
+ * viewport height (`h-[100dvh]` / `h-screen`) on a LAYOUT element hides the last
+ * rows of content behind the bar on a phone. Those utilities must carry an
+ * `lg:`/`md:` prefix so the mobile layout scrolls the document instead.
+ *
+ * Card decoration is exempt: an `overflow-hidden` paired with `rounded-*` or
+ * `aspect-*` is clipping an image inside a card, not creating a scroll port.
  */
-const PAGES = [
-  "src/pages/BuyerCart.tsx",
-  "src/pages/BuyerSavedProducts.tsx",
-  "src/pages/BuyerMarketplace.tsx",
-  "src/pages/SellerStorefront.tsx",
-];
+const ROOT = path.join(process.cwd(), "src/pages");
 
-function ungatedOverflowOrHeight(source: string): string[] {
+/** Every page file whose route the tab bar covers. */
+function coveredPages(): string[] {
+  const app = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf-8");
+  const files = new Set<string>();
+  for (const m of app.matchAll(/path="([^"]+)"[^>]*element=\{<([A-Za-z0-9_]+)/g)) {
+    const routePath = m[1].startsWith("/") ? m[1] : `/${m[1]}`;
+    if (!getTabsForPath(routePath.replace(/:[^/]+/g, "x"))) continue;
+    const file = path.join(ROOT, `${m[2]}.tsx`);
+    if (fs.existsSync(file)) files.add(path.relative(process.cwd(), file));
+  }
+  // Lazy routes declare the component in a separate `lazy(() => import(...))`
+  // map, so also include the pages the tab bar is known to cover directly.
+  for (const extra of ["BuyerCart.tsx", "BuyerSavedProducts.tsx", "BuyerMarketplace.tsx", "SellerStorefront.tsx"]) {
+    files.add(`src/pages/${extra}`);
+  }
+  return [...files].sort();
+}
+
+const LAYOUT_TRAP = /^(overflow-hidden|overflow-auto|overflow-y-auto|h-\[100dvh\]|h-screen)$/;
+
+export function occlusionOffenders(source: string): string[] {
   const offenders: string[] = [];
-  const classAttrs = source.match(/className=\{?["'`][^"'`]*["'`]\}?/g) ?? [];
-  for (const attr of classAttrs) {
-    const tokens = attr.split(/\s+/);
-    for (const raw of tokens) {
-      const token = raw.replace(/["'`{}]/g, "");
-      const isTarget =
-        /^overflow-(hidden|auto|y-auto)$/.test(token) ||
-        /^h-\[100dvh\]$/.test(token) ||
-        /^h-screen$/.test(token);
-      if (isTarget) offenders.push(token);
-    }
-    // If any prefixed (lg:/md:) variant of the same utility exists alongside
-    // an unprefixed one in the same class list, only the unprefixed one is a
-    // real offender — filtered below by checking the raw attribute text.
-  }
-  // Re-scan more precisely: split whole class strings and only flag bare
-  // (non lg:/md:-prefixed) utilities.
-  const bareOffenders: string[] = [];
-  for (const attr of classAttrs) {
+  for (const attr of source.match(/className=\{?[^>]*?["'`][^"'`]*["'`]/g) ?? []) {
     const tokens = attr.replace(/[{}"'`]/g, "").split(/\s+/);
-    for (const token of tokens) {
-      const bare =
-        token === "overflow-hidden" ||
-        token === "overflow-auto" ||
-        token === "overflow-y-auto" ||
-        token === "h-[100dvh]" ||
-        token === "h-screen";
-      if (bare) bareOffenders.push(token);
-    }
+    const decorative = tokens.some((t) => /^(rounded|aspect)-/.test(t));
+    if (decorative) continue;
+    for (const token of tokens) if (LAYOUT_TRAP.test(token)) offenders.push(token);
   }
-  return bareOffenders;
+  return offenders;
 }
 
 describe("mobile tab bar occlusion contract", () => {
-  it.each(PAGES)("%s has no ungated root/main overflow or fixed-height utility", (relPath) => {
-    const full = path.join(process.cwd(), relPath);
-    const source = fs.readFileSync(full, "utf-8");
-    const offenders = ungatedOverflowOrHeight(source);
-    expect(offenders).toEqual([]);
+  it.each(coveredPages())("%s never traps mobile scroll behind the tab bar", (relPath) => {
+    const source = fs.readFileSync(path.join(process.cwd(), relPath), "utf-8");
+    expect(occlusionOffenders(source), relPath).toEqual([]);
   });
 });
