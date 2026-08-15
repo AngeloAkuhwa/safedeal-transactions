@@ -97,7 +97,7 @@ function AuditHeader({
             type="button"
             onClick={onOpenMenu}
             aria-label="Open menu"
-            className="lg:hidden inline-flex h-11 w-11 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
+            className="lg:hidden inline-flex h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
           >
             <Menu className="h-4 w-4" />
           </button>

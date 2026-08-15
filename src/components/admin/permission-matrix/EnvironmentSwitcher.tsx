@@ -73,7 +73,9 @@ export function EnvironmentSwitcher({ className }: { className?: string }) {
       role="tablist"
       aria-label="Environment"
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-background/60 p-0.5 text-xs",
+        // Three segments plus a label do not fit one 320px line; wrapping is
+        // better than the segmented control running off the screen.
+        "inline-flex max-w-full flex-wrap items-center gap-0.5 rounded-md border border-border/60 bg-background/60 p-0.5 text-xs",
         className,
       )}
     >

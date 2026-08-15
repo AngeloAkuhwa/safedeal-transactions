@@ -69,8 +69,10 @@ export function UserAccessFilters({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        {/* The search is fixed-width and the action cannot shrink; on a 320px
+            screen they need two lines rather than one clipped one. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -78,13 +80,13 @@ export function UserAccessFilters({
               onChange={(e) => onQuery(e.target.value)}
               placeholder="Name, email, employee ID, role…"
               aria-label="Search internal users"
-              className="w-72 rounded-lg border border-border bg-muted/60 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none min-h-11"
+              className="w-full min-w-0 sm:w-72 rounded-lg border border-border bg-muted/60 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none min-h-11"
             />
           </div>
           <button
             type="button"
             onClick={onAddUser}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 min-h-11"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 min-h-11"
           >
             <UserPlus className="h-4 w-4" /> Add User
           </button>

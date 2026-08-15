@@ -145,7 +145,7 @@ function HeaderBar({
           </div>
           <button
             onClick={() => toast.info("Audit history will open when wired to admin_actions")}
-            className="h-11 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 text-foreground text-xs font-medium hover:bg-muted transition-colors"
+            className="h-11 min-w-11 shrink-0 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 text-foreground text-xs font-medium hover:bg-muted transition-colors"
           >
             <HistoryIcon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">View History</span>
@@ -153,7 +153,7 @@ function HeaderBar({
           <button
             onClick={onSave}
             disabled={!dirty}
-            className={`h-11 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-foreground transition-colors ${
+            className={`h-11 min-w-11 shrink-0 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-foreground transition-colors ${
               dirty
                 ? "bg-amber-600 hover:bg-amber-500"
                 : "bg-muted border border-border opacity-60 cursor-not-allowed"
@@ -193,7 +193,7 @@ function HeaderBar({
               type="checkbox"
               checked={applyToAll}
               onChange={(e) => setApplyToAll(e.target.checked)}
-              className="accent-primary min-h-11 inline-flex items-center"
+              className="accent-primary min-h-11 min-w-11 shrink-0 inline-flex items-center"
             />
             Apply to all vendors (clears existing vendor overrides for saved keys)
           </label>
@@ -966,7 +966,7 @@ export default function AdminSettings() {
                     document.body.appendChild(a); a.click(); a.remove();
                     URL.revokeObjectURL(url);
                   }}
-                  className="h-11 px-3 bg-muted/60 hover:bg-muted text-foreground rounded-lg transition-colors inline-flex items-center gap-1.5 text-xs font-medium border border-border"
+                  className="h-11 min-w-11 shrink-0 px-3 bg-muted/60 hover:bg-muted text-foreground rounded-lg transition-colors inline-flex items-center gap-1.5 text-xs font-medium border border-border"
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Export Full Log</span>

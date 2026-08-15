@@ -164,7 +164,24 @@ const AUTH_ROUTES = {
     "/seller/transactions",
     "/seller/payouts",
   ],
-  admin: ["/admin"],
+  // One admin route was never going to be enough. The static touch-target
+  // scanner cannot compute a width for 1,186 elements and silently counts each
+  // as a pass, so the width axis is only ever really checked by rendering.
+  // These are the admin surfaces that carry the controls it cannot see:
+  // permission toggles, sortable table headers, and dense data tables.
+  admin: [
+    "/admin",
+    "/admin/transactions",
+    "/admin/disputes",
+    "/admin/users",
+    "/admin/payouts",
+    "/admin/escrow",
+    "/admin/flagged-users",
+    "/admin/access-control",
+    "/admin/permission-matrix",
+    "/admin/settings",
+    "/admin/audit-logs",
+  ],
 };
 
 /** Runs in the page. Keep it dependency-free and self-contained. */

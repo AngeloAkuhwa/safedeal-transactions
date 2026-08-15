@@ -760,7 +760,7 @@ export default function AdminTransactions() {
               role="tab"
               aria-selected={active}
               onClick={() => setActiveQuick(f.key)}
-              className={`shrink-0 snap-start rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+              className={`shrink-0 snap-start min-h-11 min-w-11 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
                 active
                   ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"

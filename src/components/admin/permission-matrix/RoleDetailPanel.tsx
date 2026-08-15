@@ -260,7 +260,7 @@ export function RoleDetailPanel({
             {summary.grantedKeys.map((k) => {
               const label = k.split(".")[1] ?? k;
               return (
-                <li key={k} className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
+                <li key={k} className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
                   <span className="truncate">{label}</span>
                   <span className="ml-auto font-mono text-xs text-muted-foreground">{k.split(".")[0]}</span>
@@ -310,7 +310,7 @@ export function RoleDetailPanel({
           ) : (
             <ul className="grid gap-1.5 sm:grid-cols-2">
               {summary.privilegedKeys.map((k) => (
-                <li key={k} className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-xs">
+                <li key={k} className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-xs">
                   <ShieldAlert className="h-3.5 w-3.5 text-amber-300" />
                   <span className="truncate">{k}</span>
                   <PermissionRiskBadge privileged size="xs" />
