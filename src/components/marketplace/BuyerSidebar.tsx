@@ -20,7 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
@@ -41,15 +41,42 @@ export function BuyerSidebar() {
   const location = useLocation();
   const { buyerName, avatarUrl } = useBuyerIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
-  // The scrim is decorative, so Escape is the keyboard route out of the sheet.
   useEffect(() => {
     if (!mobileOpen) return;
+    // Move focus into the drawer, trap Tab inside it, and restore focus to the
+    // trigger on close — the rest of the dialog contract.
+    const previous = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        return;
+      }
+      if (e.key !== "Tab" || !drawerRef.current) return;
+      const focusables = drawerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !drawerRef.current.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      (previous ?? triggerRef.current)?.focus?.();
+    };
   }, [mobileOpen]);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -66,7 +93,7 @@ export function BuyerSidebar() {
     .slice(0, 2)
     .toUpperCase();
 
-  const sidebarContent = (isCollapsed: boolean) => (
+  const sidebarContent = (isCollapsed: boolean, onClose?: () => void) => (
     <div
       className={cn(
         "flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
@@ -83,6 +110,19 @@ export function BuyerSidebar() {
             <span className="text-lg font-bold text-sidebar-foreground">SafeDeal</span>
           )}
         </div>
+        {/* Mobile close — the rail toggle is painted underneath the drawer. */}
+        {onClose && (
+          <Button
+            ref={closeRef}
+            variant="ghost"
+            size="icon"
+            className="min-h-11 min-w-11 shrink-0 lg:hidden"
+            onClick={onClose}
+            aria-label="Close navigation"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        )}
         {/* Desktop collapse toggle — hidden on mobile */}
         {!isCollapsed && (
           <Button
@@ -229,7 +269,7 @@ export function BuyerSidebar() {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs"
+              className="min-h-11 p-0 text-xs"
               onClick={() => navigate(supportLink())}
             >
               Message support
@@ -245,29 +285,36 @@ export function BuyerSidebar() {
       {/* Normal-flow mobile rail reserves its own space instead of forcing every
           buyer page to compensate for a fixed, overlapping trigger. */}
       <div className="w-14 shrink-0 border-r border-sidebar-border bg-sidebar lg:hidden">
-        <Button variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
+        <Button ref={triggerRef} variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation" aria-expanded={mobileOpen}>
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
-      {/* Mobile overlay — decorative scrim: Escape and the toggle button close
-          the sheet, so it must not be a focus stop for keyboard/AT users. */}
+      {/* Mobile overlay — a real control, not a clickable aria-hidden div. */}
       {mobileOpen && (
-        <div
-          aria-hidden
+        <button
+          type="button"
+          aria-label="Close navigation"
           className="fixed inset-0 z-overlay bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile sidebar — always expanded */}
+      {/* Mobile sidebar — always mounted, so it must leave the tab order and
+          the accessibility tree while it is translated off-screen. */}
       <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal={mobileOpen || undefined}
+        aria-label="Buyer navigation"
+        aria-hidden={!mobileOpen}
+        {...(!mobileOpen ? { inert: "" as unknown as boolean } : {})}
         className={cn(
           "fixed inset-y-0 left-0 z-sheet transition-transform lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {sidebarContent(false)}
+        {sidebarContent(false, () => setMobileOpen(false))}
       </div>
 
       {/* Desktop sidebar — collapsible */}
