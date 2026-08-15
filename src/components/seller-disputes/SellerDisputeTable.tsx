@@ -64,7 +64,7 @@ export function SellerDisputeTable({ items }: Props) {
           const impact = resolveDisputeMoneyImpact(d.money_impact);
           const urgent = isDeadlineUrgent(d);
           // Plain container + stretched link: `role="button"` around a real
-          // <Button> is invalid ARIA, and the nested action stays reachable.
+          // a Button element is invalid ARIA, and the nested action stays reachable.
           return (
             <article key={d.id} className="relative space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
