@@ -48,7 +48,7 @@ export function AdminLayout({
       <div className={fullHeight ? "flex min-h-[100dvh] lg:h-screen lg:overflow-hidden" : "flex min-h-[100dvh]"}>
         {/* Desktop sidebar */}
         <div className="hidden w-72 shrink-0 border-r border-border lg:block">
-          <div className="sticky top-0 h-screen overflow-hidden">
+          <div className="sticky top-0 h-[100dvh] overflow-hidden">
             <AdminSidebar badges={badges} />
           </div>
         </div>
