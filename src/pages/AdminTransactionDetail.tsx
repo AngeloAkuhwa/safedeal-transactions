@@ -546,7 +546,7 @@ export default function AdminTransactionDetail() {
         </div>
         <div className="flex items-center gap-2">
           <div className="hidden xl:flex items-center gap-1.5 text-xs text-muted-foreground mr-1" title={liveDotTitle}>
-            <span className={cn("h-2 w-2 rounded-full", liveDotCls, liveSync === "live" && motionOk && "animate-pulse")} />
+            <span className={cn("h-2 w-2 rounded-full", liveDotCls, liveSync === "live" && motionOk && "sd-live-dot")} />
             <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
           </div>
           {adminCan.canExport && (

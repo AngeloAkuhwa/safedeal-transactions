@@ -1130,7 +1130,7 @@ export default function BuyerPaymentSummary() {
                 {/* Error icon */}
                 <div className="flex justify-center mb-4">
                   <div className="relative">
-                    <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center animate-pulse">
+                    <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center sd-live-dot">
                       <XCircle className="h-7 w-7 text-destructive" />
                     </div>
                     <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">

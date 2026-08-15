@@ -46,7 +46,7 @@ export function AgreementHero({ isLocked = true }: AgreementHeroProps) {
   return (
     <section className="bg-gradient-to-br from-success/10 via-primary/5 to-background py-16 lg:py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="w-32 h-32 bg-gradient-to-br from-success to-success/80 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_hsl(var(--success)/0.3)] animate-pulse">
+        <div className="w-32 h-32 bg-gradient-to-br from-success to-success/80 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_hsl(var(--success)/0.3)] sd-live-dot">
           <Lock className="h-16 w-16 text-success-foreground" />
         </div>
 

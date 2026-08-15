@@ -260,7 +260,7 @@ export default function BuyerTransactionReview() {
                       Transaction #{data.transaction.transaction_code}
                     </Badge>
                     <Badge className={chipClass}>
-                      <span className={`w-2 h-2 rounded-full mr-1.5 ${ms === "payment_pending" ? "animate-pulse" : ""} ${dotClass}`} />
+                      <span className={`w-2 h-2 rounded-full mr-1.5 ${ms === "payment_pending" ? "sd-live-dot" : ""} ${dotClass}`} />
                       {chipLabel}
                     </Badge>
                   </div>
@@ -912,7 +912,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
       <div className="flex items-center gap-2 mb-4">
-        <span className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
+        <span className="w-2 h-2 bg-primary-foreground rounded-full sd-live-dot" />
         <span className="text-xs font-bold uppercase tracking-wider">Next Action Required</span>
       </div>
 

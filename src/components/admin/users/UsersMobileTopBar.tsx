@@ -31,7 +31,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
           <div>
             <h2 className="text-white font-bold text-lg leading-tight">Users</h2>
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
               <span className="text-slate-400 text-xs uppercase font-bold tracking-tight">
                 {compactTotal(totalUsers)} Total · {onlineCount} on · {offlineCount} off
               </span>

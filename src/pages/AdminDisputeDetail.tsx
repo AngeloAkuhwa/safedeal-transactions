@@ -494,7 +494,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 ? "border-red-500/40 bg-red-500/15 text-red-300"
                 : "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
             )}>
-              {overdue && <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />}
+              {overdue && <span className="h-2 w-2 rounded-full bg-red-400 sd-live-dot" />}
               {slaText}
             </span>
           )}
@@ -1363,7 +1363,7 @@ function CaseCommunicationSection(props: {
       tone: "red" as const,
       label: "Seller Response Overdue",
       meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : "resolved",
-      leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "animate-pulse")} />,
+      leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "sd-live-dot")} />,
       show: sellerOverdue || hasSellerResponse,
     },
     {

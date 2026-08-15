@@ -19,7 +19,7 @@ export function TaskOrchestrationHeader({
         </div>
         <div className="flex items-center gap-2 lg:gap-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1.5 text-xs backdrop-blur-sm">
-            <span className={cn("h-1.5 w-1.5 rounded-full", autoAssignActive ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground")} />
+            <span className={cn("h-1.5 w-1.5 rounded-full", autoAssignActive ? "bg-emerald-400 sd-live-dot" : "bg-muted-foreground")} />
             <span className="text-muted-foreground">Auto-Assign:</span>
             <span className={cn("font-semibold", autoAssignActive ? "text-emerald-300" : "text-muted-foreground")}>
               {autoAssignActive ? "Active" : "Off"}

@@ -1454,7 +1454,7 @@ function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live"
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border ${conf.border} ${conf.bg} ${compact ? "px-2 py-0.5 text-xs" : "px-2.5 py-0.5 text-xs"} font-medium ${conf.text}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.pulse ? "animate-pulse" : ""}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.pulse ? "sd-live-dot" : ""}`} />
       {conf.label}
     </span>
   );

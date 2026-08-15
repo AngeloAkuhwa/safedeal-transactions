@@ -194,7 +194,7 @@ export function WorkloadTable({
                 <td className="px-4 py-4 text-sm text-muted-foreground">{a.role_label}</td>
                 <td className="px-4 py-4">
                   <div className={cn("flex items-center gap-1.5 text-xs", availabilityTextClass(a.availability))}>
-                    <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "animate-pulse")} />
+                    <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "sd-live-dot")} />
                     {availabilityLabel(a.availability)}
                   </div>
                 </td>

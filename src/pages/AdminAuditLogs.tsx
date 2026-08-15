@@ -117,7 +117,7 @@ function AuditHeader({
               </div>
             )}
             <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${live ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-border bg-muted text-muted-foreground"}`}>
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"}`} />
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400 sd-live-dot" : "bg-muted-foreground"}`} />
               {live ? "Live" : "Offline"}
             </div>
           </div>

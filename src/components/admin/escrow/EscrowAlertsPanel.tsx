@@ -162,7 +162,7 @@ export function EscrowAlertsPanel({
           </div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 sd-live-dot" />
               {alerts.counts.critical} Critical
             </span>
             <span className="px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-lg text-xs font-semibold">

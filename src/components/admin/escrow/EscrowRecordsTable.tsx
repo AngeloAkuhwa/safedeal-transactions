@@ -16,7 +16,7 @@ const UNKNOWN_STATE_STYLE = {
 
 const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
   held:            { dot: "bg-emerald-400",   pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "Held" },
-  frozen:          { dot: "bg-red-400 animate-pulse", pill: "bg-red-500/15 text-red-300 border-red-500/30",     label: "Frozen" },
+  frozen:          { dot: "bg-red-400 sd-live-dot", pill: "bg-red-500/15 text-red-300 border-red-500/30",     label: "Frozen" },
   pending_release: { dot: "bg-orange-400",    pill: "bg-orange-500/15 text-orange-300 border-orange-500/30",     label: "Pending Release" },
   released:        { dot: "bg-cyan-400",      pill: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",           label: "Released" },
   refunded:        { dot: "bg-purple-400",    pill: "bg-purple-500/15 text-purple-300 border-purple-500/30",     label: "Refunded" },

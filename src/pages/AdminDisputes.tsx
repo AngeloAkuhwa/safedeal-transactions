@@ -378,7 +378,7 @@ export default function AdminDisputes() {
                 aria-live="polite"
                 title="Refresh"
               >
-                <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 sd-live-dot" : "bg-muted-foreground"}`} />
                 <span className="text-muted-foreground">Live sync</span>
                 <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
               </button>
@@ -575,7 +575,7 @@ export default function AdminDisputes() {
                             <td className="relative px-6 py-4 pl-6">
                               <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                               <div className="flex items-center gap-2">
-                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "animate-pulse" : ""}`} />
+                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "sd-live-dot" : ""}`} />
                                 <span className={`text-xs font-bold uppercase tracking-wide ${PRIORITY_TEXT[row.priority]}`}>
                                   {row.priority}
                                 </span>
