@@ -1039,7 +1039,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Processing Overlay */}
       {isProcessing && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card rounded-3xl shadow-2xl p-12 max-w-md w-full text-center animate-in slide-in-from-bottom-4">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-foreground mb-3">Processing Payment</h2>
@@ -1056,7 +1056,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Success Modal */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card rounded-3xl shadow-2xl p-8 sm:p-12 max-w-lg w-full animate-in slide-in-from-bottom-4">
             <div className="text-center">
               <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1119,7 +1119,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Failed Full-Page Screen */}
       {showFailed && (
-        <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-modal bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-sm mx-auto my-8">
             {/* Card */}
             <div className="bg-card rounded-2xl shadow-xl border overflow-hidden animate-in slide-in-from-bottom-4">

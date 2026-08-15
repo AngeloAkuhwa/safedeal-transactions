@@ -13,6 +13,18 @@ export default {
       },
     },
     extend: {
+      /**
+       * Semantic stacking scale. Numbers are banned in new code: pick the layer
+       * so overlays can never be ordered by accident.
+       */
+      zIndex: {
+        rail: "30",
+        sticky: "40",
+        overlay: "50",
+        sheet: "60",
+        modal: "70",
+        toast: "100",
+      },
         colors: {
           border: "hsl(var(--border))",
           input: "hsl(var(--input))",
