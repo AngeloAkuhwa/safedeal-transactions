@@ -150,7 +150,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-0.5 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{tx.item_title}</p>
-                <p className="text-xs text-muted-foreground">{tx.transaction_code}</p>
+                <p className="text-xs text-muted-foreground">{tx.transaction_code}{tx.item_quantity > 1 ? ` · Qty: ${tx.item_quantity}` : ""}</p>
               </div>
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                 {formatMoney(tx.amount, tx.currency_code)}
