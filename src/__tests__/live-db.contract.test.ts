@@ -345,16 +345,71 @@ d("live value-consistency constraints", () => {
     expect(def).toContain("stock_quantity");
   });
 
-  it("value-checks the money-writing client policies, not just ownership", () => {
-    // Ownership-only WITH CHECK on a table with money columns is the shape
-    // this phase kept finding; every one of these must reference the guard.
-    const policies = psql(
-      "select tablename || '.' || policyname from pg_policies" +
-        " where schemaname = 'public' and cmd in ('INSERT','UPDATE')" +
-        " and tablename in ('transaction_pricing','checkout_sessions','release_review_queue')" +
-        " and coalesce(with_check,'') !~ 'is_finite_money' order by 1",
+  it("ties checkout line items to their components", () => {
+    const defs = psql(
+      "select conname from pg_constraint" +
+        " where conrelid = 'public.checkout_session_items'::regclass" +
+        " and conname in ('checkout_items_quantity_positive'," +
+        "'checkout_items_line_total_matches_components') order by 1",
     );
-    expect(policies ? policies.split("\n") : []).toEqual([]);
+    expect(defs ? defs.split("\n") : []).toEqual([
+      "checkout_items_line_total_matches_components",
+      "checkout_items_quantity_positive",
+    ]);
+  });
+
+  /**
+   * Widened from three hardcoded table names to EVERY money table with a
+   * client write policy. Scoping this scan by name is why an ownership-only
+   * payout_accounts policy stayed invisible while its neighbours were fixed.
+   *
+   * A policy passes when its WITH CHECK constrains VALUES, not just the owner.
+   * Tables with no numeric column need a different predicate, named here.
+   */
+  const NON_MONEY_VALUE_GUARD: Record<string, string> = {
+    // Payout destination integrity is enforced by the pinning trigger and by
+    // column-level grants; the INSERT policy pins the verification fields.
+    payout_accounts: "verification_status",
+  };
+
+  it("value-checks every money-table client write policy, not just ownership", () => {
+    const rows = psql(
+      "select tablename || '|' || policyname || '|' || coalesce(with_check,'')" +
+        " from pg_policies where schemaname = 'public' and cmd in ('INSERT','UPDATE')" +
+        ` and tablename = any(${MONEY_TABLE_SQL_ARRAY})` +
+        " order by 1",
+    );
+    const offenders = (rows ? rows.split("\n") : [])
+      .map((r) => {
+        const [table, policy, withCheck] = r.split("|");
+        return { table, policy, withCheck: withCheck ?? "" };
+      })
+      .filter(({ table, withCheck }) => {
+        const required = NON_MONEY_VALUE_GUARD[table] ?? "is_finite_money";
+        return !withCheck.includes(required);
+      })
+      .map(({ table, policy }) => `${table}.${policy}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps payout verification fields off the client role", () => {
+    // The seller decides WHERE money lands; they must not also decide that
+    // the destination is verified.
+    const writable = psql(
+      "select a.attname from pg_attribute a, aclexplode(a.attacl) x" +
+        " where a.attrelid = 'public.payout_accounts'::regclass" +
+        " and x.grantee::regrole::text in ('anon','authenticated')" +
+        " and x.privilege_type in ('INSERT','UPDATE')" +
+        " and a.attname in ('verification_status','provider_recipient_code'," +
+        "'provider_recipient_id','last_verified_at','provider_response') order by 1",
+    );
+    expect(writable ? writable.split("\n") : []).toEqual([]);
+
+    const trig = psql(
+      "select tgname from pg_trigger where tgrelid = 'public.payout_accounts'::regclass" +
+        " and tgname = 'payout_accounts_pin_privileged_fields'",
+    );
+    expect(trig).toBe("payout_accounts_pin_privileged_fields");
   });
 });
 
