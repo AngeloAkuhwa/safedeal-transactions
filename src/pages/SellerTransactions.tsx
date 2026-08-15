@@ -302,7 +302,98 @@ const SellerTransactions = () => {
       {/* Table */}
       <div className="sd-page pb-4">
         <Card className="rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile: card list. A 7-column table cannot be read at 360px, and
+              horizontal scroll hid Status and Action entirely. */}
+          <ul className="divide-y divide-border md:hidden">
+            {transactions.length === 0 ? (
+              <li className="py-12 text-center">
+                <ArrowLeftRight className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" aria-hidden />
+                <p className="text-sm font-medium text-foreground">No transactions found</p>
+                <p className="mt-1 text-xs text-muted-foreground">Try adjusting your filters</p>
+              </li>
+            ) : (
+              transactions.map((tx) => {
+                const status = resolveTransactionLabel(tx.transaction_status, "seller");
+                const action = actionLabels[tx.transaction_status] ?? { label: "View Details", variant: "outline" as const };
+                return (
+                  <li key={tx.transaction_id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
+                      className="w-full space-y-2 px-3 py-3 text-left transition-colors active:bg-muted/50"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium">
+                          <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                          {tx.transaction_code}
+                        </span>
+                        <Badge variant="outline" className={TONE_CLASSNAMES[status.tone]}>{status.label}</Badge>
+                      </div>
+                      <p className="truncate text-sm font-medium text-foreground">{tx.item_title}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {tx.buyer_name} · Qty {tx.item_quantity}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{formatMoney(tx.amount, tx.currency_code)}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Net {formatMoney(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
+                          </p>
+                        </div>
+                        <MoneyStatusBadge status={tx.money_status} audience="seller" />
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          variant={action.variant === "default" ? "default" : "outline"}
+                          className="min-h-11 flex-1 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (tx.transaction_status === "awaiting_buyer") {
+                              navigate(`/seller/transactions/${tx.transaction_id}/share`);
+                            } else if (["payment_secured", "seller_preparing_delivery", "seller_dispatched"].includes(tx.transaction_status)) {
+                              navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
+                            } else {
+                              navigate(`/seller/transactions/${tx.transaction_id}`);
+                            }
+                          }}
+                        >
+                          {action.label}
+                        </Button>
+                        {(tx.unread_message_count ?? 0) > 0 && (
+                          <Button
+                            variant="outline"
+                            className="min-h-11 min-w-11 shrink-0 px-0"
+                            aria-label={`${tx.unread_message_count} unread messages`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/seller/transactions/${tx.transaction_id}#messages`);
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4 text-primary" aria-hidden />
+                          </Button>
+                        )}
+                        {tx.has_active_rider_token && (
+                          <Button
+                            variant="outline"
+                            className="min-h-11 min-w-11 shrink-0 border-primary/30 px-0 text-primary"
+                            aria-label="Rider confirmation link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/seller/transactions/${tx.transaction_id}#rider`);
+                            }}
+                          >
+                            <QrCode className="h-4 w-4" aria-hidden />
+                          </Button>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -475,17 +566,18 @@ const SellerTransactions = () => {
 
           {/* Pagination */}
           {pagination.total_pages > 0 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-between gap-3 border-t px-3 py-3 sm:flex-row sm:px-6 sm:py-4">
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Showing {(pagination.page - 1) * pagination.page_size + 1}-
                 {Math.min(pagination.page * pagination.page_size, pagination.total_count)} of{" "}
                 {pagination.total_count} transactions
               </p>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-11 w-11 sm:h-8 sm:w-8"
+                  aria-label="Previous page"
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
                 >
@@ -496,7 +588,7 @@ const SellerTransactions = () => {
                     key={p}
                     variant={p === page ? "default" : "outline"}
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-11 w-11 p-0 sm:h-8 sm:w-8"
                     onClick={() => setPage(p)}
                   >
                     {p}
@@ -505,7 +597,8 @@ const SellerTransactions = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-11 w-11 sm:h-8 sm:w-8"
+                  aria-label="Next page"
                   disabled={page >= pagination.total_pages}
                   onClick={() => setPage(page + 1)}
                 >
