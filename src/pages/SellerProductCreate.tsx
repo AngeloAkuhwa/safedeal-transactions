@@ -740,30 +740,51 @@ const SellerProductCreate = () => {
               </div>
             </div>
 
-            {/* Bottom Bar */}
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-success" />
-                <div>
+            {/* Bottom Bar — stacks on narrow screens instead of forcing a
+                no-wrap row that cannot fit 360px. */}
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-6">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">SafeDeal Protection</p>
                   <p className="text-xs text-muted-foreground">All transactions are protected by our escrow system</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => navigate("/seller/storefront")}>Cancel</Button>
+
+              {showBlockers && publishBlockers.length > 0 && (
+                <ul role="alert" className="space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  {publishBlockers.map((b) => (
+                    <li key={b.field} className="flex items-start gap-2 text-xs font-medium text-destructive">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>{b.message}</span>
+                    </li>
+                  ))}
+                  <li className="pl-5 text-xs text-muted-foreground">You can still save this as a draft.</li>
+                </ul>
+              )}
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
                 <Button
-                  onClick={() => createMutation.mutate("published")}
-                  disabled={createMutation.isPending || !canPublish}
-                  title={publishBlockedReason}
-                  className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                  variant="outline"
+                  className="min-h-11 w-full sm:w-auto"
+                  onClick={() => createMutation.mutate("draft")}
+                  disabled={createMutation.isPending}
+                >
+                  <Save className="mr-2 h-4 w-4" aria-hidden />
+                  Save Draft
+                </Button>
+                <Button variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={() => navigate("/seller/storefront")}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={attemptPublish}
+                  disabled={createMutation.isPending}
+                  className="min-h-11 w-full gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground sm:w-auto"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Create Product
                 </Button>
               </div>
-              {publishBlockedReason && (
-                <p className="w-full text-xs text-amber-600 mt-2 basis-full">{publishBlockedReason}</p>
-              )}
             </div>
           </div>
         </div>
