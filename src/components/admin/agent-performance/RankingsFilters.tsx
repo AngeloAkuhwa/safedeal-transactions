@@ -45,7 +45,7 @@ export function RankingsFilters({
           Hide agents below the minimum sample
         </Label>
       </div>
-      <p className="ml-auto max-w-xs text-[11px] leading-relaxed text-muted-foreground">
+      <p className="ml-auto max-w-xs text-[12px] leading-relaxed text-muted-foreground">
         Agents below the minimum completed cases are shown as “Insufficient Data” so a one-case
         agent is never compared against a large caseload.
       </p>

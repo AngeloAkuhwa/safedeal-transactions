@@ -56,7 +56,7 @@ export function IdentityAndPayoutHealth({ identity, payout }: Props) {
             <div className="mt-1 truncate text-xl font-semibold text-foreground tabular-nums">
               {formatMoney(payout.pending_payouts_amount, "NGN")}
             </div>
-            <div className="mt-1 text-[10px] text-muted-foreground">Awaiting release + processing</div>
+            <div className="mt-1 text-[12px] text-muted-foreground">Awaiting release + processing</div>
           </div>
           <div className="rounded-lg border border-border bg-card/60 p-3">
             <div className="text-xs text-muted-foreground">Avg Payout Time</div>

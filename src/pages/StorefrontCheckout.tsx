@@ -428,16 +428,16 @@ const StorefrontCheckout = () => {
                     audience="buyer"
                   />
                   {isFloored && !isCapped ? (
-                    <p className="text-[11px] text-muted-foreground mt-2">
+                    <p className="text-[12px] text-muted-foreground mt-2">
                       Minimum SafeDeal Fee applied.
                     </p>
                   ) : null}
                   <Collapsible className="mt-2">
-                    <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                    <CollapsibleTrigger className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
                       <ChevronDown className="h-3 w-3" />
                       How this fee is calculated
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="text-[11px] text-muted-foreground pt-1.5 leading-relaxed">
+                    <CollapsibleContent className="text-[12px] text-muted-foreground pt-1.5 leading-relaxed">
                       {describeFeeBreakdown({ itemAmount: itemSubtotal, config: vendorPricingConfig }, pricing)}
                     </CollapsibleContent>
                   </Collapsible>

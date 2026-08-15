@@ -255,7 +255,7 @@ const SellerProductDetail = () => {
                   <p className="text-xs text-muted-foreground">Stock</p>
                   <p className={`text-lg font-semibold ${stockColor}`}>{availableQty}</p>
                   {reservedQty > 0 && (
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[12px] text-muted-foreground">
                       of {product.stock_quantity} ({reservedQty} reserved)
                     </p>
                   )}
@@ -424,7 +424,7 @@ const SellerProductDetail = () => {
                             <img src={m.file_url} alt={title} className="w-full h-full object-cover" />
                           )}
                           {idx === 0 && (
-                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-semibold rounded">
+                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[12px] font-semibold rounded">
                               Primary
                             </div>
                           )}

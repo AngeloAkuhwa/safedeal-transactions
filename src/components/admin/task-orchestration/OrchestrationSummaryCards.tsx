@@ -73,7 +73,7 @@ export function OrchestrationSummaryCards({
 
   return (
     <div className="space-y-2">
-    <div className="text-[11px] text-muted-foreground">
+    <div className="text-[12px] text-muted-foreground">
       Range: <span className="text-foreground">{rangeLabel}</span> · Team: <span className="text-foreground">{teamLabel}</span>
     </div>
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -92,10 +92,10 @@ export function OrchestrationSummaryCards({
             <c.icon className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
+            <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
             <div className="mt-0.5 text-2xl font-bold leading-none text-foreground">{c.value}</div>
             {c.delta && (
-              <div className={cn("mt-1.5 text-[11px]", DELTA_COLOR[c.deltaTone ?? "muted"])}>{c.delta}</div>
+              <div className={cn("mt-1.5 text-[12px]", DELTA_COLOR[c.deltaTone ?? "muted"])}>{c.delta}</div>
             )}
           </div>
         </button>

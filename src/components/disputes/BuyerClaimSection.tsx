@@ -72,7 +72,7 @@ function EvidenceThumbnail({
         </a>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[10px] px-2 py-1 truncate">
+      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[12px] px-2 py-1 truncate">
         {format(new Date(evidence.created_at), "MMM d, h:mm a")}
       </div>
     </button>

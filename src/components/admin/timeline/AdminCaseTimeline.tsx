@@ -307,7 +307,7 @@ export function AdminCaseTimeline({
           {r.description && (
             <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
           )}
-          <div className="text-[11px] text-muted-foreground mt-1.5">
+          <div className="text-[12px] text-muted-foreground mt-1.5">
             {fmtDate(r.raw.at)}
             {r.raw.type === "admin_action" && <> · by {r.actor ?? "SafeDeal Admin"}</>}
           </div>

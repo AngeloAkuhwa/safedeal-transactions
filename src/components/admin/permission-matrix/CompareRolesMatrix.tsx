@@ -52,7 +52,7 @@ function riskChip(key: string) {
     medium: "border-sky-500/40 bg-sky-500/10 text-sky-300",
     low: "border-border/60 bg-muted/40 text-muted-foreground",
   } as const;
-  return <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase", map[r])}>{r}</span>;
+  return <span className={cn("rounded-full border px-1.5 py-0.5 text-[12px] font-bold uppercase", map[r])}>{r}</span>;
 }
 
 function riskDot(key: string) {
@@ -210,7 +210,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
         >
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[180px] flex-1">
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">From</label>
+              <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">From</label>
               <select
                 value={copySource ?? ""}
                 onChange={(e) => setCopySource(e.target.value as InternalRoleKey)}
@@ -223,7 +223,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
             </div>
             <ArrowRight className="mb-2 h-4 w-4 text-muted-foreground" />
             <div className="min-w-[180px] flex-1">
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">To</label>
+              <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">To</label>
               <select
                 value={copyTarget ?? ""}
                 onChange={(e) => setCopyTarget(e.target.value as InternalRoleKey)}
@@ -283,7 +283,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                   <li key={k} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs hover:bg-muted/30">
                     {riskChip(k)}
                     <span className="min-w-0 flex-1 truncate font-medium">{permLabel(k).label}</span>
-                    <code className="text-[10px] text-muted-foreground">{k}</code>
+                    <code className="text-[12px] text-muted-foreground">{k}</code>
                   </li>
                 ))}
               </ul>
@@ -320,7 +320,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                           <span className="text-muted-foreground"> requires </span>
                           <span className="font-semibold">{needs.label}</span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
+                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[12px] text-muted-foreground">
                           <code>{m.have}</code>
                           <span>→</span>
                           <code>{m.needs}</code>
@@ -330,7 +330,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                         <button
                           type="button"
                           onClick={() => stageMissingDependency(x.role, m.needs)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-emerald-300 hover:border-emerald-500/40 min-h-11"
+                          className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[12px] font-semibold text-emerald-300 hover:border-emerald-500/40 min-h-11"
                         >
                           <Wand2 className="h-3 w-3" /> Fix by staging
                         </button>
@@ -351,7 +351,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
         count={perRoleAnalysis.reduce((n, x) => n + x.conflicts.length, 0)}
       >
         {exemptRolesInView.length > 0 && (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-[11px] text-muted-foreground">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-[12px] text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
             <span>
               <span className="font-semibold text-foreground/80">
@@ -391,21 +391,21 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                           <span className="text-muted-foreground"> conflicts with </span>
                           <span className="font-semibold">{b.label}</span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
                           <code>{c.a}</code>
                           <span>↔</span>
                           <code>{c.b}</code>
                           {ack && (
                             <span
                               title={ack.reason}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300"
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[12px] font-semibold text-emerald-300"
                             >
                               <ShieldCheck className="h-3 w-3" /> Acknowledged
                             </span>
                           )}
                         </div>
                         {ack && (
-                          <div className="mt-0.5 line-clamp-2 text-[10px] italic text-muted-foreground">
+                          <div className="mt-0.5 line-clamp-2 text-[12px] italic text-muted-foreground">
                             “{ack.reason}”
                           </div>
                         )}
@@ -419,7 +419,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                                 revokeMutation.mutate(ack.id);
                               }
                             }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:border-rose-500/40 hover:text-rose-300 min-h-11"
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[12px] font-semibold text-muted-foreground hover:border-rose-500/40 hover:text-rose-300 min-h-11"
                           >
                             <BellOff className="h-3 w-3" /> Revoke ack
                           </button>
@@ -427,7 +427,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                           <button
                             type="button"
                             onClick={() => setAckTarget({ role: x.role, a: c.a, b: c.b })}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-amber-300 hover:border-amber-500/40 min-h-11"
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[12px] font-semibold text-amber-300 hover:border-amber-500/40 min-h-11"
                           >
                             <ShieldCheck className="h-3 w-3" /> Acknowledge
                           </button>
@@ -457,7 +457,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
               <span
                 key={k}
                 title={k}
-                className="inline-flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-[12px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               >
                 {riskDot(k)}
                 {permLabel(k).label}
@@ -517,7 +517,7 @@ function Section({
       >
         <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", iconTone)}>{icon}</span>
         <span className="min-w-0 flex-1 text-base font-semibold text-foreground">{title}</span>
-        <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{count}</span>
+        <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[12px] font-medium text-muted-foreground">{count}</span>
       </button>
       {open && <div className="mt-4">{children}</div>}
     </PermissionPanel>
@@ -529,7 +529,7 @@ function EmptyRow({ icon, title, body }: { icon?: React.ReactNode; title: string
     <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background/30 px-4 py-6 text-center">
       {icon}
       <div className="text-xs font-medium text-foreground/80">{title}</div>
-      {body && <div className="max-w-md text-[11px] text-muted-foreground">{body}</div>}
+      {body && <div className="max-w-md text-[12px] text-muted-foreground">{body}</div>}
     </div>
   );
 }
@@ -544,7 +544,7 @@ function RoleSubGroup({
     <div>
       <div className="mb-1 flex items-center gap-2">
         <span className="text-xs font-semibold text-foreground/90">{ROLE_LABEL[role]}</span>
-        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", chipCls)}>{count}</span>
+        <span className={cn("rounded-full px-1.5 py-0.5 text-[12px] font-semibold", chipCls)}>{count}</span>
       </div>
       <ul className="space-y-0.5">{children}</ul>
     </div>
@@ -555,7 +555,7 @@ function DiffCardList({ keys, selected, roleMap }: { keys: string[]; selected: I
   return (
     <div className="space-y-1">
       {/* Sub-header */}
-      <div className="flex items-center gap-2 px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2 px-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
         <span className="flex-1">Permission</span>
         {selected.map((r) => (
           <span key={r} className="w-14 text-center">{ROLE_LABEL[r]}</span>
@@ -568,7 +568,7 @@ function DiffCardList({ keys, selected, roleMap }: { keys: string[]; selected: I
               {riskChip(k)}
               <span className="truncate text-xs font-medium text-foreground/90">{permLabel(k).label}</span>
             </div>
-            <code className="mt-0.5 block truncate text-[10px] text-muted-foreground">{k}</code>
+            <code className="mt-0.5 block truncate text-[12px] text-muted-foreground">{k}</code>
           </div>
           {selected.map((r) => {
             const held = roleMap.map.get(r)?.has(k) ?? false;

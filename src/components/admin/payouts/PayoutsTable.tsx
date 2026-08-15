@@ -468,7 +468,7 @@ export function PayoutsTable({
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-8 w-8 shrink-0 rounded-full">
                       {r.seller.avatar_url ? <AvatarImage src={r.seller.avatar_url} alt={r.seller.name} /> : null}
-                      <AvatarFallback className="text-[10px] bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
+                      <AvatarFallback className="text-[12px] bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="text-white font-medium text-sm whitespace-nowrap">{r.seller.name}</div>
@@ -504,7 +504,7 @@ export function PayoutsTable({
                         return <p className="text-slate-400 text-xs">—</p>;
                       }
                       return (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-[10px] font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-[12px] font-medium">
                           Seller bank not set up
                         </span>
                       );
@@ -514,8 +514,8 @@ export function PayoutsTable({
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account!.bank_name ?? "—"}</p>
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold shrink-0">
-                              <FaCheck className="text-[8px]" /> VERIFIED
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[12px] font-bold shrink-0">
+                              <FaCheck className="text-[12px]" /> VERIFIED
                             </span>
                           </div>
                           <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account!.masked_account ?? "—"}</p>
@@ -540,8 +540,8 @@ export function PayoutsTable({
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-[10px] font-bold shrink-0`}>
-                            <FaXmark className="text-[8px]" /> {badgeText}
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-[12px] font-bold shrink-0`}>
+                            <FaXmark className="text-[12px]" /> {badgeText}
                           </span>
                         </div>
                         <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? ap.tableLabel}</p>

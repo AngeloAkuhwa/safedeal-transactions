@@ -51,7 +51,7 @@ export function CriticalAlerts({ alerts: initial }: Props) {
                     <div className="truncate text-xs text-muted-foreground">{a.description}</div>
                   </div>
                 </div>
-                <div className="shrink-0 text-[11px] opacity-80">{formatRelative(a.at_iso)}</div>
+                <div className="shrink-0 text-[12px] opacity-80">{formatRelative(a.at_iso)}</div>
               </li>
             );
           })}

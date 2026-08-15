@@ -31,7 +31,7 @@ function Chip({ active, onClick, children }: { active?: boolean; onClick: () => 
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition min-h-11",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition min-h-11",
         active
           ? "border-primary/50 bg-primary/15 text-primary-foreground"
           : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border",
@@ -61,7 +61,7 @@ function MultiPopover<T extends string>({
       >
         {label}
         {selected.length > 0 && (
-          <span className="rounded bg-primary/20 px-1.5 text-[10px] font-semibold text-primary-foreground">
+          <span className="rounded bg-primary/20 px-1.5 text-[12px] font-semibold text-primary-foreground">
             {selected.length}
           </span>
         )}
@@ -196,14 +196,14 @@ export function RoleMatrixToolbar({
           <button
             type="button"
             onClick={expandAll}
-            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] hover:border-border min-h-11"
+            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] hover:border-border min-h-11"
           >
             Expand all
           </button>
           <button
             type="button"
             onClick={collapseAll}
-            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] hover:border-border min-h-11"
+            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] hover:border-border min-h-11"
           >
             Collapse all
           </button>

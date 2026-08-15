@@ -639,7 +639,7 @@ export default function AdminUserDetail() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-white text-sm font-medium">{title}</p>
                               {srcInfo && (
-                                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
+                                <span className={`px-1.5 py-0.5 rounded border text-[12px] font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
                                   {srcInfo.label}
                                 </span>
                               )}

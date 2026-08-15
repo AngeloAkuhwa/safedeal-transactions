@@ -50,7 +50,7 @@ export function PermissionSummaryCards({
             <c.icon className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
+            <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
             <div className="mt-0.5 text-2xl font-bold leading-none text-foreground">
               {loading ? <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" /> : c.value}
             </div>

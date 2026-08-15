@@ -342,7 +342,7 @@ export function DispatchForm({
                 <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <p className="text-xs font-medium">Upload courier receipt or package photo</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Optional but recommended for dispute protection</p>
+              <p className="text-[12px] text-muted-foreground mt-1">Optional but recommended for dispute protection</p>
             </div>
           )}
         </div>

@@ -90,7 +90,7 @@ export function ReviewRulesDrawer({
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Changes</div>
             <div className="overflow-hidden rounded-xl border border-border/60">
               <table className="w-full text-sm sd-stack">
-                <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-muted/40 text-[12px] uppercase tracking-wide text-muted-foreground">
                   <tr><th className="p-2 text-left">Rule</th><th className="p-2 text-left">Previous</th><th className="p-2 text-left">New</th></tr>
                 </thead>
                 <tbody>
@@ -111,14 +111,14 @@ export function ReviewRulesDrawer({
 
           <section className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Affected queues</div>
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Affected queues</div>
               <div className="mt-1 flex flex-wrap gap-1">
                 {affectedQueues.length === 0 ? <Badge variant="secondary">global</Badge> :
                   affectedQueues.map((q) => <Badge key={q} variant="secondary">{q}</Badge>)}
               </div>
             </div>
             <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Estimated impact</div>
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Estimated impact</div>
               <div className="mt-1 text-xs text-foreground">
                 {impact
                   ? `${impact.would_assign} of ${impact.pending} pending would be assigned · ${impact.unmatched} unmatched`
@@ -132,7 +132,7 @@ export function ReviewRulesDrawer({
               <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-amber-300">
                 <AlertTriangle className="h-3.5 w-3.5" /> Warnings
               </div>
-              <ul className="ml-4 list-disc space-y-0.5 text-[11px] text-amber-200/90">
+              <ul className="ml-4 list-disc space-y-0.5 text-[12px] text-amber-200/90">
                 {warnings.map((w, i) => <li key={i}>{w}</li>)}
               </ul>
             </section>
@@ -160,7 +160,7 @@ export function ReviewRulesDrawer({
               placeholder="Why are these rules changing? (min 20 characters)"
               className="min-h-[100px]"
             />
-            <div className="mt-1 text-[11px] text-muted-foreground">{reason.trim().length}/20 minimum</div>
+            <div className="mt-1 text-[12px] text-muted-foreground">{reason.trim().length}/20 minimum</div>
           </section>
           )}
 
@@ -169,7 +169,7 @@ export function ReviewRulesDrawer({
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rules history</div>
               <div className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60">
                 {history!.map((v) => (
-                  <div key={v.id} className="p-2.5 text-[11px]">
+                  <div key={v.id} className="p-2.5 text-[12px]">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-foreground">v{v.version}</span>
                       <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>

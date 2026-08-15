@@ -427,7 +427,7 @@ const SellerProductPreview = () => {
                     <span className="text-xs text-muted-foreground">Stock</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">{product.stock_quantity} units</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${stockBadgeClass}`}>
+                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full border ${stockBadgeClass}`}>
                         {stockLabel}
                       </span>
                     </div>

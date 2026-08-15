@@ -547,7 +547,7 @@ const SellerProductCreate = () => {
                           <X className="h-4 w-4" aria-hidden />
                         </button>
                         {idx === 0 && f.status === "done" && (
-                          <span className="absolute bottom-1 left-1 bg-success text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">Primary</span>
+                          <span className="absolute bottom-1 left-1 bg-success text-primary-foreground text-[12px] px-1.5 py-0.5 rounded-full font-medium">Primary</span>
                         )}
                       </div>
                     ))}

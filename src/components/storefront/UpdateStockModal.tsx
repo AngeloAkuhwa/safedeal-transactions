@@ -79,10 +79,10 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
                 {formatMoney(product.unit_price, product.currency_code)}
               </p>
               <div className="flex items-center gap-1.5 mt-1">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${stockStatus.bg} ${stockStatus.color}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[12px] font-medium ${stockStatus.bg} ${stockStatus.color}`}>
                   {getStockStatus(currentAvailable).label}
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${productStatusClass}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[12px] font-medium ${productStatusClass}`}>
                   {productStatus.label}
                 </span>
               </div>

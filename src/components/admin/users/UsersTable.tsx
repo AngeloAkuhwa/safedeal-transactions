@@ -135,7 +135,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                           )}
                         </div>
                         <p className="text-slate-400 text-xs mt-0.5">{r.handle}</p>
-                        <p className="text-slate-500 text-[10px] mt-1">{r.display_id}</p>
+                        <p className="text-slate-500 text-[12px] mt-1">{r.display_id}</p>
                       </div>
                     </div>
                   </td>
@@ -204,7 +204,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                       <button title="Transactions" onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs min-h-11"><ArrowLeftRight className="h-3.5 w-3.5" /></button>
                       <button title="Disputes" disabled={r.disputes.total === 0} onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"} min-h-11 min-w-11 justify-center`}>
                         <Scale className="h-3.5 w-3.5" />
-                        {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
+                        {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[12px] font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
                       </button>
                       <button title="Review Investigation" onClick={(e) => { e.stopPropagation(); navigate(`/admin/flagged-users?u=${r.user_id}`); }} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs min-h-11"><FileSearch className="h-3.5 w-3.5" /></button>
                       <button title="Start Impersonation" onClick={(e) => { e.stopPropagation(); toast({ title: "Impersonation coming soon" }); }} className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs min-h-11"><UserCog className="h-3.5 w-3.5" /></button>

@@ -169,7 +169,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                 <div className={`h-9 w-9 rounded-lg ${card.iconBg} flex items-center justify-center`}>
                   <card.icon className={`h-[18px] w-[18px] ${card.iconColor}`} />
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${card.badgeBg}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold ${card.badgeBg}`}>
                   {card.badge}
                 </span>
               </div>
@@ -194,7 +194,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                 <p className="sd-kpi-value tabular-nums">{card.value}</p>
                 <p className="sd-kpi-helper">{card.subtitle}</p>
                 {card.breakdown && (
-                  <p className="text-[10px] text-muted-foreground/80 pt-1 leading-snug">
+                  <p className="text-[12px] text-muted-foreground/80 pt-1 leading-snug">
                     {card.breakdown}
                   </p>
                 )}
@@ -213,13 +213,13 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
             <Link
               key={chip.key}
               to={chip.href}
-              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone} min-h-11 min-w-11 justify-center`}
+              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone} min-h-11 min-w-11 justify-center`}
             >
               <span className="inline-flex items-center gap-1.5">
                 <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />
                 <span>{chip.label}</span>
               </span>
-              <span className="inline-flex items-center justify-center rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] font-bold">
+              <span className="inline-flex items-center justify-center rounded-full bg-background/70 px-1.5 py-0.5 text-[12px] font-bold">
                 {chip.value}
               </span>
             </Link>

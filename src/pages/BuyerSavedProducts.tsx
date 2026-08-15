@@ -201,7 +201,7 @@ export default function BuyerSavedProducts() {
                       )}
 
                       {/* Stock badge — top left */}
-                      <span className={cn("absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold", stock.cls)}>
+                      <span className={cn("absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-semibold", stock.cls)}>
                         {stock.label}
                       </span>
 
@@ -218,7 +218,7 @@ export default function BuyerSavedProducts() {
                     <div className="flex flex-1 flex-col p-5">
                       {/* Category */}
                       {item.category && (
-                        <Badge variant="secondary" className="self-start mb-2 text-[11px] font-medium">
+                        <Badge variant="secondary" className="self-start mb-2 text-[12px] font-medium">
                           {item.category.name}
                         </Badge>
                       )}
@@ -235,13 +235,13 @@ export default function BuyerSavedProducts() {
                       {/* Seller row */}
                       <div className="mb-3 pb-3 border-b border-border flex items-center gap-2">
                         <Avatar className="h-7 w-7">
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-blue-400 text-[10px] font-bold text-primary-foreground">
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-blue-400 text-[12px] font-bold text-primary-foreground">
                             {sellerInitial}
                           </AvatarFallback>
                         </Avatar>
                         <span className="truncate text-sm font-medium text-foreground">{item.seller?.full_name}</span>
                         {verifiedSellerClaim && (
-                          <Badge variant="outline" className="ml-auto text-[10px] px-2 py-0.5">
+                          <Badge variant="outline" className="ml-auto text-[12px] px-2 py-0.5">
                             {verifiedSellerClaim}
                           </Badge>
                         )}

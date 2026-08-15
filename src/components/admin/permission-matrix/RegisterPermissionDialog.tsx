@@ -131,13 +131,13 @@ export function RegisterPermissionDialog({
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Module</span>
+              <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Module</span>
               <select disabled={!!editing} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Action</span>
+              <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Action</span>
               <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value as PermissionAction)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
@@ -145,25 +145,25 @@ export function RegisterPermissionDialog({
           </div>
           <div className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1 font-mono text-xs text-muted-foreground">
             {!!editing && <Lock className="h-3 w-3" />}<span>{key}</span>
-            {!!editing && <span className="ml-auto text-[10px] italic">Key is immutable after creation</span>}
+            {!!editing && <span className="ml-auto text-[12px] italic">Key is immutable after creation</span>}
           </div>
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Label</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Label</span>
             <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2" placeholder="Human-readable name" />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Description</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Description</span>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-background p-2 text-sm" />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Risk</span>
+              <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Risk</span>
               <select value={risk} onChange={(e) => setRisk(e.target.value as PermissionRiskLevel)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {RISKS.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Owner role</span>
+              <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Owner role</span>
               <select value={ownerRole} onChange={(e) => setOwnerRole(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 <option value="">— None —</option>
                 {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
@@ -177,7 +177,7 @@ export function RegisterPermissionDialog({
             </label>
             {editing && (
               <label className="block">
-                <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Status</span>
+                <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Status</span>
                 <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                   <option value="active">Active</option>
                   <option value="suspended">Suspended</option>
@@ -187,7 +187,7 @@ export function RegisterPermissionDialog({
             )}
           </div>
           <div>
-            <div className="mb-1 text-[11px] uppercase text-muted-foreground">Environments</div>
+            <div className="mb-1 text-[12px] uppercase text-muted-foreground">Environments</div>
             <div className="flex gap-2">
               {ENVS.map((e) => {
                 const active = envs.includes(e);
@@ -204,7 +204,7 @@ export function RegisterPermissionDialog({
           </div>
           <MultiPermSelect label="Dependencies (this permission requires)" excludeKey={key} value={deps} onChange={setDeps} />
           <MultiPermSelect label="Conflicting permissions" excludeKey={key} value={conflicts} onChange={setConflicts} />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             Permissions are never permanently deleted. Use <span className="font-semibold">Deprecated</span> to retire.
           </p>
         </div>
@@ -232,11 +232,11 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
   const toggle = (k: string) => onChange(value.includes(k) ? value.filter((x) => x !== k) : [...value, k]);
   return (
     <div>
-      <div className="mb-1 text-[11px] uppercase text-muted-foreground">{label}</div>
+      <div className="mb-1 text-[12px] uppercase text-muted-foreground">{label}</div>
       {value.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1">
           {value.map((k) => (
-            <span key={k} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary">
+            <span key={k} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[12px] text-primary">
               {k}
               <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive min-h-11 inline-flex items-center">×</button>
             </span>
@@ -248,7 +248,7 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
         {filtered.map((p) => (
           <button
             key={p.key} type="button" onClick={() => toggle(p.key)}
-            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""} min-h-11`}
+            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[12px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""} min-h-11`}
           >
             <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none min-h-11 inline-flex items-center" />
             <span className="font-mono text-muted-foreground">{p.key}</span>

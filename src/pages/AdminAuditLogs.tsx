@@ -627,7 +627,7 @@ export default function AdminAuditLogs() {
                             </div>
                             <div>
                               <p className="text-foreground text-sm font-medium">{r.action_label}</p>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[10px] font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[12px] font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
                                 <sev.Icon className="h-3 w-3" />
                                 {sev.label}
                               </span>

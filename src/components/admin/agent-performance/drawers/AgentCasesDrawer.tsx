@@ -84,10 +84,10 @@ export function AgentCasesDrawer({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <span className="font-mono text-[12px] text-muted-foreground">
               {c.case_ref ?? c.task_code ?? c.id.slice(0, 8)}
             </span>
-            <Badge variant="outline" className="text-[10px] capitalize">{c.source}</Badge>
+            <Badge variant="outline" className="text-[12px] capitalize">{c.source}</Badge>
           </div>
           <div className="truncate text-sm font-medium capitalize text-foreground">{c.title ?? c.type ?? "Case"}</div>
           <div className="mt-1 text-xs capitalize text-muted-foreground">
@@ -104,10 +104,10 @@ export function AgentCasesDrawer({
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant={c.is_overdue ? "destructive" : "secondary"} className="text-[10px] capitalize">
+          <Badge variant={c.is_overdue ? "destructive" : "secondary"} className="text-[12px] capitalize">
             {c.is_overdue ? "Overdue" : ((c.outcome_type ?? c.sla_status ?? "On track") as string).replace(/_/g, " ")}
           </Badge>
-          {c.priority && <span className="text-[10px] uppercase text-muted-foreground">{c.priority}</span>}
+          {c.priority && <span className="text-[12px] uppercase text-muted-foreground">{c.priority}</span>}
         </div>
       </div>
     </button>
@@ -142,7 +142,7 @@ export function AgentCasesDrawer({
             ))}
           </div>
           {truncated && (
-             <span className="text-[11px] text-amber-400">More results are available; narrow the filters to investigate the complete set.</span>
+             <span className="text-[12px] text-amber-400">More results are available; narrow the filters to investigate the complete set.</span>
           )}
         </div>
 

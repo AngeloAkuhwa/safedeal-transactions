@@ -111,7 +111,7 @@ export function UnassignedTaskQueue({
       <div className="hidden overflow-x-auto rounded-xl border border-border/60 bg-background/40 md:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="sticky top-0 bg-background/80 backdrop-blur">
-            <tr className="border-b border-border/60 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border/60 text-[12px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3 font-semibold">
                 <Checkbox checked={pageAllChecked} onCheckedChange={c => onToggleAll(!!c)} />
               </th>
@@ -144,28 +144,28 @@ export function UnassignedTaskQueue({
                       #{t.task_code}
                     </button>
                   </td>
-                  <td className="px-2 py-3 text-[11px] text-muted-foreground">
+                  <td className="px-2 py-3 text-[12px] text-muted-foreground">
                     {t.dispute_id ? `D-${t.dispute_id.slice(0, 8)}` : t.transaction_id ? `T-${t.transaction_id.slice(0, 8)}` : "—"}
                   </td>
                   <td className="px-2 py-3 text-xs text-muted-foreground">{humanize(t.type)}</td>
                   <td className="px-2 py-3">
-                    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityBadgeClass(t.priority))}>
+                    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold", priorityBadgeClass(t.priority))}>
                       {humanize(t.priority)}
                     </span>
                   </td>
                   <td className="px-2 py-3 text-xs text-muted-foreground">{t.stage ? humanize(t.stage) : "—"}</td>
                   <td className="px-2 py-3">
                     {t.sla_status ? (
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", slaBadgeClass(t.sla_status))}>
+                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold", slaBadgeClass(t.sla_status))}>
                         {slaLabel(t.sla_status)}
                       </span>
                     ) : "—"}
-                    {t.sla_due_at && <div className="mt-0.5 text-[10px] text-muted-foreground">Due {relativeShort(t.sla_due_at)}</div>}
+                    {t.sla_due_at && <div className="mt-0.5 text-[12px] text-muted-foreground">Due {relativeShort(t.sla_due_at)}</div>}
                   </td>
                   <td className="px-2 py-3 text-xs text-muted-foreground">{relativeShort(t.created_at)}</td>
                   <td className="px-2 py-3 font-medium tabular-nums">{currencyFmt(t.amount, t.currency)}</td>
-                  <td className="px-2 py-3 text-[11px] text-muted-foreground">{t.queue ? humanize(t.queue) : "Default"}</td>
-                  <td className="px-2 py-3 text-[11px] text-muted-foreground">{suggested ? shortNameOf(suggested) : "Auto"}</td>
+                  <td className="px-2 py-3 text-[12px] text-muted-foreground">{t.queue ? humanize(t.queue) : "Default"}</td>
+                  <td className="px-2 py-3 text-[12px] text-muted-foreground">{suggested ? shortNameOf(suggested) : "Auto"}</td>
                   <td className="px-4 py-3 text-right">
                     <Button size="sm" onClick={() => onAssignRow(t)} className="h-11 px-3 text-xs">Assign</Button>
                   </td>
@@ -190,11 +190,11 @@ export function UnassignedTaskQueue({
               <div className="mb-2 flex items-start justify-between gap-3">
                 <button onClick={() => onOpenDetail(t)} className="text-left min-h-11 inline-flex items-center">
                   <div className="font-medium text-foreground">#{t.task_code}</div>
-                  {t.dispute_id && <div className="text-[11px] text-muted-foreground">Dispute D-{t.dispute_id.slice(0, 8)}</div>}
+                  {t.dispute_id && <div className="text-[12px] text-muted-foreground">Dispute D-{t.dispute_id.slice(0, 8)}</div>}
                 </button>
                 <Checkbox checked={selectedIds.has(t.id)} onCheckedChange={() => onToggle(t.id)} />
               </div>
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                 <span className={cn("inline-flex rounded-full px-2 py-0.5 font-semibold", priorityBadgeClass(t.priority))}>{humanize(t.priority)}</span>
                 <span>{humanize(t.type)}</span>
                 {t.stage && <span>· {humanize(t.stage)}</span>}

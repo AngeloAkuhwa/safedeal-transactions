@@ -15,7 +15,7 @@ function StatTile({
         <div className={`p-2 rounded-lg ${iconWrap}`}>
           <Icon className={`h-4 w-4 ${iconClass}`} />
         </div>
-        <span className={`text-[10px] font-bold ${deltaClass}`}>{delta}</span>
+        <span className={`text-[12px] font-bold ${deltaClass}`}>{delta}</span>
       </div>
       <p className="text-slate-400 text-xs font-medium">{label}</p>
       <p className="text-white text-xl font-bold">{value.toLocaleString()}</p>

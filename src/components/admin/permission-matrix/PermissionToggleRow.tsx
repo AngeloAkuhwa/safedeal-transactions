@@ -54,21 +54,21 @@ export function PermissionToggleRow({
         {privileged && <PermissionRiskBadge privileged size="xs" />}
         {staged && (
           <span className={cn(
-            "inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+            "inline-flex items-center rounded-full px-1.5 py-0.5 text-[12px] font-semibold uppercase",
             stagedOp === "grant" ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300",
           )}>
             <Clock className="mr-0.5 h-2.5 w-2.5" />
             {stagedOp === "grant" ? "+ staged" : "− staged"}
           </span>
         )}
-        <span className="font-mono text-[10px] text-muted-foreground">{module}</span>
+        <span className="font-mono text-[12px] text-muted-foreground">{module}</span>
         <button
           type="button"
           disabled={disabled}
           onClick={() => onToggle(role, permissionKey, currentlyGranted)}
           title={(guard as any).message ?? (canManage ? (effectivelyGranted ? "Stage revoke" : "Stage grant") : "Read-only")}
           className={cn(
-            "inline-flex h-11 items-center gap-0.5 rounded-full border px-1.5 text-[10px] font-semibold transition",
+            "inline-flex h-11 items-center gap-0.5 rounded-full border px-1.5 text-[12px] font-semibold transition",
             disabled && "cursor-not-allowed opacity-50",
             effectivelyGranted
               ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"

@@ -34,7 +34,7 @@ export function AssignmentModeSelector({
             <SelectItem key={m.value} value={m.value}>
               <div className="flex flex-col">
                 <span className="text-sm">{m.label}</span>
-                <span className="text-[11px] text-muted-foreground">{m.desc}</span>
+                <span className="text-[12px] text-muted-foreground">{m.desc}</span>
               </div>
             </SelectItem>
           ))}

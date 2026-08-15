@@ -578,7 +578,7 @@ const SellerCreateTransaction = () => {
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 py-0.5 truncate">
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[12px] px-1 py-0.5 truncate">
                               {p.original_name}
                             </div>
                           </div>

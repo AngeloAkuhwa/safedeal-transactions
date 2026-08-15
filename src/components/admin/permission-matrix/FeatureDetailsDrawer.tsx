@@ -20,7 +20,7 @@ import { Ban, Pause, Play } from "lucide-react";
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-3 gap-2 text-sm">
-      <div className="text-[11px] uppercase text-muted-foreground">{label}</div>
+      <div className="text-[12px] uppercase text-muted-foreground">{label}</div>
       <div className="col-span-2">{children}</div>
     </div>
   );
@@ -103,19 +103,19 @@ export function FeatureDetailsDrawer({
             <div className="flex flex-wrap items-center gap-2">
               <PermissionRiskBadge privileged={isPrivilegedPermission(meta.key)} />
               {isPrivilegedPermission(meta.key) && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[12px] text-amber-300">
                   <ShieldAlert className="h-3 w-3" /> Privileged
                 </span>
               )}
-              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-mono text-[11px] text-muted-foreground">{meta.key}</span>
-              <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[10px] uppercase text-muted-foreground">
+              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-mono text-[12px] text-muted-foreground">{meta.key}</span>
+              <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[12px] uppercase text-muted-foreground">
                 {(meta.status ?? "active")}
               </span>
               {canManage && onEdit && (
                 <button
                   type="button"
                   onClick={() => onEdit(meta.key)}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11"
+                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] hover:bg-muted min-h-11"
                 >
                   <Settings2 className="h-3 w-3" /> Edit
                 </button>
@@ -126,23 +126,23 @@ export function FeatureDetailsDrawer({
               <div className="flex flex-wrap gap-2">
                 {meta.status !== "active" && (
                   <button type="button" onClick={() => setStatus.mutate("active")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-500/20 min-h-11">
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[12px] text-emerald-300 hover:bg-emerald-500/20 min-h-11">
                     <Play className="h-3 w-3" /> Reactivate
                   </button>
                 )}
                 {meta.status !== "suspended" && (
                   <button type="button" onClick={() => setStatus.mutate("suspended")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/20 min-h-11">
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[12px] text-amber-300 hover:bg-amber-500/20 min-h-11">
                     <Pause className="h-3 w-3" /> Suspend
                   </button>
                 )}
                 {meta.status !== "deprecated" && (
                   <button type="button" onClick={() => setStatus.mutate("deprecated")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20 min-h-11">
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[12px] text-rose-300 hover:bg-rose-500/20 min-h-11">
                     <Ban className="h-3 w-3" /> Deprecate
                   </button>
                 )}
-                <span className="ml-auto text-[10px] italic text-muted-foreground">Hard delete disabled — use Deprecated</span>
+                <span className="ml-auto text-[12px] italic text-muted-foreground">Hard delete disabled — use Deprecated</span>
               </div>
             )}
 
@@ -184,7 +184,7 @@ export function FeatureDetailsDrawer({
                 : (
                   <ul className="flex flex-wrap gap-1">
                     {deps.map((d) => (
-                      <li key={d} className="rounded-md border border-border bg-background/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">{d}</li>
+                      <li key={d} className="rounded-md border border-border bg-background/60 px-2 py-0.5 font-mono text-[12px] text-muted-foreground">{d}</li>
                     ))}
                   </ul>
                 )}
@@ -201,9 +201,9 @@ export function FeatureDetailsDrawer({
                     {conflicts.map((c: any, i: number) => {
                       const other = c.a_key === meta.key ? c.b_key : c.a_key;
                       return (
-                        <li key={`${other}-${i}`} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[11px]">
+                        <li key={`${other}-${i}`} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[12px]">
                           <span className="font-mono">{other}</span>
-                          <span className="ml-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-[10px] text-amber-300 uppercase">{c.severity}</span>
+                          <span className="ml-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-[12px] text-amber-300 uppercase">{c.severity}</span>
                           {c.rationale && <div className="mt-0.5 text-muted-foreground">{c.rationale}</div>}
                         </li>
                       );
@@ -219,8 +219,8 @@ export function FeatureDetailsDrawer({
               {pendingQuery.data && pendingQuery.data.length > 0 && (
                 <ul className="mb-2 space-y-1">
                   {pendingQuery.data.map((r) => (
-                    <li key={r.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[11px]">
-                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-[10px] text-amber-300">Pending</span>
+                    <li key={r.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[12px]">
+                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-[12px] text-amber-300">Pending</span>
                       <span className="ml-2 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                       {r.reason && <div className="mt-0.5">{r.reason}</div>}
                     </li>
@@ -230,7 +230,7 @@ export function FeatureDetailsDrawer({
               {overridesQuery.data && overridesQuery.data.length > 0 && (
                 <ul className="space-y-1">
                   {overridesQuery.data.slice(0, 8).map((o) => (
-                    <li key={`${o.user_id}-${o.created_at}`} className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px]">
+                    <li key={`${o.user_id}-${o.created_at}`} className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[12px]">
                       <span className="font-medium">{o.user_name}</span>{" "}
                       <span className="text-muted-foreground">— {o.mode === "grant" ? "granted" : "denied"} on {new Date(o.created_at).toLocaleDateString()}</span>
                     </li>

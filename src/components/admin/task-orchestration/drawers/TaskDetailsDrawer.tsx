@@ -134,12 +134,12 @@ export function TaskDetailsDrawer({
             </Button>
           )}
           {isPending && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-500/30">
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[12px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-500/30">
               <Lock className="h-3 w-3" /> Awaiting approval — locked
             </span>
           )}
           {isTerminal && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 text-[11px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 text-[12px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
               <Lock className="h-3 w-3" /> {humanize(status!)}
             </span>
           )}
@@ -160,23 +160,23 @@ export function TaskDetailsDrawer({
         {task && (
           <div className="mt-4 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", priorityBadgeClass(task.priority))}>
+              <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold", priorityBadgeClass(task.priority))}>
                 {humanize(task.priority)}
               </span>
-              <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[12px] text-muted-foreground">
                 {humanize(task.type)}
               </span>
               {status && (
-                <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+                <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[12px] text-muted-foreground">
                   {humanize(status)}
                 </span>
               )}
               {stage && (
-                <span className="rounded-full border border-primary/30 bg-primary/[0.06] px-2 py-0.5 text-[11px] text-primary">
+                <span className="rounded-full border border-primary/30 bg-primary/[0.06] px-2 py-0.5 text-[12px] text-primary">
                   Stage · {humanize(stage)}
                 </span>
               )}
-              <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <span className="rounded-full border border-border/60 bg-card/40 px-2 py-0.5 text-[12px] text-muted-foreground">
                 Created {relative(task.created_at)}
               </span>
             </div>
@@ -218,7 +218,7 @@ export function TaskDetailsDrawer({
                     )}
                     {perms.hasSection("stage") && stage && (
                       <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-                        <Label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Advance stage</Label>
+                        <Label className="mb-1 block text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Advance stage</Label>
                         <div className="flex gap-2">
                           <Select value={newStage} onValueChange={setNewStage}>
                             <SelectTrigger className="h-11 text-xs"><SelectValue placeholder="Choose stage…" /></SelectTrigger>
@@ -262,7 +262,7 @@ export function TaskDetailsDrawer({
 
                   <TabsContent value="evidence" className="mt-4 space-y-3">
                     <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-                      <Label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Request evidence</Label>
+                      <Label className="mb-1 block text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Request evidence</Label>
                       <div className="flex gap-2">
                         <input
                           value={evidenceLabel}
@@ -285,7 +285,7 @@ export function TaskDetailsDrawer({
                         <div key={e.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-card/40 p-2.5 text-xs">
                           <div>
                             <div className="font-medium text-foreground">{e.label ?? humanize(e.kind)}</div>
-                            <div className="text-[10px] text-muted-foreground">{humanize(e.kind)} · {relative(e.created_at)}</div>
+                            <div className="text-[12px] text-muted-foreground">{humanize(e.kind)} · {relative(e.created_at)}</div>
                           </div>
                           {e.url && (
                             <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -299,13 +299,13 @@ export function TaskDetailsDrawer({
 
                   <TabsContent value="communications" className="mt-4 space-y-3">
                     <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-                      <Label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Request info from party</Label>
+                      <Label className="mb-1 block text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Request info from party</Label>
                       <div className="mb-2 flex gap-1">
                         {(["buyer","seller","both"] as const).map(v => (
                           <button key={v}
                             onClick={() => setInfoTarget(v)}
                             className={cn(
-                              "rounded-md px-2 py-1 text-[11px] transition min-h-11",
+                              "rounded-md px-2 py-1 text-[12px] transition min-h-11",
                               infoTarget === v ? "bg-primary/10 text-primary ring-1 ring-inset ring-primary/30" : "text-muted-foreground hover:text-foreground",
                             )}
                           >{humanize(v)}</button>
@@ -329,7 +329,7 @@ export function TaskDetailsDrawer({
                       )}
                       {messages.map(m => (
                         <div key={m.id} className="rounded-xl border border-border/60 bg-card/40 p-2.5">
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                             <span className="font-medium text-foreground">{m.author ?? "System"}{m.role ? ` · ${humanize(m.role)}` : ""}</span>
                             <span>{relative(m.created_at)}</span>
                           </div>
@@ -348,7 +348,7 @@ export function TaskDetailsDrawer({
                         maxLength={4000}
                       />
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground">{comment.length}/4000 · public</span>
+                        <span className="text-[12px] text-muted-foreground">{comment.length}/4000 · public</span>
                         <Button size="sm"
                           onClick={() => invoke("post", { action: "add_comment", body_text: comment }, "Comment posted").then(() => setComment(""))}
                           disabled={busy === "post" || !comment.trim()}>
@@ -365,7 +365,7 @@ export function TaskDetailsDrawer({
                         maxLength={4000}
                       />
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300">
+                        <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-300">
                           <Lock className="h-3 w-3" /> internal only · {note.length}/4000
                         </span>
                         <Button size="sm" variant="outline"
@@ -386,11 +386,11 @@ export function TaskDetailsDrawer({
                             ? "border-amber-500/20 bg-amber-500/[0.03]"
                             : "border-border/60 bg-card/40",
                         )}>
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                             <span className="font-medium text-foreground">
                               {c.author_id ? detail?.actor_names[c.author_id] ?? "Agent" : "System"}
                               {(notes.includes(c as any) || (c as any).visibility === "internal") && (
-                                <span className="ml-1.5 rounded bg-amber-500/10 px-1 py-0 text-[9px] font-semibold uppercase text-amber-300 ring-1 ring-inset ring-amber-500/30">internal</span>
+                                <span className="ml-1.5 rounded bg-amber-500/10 px-1 py-0 text-[12px] font-semibold uppercase text-amber-300 ring-1 ring-inset ring-amber-500/30">internal</span>
                               )}
                             </span>
                             <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{relative(c.created_at)}</span>
@@ -415,9 +415,9 @@ export function TaskDetailsDrawer({
 
   function TabTrig({ v, icon: Icon, label, count }: { v: TabKey; icon: any; label: string; count?: number }) {
     return (
-      <TabsTrigger value={v} className="gap-1 px-2.5 py-1 text-[11px] data-[state=active]:bg-primary/10 data-[state=active]:text-primary min-h-11">
+      <TabsTrigger value={v} className="gap-1 px-2.5 py-1 text-[12px] data-[state=active]:bg-primary/10 data-[state=active]:text-primary min-h-11">
         <Icon className="h-3 w-3" /> {label}
-        {count != null && count > 0 && <span className="ml-0.5 rounded-full bg-muted/60 px-1.5 py-0 text-[9px] tabular-nums">{count}</span>}
+        {count != null && count > 0 && <span className="ml-0.5 rounded-full bg-muted/60 px-1.5 py-0 text-[12px] tabular-nums">{count}</span>}
       </TabsTrigger>
     );
   }
@@ -439,7 +439,7 @@ function RecordCard({ title, data, linkLabel, href }: {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
         {href && linkLabel && (
           <Link to={href} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
             {linkLabel} <ExternalLink className="h-3 w-3" />
@@ -449,7 +449,7 @@ function RecordCard({ title, data, linkLabel, href }: {
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
         {rows.map(([k, v]) => (
           <div key={k} className="min-w-0">
-            <dt className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">{humanize(k)}</dt>
+            <dt className="truncate text-[12px] uppercase tracking-wider text-muted-foreground">{humanize(k)}</dt>
             <dd className="truncate font-medium text-foreground">{String(v)}</dd>
           </div>
         ))}
@@ -470,7 +470,7 @@ function PartyCard({ title, data }: { title: string; data: Record<string, any> |
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
       <div className="mb-1.5 flex items-center justify-between">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
         {data.id && (
           <Link to={`/admin/users/${data.id}/profile`} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
             View profile <ExtLink className="h-3 w-3" />
@@ -478,7 +478,7 @@ function PartyCard({ title, data }: { title: string; data: Record<string, any> |
         )}
       </div>
       <div className="text-sm font-semibold text-foreground">{name || "—"}</div>
-      <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+      <div className="mt-1 space-y-0.5 text-[12px] text-muted-foreground">
         {email && (
           <div className="flex items-center gap-1.5">
             <span>{email}</span>
@@ -525,7 +525,7 @@ function TimelineList({ detail }: { detail: TaskDetail }) {
     <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
       {rows.map(e => (
         <div key={e.key} className="rounded-xl border border-border/60 bg-card/40 p-3">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between text-[12px] text-muted-foreground">
             <span className="font-medium text-foreground">{e.title}</span>
             <span>{relative(e.when)}</span>
           </div>
@@ -540,7 +540,7 @@ function TimelineList({ detail }: { detail: TaskDetail }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold text-foreground">{value}</div>
     </div>
   );

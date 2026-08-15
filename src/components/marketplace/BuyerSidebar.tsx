@@ -126,7 +126,7 @@ export function BuyerSidebar() {
                   isCollapsed ? (
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
                   ) : (
-                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] bg-primary text-primary-foreground">
+                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[12px] bg-primary text-primary-foreground">
                       {cartCount}
                     </Badge>
                   )
@@ -219,7 +219,7 @@ export function BuyerSidebar() {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-[11px]"
+              className="h-auto p-0 text-[12px]"
               onClick={() => navigate(supportLink())}
             >
               Message support

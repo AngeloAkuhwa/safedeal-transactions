@@ -35,7 +35,7 @@ export function AdvancedFilters({
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <div>
-        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Role</label>
+        <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Role</label>
         <Select
           value={state.role ?? ALL}
           onValueChange={(v) => onChange({ ...state, role: v === ALL ? null : (v as InternalRoleKey) })}
@@ -48,7 +48,7 @@ export function AdvancedFilters({
         </Select>
       </div>
       <div>
-        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Department / Team</label>
+        <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Department / Team</label>
         <Select
           value={state.department ?? ALL}
           onValueChange={(v) => onChange({ ...state, department: v === ALL ? null : v })}
@@ -61,7 +61,7 @@ export function AdvancedFilters({
         </Select>
       </div>
       <div>
-        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</label>
+        <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Status</label>
         <Select
           value={state.status ?? ALL}
           onValueChange={(v) => onChange({ ...state, status: v === ALL ? null : (v as InternalUserStatus) })}
@@ -74,7 +74,7 @@ export function AdvancedFilters({
         </Select>
       </div>
       <div>
-        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Access Level</label>
+        <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Access Level</label>
         <Select
           value={state.access_level ?? ALL}
           onValueChange={(v) => onChange({ ...state, access_level: v === ALL ? null : (v as AccessLevel) })}

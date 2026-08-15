@@ -63,7 +63,7 @@ export function ScoreBreakdownDialog({
                     <tr key={c.key} className="border-t border-border/50">
                       <td className="px-3 py-2 text-foreground">
                         {c.label}
-                        {!c.tracked && <span className="ml-2 text-[10px] text-muted-foreground">not tracked</span>}
+                        {!c.tracked && <span className="ml-2 text-[12px] text-muted-foreground">not tracked</span>}
                       </td>
                       <td className="px-3 py-2 tabular-nums text-muted-foreground">{c.weight}%</td>
                       <td className="px-3 py-2 text-muted-foreground">{c.raw_label}</td>
@@ -111,7 +111,7 @@ export function ScoreBreakdownDialog({
                     ))}
                   </ul>
                 )}
-                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
                   Waiting, paused, evidence-pending, manager-rebalanced and SLA-less cases never
                   attract penalties.
                 </p>

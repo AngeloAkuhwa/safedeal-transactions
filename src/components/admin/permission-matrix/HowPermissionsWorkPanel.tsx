@@ -77,7 +77,7 @@ export function HowPermissionsWorkPanel() {
                 <PermissionRowStateBadge state={l.state} />
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-foreground">{l.title}</div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{l.desc}</div>
+                  <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{l.desc}</div>
                 </div>
               </div>
             ))}

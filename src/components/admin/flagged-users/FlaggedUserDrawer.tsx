@@ -135,7 +135,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <span className={`h-2 w-2 rounded-full ${RISK_DOT[view.risk]}`} />
               {RISK_LABEL[view.risk]} Risk
             </span>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 capitalize">
+            <span className="px-2.5 py-1 rounded-full text-[12px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 capitalize">
               {view.status.replace("_", " ")}
             </span>
           </div>
@@ -145,7 +145,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
             <div className="flex flex-wrap gap-2">
               {view.reasons.length === 0 && <span className="text-slate-500 text-xs">—</span>}
               {view.reasons.map((r) => (
-                <span key={r.key} className="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-slate-800/60 border-slate-700 text-slate-200">
+                <span key={r.key} className="px-2.5 py-1 rounded-full text-[12px] font-semibold border bg-slate-800/60 border-slate-700 text-slate-200">
                   {r.label}
                 </span>
               ))}
@@ -235,7 +235,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
                 <li key={a.id} className="p-2 rounded-lg bg-slate-900 border border-slate-800">
                   <div className="flex items-center justify-between">
                     <span className="text-white text-xs font-semibold">{a.label}</span>
-                    <span className="text-slate-500 text-[10px]">{relative(a.created_at)}</span>
+                    <span className="text-slate-500 text-[12px]">{relative(a.created_at)}</span>
                   </div>
                   <p className="text-slate-400 text-xs mt-0.5">by {a.admin_name}</p>
                   {a.note && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{a.note}</p>}
@@ -297,7 +297,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-slate-500">All actions are recorded in the admin audit log.</p>
+            <p className="text-[12px] text-slate-500">All actions are recorded in the admin audit log.</p>
           </section>
         </div>
       </aside>

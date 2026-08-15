@@ -53,7 +53,7 @@ export function ViewOverrideAuditDialog({
           <div className="space-y-2 text-xs">
             <div className="rounded-md border border-border/60 bg-background/40 p-2">
               <div className="font-medium">{override.user_name}</div>
-              <div className="font-mono text-[10px] text-muted-foreground">{override.permission_key}</div>
+              <div className="font-mono text-[12px] text-muted-foreground">{override.permission_key}</div>
             </div>
             {loading && <div className="text-muted-foreground">Loading…</div>}
             {!loading && rows.length === 0 && (
@@ -64,7 +64,7 @@ export function ViewOverrideAuditDialog({
             <ul className="max-h-96 space-y-1.5 overflow-y-auto">
               {rows.map((r) => (
                 <li key={r.id} className="rounded-md border border-border/60 bg-background/40 p-2">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                     <span>{new Date(r.created_at).toLocaleString()}</span>
                     <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5">{r.action_type}</span>
                   </div>

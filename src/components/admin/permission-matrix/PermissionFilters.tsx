@@ -55,7 +55,7 @@ export function PermissionFilters({
     <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/70 bg-card/60 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
       {showSearch && (
         <label className="min-w-[220px] flex-1">
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Search</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Search</span>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -69,7 +69,7 @@ export function PermissionFilters({
       )}
       {showRole && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Role</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.role}
@@ -84,7 +84,7 @@ export function PermissionFilters({
       )}
       {showModule && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Feature Group</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Feature Group</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.module}
@@ -99,7 +99,7 @@ export function PermissionFilters({
       )}
       {showAction && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Action</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Action</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.action ?? "all"}
@@ -114,7 +114,7 @@ export function PermissionFilters({
       )}
       {showRisk && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Risk</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Risk</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.risk}
@@ -128,7 +128,7 @@ export function PermissionFilters({
       )}
       {showStatus && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Status</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Status</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.status ?? "all"}
@@ -143,7 +143,7 @@ export function PermissionFilters({
       )}
       {showApproval && (
         <label>
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Approval</span>
+          <span className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Approval</span>
           <select
             className="h-11 rounded-md border border-border bg-background/60 px-3 text-sm outline-none focus:border-primary"
             value={value.approval ?? "all"}
@@ -155,7 +155,7 @@ export function PermissionFilters({
           </select>
         </label>
       )}
-      <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="ml-auto flex items-center gap-2 text-[12px] text-muted-foreground">
         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Full</span>
         <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Limited</span>
         <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" /> None</span>

@@ -57,7 +57,7 @@ export function AuditComplianceSignalCard({ signal }: Props) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Audit & Compliance Signal</h3>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${COMPLIANCE_BADGE[signal.compliance_status]}`}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[12px] font-medium ${COMPLIANCE_BADGE[signal.compliance_status]}`}
         >
           <FileCheck2 className="h-3 w-3" />
           Compliance: {COMPLIANCE_LABEL[signal.compliance_status]}
@@ -80,13 +80,13 @@ export function AuditComplianceSignalCard({ signal }: Props) {
                     <div className="truncate text-sm text-foreground">{r.value}</div>
                   </div>
                 </div>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{r.meta}</span>
+                <span className="shrink-0 text-[12px] text-muted-foreground">{r.meta}</span>
               </button>
             </li>
           );
         })}
       </ul>
-      <div className="mt-3 text-[11px] text-muted-foreground">
+      <div className="mt-3 text-[12px] text-muted-foreground">
         Compliance last checked {formatRelative(signal.compliance_last_check_iso)}
       </div>
     </div>

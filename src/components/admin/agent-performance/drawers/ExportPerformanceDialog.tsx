@@ -95,7 +95,7 @@ export function ExportPerformanceDialog({
               rows={3}
               placeholder="Why is this export needed?"
             />
-            <p className="text-[11px] text-muted-foreground">{reason.trim().length}/20</p>
+            <p className="text-[12px] text-muted-foreground">{reason.trim().length}/20</p>
           </div>
         </div>
 

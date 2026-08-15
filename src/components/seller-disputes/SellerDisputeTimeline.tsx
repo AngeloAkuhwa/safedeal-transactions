@@ -78,7 +78,7 @@ export function SellerDisputeTimeline({ timeline, currentStatus }: SellerDispute
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">{entry.label}</p>
                     {entry.type === "event" && (
-                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      <span className="text-[12px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                         Event
                       </span>
                     )}

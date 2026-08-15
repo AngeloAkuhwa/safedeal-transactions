@@ -78,7 +78,7 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
                 <div className="flex items-center gap-2 mt-3">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={(r.seller as any).avatar_url ?? undefined} alt={r.seller.name} />
-                    <AvatarFallback className="text-[10px]">{sellerInitials}</AvatarFallback>
+                    <AvatarFallback className="text-[12px]">{sellerInitials}</AvatarFallback>
                   </Avatar>
                   <span className="text-slate-300 text-xs font-medium truncate">{r.seller.name}</span>
                 </div>
@@ -95,9 +95,9 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
                   <div className="text-right min-w-0">
                     <p className="text-slate-400 text-xs truncate">{acctLabel}</p>
                     {verified ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold">VERIFIED</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[12px] font-bold">VERIFIED</span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-[10px] font-bold">UNVERIFIED</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-[12px] font-bold">UNVERIFIED</span>
                     )}
                   </div>
                 </div>

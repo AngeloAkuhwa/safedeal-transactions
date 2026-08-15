@@ -43,7 +43,7 @@ function BuyerEvidenceThumb({ e }: { e: SellerDisputeEvidence }) {
         </a>
       )}
       <div className="px-2 py-1.5 border-t border-border">
-        <p className="text-[10px] text-muted-foreground truncate">
+        <p className="text-[12px] text-muted-foreground truncate">
           {new Date(e.created_at).toLocaleDateString("en-NG", {
             month: "short",
             day: "numeric",

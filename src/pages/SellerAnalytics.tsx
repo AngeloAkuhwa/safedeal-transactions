@@ -106,7 +106,7 @@ const chipToneClass: Record<ChipTone, string> = {
 function TrendChip({ tone, icon, children }: { tone: ChipTone; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-tight",
+      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[12px] font-semibold leading-tight",
       chipToneClass[tone],
     )}>
       {icon}
@@ -137,7 +137,7 @@ function KpiCard({
       <Card className="rounded-lg h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
         <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-start justify-between gap-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
+            <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
               {title}
             </p>
             <div className="flex items-center gap-0.5 shrink-0">
@@ -164,7 +164,7 @@ function KpiCard({
           </p>
           <div className="mt-0.5 flex items-center justify-between gap-1.5 min-h-[14px]">
             {helper ? (
-              <p className="text-[10px] text-muted-foreground leading-snug truncate">{helper}</p>
+              <p className="text-[12px] text-muted-foreground leading-snug truncate">{helper}</p>
             ) : <span />}
             {chip}
           </div>
@@ -202,7 +202,7 @@ function HealthCard({
       <Card className="rounded-lg">
         <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold leading-tight">{title}</p>
+            <p className="text-[12px] font-semibold leading-tight">{title}</p>
             <span className={cn("shrink-0", valueColor)}>{icon}</span>
           </div>
           <p className={cn("mt-1.5 text-xl sm:text-2xl font-bold tracking-tight tabular-nums leading-tight", valueColor)}>{value}</p>
@@ -284,7 +284,7 @@ function StarRow({ rating }: { rating: number | null }) {
 function YesNoPill({ ok }: { ok: boolean }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[11px] font-semibold",
+      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[12px] font-semibold",
       ok
         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
         : "bg-muted text-muted-foreground",
@@ -395,7 +395,7 @@ const SellerAnalytics = () => {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               {lastUpdatedLabel && (
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   <span>{lastUpdatedLabel}</span>
                 </div>
@@ -589,11 +589,11 @@ const SellerAnalytics = () => {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2.5">
                     <div>
                       <h2 className="text-sm font-semibold leading-tight">Revenue Trend</h2>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-[12px] text-muted-foreground mt-0.5">
                         Seller net released over time
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2.5 text-[12px] text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-sky-500" /> Net Released
                       </span>
@@ -610,7 +610,7 @@ const SellerAnalytics = () => {
                       <LineChartIcon className="h-6 w-6 text-muted-foreground/60" />
                       <div>
                         <p className="text-xs font-medium">No released revenue in this window yet.</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                        <p className="text-[12px] text-muted-foreground mt-0.5">
                           Completed payouts will appear here once funds are released.
                         </p>
                       </div>
@@ -743,7 +743,7 @@ const SellerAnalytics = () => {
                                   <p className="text-[13px] font-semibold truncate leading-tight">{p.name}</p>
                                   <TrendChip tone={stockTone}>{stockLabel}</TrendChip>
                                 </div>
-                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0 text-[11px] leading-snug">
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0 text-[12px] leading-snug">
                                   <span className="text-muted-foreground">
                                     {p.completed_transactions} completed
                                   </span>
@@ -803,7 +803,7 @@ const SellerAnalytics = () => {
                     </div>
                     <div className="mt-2.5 flex items-start gap-1.5 rounded-md bg-primary/5 border border-primary/20 px-2.5 py-1.5">
                       <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-muted-foreground leading-snug">
+                      <p className="text-[12px] text-muted-foreground leading-snug">
                         Releases process only after both confirmations or SafeDeal review.
                       </p>
                     </div>
@@ -843,7 +843,7 @@ const SellerAnalytics = () => {
                     <div className="flex items-center justify-center md:justify-end">
                       {showTrustEmpty ? (
                         <div className="rounded-lg border bg-muted/30 px-4 py-3 text-center min-w-[120px]">
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Trust Score</p>
+                          <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">Trust Score</p>
                           <p className="mt-0.5 text-xs font-medium">Not enough data yet</p>
                         </div>
                       ) : (
@@ -856,9 +856,9 @@ const SellerAnalytics = () => {
                           <span className="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none">
                             {data.trust_metrics.seller_rating === null ? "—" : data.trust_metrics.seller_rating.toFixed(1)}
                           </span>
-                          <span className="text-[9px] text-muted-foreground mt-1">Trust Score</span>
+                          <span className="text-[12px] text-muted-foreground mt-1">Trust Score</span>
                           {data.trust_metrics.identity_verified && data.trust_metrics.payout_verified && (
-                            <span className="absolute -bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-semibold px-1.5 py-px border border-emerald-200 dark:border-emerald-900">
+                            <span className="absolute -bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[12px] font-semibold px-1.5 py-px border border-emerald-200 dark:border-emerald-900">
                               <ShieldCheck className="h-2.5 w-2.5" /> Verified
                             </span>
                           )}
@@ -870,7 +870,7 @@ const SellerAnalytics = () => {
               </Card>
 
               {isFetching && (
-                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <div className="text-[12px] text-muted-foreground flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" /> Refreshing…
                 </div>
               )}

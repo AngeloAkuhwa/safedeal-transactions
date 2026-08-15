@@ -48,11 +48,11 @@ export function CloneRoleAsTemplateDialog({
             Captures the current permission bag as a reusable custom template. Apply it to any role from the Permission Templates tab.
           </p>
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Template name</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Template name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm" />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Description</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Description</span>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Optional — where this template applies" />
           </label>
         </div>

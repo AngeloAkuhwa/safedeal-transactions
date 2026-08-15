@@ -97,7 +97,7 @@ function EvidenceFileCard({
         </a>
       )}
       <div className="px-2 py-1.5 border-t border-border flex items-center justify-between gap-1">
-        <Badge variant="outline" className={`text-[10px] ${tagColor}`}>
+        <Badge variant="outline" className={`text-[12px] ${tagColor}`}>
           {tag}
         </Badge>
         <div className="flex items-center gap-1">
@@ -113,7 +113,7 @@ function EvidenceFileCard({
               Replace
             </Button>
           )}
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             {new Date(createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}
           </p>
         </div>

@@ -125,17 +125,17 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                         {item.title}
                       </h4>
                       {isUnread && item.ui_type === "verification_reminders" && (
-                        <Badge className="bg-warning/10 text-warning border-warning/20 text-[10px] font-bold px-1.5 py-0">
+                        <Badge className="bg-warning/10 text-warning border-warning/20 text-[12px] font-bold px-1.5 py-0">
                           Urgent
                         </Badge>
                       )}
                       {isUnread && item.ui_type !== "verification_reminders" && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-1.5 py-0">
+                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[12px] font-bold px-1.5 py-0">
                           Unread
                         </Badge>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-3">
+                    <span className="text-[12px] text-muted-foreground whitespace-nowrap ml-3">
                       {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                     </span>
                   </div>
@@ -156,7 +156,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                     )}
                     {item.transaction?.code && (
                       <span
-                        className={`text-[11px] font-bold ${
+                        className={`text-[12px] font-bold ${
                           item.ui_type === "disputes"
                             ? "text-destructive"
                             : item.ui_type === "verification_reminders"
@@ -171,7 +171,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                         #{item.transaction.code}
                       </span>
                     )}
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-muted text-muted-foreground">
                       <Tag className="h-2.5 w-2.5 mr-1" />
                       {UI_TYPE_LABELS[item.ui_type] || "Notification"}
                     </span>

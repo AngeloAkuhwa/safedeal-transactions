@@ -48,7 +48,7 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
   return (
     <div className="mt-1.5 space-y-0.5">
       {lines.map((l, i) => (
-        <p key={i} className={`text-[11px] inline-flex items-center gap-1 ${l.className}`}>
+        <p key={i} className={`text-[12px] inline-flex items-center gap-1 ${l.className}`}>
           {l.icon} <span>{l.text}</span>
         </p>
       ))}
@@ -194,39 +194,39 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                   {r.flagged && <Flag className="h-3 w-3 text-red-400 shrink-0" />}
                   {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
                 </div>
-                <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${st.pill}`}>{st.label}</span>
+                <span className={`px-2.5 py-1 rounded-full border text-[12px] font-semibold ${st.pill}`}>{st.label}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-[10px] uppercase">Buyer</p>
+                    <p className="text-slate-500 text-[12px] uppercase">Buyer</p>
                     <p className="text-white text-xs font-medium truncate">{r.buyer.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.seller.name} url={r.seller.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-[10px] uppercase">Seller</p>
+                    <p className="text-slate-500 text-[12px] uppercase">Seller</p>
                     <p className="text-white text-xs font-medium truncate">{r.seller.name}</p>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[10px] uppercase">Held</p>
+                  <p className="text-slate-500 text-[12px] uppercase">Held</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[10px] uppercase">Frozen</p>
+                  <p className="text-slate-500 text-[12px] uppercase">Frozen</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.frozen, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[10px] uppercase">Releasable</p>
+                  <p className="text-slate-500 text-[12px] uppercase">Releasable</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.releasable, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-[10px] uppercase">Released</p>
+                  <p className="text-slate-500 text-[12px] uppercase">Released</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.released, r.currency_code)}</p>
                 </div>
               </div>
