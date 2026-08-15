@@ -346,17 +346,29 @@ export function scanSource(rawSource: string, file: string): Violation[] {
         });
         continue;
       }
+      if (!RAW_TAGS.has(tag) || tag === "a") continue;
       const body = source.slice(end, end + 300);
       const sole = /^\s*<([A-Z][A-Za-z0-9]*)\s+className="([^"]*)"\s*\/>\s*<\//.exec(body);
-      if (!sole || COMPONENT_TAGS.has(sole[1]) || !RAW_TAGS.has(tag)) continue;
-      const iconPx = Number(/\bh-([0-9.]+)/.exec(sole[2])?.[1] ?? "0") * 4;
-      const inset = Number(/before:-inset-([0-9.]+)/.exec(classes.join(" "))?.[1] ?? "0") * 4;
-      if (iconPx + inset * 2 >= MIN_TARGET_PX) continue;
+      if (sole && !COMPONENT_TAGS.has(sole[1])) {
+        const iconPx = Number(/\bh-([0-9.]+)/.exec(sole[2])?.[1] ?? "0") * 4;
+        const inset = Number(/before:-inset-([0-9.]+)/.exec(classes.join(" "))?.[1] ?? "0") * 4;
+        if (iconPx + inset * 2 >= MIN_TARGET_PX) continue;
+        out.push({
+          file,
+          line: lineOf(source, index),
+          tag,
+          reason: `icon-only, no box declared (icon≈${iconPx}px)`,
+          snippet: `${classes.join(" ")} :: ${text.replace(/\s+/g, " ").slice(0, 150)}`,
+        });
+        continue;
+      }
+      // Text control with no height, min-height or vertical padding of its own:
+      // the box collapses to the line-box (≈16-20px). Previously skipped.
       out.push({
         file,
         line: lineOf(source, index),
         tag,
-        reason: `icon-only, no box declared (icon≈${iconPx}px)`,
+        reason: "no box declared (height collapses to the text line)",
         snippet: `${classes.join(" ")} :: ${text.replace(/\s+/g, " ").slice(0, 150)}`,
       });
       continue;
