@@ -629,8 +629,8 @@ const SellerAnalytics = () => {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                          <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={10} tickMargin={6} />
-                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10}
+                          <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickMargin={6} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12}
                             tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                           <Tooltip
                             contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
