@@ -29,7 +29,7 @@ export function AgentPerformanceHeader({
             aria-live="polite"
             aria-atomic="true"
           >
-            <span className={cn("h-1.5 w-1.5 rounded-full", liveAgents > 0 ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground")} />
+            <span className={cn("h-1.5 w-1.5 rounded-full", liveAgents > 0 ? "bg-emerald-400 sd-live-dot" : "bg-muted-foreground")} />
             <span className="text-muted-foreground">Live:</span>
             <span className={cn("font-semibold", liveAgents > 0 ? "text-emerald-300" : "text-muted-foreground")}>
               {liveAgents} {liveAgents === 1 ? "Agent" : "Agents"}

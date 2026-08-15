@@ -47,7 +47,7 @@ export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCoun
           </div>
           <div className="flex items-center gap-2 ml-0 md:ml-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
               <span className="text-emerald-400 font-semibold text-sm">Live</span>
             </div>
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">

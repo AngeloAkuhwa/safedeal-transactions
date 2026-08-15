@@ -260,7 +260,7 @@ export default function BuyerTransactionReview() {
                       Transaction #{data.transaction.transaction_code}
                     </Badge>
                     <Badge className={chipClass}>
-                      <span className={`w-2 h-2 rounded-full mr-1.5 ${ms === "payment_pending" ? "animate-pulse" : ""} ${dotClass}`} />
+                      <span className={`w-2 h-2 shrink-0 rounded-full mr-1.5 ${dotClass}`} />
                       {chipLabel}
                     </Badge>
                   </div>
@@ -798,7 +798,7 @@ function TimelineCard() {
             <div key={step.label} className={`relative flex items-start gap-4 ${i < steps.length - 1 ? "mb-6" : ""}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-rail shadow-lg ${
                 step.status === "completed" ? "bg-success" :
-                step.status === "current" ? "bg-warning animate-pulse" : "bg-muted"
+                step.status === "current" ? "bg-warning" : "bg-muted"
               }`}>
                 <step.icon className={`h-4 w-4 ${
                   step.status === "completed" ? "text-success-foreground" :
@@ -865,7 +865,7 @@ function FraudWarningCard() {
     <div className="bg-destructive rounded-2xl shadow-2xl border-4 border-destructive/80 p-6 text-destructive-foreground">
       <div className="flex items-start gap-4 mb-4">
         <div className="w-14 h-14 bg-card rounded-xl flex items-center justify-center shrink-0">
-          <AlertTriangle className="h-7 w-7 text-destructive animate-pulse" />
+          <AlertTriangle className="h-7 w-7 text-destructive" />
         </div>
         <div>
           <h3 className="text-xl font-bold mb-1">CRITICAL: Never Pay Outside SafeDeal</h3>
@@ -912,7 +912,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
       <div className="flex items-center gap-2 mb-4">
-        <span className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
+        <span className="w-2 h-2 shrink-0 bg-primary-foreground rounded-full sd-live-dot" />
         <span className="text-xs font-bold uppercase tracking-wider">Next Action Required</span>
       </div>
 

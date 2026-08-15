@@ -251,7 +251,7 @@ const BuyerTransactionTracking = () => {
                       <div className={cn(
                         "h-9 w-9 rounded-full flex items-center justify-center border-2 mb-2 transition-all",
                         state === "completed" && "bg-success/10 border-success",
-                        state === "current" && "bg-primary border-primary animate-pulse",
+                        state === "current" && "bg-primary border-primary sd-live-dot",
                         state === "upcoming" && "bg-muted border-border",
                       )}>
                         <Icon className={cn(

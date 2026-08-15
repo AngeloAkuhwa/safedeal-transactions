@@ -391,7 +391,7 @@ export default function SellerUpdateDelivery() {
                         : "bg-muted text-muted-foreground"
                   }`}>
                     {isCurrent ? (
-                      <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+                      <div className="w-3 h-3 bg-primary rounded-full sd-live-dot" />
                     ) : (
                       <step.icon className="h-4 w-4" />
                     )}

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { format } from "date-fns";
 import { Package } from "lucide-react";
@@ -30,6 +30,13 @@ function getInitials(name: string) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+/** Verification is the buyer's next step when it is pending, otherwise detail. */
+function rowRoute(tx: BuyerTransactionRow): string {
+  return tx.primary_action === "verify_item"
+    ? `/dashboard/transactions/${tx.transaction_id}/verify`
+    : `/dashboard/transactions/${tx.transaction_id}`;
 }
 
 export function TransactionTable({ transactions, isLoading, audience = "seller" }: TransactionTableProps) {
@@ -71,17 +78,19 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
             {transactions.map((tx) => (
               <TableRow
                 key={tx.transaction_id}
-                className="cursor-pointer"
-                onClick={() => navigate(
-                  tx.primary_action === "verify_item"
-                    ? `/dashboard/transactions/${tx.transaction_id}/verify`
-                    : `/dashboard/transactions/${tx.transaction_id}`
-                )}
+                className="relative cursor-pointer"
+                onClick={() => navigate(rowRoute(tx))}
               >
                 {/* Transaction */}
                 <TableCell className="py-4 px-4">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-semibold text-foreground">{tx.transaction_code}</p>
+                    <Link
+                      to={rowRoute(tx)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="block text-sm font-semibold text-foreground after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {tx.transaction_code}
+                    </Link>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(tx.created_at), "MMM dd, yyyy HH:mm")}
                     </p>
@@ -142,16 +151,15 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
           <div role="button" tabIndex={0} onKeyDown={keyActivate}
             key={tx.transaction_id}
             className="rounded-xl border bg-card p-4 space-y-3 cursor-pointer active:bg-accent/50 transition-colors"
-            onClick={() => navigate(
-              tx.primary_action === "verify_item"
-                ? `/dashboard/transactions/${tx.transaction_id}/verify`
-                : `/dashboard/transactions/${tx.transaction_id}`
-            )}
+            onClick={() => navigate(rowRoute(tx))}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-0.5 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{tx.item_title}</p>
-                <p className="text-xs text-muted-foreground">{tx.transaction_code}{tx.item_quantity > 1 ? ` · Qty: ${tx.item_quantity}` : ""}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tx.transaction_code} · {tx.item_category || "General"}
+                  {tx.item_quantity > 1 ? ` · Qty: ${tx.item_quantity}` : ""}
+                </p>
               </div>
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                 {formatMoney(tx.amount, tx.currency_code)}
@@ -161,7 +169,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{tx.seller_name}</span>
               <span>·</span>
-              <span>{format(new Date(tx.created_at), "MMM dd, yyyy")}</span>
+              <span>{format(new Date(tx.created_at), "MMM dd, yyyy HH:mm")}</span>
             </div>
 
             <div className="flex items-center justify-between gap-2">

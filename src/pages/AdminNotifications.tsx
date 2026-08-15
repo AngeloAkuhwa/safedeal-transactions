@@ -104,7 +104,7 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" /> Live
             </span>
             {lastSync && (
               <span className="hidden lg:inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
@@ -590,7 +590,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           </Select>
           <p className="text-muted-foreground/70 text-xs mt-1">Respects opt-out preferences · Audit logged</p>
           <p className="text-emerald-400/90 text-xs mt-1 flex items-center gap-1.5">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
             ≈ {onlineCount} recipient{onlineCount === 1 ? "" : "s"} online right now
           </p>
         </div>

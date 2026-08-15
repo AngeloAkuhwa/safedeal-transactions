@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { RefreshCw, Clock } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
 import { EscrowKpiCards } from "@/components/admin/escrow/EscrowKpiCards";
@@ -51,6 +51,7 @@ export default function AdminEscrow() {
     queryKey: ["admin-escrow-overview", query],
     queryFn: () => fetchEscrowOverview(query),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
@@ -90,7 +91,7 @@ export default function AdminEscrow() {
           </div>
           <div className="flex items-center gap-2 ml-0 md:ml-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
               <span className="text-emerald-400 font-semibold text-sm">Live</span>
             </div>
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">

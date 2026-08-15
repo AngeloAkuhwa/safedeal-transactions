@@ -16,7 +16,7 @@ export function EscrowMobileHero({
           <h2 className="text-white text-base font-semibold">Escrow Overview</h2>
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" /> Live
             </span>
             <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
               <Clock className="h-3 w-3" /> {lastUpdated}

@@ -70,7 +70,13 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
           return (
             <article key={item.id} className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <Avatar className="mt-0.5 h-8 w-8 shrink-0">
+                  <AvatarImage src={item.seller?.avatar_url ?? undefined} alt="" />
+                  <AvatarFallback className="text-xs">
+                    {item.seller?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-foreground">{formatDisputeRef(item.id)}</p>
                   <p className="text-xs font-semibold text-primary">{item.transaction_code ? `#${item.transaction_code}` : "No transaction code"}</p>
                   <p className="truncate text-sm font-semibold text-foreground">{item.item_title ?? "Untitled Item"}</p>

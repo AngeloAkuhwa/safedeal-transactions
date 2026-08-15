@@ -80,7 +80,14 @@ export function WorkloadTable({
       <div className="space-y-3 md:hidden">
         {paged.map((a) => (
           <article key={a.user_id} className={cn("space-y-3 rounded-lg border border-border p-4", rowRingClass(a))}>
-            <div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{agentShortName(a)}</p><p className="text-xs text-muted-foreground">{a.role_label} · {availabilityLabel(a.availability)}</p></div><span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold", rankBadgeClass(a.rank))}>{a.rank}</span></div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold">{agentShortName(a)}</p>
+                <p className="truncate text-xs text-muted-foreground">{a.email ?? a.user_id}</p>
+                <p className="text-xs text-muted-foreground">{a.role_label} · {availabilityLabel(a.availability)}</p>
+              </div>
+              <span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold", rankBadgeClass(a.rank))}>{a.rank}</span>
+            </div>
             <dl className="grid grid-cols-3 gap-2 text-center text-xs">
               <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold">{a.active_cases} / {a.max_active}</dd></div>
               <div><dt className="text-muted-foreground">Waiting</dt><dd className="font-semibold">{a.waiting_cases}</dd></div>
@@ -92,6 +99,23 @@ export function WorkloadTable({
               <div><dt className="text-muted-foreground">SLA</dt><dd className="font-semibold">{a.sla_compliance}%</dd></div>
               <div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score} <span className="block text-xs font-normal text-muted-foreground">{a.score_band}</span></dd></div>
             </dl>
+            <details className="rounded-lg border border-border/70 bg-background/40">
+              <summary className="flex min-h-11 cursor-pointer items-center px-3 text-xs font-medium text-muted-foreground">
+                More details
+              </summary>
+              <dl className="grid grid-cols-2 gap-3 px-3 pb-3 text-xs">
+                <div><dt className="text-muted-foreground">Team</dt><dd className="text-foreground">{a.team ?? "—"}</dd></div>
+                <div><dt className="text-muted-foreground">Avg first action</dt><dd className="text-foreground">{minutesLabel(a.avg_first_action_minutes)}</dd></div>
+                <div><dt className="text-muted-foreground">Escalations</dt><dd className="text-foreground">{a.escalations}</dd></div>
+                <div><dt className="text-muted-foreground">Reassignments</dt><dd className="text-foreground">{a.reassignments_in} in / {a.reassignments_out} out</dd></div>
+                <div><dt className="text-muted-foreground">Resolved (prev)</dt><dd className="text-foreground">{a.resolved_prev}</dd></div>
+                <div><dt className="text-muted-foreground">Resolution sample</dt><dd className="text-foreground">{a.resolution_sample} case(s)</dd></div>
+                <div className="col-span-2">
+                  <dt className="text-muted-foreground">Skills</dt>
+                  <dd className="text-foreground">{a.skills.length ? a.skills.map((s) => s.skill).join(", ") : "—"}</dd>
+                </div>
+              </dl>
+            </details>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={() => actions.onViewDetail(a)}>View detail</Button>
               {actions.canViewCases && <Button variant="outline" onClick={() => actions.onViewCases(a)}>View cases</Button>}
@@ -170,7 +194,7 @@ export function WorkloadTable({
                 <td className="px-4 py-4 text-sm text-muted-foreground">{a.role_label}</td>
                 <td className="px-4 py-4">
                   <div className={cn("flex items-center gap-1.5 text-xs", availabilityTextClass(a.availability))}>
-                    <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "animate-pulse")} />
+                    <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "sd-live-dot")} />
                     {availabilityLabel(a.availability)}
                   </div>
                 </td>

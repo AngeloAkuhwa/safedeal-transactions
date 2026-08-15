@@ -36,6 +36,21 @@ function formatNaira(amount: number | null) {
   return formatMoney(amount, "NGN");
 }
 
+/** Shared by both branches so the mobile card flags urgency the same way. */
+function isDeadlineUrgent(d: SellerDisputeItem): boolean {
+  return Boolean(
+    d.seller_response_status !== "responded" &&
+      d.seller_response_due_at &&
+      new Date(d.seller_response_due_at).getTime() - Date.now() < 24 * 60 * 60 * 1000,
+  );
+}
+
+function initialsOf(name: string | null | undefined): string {
+  return (
+    name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?"
+  );
+}
+
 interface Props {
   items: SellerDisputeItem[];
 }
@@ -48,16 +63,32 @@ export function SellerDisputeTable({ items }: Props) {
       <div className="divide-y divide-border md:hidden">
         {items.map((d) => {
           const impact = resolveDisputeMoneyImpact(d.money_impact);
+          const urgent = isDeadlineUrgent(d);
           return (
             <article role="button" tabIndex={0} onKeyDown={keyActivate} key={d.id} className="space-y-3 p-4" onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}>
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><p className="font-mono text-xs font-semibold text-primary">{d.transaction_code ?? "—"}</p><p className="truncate text-sm font-medium">{d.item_title ?? "—"}</p><p className="text-xs text-muted-foreground">{d.buyer?.name ?? "—"}</p></div>
+                <div className="flex min-w-0 items-start gap-2">
+                  <Avatar className="h-7 w-7 shrink-0">
+                    <AvatarImage src={d.buyer?.avatar_url ?? undefined} alt="" />
+                    <AvatarFallback className="text-xs">{initialsOf(d.buyer?.name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-semibold text-primary">{d.transaction_code ?? "—"}</p>
+                    <p className="truncate text-sm font-medium">{d.item_title ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{d.buyer?.name ?? "—"}</p>
+                  </div>
+                </div>
                 <p className="shrink-0 text-sm font-semibold">{formatNaira(d.seller_net_amount)}</p>
               </div>
               <p className="text-xs text-muted-foreground">{d.reason_label}</p>
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Deadline:</span>{" "}
-                {d.seller_response_status !== "responded" ? formatDeadline(d.seller_response_due_at) : "Responded"}
+                <span className={cn(urgent && "font-semibold text-destructive")}>
+                  {d.seller_response_status !== "responded" ? formatDeadline(d.seller_response_due_at) : "Responded"}
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Opened:</span> {formatDate(d.opened_at)}
               </p>
               <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
               <Button
@@ -106,33 +137,25 @@ export function SellerDisputeTable({ items }: Props) {
           </TableHeader>
           <TableBody>
             {items.map((d) => {
-              const initials = d.buyer?.name
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase() ?? "?";
-
+              const initials = initialsOf(d.buyer?.name);
               const impact = resolveDisputeMoneyImpact(d.money_impact);
 
               const deadlineText = d.seller_response_status !== "responded"
                 ? formatDeadline(d.seller_response_due_at)
                 : "—";
 
-              const isUrgent = d.seller_response_status !== "responded" &&
-                d.seller_response_due_at &&
-                new Date(d.seller_response_due_at).getTime() - Date.now() < 24 * 60 * 60 * 1000;
+              const isUrgent = isDeadlineUrgent(d);
 
               return (
                 <TableRow
                   key={d.id}
-                  className="hover:bg-muted/30 cursor-pointer"
+                  className="relative hover:bg-muted/30 cursor-pointer"
                   onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}
                 >
                   <TableCell className="px-4 py-3">
                     <Link
                       to={d.secondary_action.route}
-                      className="font-mono text-xs text-primary hover:underline"
+                      className="font-mono text-xs text-primary hover:underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {d.transaction_code ?? "—"}
@@ -141,7 +164,7 @@ export function SellerDisputeTable({ items }: Props) {
                   <TableCell className="px-4 py-3 hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7">
-                        <AvatarImage src={d.buyer?.avatar_url ?? undefined} />
+                        <AvatarImage src={d.buyer?.avatar_url ?? undefined} alt="" />
                         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                       </Avatar>
                       <span className="text-sm text-foreground truncate max-w-[100px]">
@@ -178,7 +201,7 @@ export function SellerDisputeTable({ items }: Props) {
                   <TableCell className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground">{formatDate(d.opened_at)}</span>
                   </TableCell>
-                  <TableCell className="px-4 py-3">
+                  <TableCell className="relative z-rail px-4 py-3">
                     <Button
                       variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
                       size="sm"

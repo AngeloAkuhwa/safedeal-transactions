@@ -72,7 +72,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
           <p className="mt-0.5 text-xs text-muted-foreground">Availability &amp; live workload</p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
           <span className="tabular-nums">{online}</span> Online
         </div>
       </div>

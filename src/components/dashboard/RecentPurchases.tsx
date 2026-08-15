@@ -155,11 +155,15 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                   const route = resolveRoute(purchase);
 
                   return (
-                    <TableRow key={purchase.transaction_id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(route)}>
+                    <TableRow key={purchase.transaction_id} className="relative cursor-pointer hover:bg-muted/50" onClick={() => navigate(route)}>
                       <TableCell>
-                        <div className="text-sm font-bold text-foreground">
+                        <Link
+                          to={route}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm font-bold text-foreground after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
                           #{purchase.transaction_code}
-                        </div>
+                        </Link>
                         <div className="text-xs text-muted-foreground">
                           {format(new Date(purchase.created_at), "MMM d, yyyy")}
                         </div>
@@ -197,7 +201,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                           {moneyBadge.label}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="relative z-rail w-px">
                         <Button
                           size="sm"
                           className={action.className}

@@ -130,7 +130,7 @@ export function FlaggedUsersTable(props: Props) {
                   </td>
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold border ${RISK_PILL[r.risk]}`}>
-                      <span className={`h-2 w-2 rounded-full ${RISK_DOT[r.risk]} ${r.risk === "critical" ? "animate-pulse" : ""}`} />
+                      <span className={`h-2 w-2 rounded-full ${RISK_DOT[r.risk]} ${r.risk === "critical" ? "sd-live-dot" : ""}`} />
                       {RISK_LABEL[r.risk]}
                     </span>
                   </td>

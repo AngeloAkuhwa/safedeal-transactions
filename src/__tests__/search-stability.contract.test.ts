@@ -49,4 +49,27 @@ describe("search stability contract", () => {
     const s = read("src/components/admin/agent-performance/AgentPerformanceFilters.tsx");
     expect(s).toMatch(/setTimeout\(\(\) => onChange\(\{ search: value \}\), 300\)/);
   });
+
+  it("audited admin list screens keep previous data across query-key changes", () => {
+    for (const relPath of [
+      "src/pages/AdminFlaggedUsers.tsx",
+      "src/pages/AdminAccessControl.tsx",
+      "src/pages/AdminEscrow.tsx",
+    ]) {
+      expect(read(relPath), relPath).toContain("placeholderData: keepPreviousData");
+    }
+  });
+
+  it("AdminAccessControl debounces its directory search", () => {
+    const s = read("src/pages/AdminAccessControl.tsx");
+    expect(s).toContain("setDebouncedQ(q), 300");
+    expect(s).not.toMatch(/\bq: q\.trim\(\)/);
+  });
+
+  it("AdminPayouts debounces search before the list loader depends on it", () => {
+    const s = read("src/pages/AdminPayouts.tsx");
+    expect(s).toContain("setDebouncedSearch(search), 300");
+    expect(s).toContain("search: debouncedSearch || undefined");
+    expect(s).toContain("[tab, debouncedSearch, page, filters]");
+  });
 });

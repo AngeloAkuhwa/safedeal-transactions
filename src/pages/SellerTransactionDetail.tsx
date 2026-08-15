@@ -549,7 +549,7 @@ const SellerTransactionDetail = () => {
                     {step.status === "completed" ? (
                       <CheckCircle className="h-5 w-5 text-white" />
                     ) : step.status === "current" ? (
-                      <div className="w-3 h-3 bg-primary-foreground rounded-full animate-pulse" />
+                      <div className="w-3 h-3 bg-primary-foreground rounded-full sd-live-dot" />
                     ) : (
                       <div className="w-3 h-3 bg-muted-foreground/40 rounded-full" />
                     )}
@@ -588,7 +588,7 @@ const SellerTransactionDetail = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">Next Action Required</span>
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <span className="w-2 h-2 bg-primary rounded-full sd-live-dot" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">{next_action.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">{next_action.description}</p>
