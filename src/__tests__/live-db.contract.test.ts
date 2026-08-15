@@ -406,7 +406,7 @@ d("live default privileges", () => {
 
   it("grants client roles nothing by default on future tables, sequences or functions", () => {
     const found = psql(
-      "select d.defaclrole::regrole::text || ':' || d.defaclobjtype || ':' ||" +
+      "select d.defaclrole::regrole::text || ':' || d.defaclobjtype::text || ':' ||" +
         " a.grantee::regrole::text || ':' || a.privilege_type" +
         " from pg_default_acl d, aclexplode(d.defaclacl) a" +
         " where d.defaclnamespace::regnamespace::text = 'public'" +
