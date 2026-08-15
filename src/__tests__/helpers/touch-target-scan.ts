@@ -757,6 +757,9 @@ const lineOf = (source: string, index: number) => source.slice(0, index).split("
 function isInlineTextLink(tagText: string, classes: string[]): boolean {
   if (/\basChild\b/.test(tagText)) return true; // the child is the control and is scanned on its own
   if (!/className=/.test(tagText)) return true; // bare inline link
+  // A className expression the evaluator could not resolve (e.g.
+  // `cn(buttonVariants({…}), className)`) is *unknown*, not inline prose.
+  if (classes.length === 0) return false;
   const blockish = ["flex", "inline-flex", "grid", "block", "inline-block", "absolute", "fixed", "sticky"];
   if (blockish.some((c) => has(classes, c))) return false;
   if (classes.some((c) => /^(h|w|min-h|min-w|size|p|px|py)-/.test(c.split(":").pop() as string))) return false;
