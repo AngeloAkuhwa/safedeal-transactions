@@ -145,7 +145,16 @@ const PUBLIC_ROUTES = [
 const SEED_PRODUCT_ID = process.env.E2E_PRODUCT_ID || "0e2e0003-0000-4000-8000-000000000001";
 
 const AUTH_ROUTES = {
-  buyer: ["/dashboard", "/dashboard/marketplace", "/dashboard/cart", "/dashboard/saved", "/dashboard/transactions"],
+  buyer: [
+    "/dashboard",
+    "/dashboard/marketplace",
+    "/dashboard/cart",
+    "/dashboard/saved",
+    "/dashboard/transactions",
+    // Checkout is where the money is agreed. Both entry points, audited.
+    "/dashboard/cart/checkout",
+    `/store/${process.env.E2E_STORE_SLUG || "claude-e2e-store"}/${process.env.E2E_PRODUCT_SLUG || "claude-e2e-test-listing-16in-pro-laptop"}/checkout?qty=1`,
+  ],
   seller: [
     "/seller",
     "/seller/storefront",
