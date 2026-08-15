@@ -78,7 +78,7 @@ export function FreezeFundsDialog({ open, onOpenChange, onConfirm }: Props) {
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
           </label>
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-1" />
+            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-1 min-h-11 inline-flex items-center" />
             <span>I understand this will pause payout and refund movement until reviewed.</span>
           </label>
         </div>

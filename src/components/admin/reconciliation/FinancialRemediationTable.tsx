@@ -72,7 +72,7 @@ export function FinancialRemediationTable({
                             type="button"
                             aria-label={open ? "Collapse findings" : "Expand findings"}
                             onClick={() => setExpanded(open ? null : r.transaction_id)}
-                            className="text-muted-foreground hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center"
                           >
                             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </button>

@@ -188,12 +188,12 @@ function HeaderBar({
       )}
       {scope === "platform" && (
         <div className="sd-page pb-2">
-          <label className="inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+          <label className="inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer min-h-11">
             <input
               type="checkbox"
               checked={applyToAll}
               onChange={(e) => setApplyToAll(e.target.checked)}
-              className="accent-primary"
+              className="accent-primary min-h-11 inline-flex items-center"
             />
             Apply to all vendors (clears existing vendor overrides for saved keys)
           </label>
@@ -1115,7 +1115,7 @@ function FeeField({
           readOnly={locked}
           disabled={locked}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${locked ? "cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']" : ""}`}
+          className={` flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 relative before:absolute before:-inset-2 before:content-[''] ${locked ? "cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']" : ""}`}
         />
         {suffix && <span className="text-muted-foreground text-xs">{suffix}</span>}
       </div>
@@ -1204,7 +1204,7 @@ function AuditRow({
           </div>
           <button
             onClick={() => toast.info("Change detail view coming with wiring pass")}
-            className="text-blue-400 hover:text-blue-300 text-[11px] font-medium flex items-center gap-1"
+            className="text-blue-400 hover:text-blue-300 text-[11px] font-medium flex items-center gap-1 min-h-11"
           >
             View Details
             <ArrowRight className="h-3 w-3" />

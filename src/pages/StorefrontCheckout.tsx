@@ -179,7 +179,7 @@ const StorefrontCheckout = () => {
       <header className="flex items-center justify-between">
         <button
           onClick={() => navigate(`/store/${sellerSlug}/${productSlug}`)}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Product

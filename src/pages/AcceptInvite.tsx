@@ -187,7 +187,7 @@ const AcceptInvite = () => {
                           />
                           <button
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-11"
                             onClick={() => setShowPw(!showPw)}
                             aria-label={showPw ? "Hide password" : "Show password"}
                           >
@@ -200,8 +200,7 @@ const AcceptInvite = () => {
                       </p>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  )} className="min-h-11 inline-flex items-center" />
 
                 <FormField
                   control={form.control}
@@ -219,7 +218,7 @@ const AcceptInvite = () => {
                           />
                           <button
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-11"
                             onClick={() => setShowConfirm(!showConfirm)}
                             aria-label={showConfirm ? "Hide password" : "Show password"}
                           >
@@ -229,8 +228,7 @@ const AcceptInvite = () => {
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  )} className="min-h-11 inline-flex items-center" />
 
                 <Button type="submit" className="w-full" size="lg" disabled={loading}>
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}

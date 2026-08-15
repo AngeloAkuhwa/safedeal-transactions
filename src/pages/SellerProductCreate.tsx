@@ -556,7 +556,7 @@ const SellerProductCreate = () => {
                       const vidCount = files.filter((f) => f.media_type === "video").length;
                        if (imgCount >= effectiveMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
                       return (
-                        <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
+                        <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors min-h-11">
                           <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Add More</span>
                           <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />

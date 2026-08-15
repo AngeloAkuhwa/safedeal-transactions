@@ -525,7 +525,7 @@ export default function AdminTransactionDetail() {
             <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
               <span>Admin</span>
               <ChevronRight className="h-3 w-3" />
-              <button type="button" onClick={() => navigate(returnTo)} className="hover:text-foreground transition-colors">Transactions</button>
+              <button type="button" onClick={() => navigate(returnTo)} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">Transactions</button>
               <ChevronRight className="h-3 w-3" />
               <span className="text-foreground font-medium truncate max-w-[220px]">#{code}</span>
             </nav>
@@ -1557,7 +1557,7 @@ export default function AdminTransactionDetail() {
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/payouts?payout_id=${data.payout.id}`)}
-                        className="text-xs text-primary hover:underline"
+                        className="text-xs text-primary hover:underline min-h-11 inline-flex items-center"
                       >
                         View Payout →
                       </button>

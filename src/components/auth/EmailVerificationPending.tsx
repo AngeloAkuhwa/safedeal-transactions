@@ -97,7 +97,7 @@ const EmailVerificationPending = ({ email, onGoToLogin }: EmailVerificationPendi
           <button
             type="button"
             onClick={onGoToLogin}
-            className="text-primary hover:underline font-medium"
+            className="text-primary hover:underline font-medium min-h-11 inline-flex items-center"
           >
             Go to Login
           </button>

@@ -61,7 +61,7 @@ export default function BuyerPrivateOffers() {
           <div className="space-y-3">
             <button
               onClick={() => setShowPast((v) => !v)}
-              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground min-h-11"
             >
               {showPast ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               Past offers ({data.past.length})

@@ -156,7 +156,7 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
         )}
         {isError && (
           <div className="text-center text-sm text-destructive py-8">
-            Could not load messages. <button onClick={() => refetch()} className="underline">Retry</button>
+            Could not load messages. <button onClick={() => refetch()} className="underline min-h-11 inline-flex items-center">Retry</button>
           </div>
         )}
         {!isLoading && !isError && (data?.items.length ?? 0) === 0 && (

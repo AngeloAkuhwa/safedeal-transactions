@@ -359,7 +359,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                             {r.user ? (
                               <button
                                 onClick={() => navigate(`/admin/users/${r.user!.id}`)}
-                                className="text-purple-400 hover:text-purple-300 font-mono"
+                                className="text-purple-400 hover:text-purple-300 font-mono min-h-11 inline-flex items-center"
                               >
                                 {shortUsrId(r.user.public_user_id)}
                               </button>
@@ -599,7 +599,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Delivery Channels</Label>
           <div className="space-y-1.5">
             {(["in_app", "email", "sms"] as const).map((c) => (
-              <label key={c} className="flex items-center gap-2 cursor-pointer">
+              <label key={c} className="flex items-center gap-2 cursor-pointer min-h-11">
                 <Checkbox checked={channels.includes(c)} onCheckedChange={() => toggleCh(c)} />
                 <span className="text-foreground text-xs">
                   {c === "in_app" ? "In-App Notification" : channelLabel(c)}

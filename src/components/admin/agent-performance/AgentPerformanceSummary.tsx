@@ -130,7 +130,7 @@ export function AgentPerformanceSummary({
             aria-pressed={selected === c.key}
             className={cn(
               INNER_CARD_CLASS,
-              "text-left transition",
+              "text-left transition min-h-11 inline-flex items-center",
               c.accent && "border-l-4 border-l-rose-500",
               c.onClick && "hover:-translate-y-0.5 hover:border-primary/40",
               selected === c.key && "border-primary/60 ring-1 ring-inset ring-primary/40",

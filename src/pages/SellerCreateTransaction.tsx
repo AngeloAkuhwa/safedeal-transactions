@@ -445,7 +445,7 @@ const SellerCreateTransaction = () => {
                 <button
                   key={label}
                   onClick={() => { if (step < currentStep) setCurrentStep(step); }}
-                  className="flex flex-col items-center gap-1.5 group"
+                  className="flex flex-col items-center gap-1.5 group min-h-11"
                   disabled={step > currentStep}
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all

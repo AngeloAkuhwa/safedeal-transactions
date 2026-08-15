@@ -95,13 +95,13 @@ export function UnassignedTaskQueue({
           </span>
           {canSelectMatching && !selectingAllMatching && onSelectAllMatching && (
             <button
-              className="text-primary hover:underline"
+              className="text-primary hover:underline min-h-11 inline-flex items-center"
               onClick={() => onSelectAllMatching(matchingIds)}
             >
               Select all {matchingIds.length} matching results
             </button>
           )}
-          <button className="text-muted-foreground hover:text-foreground" onClick={() => onToggleAll(false)}>
+          <button className="text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center" onClick={() => onToggleAll(false)}>
             Clear selection
           </button>
         </div>
@@ -140,7 +140,7 @@ export function UnassignedTaskQueue({
                     <Checkbox checked={selectedIds.has(t.id)} onCheckedChange={() => onToggle(t.id)} />
                   </td>
                   <td className="px-2 py-3">
-                    <button onClick={() => onOpenDetail(t)} className="text-left font-medium text-foreground transition hover:text-primary">
+                    <button onClick={() => onOpenDetail(t)} className="text-left font-medium text-foreground transition hover:text-primary min-h-11 inline-flex items-center">
                       #{t.task_code}
                     </button>
                   </td>
@@ -188,7 +188,7 @@ export function UnassignedTaskQueue({
           return (
             <div key={t.id} className="rounded-xl border border-border/60 bg-background/40 p-4">
               <div className="mb-2 flex items-start justify-between gap-3">
-                <button onClick={() => onOpenDetail(t)} className="text-left">
+                <button onClick={() => onOpenDetail(t)} className="text-left min-h-11 inline-flex items-center">
                   <div className="font-medium text-foreground">#{t.task_code}</div>
                   {t.dispute_id && <div className="text-[11px] text-muted-foreground">Dispute D-{t.dispute_id.slice(0, 8)}</div>}
                 </button>
@@ -240,7 +240,7 @@ function Th({ label, col, filters, onSort }: { label: string; col: string; filte
   const active = filters.sortBy === col;
   return (
     <th className="px-2 py-3 font-semibold">
-      <button onClick={() => onSort(col)} className={cn("inline-flex items-center gap-1 hover:text-foreground", active && "text-foreground")}>
+      <button onClick={() => onSort(col)} className={cn("inline-flex items-center gap-1 hover:text-foreground min-h-11", active && "text-foreground")}>
         {label}
         <ArrowUpDown className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
       </button>

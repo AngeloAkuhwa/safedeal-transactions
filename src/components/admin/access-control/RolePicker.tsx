@@ -42,7 +42,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                 <button
                   type="button"
                   onClick={() => toggle(r.key)}
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                  className={` mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border relative before:absolute before:-inset-4 before:content-[''] ${
                     selected ? "border-blue-500 bg-blue-600 text-white relative before:absolute before:-inset-4 before:content-['']" : "border-border bg-background"
                   }`}
                   aria-pressed={selected}

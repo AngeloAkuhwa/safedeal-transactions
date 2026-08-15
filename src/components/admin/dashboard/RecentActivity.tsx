@@ -25,7 +25,7 @@ export function RecentActivity({ items }: Props) {
         <button
           type="button"
           onClick={() => go("/admin/audit-logs", "Audit Logs")}
-          className="text-xs text-blue-400 hover:text-blue-300"
+          className="text-xs text-blue-400 hover:text-blue-300 min-h-11 inline-flex items-center"
         >
           View All
         </button>

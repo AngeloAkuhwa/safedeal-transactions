@@ -49,7 +49,7 @@ export default function SellerTransactionAgreement() {
           <p className="text-muted-foreground mb-6">{(error as Error).message}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-primary font-semibold hover:underline"
+            className="text-primary font-semibold hover:underline min-h-11 inline-flex items-center"
           >
             Go Back
           </button>

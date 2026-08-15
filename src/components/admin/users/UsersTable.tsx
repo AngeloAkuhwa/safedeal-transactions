@@ -105,7 +105,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     <div className="flex items-center gap-3">
                       <button
                         onClick={(e) => { e.stopPropagation(); onOpenDetail(r.user_id); }}
-                        className="relative block"
+                        className="relative block min-h-11"
                       >
                         {r.avatar_url
                           ? <img src={r.avatar_url} className={`w-10 h-10 rounded-full ring-2 ${ring}`} alt={r.full_name} />
@@ -116,7 +116,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => { e.stopPropagation(); onOpenDetail(r.user_id); }}
-                            className="text-white font-semibold hover:underline text-left"
+                            className="text-white font-semibold hover:underline text-left min-h-11 inline-flex items-center"
                           >{r.full_name}</button>
                           {r.is_flagged && (
                             <span className="w-5 h-5 bg-red-500/10 border border-red-500/30 rounded flex items-center justify-center" title="Flagged">

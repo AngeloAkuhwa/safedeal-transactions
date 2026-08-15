@@ -130,7 +130,7 @@ export function PurchaseAuthModal({
         <div className="px-6 pb-5 text-center">
           <button
             onClick={() => onOpenChange(false)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11 inline-flex items-center"
           >
             Continue browsing
           </button>

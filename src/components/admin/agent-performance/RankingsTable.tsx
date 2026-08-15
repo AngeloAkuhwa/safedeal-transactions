@@ -75,7 +75,7 @@ export function RankingsTable({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onViewScore(a); }}
                 title="View score breakdown"
-                className={cn("text-lg font-bold underline-offset-4 hover:underline", scoreTone(a.score_band))}
+                className={cn("text-lg font-bold underline-offset-4 hover:underline min-h-11 inline-flex items-center", scoreTone(a.score_band))}
               >
                 {a.score}
               </button>

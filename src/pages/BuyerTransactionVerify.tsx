@@ -89,7 +89,7 @@ const BuyerTransactionVerify = () => {
           {(error as Error)?.message || "Unable to load verification data"}
         </p>
         <button
-          className="text-sm text-primary hover:underline"
+          className="text-sm text-primary hover:underline min-h-11 inline-flex items-center"
           onClick={() => navigate("/dashboard/transactions")}
         >
           Back to Transactions
@@ -198,7 +198,7 @@ const BuyerTransactionVerify = () => {
               </div>
               <button
                 onClick={() => setAlertDismissed(true)}
-                className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"
+                className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-[''] min-h-11"
               >
                 <X className="h-4 w-4" />
               </button>

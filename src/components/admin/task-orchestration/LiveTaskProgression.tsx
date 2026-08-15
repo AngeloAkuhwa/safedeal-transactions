@@ -155,12 +155,12 @@ export function LiveTaskProgression({
                       {canReassign && onReassign && t.assigned_agent_id && (
                         <button
                           onClick={() => onReassign(t)}
-                          className="text-xs font-medium text-amber-300 transition-colors hover:text-amber-200"
+                          className="text-xs font-medium text-amber-300 transition-colors hover:text-amber-200 min-h-11 inline-flex items-center"
                         >
                           Reassign
                         </button>
                       )}
-                      <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground">
+                      <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground min-h-11 inline-flex items-center">
                         View
                       </button>
                     </div>

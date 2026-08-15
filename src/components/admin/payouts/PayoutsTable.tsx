@@ -481,7 +481,7 @@ export function PayoutsTable({
                     <button
                       type="button"
                       onClick={(ev) => { ev.stopPropagation(); onOpenTransaction(r); }}
-                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm whitespace-nowrap"
+                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm whitespace-nowrap min-h-11 inline-flex items-center"
                     >
                       {r.transaction.code}
                     </button>

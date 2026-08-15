@@ -82,7 +82,7 @@ export function ExportDataDialog({ open, onOpenChange, transactionCode, onSubmit
                   type="checkbox"
                   checked={!!sections[s.key]}
                   onChange={(e) => setSections((p) => ({ ...p, [s.key]: e.target.checked }))}
-                  className="mt-0.5"
+                  className="mt-0.5 min-h-11 inline-flex items-center"
                 />
                 <span className="min-w-0">
                   <span className="block font-medium text-foreground">{s.label}</span>

@@ -70,7 +70,7 @@ export function NotificationFilters({
           />
           <label
             htmlFor="unread-only"
-            className="text-xs font-medium text-foreground cursor-pointer select-none"
+            className="text-xs font-medium text-foreground cursor-pointer select-none min-h-11 inline-flex items-center"
           >
             Unread only
           </label>

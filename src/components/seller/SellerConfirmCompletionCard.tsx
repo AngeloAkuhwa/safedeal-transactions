@@ -105,7 +105,7 @@ export function SellerConfirmCompletionCard({
             />
           </div>
 
-          <label className="flex items-start gap-3 mt-4 cursor-pointer select-none">
+          <label className="flex items-start gap-3 mt-4 cursor-pointer select-none min-h-11">
             <Checkbox
               checked={agreed}
               onCheckedChange={(v) => setAgreed(!!v)}

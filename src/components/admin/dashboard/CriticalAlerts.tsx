@@ -26,7 +26,7 @@ export function CriticalAlerts({ alerts: initial }: Props) {
         <button
           type="button"
           onClick={() => setAlerts([])}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="text-xs text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center"
         >
           Clear All
         </button>

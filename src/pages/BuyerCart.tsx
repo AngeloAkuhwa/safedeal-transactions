@@ -427,7 +427,7 @@ const BuyerCart = () => {
                 <div className="lg:col-span-2 space-y-3">
                   {/* Select all bar */}
                   <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer min-h-11">
                       <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
                       <span className="text-sm font-medium text-foreground">
                         Select All ({selectableItems.length} eligible)

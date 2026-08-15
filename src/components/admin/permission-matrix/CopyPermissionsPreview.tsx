@@ -149,7 +149,7 @@ function Section({ title, tone, items, collapsed }: { title: string; tone: "emer
   const dot = tone === "emerald" ? "bg-emerald-400" : tone === "rose" ? "bg-rose-400" : "bg-muted-foreground/50";
   return (
     <details open={!collapsed} className="mt-4 rounded-xl bg-background/30 p-3">
-      <summary className="flex cursor-pointer items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <summary className="flex cursor-pointer items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground min-h-11">
         <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
         {title}
         <span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{items.length}</span>

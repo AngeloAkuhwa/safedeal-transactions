@@ -215,7 +215,7 @@ export function SLAComplianceTable({
                 return (
                   <tr key={`${c.source ?? "task"}-${c.id}`} className="border-b border-border/60 transition-colors hover:bg-card/50">
                     <td className="px-3 py-2.5 text-sm">
-                      <button type="button" onClick={() => onOpenCase(c)} className="font-mono text-xs text-primary hover:underline">
+                      <button type="button" onClick={() => onOpenCase(c)} className="font-mono text-xs text-primary hover:underline min-h-11 inline-flex items-center">
                         {c.task_code ?? c.id.slice(0, 8)}
                       </button>
                       <div className="max-w-[220px] truncate text-[11px] text-muted-foreground">{c.title ?? c.type}</div>

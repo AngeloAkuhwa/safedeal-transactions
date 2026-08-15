@@ -273,7 +273,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
               </div>
               {diff.dependencies_added.length > 0 && (
                 <details className="rounded-md border border-border/40 bg-background/40 p-2">
-                  <summary className="cursor-pointer text-[10px] uppercase text-muted-foreground">Show dependencies</summary>
+                  <summary className="cursor-pointer text-[10px] uppercase text-muted-foreground min-h-11 inline-flex items-center">Show dependencies</summary>
                   <ul className="mt-1 space-y-1">
                     {diff.dependencies_added.slice(0, 10).map((d) => (
                       <li key={d.key} className="font-mono text-[10px]">

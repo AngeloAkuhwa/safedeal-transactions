@@ -209,9 +209,9 @@ const SellerTransactionDetail = () => {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <button onClick={() => navigate("/seller")} className="hover:text-foreground transition-colors">Dashboard</button>
+            <button onClick={() => navigate("/seller")} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">Dashboard</button>
             <ChevronRight className="h-3.5 w-3.5" />
-            <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors">Transactions</button>
+            <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">Transactions</button>
             <ChevronRight className="h-3.5 w-3.5" />
             <span className="text-foreground font-medium">Transaction #{tx.transaction_code}</span>
           </div>

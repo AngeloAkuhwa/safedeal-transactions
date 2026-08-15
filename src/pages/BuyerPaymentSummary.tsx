@@ -1286,7 +1286,7 @@ export default function BuyerPaymentSummary() {
                           `/contact?topic=payment&ref=${encodeURIComponent(data.transaction.transaction_code)}`,
                         )
                       }
-                      className="text-primary font-semibold hover:text-primary/80"
+                      className="text-primary font-semibold hover:text-primary/80 min-h-11 inline-flex items-center"
                     >
                       Contact support
                     </button>

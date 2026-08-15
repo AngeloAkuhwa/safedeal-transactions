@@ -172,7 +172,7 @@ export function RegisterPermissionDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} />
+              <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} className="min-h-11 inline-flex items-center" />
               Approval required
             </label>
             {editing && (
@@ -238,7 +238,7 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
           {value.map((k) => (
             <span key={k} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary">
               {k}
-              <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive">×</button>
+              <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive min-h-11 inline-flex items-center">×</button>
             </span>
           ))}
         </div>
@@ -250,7 +250,7 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
             key={p.key} type="button" onClick={() => toggle(p.key)}
             className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""} min-h-11`}
           >
-            <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none" />
+            <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none min-h-11 inline-flex items-center" />
             <span className="font-mono text-muted-foreground">{p.key}</span>
             <span className="ml-auto truncate text-muted-foreground">{p.label}</span>
           </button>

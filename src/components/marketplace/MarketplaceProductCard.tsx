@@ -148,7 +148,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 e.stopPropagation();
                 if (seller.store_slug) navigate(`/store/${seller.store_slug}`);
               }}
-              className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity min-h-11"
             >
               <div
                 className={cn(

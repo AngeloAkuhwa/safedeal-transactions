@@ -400,7 +400,7 @@ export default function AdminPayouts() {
             <button
               type="button"
               onClick={() => { loadList(); loadSummary(); }}
-              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white"
+              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white min-h-11"
             >
               Refresh
             </button>

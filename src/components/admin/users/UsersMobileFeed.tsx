@@ -95,7 +95,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 className="cursor-pointer active:bg-slate-800/40 transition-colors"
               >
               <div className="p-4 border-b border-slate-800 flex items-center gap-4">
-                <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="relative">
+                <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="relative min-h-11 inline-flex items-center">
                   {r.avatar_url
                     ? <img src={r.avatar_url} className={`w-14 h-14 rounded-full ring-2 ${ring}`} alt={r.full_name} />
                     : <span className={`w-14 h-14 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
@@ -108,7 +108,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="text-white font-bold truncate">{r.full_name || "Unnamed"}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="text-white font-bold truncate min-h-11 inline-flex items-center">{r.full_name || "Unnamed"}</button>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-tight ${chip.cls}`}>{chip.label}</span>
                   </div>
                   <p className="text-slate-500 text-xs truncate">

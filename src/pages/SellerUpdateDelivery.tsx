@@ -271,7 +271,7 @@ export default function SellerUpdateDelivery() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors">
+          <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">
             Transactions
           </button>
           <span>/</span>

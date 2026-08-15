@@ -584,7 +584,7 @@ export default function AdminDisputes() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes/${row.dispute_id}`); }}
-                                className="block max-w-full truncate text-sm font-semibold text-blue-300 hover:underline"
+                                className="block max-w-full truncate text-sm font-semibold text-blue-300 hover:underline min-h-11"
                               >
                                 #{row.dispute_code}
                               </button>
@@ -592,7 +592,7 @@ export default function AdminDisputes() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions/${row.transaction_id}`); }}
-                                className="block max-w-full truncate text-[11px] text-muted-foreground hover:text-foreground"
+                                className="block max-w-full truncate text-[11px] text-muted-foreground hover:text-foreground min-h-11"
                               >
                                 {row.transaction_code}
                               </button>
@@ -693,11 +693,11 @@ export default function AdminDisputes() {
                               <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]}`} />
                               <span className={`text-[10px] font-bold uppercase ${PRIORITY_TEXT[row.priority]}`}>{row.priority}</span>
                             </div>
-                            <button onClick={() => navigate(`/admin/disputes/${row.dispute_id}`)} className="mt-1 text-sm font-semibold text-blue-300 hover:underline">
+                            <button onClick={() => navigate(`/admin/disputes/${row.dispute_id}`)} className="mt-1 text-sm font-semibold text-blue-300 hover:underline min-h-11 inline-flex items-center">
                               #{row.dispute_code}
                             </button>
                             <div className="truncate text-xs text-foreground">{row.item_title}</div>
-                            <button onClick={() => navigate(`/admin/transactions/${row.transaction_id}`)} className="text-[11px] text-muted-foreground hover:text-foreground">{row.transaction_code}</button>
+                            <button onClick={() => navigate(`/admin/transactions/${row.transaction_id}`)} className="text-[11px] text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">{row.transaction_code}</button>
                           </div>
                           <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sd.tone}`}>{sd.label}</span>
                         </div>

@@ -106,7 +106,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
           {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.label}>{m.label}</option>)}
         </select>
         {(filters.q || filters.type !== "all" || filters.status !== "all" || filters.role !== "all" || filters.module !== "all") && (
-          <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="text-[11px] text-muted-foreground hover:text-foreground">Clear</button>
+          <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="text-[11px] text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">Clear</button>
         )}
         {canEdit && onCreate && (
           <button type="button" onClick={onCreate}

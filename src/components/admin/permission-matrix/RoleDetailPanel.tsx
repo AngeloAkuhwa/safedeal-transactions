@@ -339,7 +339,7 @@ export function RoleDetailPanel({
                 <button
                   type="button"
                   onClick={() => navigate(`/admin/users/${u.id}/profile`)}
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs text-primary hover:underline min-h-11 inline-flex items-center"
                 >
                   Open
                 </button>

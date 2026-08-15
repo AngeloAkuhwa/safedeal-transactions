@@ -530,7 +530,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <div className="text-xs text-muted-foreground mb-1">Transaction</div>
                   <button
                     onClick={() => navigate(`/admin/transactions/${txId}`)}
-                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all"
+                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all min-h-11"
                   >
                     {txCode}
                   </button>
@@ -1266,7 +1266,7 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
             key={ev.id}
             type="button"
             onClick={() => onPreview(ev)}
-            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0"
+            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0 min-h-11"
           >
             <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
               {isImage && ev.secureUrl ? (
@@ -2511,7 +2511,7 @@ function SidebarBtn({
       className={cn(
         base,
         isSolid ? solidCls : outlineCls,
-        (disabled || !onClick) && "opacity-60 cursor-not-allowed",
+        (disabled || !onClick) && "opacity-60 cursor-not-allowed min-h-11 inline-flex items-center",
       )}
     >
       <span className={cn(

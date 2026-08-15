@@ -93,7 +93,7 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
             <span className="mt-1 block text-[11px] text-muted-foreground">{trimmed.length}/2000</span>
           </label>
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" checked={followUp} onChange={(e) => setFollowUp(e.target.checked)} className="mt-1" />
+            <input type="checkbox" checked={followUp} onChange={(e) => setFollowUp(e.target.checked)} className="mt-1 min-h-11 inline-flex items-center" />
             <span>Requires follow-up (flags transaction for release review)</span>
           </label>
           {followUp && (

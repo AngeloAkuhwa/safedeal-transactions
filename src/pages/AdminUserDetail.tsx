@@ -262,7 +262,7 @@ export default function AdminUserDetail() {
                         <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="text-slate-300 truncate">{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
                         {data.user.email && (
-                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle email">
+                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 inline-flex items-center" aria-label="Toggle email">
                             {revealingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedEmail !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
@@ -271,7 +271,7 @@ export default function AdminUserDetail() {
                         <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="text-slate-300">{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
                         {data.user.phone && (
-                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle phone">
+                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 inline-flex items-center" aria-label="Toggle phone">
                             {revealingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedPhone !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
@@ -562,7 +562,7 @@ export default function AdminUserDetail() {
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <RotateCcw className="h-5 w-5 text-blue-400" /> Recent Transactions
                     </h3>
-                    <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
+                    <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium min-h-11 inline-flex items-center">View All</button>
                   </div>
                   <div className="divide-y divide-slate-800">
                     {recent.length === 0 && <div className="p-8 text-center text-slate-500 text-sm">No recent transactions.</div>}

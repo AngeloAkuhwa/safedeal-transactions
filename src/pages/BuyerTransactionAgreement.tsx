@@ -38,7 +38,7 @@ export default function BuyerTransactionAgreement() {
           <p className="text-muted-foreground mb-6">{(error as Error).message}</p>
           <button
             onClick={() => navigate("/dashboard/transactions")}
-            className="text-primary font-semibold hover:underline"
+            className="text-primary font-semibold hover:underline min-h-11 inline-flex items-center"
           >
             Back to Transactions
           </button>
