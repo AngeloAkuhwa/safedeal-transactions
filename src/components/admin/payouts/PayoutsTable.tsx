@@ -58,8 +58,8 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
-const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed";
-const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap";
+const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 disabled:opacity-50 disabled:cursor-not-allowed";
+const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap min-h-11";
 
 const iconSquareBtn = "w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
 
@@ -230,7 +230,7 @@ function RowMenu({
   }
 
   if (row.status === "failed") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none";
+    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
@@ -267,7 +267,7 @@ function RowMenu({
   }
 
   if (row.status === "pending" || row.status === "processing") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none";
+    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
