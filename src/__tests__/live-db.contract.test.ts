@@ -226,6 +226,139 @@ d("live refund rail", () => {
     expect(def).toContain("payment_window_not_configured");
     expect(def).toContain("window_not_elapsed");
   });
+
+  it("floors the ledger running balance at zero", () => {
+    const def = psql(
+      "select pg_get_functiondef(oid) from pg_proc where proname = 'ledger_write_guarded'" +
+        " and pronamespace = 'public'::regnamespace",
+    );
+    expect(def).toContain("ledger_balance_negative");
+    const con = psql(
+      "select pg_get_constraintdef(oid) from pg_constraint" +
+        " where conname = 'escrow_ledger_balance_after_finite'",
+    );
+    expect(con).toContain("balance_after >= (0)::numeric");
+  });
+});
+
+/**
+ * Table-level DML class. RLS default-deny is one layer; the table grant is the
+ * other. A client role holding INSERT/UPDATE/DELETE on a money table is a
+ * finding even when no policy exists today, because the next policy someone
+ * writes inherits that surface.
+ */
+const MONEY_TABLE_LIST = [
+  "payments",
+  "payouts",
+  "refunds",
+  "escrow_states",
+  "escrow_ledger_entries",
+  "dispute_outcomes",
+  "money_status_history",
+  "vendor_plan_purchases",
+  "transaction_pricing",
+  "financial_remediations",
+  "escrow_reconciliation_results",
+  "payout_accounts",
+  "checkout_sessions",
+  "release_review_queue",
+];
+
+const MONEY_TABLE_SQL_ARRAY = `array[${MONEY_TABLE_LIST.map((t) => `'${t}'`).join(",")}]`;
+
+// table.privilege pairs kept ON PURPOSE, each backed by a real RLS policy for
+// `authenticated`. anon appears nowhere.
+const CLIENT_MONEY_DML_ALLOWLIST = [
+  // Seller writes the pricing snapshot pre-lock (sellers_{insert,update}_txn_pricing).
+  "authenticated:transaction_pricing:INSERT",
+  "authenticated:transaction_pricing:UPDATE",
+  // A user maintains their own payout destination.
+  "authenticated:payout_accounts:INSERT",
+  "authenticated:payout_accounts:UPDATE",
+  // Buyer opens and advances their own cart checkout session.
+  "authenticated:checkout_sessions:INSERT",
+  "authenticated:checkout_sessions:UPDATE",
+  // Staff triage of the release queue (policies require has_role admin).
+  "authenticated:release_review_queue:INSERT",
+  "authenticated:release_review_queue:UPDATE",
+];
+
+d("live money-table grants", () => {
+  it("gives client roles no unjustified DML on a money table", () => {
+    const found = psql(
+      "select a.grantee::regrole::text || ':' || c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        ` where n.nspname = 'public' and c.relname = any(${MONEY_TABLE_SQL_ARRAY})` +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE') order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((g) => !CLIENT_MONEY_DML_ALLOWLIST.includes(g))).toEqual([]);
+  });
+
+  it("forces row level security on every money table", () => {
+    const missing = psql(
+      "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        ` where n.nspname = 'public' and c.relname = any(${MONEY_TABLE_SQL_ARRAY})` +
+        " and not c.relforcerowsecurity order by 1",
+    );
+    expect(missing ? missing.split("\n") : []).toEqual([]);
+  });
+});
+
+d("live value-consistency constraints", () => {
+  it("ties transaction_pricing totals to their components", () => {
+    const defs = psql(
+      "select conname || ' ' || pg_get_constraintdef(oid) from pg_constraint" +
+        " where conrelid = 'public.transaction_pricing'::regclass" +
+        " and conname in ('transaction_pricing_total_matches_components'," +
+        "'transaction_pricing_payout_bounded_by_item') order by 1",
+    );
+    expect(defs.split("\n").length).toBe(2);
+  });
+
+  it("bounds products.reserved_quantity by stock_quantity", () => {
+    const def = psql(
+      "select pg_get_constraintdef(oid) from pg_constraint" +
+        " where conname = 'products_reserved_quantity_bounded'",
+    );
+    expect(def).toContain("reserved_quantity >= 0");
+    expect(def).toContain("stock_quantity");
+  });
+
+  it("value-checks the money-writing client policies, not just ownership", () => {
+    // Ownership-only WITH CHECK on a table with money columns is the shape
+    // this phase kept finding; every one of these must reference the guard.
+    const policies = psql(
+      "select tablename || '.' || policyname from pg_policies" +
+        " where schemaname = 'public' and cmd in ('INSERT','UPDATE')" +
+        " and tablename in ('transaction_pricing','checkout_sessions','release_review_queue')" +
+        " and coalesce(with_check,'') !~ 'is_finite_money' order by 1",
+    );
+    expect(policies ? policies.split("\n") : []).toEqual([]);
+  });
+});
+
+d("live helper reachability", () => {
+  it("keeps the seller-identity helper off anon and authenticated", () => {
+    const reachable = psql(
+      "select has_function_privilege('anon','public.derive_target_user_id(uuid,uuid)','execute')" +
+        " or has_function_privilege('authenticated','public.derive_target_user_id(uuid,uuid)','execute')",
+    );
+    expect(reachable).toBe("f");
+  });
+
+  it("keeps the RLS party predicate on authenticated only", () => {
+    expect(
+      psql("select has_function_privilege('anon','public.is_transaction_party(uuid,uuid)','execute')"),
+    ).toBe("f");
+    expect(
+      psql(
+        "select has_function_privilege('authenticated','public.is_transaction_party(uuid,uuid)','execute')",
+      ),
+    ).toBe("t");
+  });
 });
 
 /**
