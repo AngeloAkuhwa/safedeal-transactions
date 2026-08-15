@@ -29,7 +29,7 @@ describe("mobile touch targets", () => {
 
   it("finds no explicit sub-44px raw interactive target", () => {
     const violations: string[] = [];
-    const tag = /<(button|a|input|select|textarea)\b[^>]*>/gs;
+    const tag = /<(button|a|input|select|textarea)(?=\s|>)[^>]*>/gs;
 
     for (const absolute of tsxFiles(ROOT)) {
       const file = relative(process.cwd(), absolute).replace(/\\/g, "/");
