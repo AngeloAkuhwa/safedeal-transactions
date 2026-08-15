@@ -81,11 +81,11 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
           <fieldset className="space-y-1.5">
             <legend className="text-sm mb-1">Target state</legend>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={target === "funds_held_in_escrow"} onChange={() => setTarget("funds_held_in_escrow")} />
+              <input type="radio" checked={target === "funds_held_in_escrow"} onChange={() => setTarget("funds_held_in_escrow")} className="h-5 w-5 relative before:absolute before:-inset-3 before:content-['']" />
               Held in Escrow
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={target === "funds_pending_release"} onChange={() => setTarget("funds_pending_release")} />
+              <input type="radio" checked={target === "funds_pending_release"} onChange={() => setTarget("funds_pending_release")} className="h-5 w-5 relative before:absolute before:-inset-3 before:content-['']" />
               Pending Release
             </label>
           </fieldset>
@@ -93,7 +93,7 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
             <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-3 text-xs text-orange-300">
               <p className="font-semibold mb-1">Active dispute on this transaction</p>
               <label className="flex items-start gap-2">
-                <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 min-h-11 inline-flex items-center" />
+                <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 h-5 w-5 relative before:absolute before:-inset-3 before:content-['']" />
                 <span>I acknowledge the open dispute and still want to move funds to Pending Release.</span>
               </label>
             </div>
