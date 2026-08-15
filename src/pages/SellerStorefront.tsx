@@ -179,7 +179,7 @@ const SellerStorefront = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 space-y-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 space-y-6 relative z-10">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

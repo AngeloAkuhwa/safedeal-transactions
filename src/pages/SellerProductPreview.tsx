@@ -223,7 +223,7 @@ const SellerProductPreview = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 relative z-10">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl">
             {/* Main content — 2 cols */}
             <div className="xl:col-span-2 space-y-6">
