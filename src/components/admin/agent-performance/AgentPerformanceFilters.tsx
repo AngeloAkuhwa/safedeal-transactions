@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Filter, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,24 @@ export function AgentPerformanceFilters({
   teams: string[];
   roles: { key: string; name: string }[];
 }) {
+  // Local, immediately-responsive search text — the debounced value is what
+  // actually reaches `onChange` (and therefore the query key), so typing
+  // never fires a request per keystroke.
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onChange({ search: value }), 300);
+  };
+
   const activeExtra =
     (filters.role !== "all" ? 1 : 0) +
     (filters.availability !== "all" ? 1 : 0) +
@@ -141,8 +160,8 @@ export function AgentPerformanceFilters({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
               <Input
-                value={filters.search}
-                onChange={(e) => onChange({ search: e.target.value })}
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Name, user ID or email"
                 className="h-11 pl-8"
               />

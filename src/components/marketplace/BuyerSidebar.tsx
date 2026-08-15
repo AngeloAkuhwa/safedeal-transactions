@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useQuery } from "@tanstack/react-query";
@@ -25,7 +26,6 @@ import { cn } from "@/lib/utils";
 import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { keyActivate } from "@/lib/a11y";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -42,6 +42,16 @@ export function BuyerSidebar() {
   const location = useLocation();
   const { buyerName, avatarUrl } = useBuyerIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The scrim is decorative, so Escape is the keyboard route out of the sheet.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
   const [collapsed, setCollapsed] = useState(false);
 
   const { data: cartData } = useQuery({
