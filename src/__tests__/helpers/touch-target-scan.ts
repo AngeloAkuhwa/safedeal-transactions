@@ -470,8 +470,14 @@ function unit(token: string): number | null {
   return Number.isFinite(n) ? n * 4 : null;
 }
 
-/** Variants that still apply at a 360px viewport. */
-const MOBILE_VARIANTS = new Set(["max-sm", "max-md", "max-lg", "max-xl", "max-2xl", "dark", "hover", "focus", "focus-visible", "active", "disabled", "group-hover"]);
+/**
+ * Variants that still apply at a 360px viewport *in the resting state*.
+ * State variants (`hover:`, `focus:`, `active:`, `disabled:`, `dark:`,
+ * `group-hover:`) are deliberately NOT here: `h-6 hover:h-11` is a 24px target
+ * until you are already touching it, so crediting the hover size would hide
+ * the defect.
+ */
+const MOBILE_VARIANTS = new Set(["max-sm", "max-md", "max-lg", "max-xl", "max-2xl"]);
 
 /**
  * Resolve a utility for the mobile viewport. Unprefixed classes apply; the
@@ -497,6 +503,21 @@ function pick(classes: string[], prefix: string): number | null {
     else base = v;
   }
   return override ?? base;
+}
+
+/**
+ * True when the tag declares a utility for `prefix` whose value is not a
+ * measurement (`h-auto`, `h-full`, `w-fit`, …). The box then depends on
+ * content, so a primitive/variant default must NOT be substituted — that is
+ * what let `h-auto p-0` on a `size="sm"` Button score 44px.
+ */
+function declaresUnmeasurable(classes: string[], prefix: string): boolean {
+  return classes.some((c) => {
+    const parts = c.split(":");
+    const token = parts[parts.length - 1];
+    if (parts.length > 1 && !parts.slice(0, -1).every((v) => MOBILE_VARIANTS.has(v))) return false;
+    return token.startsWith(prefix) && unit(token.slice(prefix.length)) === null;
+  });
 }
 
 function has(classes: string[], token: string): boolean {
