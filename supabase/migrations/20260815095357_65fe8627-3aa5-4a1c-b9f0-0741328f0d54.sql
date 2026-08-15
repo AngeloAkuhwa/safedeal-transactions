@@ -19,17 +19,17 @@ INSERT INTO auth.users (
 ) VALUES
   ('00000000-0000-0000-0000-000000000000', '0e2e0001-0000-4000-8000-000000000001',
    'authenticated', 'authenticated', 'claude.e2e.buyer@safedeal.test',
-   crypt('GUj3nGkqD7EFyVa2GEa376xS', gen_salt('bf')), now(),
+   NULL /* password removed: a committed credential must never be replayable. Provision with scripts/provision-e2e-identities.mjs. */, now(),
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"full_name":"Claude E2E Buyer","default_role":"buyer","e2e_seed":true}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '0e2e0001-0000-4000-8000-000000000002',
    'authenticated', 'authenticated', 'claude.e2e.seller@safedeal.test',
-   crypt('hw2PHrEUvibPBFI58KpU2S', gen_salt('bf')), now(),
+   NULL /* password removed: a committed credential must never be replayable. Provision with scripts/provision-e2e-identities.mjs. */, now(),
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"full_name":"Claude E2E Seller","default_role":"seller","e2e_seed":true}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '0e2e0001-0000-4000-8000-000000000003',
    'authenticated', 'authenticated', 'claude.e2e.admin@safedeal.test',
-   crypt('Ab3LrATRUifanaipa3hRrX', gen_salt('bf')), now(),
+   NULL /* password removed: a committed credential must never be replayable. Provision with scripts/provision-e2e-identities.mjs. */, now(),
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"full_name":"Claude E2E Admin","default_role":"buyer","e2e_seed":true}'::jsonb, now(), now());
 

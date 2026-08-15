@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets — never commit. Use .env.example for shape.
+.env
+.env.local
+.env.*.local
