@@ -48,7 +48,16 @@ export function InternalUsersTable({
         </p>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-border lg:hidden">
+        {rows.map((u) => (
+          <article key={u.id} className="space-y-3 p-4" onClick={() => onOpen(u)}>
+            <div className="flex items-start gap-3"><InitialsAvatar name={u.full_name} ring={ringFor(u)} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name}</p><p className="truncate text-xs text-muted-foreground">{u.email}</p><p className="text-xs text-muted-foreground">#{u.display_id} · {u.department ?? "No team"}</p></div><StatusBadge status={u.status} /></div>
+            <div className="flex flex-wrap gap-2"><RoleBadge role={u.primary_role} /><AccessLevelPill level={u.access_level} /></div>
+            <button type="button" className="min-h-11 w-full rounded-md border border-border px-3 text-sm font-medium" onClick={(e) => { e.stopPropagation(); onOpen(u); }}>View access details</button>
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -122,7 +131,7 @@ export function InternalUsersTable({
                           type="button"
                           title="Row actions"
                           aria-label={`Actions for ${u.full_name}`}
-                          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                           className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
