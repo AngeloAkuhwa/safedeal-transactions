@@ -157,14 +157,23 @@ const SellerStorefront = () => {
         identityVerified={identityVerified}
       />
 
-      <div className="flex-1 flex flex-col lg:overflow-hidden relative">
+      {/* min-w-0: a flex child defaults to min-width:auto, so without this the
+          pane refuses to shrink below its content's min-content width and the
+          whole page is 542px wide inside a 320px phone — with `Add Product`
+          sitting at x=435, past the edge and unreachable. Its siblings
+          (SellerProductDetail, SellerProductCreate) already carry it. */}
+      <div className="relative flex min-w-0 flex-1 flex-col lg:overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-5 border-b border-border relative z-rail">
-          <div className="lg:ml-0 ml-12">
+        {/* flex-wrap: the title block and the action compete for one line, and
+            at 320-360px they cannot both have it. `ml-12` was clearing a
+            hamburger that now lives inside the 56px rail, so it was only
+            spending width. */}
+        <div className="relative z-rail flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-5 sm:px-6 lg:px-8">
+          <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
             {planState && (

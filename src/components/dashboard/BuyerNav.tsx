@@ -92,9 +92,13 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
     <header className="sticky top-0 z-sticky border-b bg-card/80 backdrop-blur-md">
       <div className="sd-page flex h-14 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
-          <Shield className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-foreground">SafeDeal</span>
+        {/* At 320px the wordmark and four 44px actions want 346px of a 320px
+            line. The actions are all real targets, so the logo is what gives:
+            a smaller wordmark below sm, and `min-w-0`/`truncate` as a floor so
+            a longer brand can never push the actions off-screen again. */}
+        <Link to="/" className="flex min-h-11 min-w-0 shrink items-center gap-2 transition-opacity hover:opacity-80">
+          <Shield className="h-7 w-7 shrink-0 text-primary" />
+          <span className="truncate text-lg font-bold text-foreground sm:text-xl">SafeDeal</span>
         </Link>
 
         {/* Desktop nav */}
@@ -119,7 +123,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <Button variant="ghost" size="icon" className="relative" asChild>
             <Link to="/dashboard/cart" aria-label={cartHint}>

@@ -827,6 +827,39 @@ function stripSqlComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
 }
 
+/**
+ * Seed fixtures are not covered by these rules, and the distinction is not a
+ * loophole — it is the whole point of the rules.
+ *
+ * What this file guards against is a migration inventing a fact that then
+ * applies to data it does not own: `DEFAULT 'NGN'` on a column silently makes
+ * a currency claim about every future row, including someone else's order.
+ * A seed fixture does the opposite. It INSERTs rows it creates itself and
+ * states their values explicitly — the literal `'NGN'` there is the fixture
+ * saying what its own disposable product costs, which is exactly as
+ * authoritative as a currency literal can be.
+ *
+ * Rewriting those literals into lookups would make the fixture harder to read
+ * and no safer, and parking it on the debt list would mark it for a cleanup
+ * that must never happen.
+ *
+ * The exemption is deliberately hard to abuse: a file has to declare itself
+ * with an explicit marker AND contain no schema at all. The moment a
+ * seed-marked file grows a CREATE, an ALTER, or a DEFAULT clause, it is
+ * checked like anything else — so this cannot be used to smuggle in a real
+ * invented default by writing one comment.
+ */
+const SEED_FIXTURE_MARKER = /^[ \t]*--[ \t]*safedeal:seed-fixture\b/m;
+const ANY_SCHEMA_STATEMENT =
+  /\b(?:CREATE|ALTER|DROP)\s+(?:OR\s+REPLACE\s+)?(?:TABLE|FUNCTION|PROCEDURE|TYPE|DOMAIN|VIEW|MATERIALIZED|TRIGGER|POLICY|INDEX|SCHEMA|SEQUENCE|RULE)\b|\bDEFAULT\b/i;
+
+function isSeedFixture(src: string): boolean {
+  // The marker is a comment, so it must be read before comments are stripped;
+  // the schema check must happen after, or a commented-out CREATE would count.
+  if (!SEED_FIXTURE_MARKER.test(src)) return false;
+  return !ANY_SCHEMA_STATEMENT.test(stripSqlComments(src));
+}
+
 const SQL_FILES = [
   ...(fs.existsSync(path.join(ROOT, "supabase/migrations"))
     ? fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).map((f) => path.join(ROOT, "supabase/migrations", f))
@@ -936,9 +969,11 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
 describe("the database does not invent facts either", () => {
   for (const rule of SQL_RULES) {
     it(`no new SQL file introduces a ${rule.name}`, () => {
-      const offenders = SQL_FILES.filter((f) =>
-        rule.pattern.test(stripSqlComments(fs.readFileSync(f, "utf8"))),
-      ).map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
+      const offenders = SQL_FILES.filter((f) => {
+        const src = fs.readFileSync(f, "utf8");
+        if (isSeedFixture(src)) return false;
+        return rule.pattern.test(stripSqlComments(src));
+      }).map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
       const added = offenders.filter((o) => !rule.debt.includes(o));
       expect(added, `new ${rule.name} in SQL`).toEqual([]);
     });
@@ -952,6 +987,44 @@ describe("the database does not invent facts either", () => {
       expect(stale, "remove these from the debt list").toEqual([]);
     });
   }
+
+  // The exemption above is the only way to get past these rules without being
+  // on a debt list, so it gets tested harder than the rules it exempts.
+  describe("the seed-fixture exemption", () => {
+    const SEED = "-- safedeal:seed-fixture\n";
+
+    it("exempts a marked file that only inserts its own rows", () => {
+      expect(isSeedFixture(SEED + "INSERT INTO public.products (currency_code) VALUES ('NGN');")).toBe(true);
+    });
+
+    it("does not exempt an unmarked file, however seed-like it reads", () => {
+      expect(isSeedFixture("-- seed data, honest\nINSERT INTO public.products (currency_code) VALUES ('NGN');")).toBe(false);
+    });
+
+    it("stops exempting a marked file the moment it declares a column default", () => {
+      expect(isSeedFixture(SEED + "ALTER TABLE public.products ALTER COLUMN currency_code SET DEFAULT 'NGN';")).toBe(false);
+    });
+
+    it("stops exempting a marked file that creates or replaces a function", () => {
+      expect(
+        isSeedFixture(SEED + "CREATE OR REPLACE FUNCTION public.f() RETURNS text AS $$ SELECT 'NGN' $$ LANGUAGE sql;"),
+      ).toBe(false);
+    });
+
+    it("is not fooled by a CREATE that is only mentioned in a comment", () => {
+      expect(isSeedFixture(SEED + "-- CREATE TABLE t (c text DEFAULT 'NGN');\nINSERT INTO t VALUES ('NGN');")).toBe(true);
+    });
+
+    it("keeps every currently-exempt file free of schema statements", () => {
+      const exempt = SQL_FILES.filter((f) => SEED_FIXTURE_MARKER.test(fs.readFileSync(f, "utf8")))
+        .map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
+      // If this ever fires, a fixture grew schema and must lose its marker.
+      const withSchema = exempt.filter(
+        (r) => !isSeedFixture(fs.readFileSync(path.join(ROOT, r), "utf8")),
+      );
+      expect(withSchema, "these claim to be seed fixtures but declare schema").toEqual([]);
+    });
+  });
 
   it("the agreement-lock trigger never fabricates delivery terms", () => {
     const migrations = SQL_FILES.map((f) => fs.readFileSync(f, "utf8"));

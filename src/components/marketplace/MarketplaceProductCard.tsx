@@ -210,7 +210,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               ceiling, so it scales down to fit the card rather than overflowing
               it. `whitespace-nowrap` keeps a naira figure on one line. */}
           <div className="mt-auto flex flex-wrap items-end justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 basis-full sm:basis-auto">
               <span className="text-xs text-muted-foreground">
                 {outOfStock ? "Last price" : "Price"}
               </span>
