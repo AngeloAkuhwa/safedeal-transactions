@@ -7194,6 +7194,10 @@ export type Database = {
       }
       is_finite_money: { Args: { p_amount: number }; Returns: boolean }
       is_internal_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_region_serviceable: {
+        Args: { _city_name: string; _country_code: string; _state_name: string }
+        Returns: boolean
+      }
       is_transaction_party: {
         Args: { _transaction_id: string; _user_id: string }
         Returns: boolean
