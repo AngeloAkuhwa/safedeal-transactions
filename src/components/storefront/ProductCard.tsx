@@ -93,7 +93,11 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
             {product.short_description}
           </p>
         )}
-        <p className="text-base font-bold text-foreground mb-1">
+        {/* Same fluid figure as the marketplace card: a seven- or eight-figure
+            naira price is wider than a narrow card's content box at 16px, and the
+            app hides horizontal scrollbars so the overflow is invisible. 12px
+            floor, 16px ceiling, never wraps mid-number. */}
+        <p className="mb-1 whitespace-nowrap text-[clamp(0.75rem,3.6vw,1rem)] font-bold tabular-nums text-foreground">
           {formatMoney(product.unit_price, product.currency_code)}
         </p>
 
