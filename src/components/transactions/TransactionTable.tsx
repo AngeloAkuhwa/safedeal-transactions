@@ -71,17 +71,19 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
             {transactions.map((tx) => (
               <TableRow
                 key={tx.transaction_id}
-                className="cursor-pointer"
-                onClick={() => navigate(
-                  tx.primary_action === "verify_item"
-                    ? `/dashboard/transactions/${tx.transaction_id}/verify`
-                    : `/dashboard/transactions/${tx.transaction_id}`
-                )}
+                className="relative cursor-pointer"
+                onClick={() => navigate(rowRoute(tx))}
               >
                 {/* Transaction */}
                 <TableCell className="py-4 px-4">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-semibold text-foreground">{tx.transaction_code}</p>
+                    <Link
+                      to={rowRoute(tx)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="block text-sm font-semibold text-foreground after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {tx.transaction_code}
+                    </Link>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(tx.created_at), "MMM dd, yyyy HH:mm")}
                     </p>
