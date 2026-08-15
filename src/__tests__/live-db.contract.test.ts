@@ -456,15 +456,19 @@ d("live default privileges", () => {
   });
 
   it("keeps pg_net out of reach of the exposed schemas", () => {
-    // net.http_* is latent SSRF: not reachable through PostgREST today only
-    // because `net` is not an exposed schema. That is a config value, not a
-    // privilege. The functions are owned by supabase_admin so the EXECUTE grant
-    // itself is not ours to revoke — assert the containment we DO control.
-    const exposed = psql(
-      "select count(*) from pg_namespace where nspname = 'net'" +
-        " and has_schema_privilege('anon', oid, 'USAGE')",
+    // net.http_* is latent SSRF. anon holds USAGE on schema `net` and EXECUTE
+    // on the http_* functions — BOTH are owned by supabase_admin and neither
+    // the schema nor the functions can be revoked by our migration role. This
+    // is stated, not papered over: the only barrier is that `net` is not an
+    // exposed PostgREST schema. So assert the one thing we DO control — that
+    // no function in the exposed `public` schema wraps a net.http_* call and
+    // hands anon a reachable door to it.
+    const wrappers = psql(
+      "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+        " where n.nspname = 'public' and pg_get_functiondef(p.oid) ~ 'net\\.http_'" +
+        " and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1",
     );
-    expect(["0", "1"]).toContain(exposed);
+    expect(wrappers ? wrappers.split("\n") : []).toEqual([]);
   });
 });
 
