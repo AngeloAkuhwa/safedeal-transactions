@@ -61,6 +61,11 @@ d("live refund rail", () => {
         "balance_after_set",
         "refund_is_idempotent",
         "refund_currency_from_snapshot",
+        // The line above is tautological in isolation (same argument seeds the
+        // snapshot and the assertion). These two are not: the snapshot is
+        // pinned to a currency the caller did not pass.
+        "refund_currency_ignores_caller_argument",
+        "ledger_currency_follows_snapshot",
         "capture_refuses_missing_escrow",
         "freeze_refuses_missing_escrow",
         "unfreeze_refuses_missing_escrow",
