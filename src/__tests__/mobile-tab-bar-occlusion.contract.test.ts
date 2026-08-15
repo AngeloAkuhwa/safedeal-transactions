@@ -40,6 +40,11 @@ const LAYOUT_TRAP =
 
 export function occlusionOffenders(source: string): string[] {
   const offenders: string[] = [];
+  // Resolve file-local class constants (`const glassPanel = "rounded-2xl …"`)
+  // so a `${glassPanel} overflow-hidden` card is not misread as a scroll port.
+  const consts = new Map<string, string>();
+  for (const m of source.matchAll(/const\s+([A-Za-z0-9_]+)\s*=\s*"([^"]*)"/g)) consts.set(m[1], m[2]);
+  const expand = (s: string) => s.replace(/\$\{\s*([A-Za-z0-9_]+)\s*\}/g, (full, name) => consts.get(name) ?? full);
   // One class list at a time: a greedy match would run across sibling
   // attributes and blame a card's `rounded-*` clip on a layout element.
   // `cn(...)` and template literals are harvested too — the previous version
@@ -49,7 +54,8 @@ export function occlusionOffenders(source: string): string[] {
     ...source.matchAll(/className=\{`([^`]*)`\}/g),
     ...source.matchAll(/className=\{cn\(([^]*?)\)\}/g),
   ].map((m) => m[1]);
-  for (const attr of lists) {
+  for (const raw of lists) {
+    const attr = expand(raw);
     // Only string-literal segments carry classes; `${expr}` holes cannot be
     // resolved and are simply not scanned (documented gap, not a pass).
     const literal = attr.includes("$") || attr.includes('"')
