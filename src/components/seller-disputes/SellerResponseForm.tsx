@@ -247,7 +247,8 @@ export function SellerResponseForm({
                 {!file.uploading && (
                   <button
                     onClick={() => removeFile(file.fileId)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Remove ${file.fileName}`}
+                    className="absolute right-0.5 top-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 shadow-sm"
                   >
                     <X className="h-3 w-3 text-foreground" />
                   </button>

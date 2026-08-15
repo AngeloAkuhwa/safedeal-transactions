@@ -421,7 +421,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                             e.stopPropagation();
                             retryFile(f.id);
                           }}
-                          className="flex items-center gap-1 text-[10px] text-primary hover:underline mt-1"
+                           className="mt-1 flex min-h-11 items-center gap-1 px-2 text-xs text-primary hover:underline"
                         >
                           <RotateCcw className="h-3 w-3" /> Retry
                         </button>
@@ -431,7 +431,8 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                     {/* Remove button */}
                     <button
                       onClick={() => removeFile(f.id)}
-                      className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                      aria-label={`Remove ${f.name}`}
+                      className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 shadow-sm hover:bg-destructive hover:text-destructive-foreground"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>

@@ -133,19 +133,17 @@ export function SellerStorefrontSidebar(props: SellerStorefrontSidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-[260px] h-screen flex-shrink-0">
+      <aside className="hidden lg:flex w-[260px] min-h-[100dvh] flex-shrink-0">
         <SidebarInner {...props} />
       </aside>
 
-      {/* Mobile hamburger */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50 bg-card/80 backdrop-blur-sm border border-border rounded-xl text-foreground"
-        onClick={() => setMobileOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+      {/* This normal-flow rail reserves the trigger's space on every seller
+          screen; pages no longer copy fragile left-padding compensations. */}
+      <div className="w-14 shrink-0 border-r border-border bg-card lg:hidden">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5 border border-border bg-card/90" onClick={() => setMobileOpen(true)} aria-label="Open seller navigation">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </div>
 
       {/* Mobile sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

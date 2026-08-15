@@ -36,7 +36,8 @@ function BuyerEvidenceThumb({ e }: { e: SellerDisputeEvidence }) {
           href={e.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute top-1 right-1 w-6 h-6 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={`Open ${e.file_name ?? "evidence"} in a new tab`}
+          className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 shadow-sm"
         >
           <ExternalLink className="h-3 w-3 text-foreground" />
         </a>

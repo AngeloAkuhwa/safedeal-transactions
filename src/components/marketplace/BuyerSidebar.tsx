@@ -232,15 +232,13 @@ export function BuyerSidebar() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 left-3 z-50 lg:hidden"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </Button>
+      {/* Normal-flow mobile rail reserves its own space instead of forcing every
+          buyer page to compensate for a fixed, overlapping trigger. */}
+      <div className="w-14 shrink-0 border-r border-sidebar-border bg-sidebar lg:hidden">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (
