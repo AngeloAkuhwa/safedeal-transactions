@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Heart, Search, Loader2, BookmarkX, X,
+  Heart, Search, BookmarkX, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -70,9 +70,9 @@ export default function BuyerSavedProducts() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] bg-background">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <BuyerSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 relative lg:overflow-y-auto">
         <div className="sd-page sd-page-y space-y-4">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

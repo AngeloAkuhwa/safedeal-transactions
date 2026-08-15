@@ -167,8 +167,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                  the accessibility tree rather than being dropped. */
               <span className="inline-flex min-w-0 shrink items-center gap-1 text-xs text-primary">
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span className="sr-only sm:not-sr-only sm:truncate">{sellerTrustClaim}</span>
-                <span className="sr-only">{sellerTrustClaim}</span>
+                <span className="truncate max-sm:sr-only">{sellerTrustClaim}</span>
               </span>
             )}
             <div className="ml-auto shrink-0">

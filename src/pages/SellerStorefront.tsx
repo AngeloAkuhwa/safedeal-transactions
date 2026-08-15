@@ -14,6 +14,7 @@ import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
 import { useVendorPlan } from "@/hooks/useVendorPlan";
 import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The verification claim is driven by `identity_verified` only — the declared
@@ -156,7 +157,7 @@ const SellerStorefront = () => {
         identityVerified={identityVerified}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col lg:overflow-hidden relative">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[100px] pointer-events-none" />
@@ -187,11 +188,19 @@ const SellerStorefront = () => {
 
         {/* Scrollable content */}
         <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 space-y-6 relative z-10">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          {isLoading && (
+            <div className="space-y-6">
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-64 rounded-2xl" />
+                ))}
+              </div>
             </div>
-          ) : (
+          )}
+          {!isLoading && (
             <>
               {/* Trust Summary */}
               {trust && (
