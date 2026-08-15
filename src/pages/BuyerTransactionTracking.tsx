@@ -89,9 +89,14 @@ function getStepState(stepKey: string, currentStatus: string): "completed" | "cu
 /* ─── Lightbox ─── */
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   return (
-    <div role="button" tabIndex={0} onKeyDown={keyActivate}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt || "Image preview"}
+      tabIndex={-1}
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
       <button
         className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11"
@@ -104,7 +109,6 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
         src={src}
         alt={alt}
         className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       />
     </div>
   );
