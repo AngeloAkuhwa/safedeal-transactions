@@ -38,8 +38,14 @@ const LAYOUT_TRAP = /^(overflow-hidden|overflow-auto|overflow-y-auto|h-\[100dvh\
 
 export function occlusionOffenders(source: string): string[] {
   const offenders: string[] = [];
-  for (const attr of source.match(/className=\{?[^>]*?["'`][^"'`]*["'`]/g) ?? []) {
-    const tokens = attr.replace(/[{}"'`]/g, "").split(/\s+/);
+  // One class list at a time: a greedy match would run across sibling
+  // attributes and blame a card's `rounded-*` clip on a layout element.
+  const lists = [
+    ...source.matchAll(/className="([^"]*)"/g),
+    ...source.matchAll(/className=\{`([^`]*)`\}/g),
+  ].map((m) => m[1]);
+  for (const attr of lists) {
+    const tokens = attr.split(/\s+/).filter(Boolean);
     // Card decoration (rounded/aspect clipping) is not a scroll port.
     if (tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t))) continue;
     // Desktop-only blocks (`hidden md:block`) never render under the tab bar.
