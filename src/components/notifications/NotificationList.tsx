@@ -144,7 +144,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                     {item.primary_action && (
                       <Button
                         size="sm"
-                        className={`${style.actionClass} h-7 text-xs`}
+                        className={`${style.actionClass} min-h-11 text-xs`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (isUnread) onMarkRead(item.id);

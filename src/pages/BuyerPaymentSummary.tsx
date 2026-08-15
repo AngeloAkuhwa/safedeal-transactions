@@ -262,8 +262,11 @@ export default function BuyerPaymentSummary() {
 
   if (authState === "loading" || authState === "anonymous" || authState === "needs-role") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background px-4 py-8">
+        <div className="mx-auto max-w-5xl space-y-6">
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <div className="grid gap-6 lg:grid-cols-3"><Skeleton className="h-96 rounded-2xl lg:col-span-2" /><Skeleton className="h-72 rounded-2xl" /></div>
+        </div>
       </div>
     );
   }
@@ -894,18 +897,18 @@ export default function BuyerPaymentSummary() {
                       ))}
                     </ul>
                   </div>
-                  <div className="mt-3 flex items-start gap-2">
+                  <label htmlFor="terms-checkbox" className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg p-1 focus-within:ring-2 focus-within:ring-ring">
                     <input
                       type="checkbox"
                       id="terms-checkbox"
                       checked={agreedToTerms}
                       onChange={(e) => setAgreedToTerms(e.target.checked)}
-                      className="mt-1 w-4 h-4 rounded border-input accent-primary"
+                      className="mt-2 h-6 w-6 shrink-0 rounded border-input accent-primary"
                     />
-                    <label htmlFor="terms-checkbox" className="text-xs text-muted-foreground cursor-pointer">
+                    <span className="py-1 text-xs text-muted-foreground">
                       I understand that this payment creates an escrow account and funds will not be released to the seller without my confirmation
-                    </label>
-                  </div>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
