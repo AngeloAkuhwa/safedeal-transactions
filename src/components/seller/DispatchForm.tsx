@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadDispatchEvidence, type UploadedDeliveryFile } from "@/services/delivery.service";
 import { toTransactionDeliveryMethod } from "@/lib/delivery-methods";
 import type { DeliveryMethod } from "./DeliveryMethodBadge";
+import { keyActivate } from "@/lib/a11y";
 
 const COURIERS = ["GIG Logistics", "DHL", "Sendbox", "Kwik", "FedEx", "UPS", "Other"] as const;
 const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm";
@@ -326,7 +327,7 @@ export function DispatchForm({
           ))}
 
           {state.dispatchEvidence.length < MAX_DISPATCH_FILES && (
-            <div
+            <div role="button" tabIndex={0} onKeyDown={keyActivate}
               className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >

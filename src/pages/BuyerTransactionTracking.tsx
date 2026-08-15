@@ -42,6 +42,7 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { cn } from "@/lib/utils";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 /* ─── Helpers ─── */
 /* ─── 8-step progress tracker ─── */
@@ -88,7 +89,7 @@ function getStepState(stepKey: string, currentStatus: string): "completed" | "cu
 /* ─── Lightbox ─── */
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={keyActivate}
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
       onClick={onClose}
     >

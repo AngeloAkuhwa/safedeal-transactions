@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { keyActivate } from "@/lib/a11y";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -242,7 +243,7 @@ export function BuyerSidebar() {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div
+        <div role="button" tabIndex={0} onKeyDown={keyActivate}
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />

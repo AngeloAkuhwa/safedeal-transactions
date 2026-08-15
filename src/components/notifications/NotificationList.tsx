@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { NotificationItem } from "@/services/notifications.service";
+import { keyActivate } from "@/lib/a11y";
 
 interface NotificationListProps {
   items: NotificationItem[];
@@ -102,7 +103,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
           const isUnread = !item.is_read;
 
           return (
-            <div
+            <div role="button" tabIndex={0} onKeyDown={keyActivate}
               key={item.id}
               className={`p-3 hover:bg-accent/50 transition-colors cursor-pointer border-l-4 ${style.borderColor} ${
                 isUnread ? "bg-primary/[0.02]" : ""

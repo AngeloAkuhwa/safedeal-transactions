@@ -3,6 +3,7 @@ import { formatMoney } from "@/lib/format";
 import type { AdminActivityItem } from "@/services/admin-dashboard.service";
 import { useAdminNav } from "../useAdminNav";
 import { formatRelative } from "./relative";
+import { keyActivate } from "@/lib/a11y";
 
 const ICONS: Record<AdminActivityItem["kind"], { icon: typeof LineChart; cls: string }> = {
   transaction_completed: { icon: LineChart, cls: "bg-blue-500/15 text-blue-400" },
@@ -40,7 +41,7 @@ export function RecentActivity({ items }: Props) {
             const cfg = ICONS[it.kind];
             const Icon = cfg.icon;
             return (
-              <li
+              <li role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={it.id}
                 onClick={() => it.action_href && go(it.action_href, it.title)}
                 className={`flex items-center justify-between gap-3 py-2.5 ${it.action_href ? "cursor-pointer hover:bg-muted/40" : ""} min-h-11`}

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
+import { keyActivate } from "@/lib/a11y";
 
 const RISK_CLR: Record<string, string> = {
   low: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
@@ -110,7 +111,7 @@ export function PendingApprovalTable({
                 {filtered.map((r) => {
                   const tone = changeStateTone(normalizeChangeState(r.status));
                   return (
-                    <tr
+                    <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                       key={r.id}
                       className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                       onClick={() => onRowClick?.(r)}

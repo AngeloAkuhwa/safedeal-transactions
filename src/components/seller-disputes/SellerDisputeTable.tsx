@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { SellerDisputeItem } from "@/services/seller-disputes.service";
 import { formatMoney } from "@/lib/format";
 import { resolveDisputeMoneyImpact, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { keyActivate } from "@/lib/a11y";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -48,7 +49,7 @@ export function SellerDisputeTable({ items }: Props) {
         {items.map((d) => {
           const impact = resolveDisputeMoneyImpact(d.money_impact);
           return (
-            <article key={d.id} className="space-y-3 p-4" onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}>
+            <article role="button" tabIndex={0} onKeyDown={keyActivate} key={d.id} className="space-y-3 p-4" onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0"><p className="font-mono text-xs font-semibold text-primary">{d.transaction_code ?? "—"}</p><p className="truncate text-sm font-medium">{d.item_title ?? "—"}</p><p className="text-xs text-muted-foreground">{d.buyer?.name ?? "—"}</p></div>
                 <p className="shrink-0 text-sm font-semibold">{formatNaira(d.seller_net_amount)}</p>

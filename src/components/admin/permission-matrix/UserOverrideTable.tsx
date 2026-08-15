@@ -12,6 +12,7 @@ import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { EmptyState } from "./EmptyState";
 import { ArrowUpRight, ShieldOff, TimerReset, Filter, History, Eye } from "lucide-react";
+import { keyActivate } from "@/lib/a11y";
 
 type OverrideType = "grant" | "deny" | "temporary";
 type OverrideStatus = "active" | "expired";
@@ -142,7 +143,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
               const t = typePill(classifyType(r));
               const s = statusPill(classifyStatus(r));
               return (
-              <tr
+              <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={r.user_id + r.permission_key + i}
                 className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                 onClick={() => onRowClick?.(r)}
@@ -184,7 +185,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
                 </td>
                 <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
                 <td className="px-4 py-3 align-middle text-right">
-                  <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div role="button" tabIndex={0} onKeyDown={keyActivate} className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => onRowClick?.(r)}
                       className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] hover:bg-muted min-h-11">
                       <Eye className="h-3 w-3" /> Review

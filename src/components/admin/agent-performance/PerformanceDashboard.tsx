@@ -8,6 +8,7 @@ import {
   type AgentPerformanceMetrics, type AgentPerformanceRow, type AgentTrendPoint,
 } from "@/services/agent-performance.service";
 import { Activity } from "lucide-react";
+import { keyActivate } from "@/lib/a11y";
 
 /**
  * Performance tab: headline metrics, six trend/comparison panels and the
@@ -55,7 +56,7 @@ export function PerformanceDashboard({
             {agents.map((a) => {
               const delta = a.resolved - a.resolved_prev;
               return (
-                <tr
+                <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                   key={a.user_id}
                   className="cursor-pointer border-b border-border/60 transition-colors hover:bg-card/50"
                   onClick={() => onViewDetail(a)}

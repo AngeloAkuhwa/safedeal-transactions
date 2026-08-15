@@ -15,6 +15,7 @@ import { getAvailableQuantity } from "@/lib/inventory";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { ProductImage } from "@/components/common/ProductImage";
 import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   product: MarketplaceProduct;
@@ -74,7 +75,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
   return (
     <>
-      <div
+      <div role="button" tabIndex={0} onKeyDown={keyActivate}
         onClick={onClick}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm transition-all hover:shadow-lg cursor-pointer",

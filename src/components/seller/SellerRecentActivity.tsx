@@ -10,6 +10,7 @@ import {
 import { ArrowLeftRight, Shield, Search, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
+import { keyActivate } from "@/lib/a11y";
 
 interface SellerRecentActivityProps {
   activity: SellerActivity[];
@@ -188,7 +189,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             const statusInfo = statusLabelFor(row.transaction_status);
             const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={row.transaction_id}
                 className="px-4 py-3 sd-row-hover cursor-pointer"
                 onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}

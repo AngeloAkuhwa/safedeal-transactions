@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ShieldCheck } from "lucide-react";
 import { PERMISSION_MODULES, ROLE_LABEL, type InternalRoleKey } from "@/services/permission-catalog";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   open: boolean;
@@ -40,7 +41,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div role="button" tabIndex={0} onKeyDown={keyActivate} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-border/60 bg-card p-5 shadow-2xl">
         <header className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">

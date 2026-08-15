@@ -14,6 +14,7 @@ import {
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   roleMap: RoleGrantMap;
@@ -194,7 +195,7 @@ function ModuleGroup({
                     )}
                     {menuRole === r.key && (
                       <>
-                        <div className="fixed inset-0 z-40" onClick={() => setMenuRole(null)} />
+                        <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-40" onClick={() => setMenuRole(null)} />
                         <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
                           <button type="button" onClick={() => bulkGrant(r.key)} className="block min-h-11 w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted">
                             Grant all in module

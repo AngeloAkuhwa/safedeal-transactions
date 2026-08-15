@@ -12,6 +12,7 @@ import { formatMoney } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relative } from "./risk";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   row: FlaggedUserRow | null;
@@ -98,7 +99,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
   if (!view) {
     return (
       <div className="fixed inset-0 z-50 flex justify-end">
-        <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+        <div role="button" tabIndex={0} onKeyDown={keyActivate} className="absolute inset-0 bg-black/60" onClick={onClose} />
         <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </aside>
@@ -108,7 +109,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div role="button" tabIndex={0} onKeyDown={keyActivate} className="absolute inset-0 bg-black/60" onClick={onClose} />
       <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
           <div className="flex items-center gap-2">

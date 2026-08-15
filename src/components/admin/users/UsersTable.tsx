@@ -9,6 +9,7 @@ import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { PresenceDot } from "./PresenceDot";
 import { resolveClaim } from "@/lib/trust/trust-claims";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -96,7 +97,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                 : r.status === "pending" ? "ring-yellow-500/30" : "ring-slate-700";
               const init = (r.full_name || "?").slice(0, 1).toUpperCase();
               return (
-                <tr
+                <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                   key={r.user_id}
                   className="hover:bg-slate-800/50 transition-all cursor-pointer"
                   onClick={() => navigate(`/admin/users/${r.user_id}`)}
@@ -199,7 +200,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     <p className="text-slate-400 text-xs mt-0.5">{relativeDate(r.joined_at)}</p>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div role="button" tabIndex={0} onKeyDown={keyActivate} className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                       <button title="Quick preview" onClick={(e) => { e.stopPropagation(); onOpenDetail(r.user_id); }} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs min-h-11"><UserIcon className="h-3.5 w-3.5" /></button>
                       <button title="Transactions" onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs min-h-11"><ArrowLeftRight className="h-3.5 w-3.5" /></button>
                       <button title="Disputes" disabled={r.disputes.total === 0} onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"} min-h-11 min-w-11 justify-center`}>

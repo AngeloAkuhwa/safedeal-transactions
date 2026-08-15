@@ -27,6 +27,7 @@ import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDi
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 /** Renders `—` when the amount or its currency is unknown. */
 const fmt = (amount: number | undefined | null, currency: string | null) =>
@@ -597,7 +598,7 @@ export default function SellerUpdateDelivery() {
                   ))}
 
                   {deliveredEvidence.length < MAX_FILES && (
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={keyActivate}
                       className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                     >

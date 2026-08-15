@@ -39,6 +39,7 @@ import {
   type DisputeQueueRow,
 } from "@/services/admin-disputes.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
+import { keyActivate } from "@/lib/a11y";
 
 /* ---------- visual helpers ---------- */
 
@@ -566,7 +567,7 @@ export default function AdminDisputes() {
                         const sla = humanizeSla(row.sla);
                         const isResolved = row.dispute_status === "resolved";
                         return (
-                          <tr
+                          <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
                             className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
@@ -641,7 +642,7 @@ export default function AdminDisputes() {
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[12px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <td role="button" tabIndex={0} onKeyDown={keyActivate} className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-2">
                                 <Button
                                   size="sm"

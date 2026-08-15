@@ -10,6 +10,7 @@ import {
   TONE_CLASSNAMES,
 } from "@/lib/status-labels";
 import { ProductImage } from "@/components/common/ProductImage";
+import { keyActivate } from "@/lib/a11y";
 
 interface SellerProductCardProps {
   product: {
@@ -67,7 +68,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
   const stockText = isOutOfStock ? "text-gray-500 dark:text-gray-400" : isLowStock ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={keyActivate}
       className={`group bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden transition-all hover:border-primary/30 hover:shadow-lg cursor-pointer ${isOutOfStock ? "opacity-60" : ""}`}
       onClick={onClick}
     >
@@ -117,7 +118,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
         </div>
 
         {/* Stock */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={keyActivate}
           className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded-lg transition-colors min-h-11"
           onClick={(e) => {
             e.stopPropagation();

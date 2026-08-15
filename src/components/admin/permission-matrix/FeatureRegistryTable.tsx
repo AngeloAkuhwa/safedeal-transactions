@@ -12,6 +12,7 @@ import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import type { FiltersState } from "./PermissionFilters";
 import { EmptyState } from "./EmptyState";
+import { keyActivate } from "@/lib/a11y";
 
 function StatusPill({ status }: { status: "active" | "suspended" | "deprecated" }) {
   const map = {
@@ -119,7 +120,7 @@ export function FeatureRegistryTable({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr
+              <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={r.key}
                 className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                 onClick={() => onRowClick?.(r.key)}

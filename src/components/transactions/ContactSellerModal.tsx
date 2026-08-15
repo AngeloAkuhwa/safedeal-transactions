@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { keyActivate } from "@/lib/a11y";
 
 interface AttachedFile {
   id: string;
@@ -184,7 +185,7 @@ export function ContactSellerModal({
           </div>
 
           {/* Drop zone */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={keyActivate}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}

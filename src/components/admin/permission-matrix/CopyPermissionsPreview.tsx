@@ -10,6 +10,7 @@ import {
 } from "@/services/permission-catalog";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   open: boolean;
@@ -66,7 +67,7 @@ export function CopyPermissionsPreview({ open, source, target, roleMap, onClose,
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div role="button" tabIndex={0} onKeyDown={keyActivate} className="flex-1 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <aside className="flex h-full w-full max-w-[520px] flex-col overflow-hidden border-l border-border/60 bg-card shadow-2xl">
         <header className="flex items-center justify-between border-b border-border/40 px-5 py-4">
           <div>

@@ -27,6 +27,7 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { formatMoney } from "@/lib/format";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 declare global {
   interface Window {
@@ -764,7 +765,7 @@ export default function BuyerPaymentSummary() {
 
               <div className="space-y-4">
                 {/* Card method */}
-                <div
+                <div role="button" tabIndex={0} onKeyDown={keyActivate}
                   onClick={() => setSelectedMethod("card")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
                     selectedMethod === "card"
@@ -806,7 +807,7 @@ export default function BuyerPaymentSummary() {
                 </div>
 
                 {/* Bank transfer method */}
-                <div
+                <div role="button" tabIndex={0} onKeyDown={keyActivate}
                   onClick={() => setSelectedMethod("bank")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
                     selectedMethod === "bank"

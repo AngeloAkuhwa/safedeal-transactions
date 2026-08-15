@@ -16,6 +16,7 @@ import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { resolveClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
+import { keyActivate } from "@/lib/a11y";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -170,7 +171,7 @@ export default function BuyerSavedProducts() {
                 const verifiedSellerClaim = resolveClaim("SELLER_VERIFIED", { identityVerified: item.seller?.trust_summary?.identity_verified });
 
                 return (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={keyActivate}
                     key={item.id}
                     className={cn(
                       "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer",

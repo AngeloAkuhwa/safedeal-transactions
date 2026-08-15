@@ -19,6 +19,7 @@ import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 import { getPayoutCaptionFromRow, getAccountPresentation } from "@/lib/payout-presentation";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   rows: PayoutRow[];
@@ -431,8 +432,8 @@ export function PayoutsTable({
             const e = eligibleForRelease(r);
             const caption = payoutCaption(r);
             return (
-              <tr key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+              <tr role="button" tabIndex={0} onKeyDown={keyActivate} key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
+                <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>
@@ -554,7 +555,7 @@ export function PayoutsTable({
                   <p className="text-slate-300 text-sm">{formatAbsolute(r.entered_queue_at)}</p>
                   <p className="text-slate-400 text-xs">{formatRelative(r.entered_queue_at)}</p>
                 </td>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+                <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     {renderPrimaryActions(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}

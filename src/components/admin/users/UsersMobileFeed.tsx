@@ -10,6 +10,7 @@ import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PresenceDot } from "./PresenceDot";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -174,7 +175,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               </div>
 
               {/* Action row */}
-              <div className="p-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
+              <div role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2"

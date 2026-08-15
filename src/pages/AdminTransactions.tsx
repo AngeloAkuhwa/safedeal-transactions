@@ -72,6 +72,7 @@ import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
 import { TransactionsEmptyState } from "@/components/admin/transactions/TransactionsEmptyState";
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
+import { keyActivate } from "@/lib/a11y";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -986,7 +987,7 @@ export default function AdminTransactions() {
                       </span>
                     </td>
                     <td className="w-[120px] px-3 py-2.5 align-middle">
-                       <div
+                       <div role="button" tabIndex={0} onKeyDown={keyActivate}
                          className="flex items-center justify-start gap-1 text-muted-foreground"
                          onClick={(e) => e.stopPropagation()}
                        >
@@ -1121,7 +1122,7 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div
+              <div role="button" tabIndex={0} onKeyDown={keyActivate}
                 className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
               >

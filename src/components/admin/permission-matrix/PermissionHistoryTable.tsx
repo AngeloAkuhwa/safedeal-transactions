@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, RotateCcw } from "lucide-react";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 import { findPermissionEntry } from "@/services/permission-catalog";
+import { keyActivate } from "@/lib/a11y";
 
 export function PermissionHistoryTable({
   rows,
@@ -145,7 +146,7 @@ export function PermissionHistoryTable({
                 {filtered.map((r) => {
                   const tone = changeStateTone(normalizeChangeState(r.result));
                   return (
-                    <tr
+                    <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                       key={r.id}
                       className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                       onClick={() => onRowClick?.(r)}
