@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -95,9 +95,18 @@ import { TestModeBanner } from "./components/TestModeBanner";
 const queryClient = new QueryClient();
 
 const RouteFallback = () => (
-  <div className="flex min-h-[100dvh] items-center justify-center bg-background" role="status" aria-live="polite">
-    <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+  <div className="min-h-[100dvh] bg-background p-4 sm:p-6" role="status" aria-live="polite">
     <span className="sr-only">Loading page…</span>
+    <div className="mx-auto max-w-5xl space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-64 w-full rounded-xl" />
+    </div>
   </div>
 );
 

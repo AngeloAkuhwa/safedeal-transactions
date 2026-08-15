@@ -452,13 +452,20 @@ const SellerTransactions = () => {
                     return (
                       <TableRow
                         key={tx.transaction_id}
-                        className="sd-row-hover cursor-pointer"
+                        className="sd-row-hover relative cursor-pointer"
                         onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
                       >
                         <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-primary shrink-0" />
-                            <span className="font-mono text-sm font-medium">{tx.transaction_code}</span>
+                            {/* Stretched link: the row's keyboard-reachable control. */}
+                            <Link
+                              to={`/seller/transactions/${tx.transaction_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-mono text-sm font-medium after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {tx.transaction_code}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 hidden sm:table-cell">
@@ -482,7 +489,7 @@ const SellerTransactions = () => {
                                         navigate(`/seller/transactions/${tx.transaction_id}#messages`);
                                       }}
                                       aria-label={`${tx.unread_message_count} unread messages`}
-                                      className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
+                                      className="relative z-10 ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
                                     >
                                       <MessageCircle className="h-4 w-4 text-primary" />
                                       <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground">

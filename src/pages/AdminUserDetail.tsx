@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 function fmtDate(iso: string | null | undefined): string {
@@ -324,8 +325,13 @@ export default function AdminUserDetail() {
         {/* Content */}
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
           {isLoading && (
-            <div className="p-12 text-center text-slate-400">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading user…
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-72 rounded-xl bg-slate-800" />
+                ))}
+              </div>
+              <Skeleton className="h-48 rounded-xl bg-slate-800" />
             </div>
           )}
           {error && (

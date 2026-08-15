@@ -14,9 +14,20 @@ export function labelStackedTable(table: HTMLTableElement): void {
   );
   if (!headers.length) return;
   for (const row of Array.from(table.querySelectorAll<HTMLTableRowElement>("tbody tr"))) {
-    Array.from(row.cells).forEach((cell, index) => {
-      const label = headers[index] ?? "";
+    let headerIndex = 0;
+    Array.from(row.cells).forEach((cell) => {
+      const span = cell.colSpan || 1;
+      if (span > 1) {
+        // A cell spanning multiple columns doesn't map to a single header;
+        // labelling it would mismatch, so it's left unlabelled and the
+        // header index simply advances past the columns it covers.
+        if (cell.hasAttribute(LABEL_ATTR)) cell.removeAttribute(LABEL_ATTR);
+        headerIndex += span;
+        return;
+      }
+      const label = headers[headerIndex] ?? "";
       if (cell.getAttribute(LABEL_ATTR) !== label) cell.setAttribute(LABEL_ATTR, label);
+      headerIndex += span;
     });
   }
 }
