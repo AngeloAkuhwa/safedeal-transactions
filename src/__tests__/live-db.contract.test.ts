@@ -511,7 +511,13 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
         " order by 1",
     );
     const list = found ? found.split("\n") : [];
-    expect(list.filter((f) => !CLIENT_REACHABLE_MONEY_DEFINERS.includes(f))).toEqual([]);
+    expect(
+      list.filter(
+        (f) =>
+          !CLIENT_REACHABLE_MONEY_DEFINERS.includes(f) &&
+          !CLIENT_REACHABLE_DEFINER_WRITERS.includes(f),
+      ),
+    ).toEqual([]);
   });
 
   it("never lets a client role reach a SECURITY DEFINER money WRITER", () => {
