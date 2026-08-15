@@ -140,9 +140,13 @@ describe("mobile table fallbacks", () => {
       const mobileIdx = source.search(mobileMarker);
       if (desktopIdx === -1 || mobileIdx === -1) continue;
 
+      // Whichever branch is declared first ends where the other begins; the
+      // later branch runs to end-of-file. Splitting on `desktopIdx` alone (the
+      // previous logic) mis-assigned the whole mobile card block to the desktop
+      // region whenever the table was written first, which is the common order.
       const [mobileRegion, desktopRegion] = mobileIdx < desktopIdx
         ? [source.slice(mobileIdx, desktopIdx), source.slice(desktopIdx)]
-        : [source.slice(0, desktopIdx), source.slice(desktopIdx)];
+        : [source.slice(mobileIdx), source.slice(desktopIdx, mobileIdx)];
 
       // Identifiers referenced as `x.y` or `x?.y` inside TableCell/<td> blocks
       // on the desktop side — this is a heuristic scan, not a full parser.
@@ -151,7 +155,10 @@ describe("mobile table fallbacks", () => {
       let m: RegExpExecArray | null;
       while ((m = cellRe.exec(desktopRegion))) {
         const body = m[1];
-        for (const im of body.matchAll(/\b([a-zA-Z_$][\w$]*(?:\??\.[a-zA-Z_$][\w$]*)+)\b/g)) {
+        for (const im of body.matchAll(/\b([a-zA-Z_$][\w$]*(?:\??\.[a-zA-Z_$][\w$]*)+)\b\s*(\()?/g)) {
+          // `e.stopPropagation()` / `xs.map()` are behaviour, not displayed
+          // data — parity only concerns rendered fields.
+          if (im[2]) continue;
           idents.add(im[1]);
         }
       }
