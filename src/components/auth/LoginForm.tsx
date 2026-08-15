@@ -230,7 +230,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )} className="min-h-11 inline-flex items-center" />
+            )} />
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

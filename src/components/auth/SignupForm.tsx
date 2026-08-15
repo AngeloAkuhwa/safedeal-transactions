@@ -192,7 +192,7 @@ const SignupForm = ({ defaultRole, onGoToLogin }: SignupFormProps) => {
               </p>
               <FormMessage />
             </FormItem>
-          )} className="min-h-11 inline-flex items-center" />
+          )} />
 
         <FormField
           control={form.control}
@@ -220,7 +220,7 @@ const SignupForm = ({ defaultRole, onGoToLogin }: SignupFormProps) => {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )} className="min-h-11 inline-flex items-center" />
+          )} />
 
         <FormField
           control={form.control}

@@ -81,11 +81,11 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
           <fieldset className="space-y-1.5">
             <legend className="text-sm mb-1">Target state</legend>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={target === "funds_held_in_escrow"} onChange={() => setTarget("funds_held_in_escrow")} className="min-h-11 inline-flex items-center" />
+              <input type="radio" checked={target === "funds_held_in_escrow"} onChange={() => setTarget("funds_held_in_escrow")} />
               Held in Escrow
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={target === "funds_pending_release"} onChange={() => setTarget("funds_pending_release")} className="min-h-11 inline-flex items-center" />
+              <input type="radio" checked={target === "funds_pending_release"} onChange={() => setTarget("funds_pending_release")} />
               Pending Release
             </label>
           </fieldset>

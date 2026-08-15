@@ -66,6 +66,8 @@ const COMPONENT_DEFAULT_PX: Record<string, number | null> = {
   // control is scanned on its own, so the wrapper itself is not measured.
   Link: null,
   NavLink: null,
+  // Render-prop wrapper from react-hook-form: it renders no DOM of its own.
+  FormField: null,
 };
 const COMPONENT_TAGS = new Set(Object.keys(COMPONENT_DEFAULT_PX));
 
@@ -77,7 +79,7 @@ const PRIMITIVE_SAFE = new Set(
 /** Wrappers that delegate their box to their child (asChild / render-prop style). */
 const DELEGATING = new Set([
   "DropdownMenuTrigger", "PopoverTrigger", "TooltipTrigger", "SheetTrigger", "DialogTrigger",
-  "Link", "NavLink",
+  "Link", "NavLink", "FormField",
 ]);
 
 /** shadcn Button size variants -> height in px. */

@@ -172,7 +172,7 @@ export function RegisterPermissionDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} className="min-h-11 inline-flex items-center" />
+              <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} />
               Approval required
             </label>
             {editing && (

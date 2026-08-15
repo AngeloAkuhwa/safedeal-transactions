@@ -200,7 +200,7 @@ const AcceptInvite = () => {
                       </p>
                       <FormMessage />
                     </FormItem>
-                  )} className="min-h-11 inline-flex items-center" />
+                  )} />
 
                 <FormField
                   control={form.control}
@@ -228,7 +228,7 @@ const AcceptInvite = () => {
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )} className="min-h-11 inline-flex items-center" />
+                  )} />
 
                 <Button type="submit" className="w-full" size="lg" disabled={loading}>
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}

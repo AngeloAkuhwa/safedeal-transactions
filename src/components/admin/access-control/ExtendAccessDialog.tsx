@@ -110,7 +110,7 @@ export function ExtendAccessDialog({ user, open, onOpenChange, onConfirm }: Prop
               <input
                 type="checkbox"
                 checked={clearExpiry}
-                onChange={(e) => setClearExpiry(e.target.checked)} className="min-h-11 inline-flex items-center" />
+                onChange={(e) => setClearExpiry(e.target.checked)} />
               Remove expiration (grant permanent access)
             </label>
           </div>
