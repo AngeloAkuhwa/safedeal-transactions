@@ -364,44 +364,49 @@ const SellerProductCreate = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Document-level scroll (no inner overflow container) so mobile browser
+          chrome auto-hides and the bottom action bar is never trapped under the
+          fixed tab bar. dvh, not vh: iOS clips the bottom of vh. */}
+      <div className="flex min-h-[100dvh] w-full bg-background">
         <SellerStorefrontSidebar
           sellerName={dashData?.seller?.full_name || "Seller"}
           avatarUrl={dashData?.seller?.avatar_url || null}
           identityVerified={!!dashData?.seller?.identity_verified}
         />
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
-            <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          {/* pl-16 on mobile keeps the back button clear of the sidebar's fixed
+              hamburger, which used to sit directly on top of it. */}
+          <div className="sticky top-0 z-30 border-b border-border bg-background px-3 py-3 pl-16 sm:px-6 sm:py-4 lg:pl-6">
+            <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <button
                   onClick={() => navigate("/seller/storefront")}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg border border-border hover:bg-accent transition-colors"
+                  aria-label="Back to storefront"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border transition-colors hover:bg-accent"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" aria-hidden />
                 </button>
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">Add Product</h1>
-                  <p className="text-sm text-muted-foreground">Create a new product listing for your public store</p>
+                <div className="min-w-0">
+                  <h1 className="text-base font-bold text-foreground sm:text-xl">Add Product</h1>
+                  <p className="hidden text-sm text-muted-foreground sm:block">Create a new product listing for your public store</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="hidden items-center gap-3 sm:flex">
                 <Button
                   variant="outline"
                   onClick={() => createMutation.mutate("draft")}
                   disabled={createMutation.isPending}
-                  className="gap-2"
+                  className="min-h-11 gap-2"
                 >
                   <Save className="h-4 w-4" />
                   Save Draft
                 </Button>
                 <Button
-                  onClick={() => createMutation.mutate("published")}
-                  disabled={createMutation.isPending || !canPublish}
-                  title={publishBlockedReason}
-                  className="gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                  onClick={attemptPublish}
+                  disabled={createMutation.isPending}
+                  className="min-h-11 gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   Publish
@@ -411,7 +416,7 @@ const SellerProductCreate = () => {
           </div>
 
           {/* Content */}
-          <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-6">
+          <div className="mx-auto max-w-[1200px] space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-8">
             {/* Product Details */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
               <div className="p-6 border-b border-border flex items-center gap-3">
