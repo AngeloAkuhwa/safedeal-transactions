@@ -162,7 +162,7 @@ export function EscrowRecordDrawer({
         <SheetHeader className="mb-4">
           <SheetTitle className="text-white flex items-center justify-between">
             <span>Escrow record</span>
-            <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
+            <button onClick={onClose} className="text-slate-400 hover:text-white relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"><X className="h-4 w-4" /></button>
           </SheetTitle>
         </SheetHeader>
         {isLoading || !txId ? (

@@ -258,7 +258,7 @@ function RowMenu({
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -291,11 +291,11 @@ function RowMenu({
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={onPause}>
+        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400 min-h-11`} onClick={onPause}>
           <span className={iconSlot}><FaPause className="text-orange-400" /></span>
           <span>Pause Payout</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>

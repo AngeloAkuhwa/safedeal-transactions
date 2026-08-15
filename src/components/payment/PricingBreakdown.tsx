@@ -66,7 +66,7 @@ export function PricingBreakdown({ snapshot, audience = "buyer", className }: Pr
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="inline-flex text-muted-foreground hover:text-foreground"
+                        className="inline-flex text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
                         aria-label={`About ${PRICING_LINE_LABELS[key]}`}
                       >
                         <Info className="h-3.5 w-3.5" />

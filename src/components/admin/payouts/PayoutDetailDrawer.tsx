@@ -340,12 +340,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 <h4 className="text-white font-semibold text-sm">Linked records</h4>
                 <div className="flex flex-col gap-2">
                   {detail.transaction?.id && (
-                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
+                    <button className={`${actionBtn} justify-between min-h-11`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
                       Open Transaction <ExternalLink className="h-4 w-4" />
                     </button>
                   )}
                   {detail.dispute && (
-                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
+                    <button className={`${actionBtn} justify-between min-h-11`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
                       Open Dispute <ExternalLink className="h-4 w-4" />
                     </button>
                   )}

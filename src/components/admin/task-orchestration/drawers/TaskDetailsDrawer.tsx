@@ -482,13 +482,13 @@ function PartyCard({ title, data }: { title: string; data: Record<string, any> |
         {email && (
           <div className="flex items-center gap-1.5">
             <span>{email}</span>
-            <button type="button" onClick={() => navigator.clipboard.writeText(email)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3 w-3" /></button>
+            <button type="button" onClick={() => navigator.clipboard.writeText(email)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"><Copy className="h-3 w-3" /></button>
           </div>
         )}
         {phone && (
           <div className="flex items-center gap-1.5">
             <span>{phone}</span>
-            <button type="button" onClick={() => navigator.clipboard.writeText(phone)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3 w-3" /></button>
+            <button type="button" onClick={() => navigator.clipboard.writeText(phone)} className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"><Copy className="h-3 w-3" /></button>
           </div>
         )}
       </div>

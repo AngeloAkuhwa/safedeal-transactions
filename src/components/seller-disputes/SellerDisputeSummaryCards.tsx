@@ -92,7 +92,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
                 {("tooltip" in card) && card.tooltip && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label="More info" className="inline-flex text-muted-foreground/60 hover:text-muted-foreground">
+                      <button type="button" aria-label="More info" className="inline-flex text-muted-foreground/60 hover:text-muted-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']">
                         <Info className="h-3 w-3" />
                       </button>
                     </TooltipTrigger>

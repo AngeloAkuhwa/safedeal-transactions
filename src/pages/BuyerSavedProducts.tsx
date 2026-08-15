@@ -94,7 +94,7 @@ export default function BuyerSavedProducts() {
               <p className="text-sm text-muted-foreground">
                 Saved products may sell out or be removed by the seller. Purchase soon to avoid disappointment.
               </p>
-              <button onClick={() => setShowBanner(false)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => setShowBanner(false)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']">
                 <X className="h-4 w-4" />
               </button>
             </div>

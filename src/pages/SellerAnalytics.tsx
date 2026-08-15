@@ -147,7 +147,7 @@ function KpiCard({
                     type="button"
                     aria-label="More info"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                    className="text-muted-foreground/60 hover:text-foreground transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
                   >
                     <Info className="h-3 w-3" />
                   </button>

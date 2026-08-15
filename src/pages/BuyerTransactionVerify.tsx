@@ -198,7 +198,7 @@ const BuyerTransactionVerify = () => {
               </div>
               <button
                 onClick={() => setAlertDismissed(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-3.5 before:content-['']"
               >
                 <X className="h-4 w-4" />
               </button>

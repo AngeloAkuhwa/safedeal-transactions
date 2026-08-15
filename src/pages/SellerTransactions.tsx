@@ -56,7 +56,7 @@ function InfoTip({ children }: { children: React.ReactNode }) {
           type="button"
           aria-label="More info"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
         >
           <Info className="h-3.5 w-3.5" />
         </button>
