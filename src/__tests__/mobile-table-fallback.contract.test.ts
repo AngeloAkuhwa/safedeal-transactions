@@ -175,11 +175,15 @@ describe("mobile table fallbacks", () => {
         .replace(/className=(?:"[^"]*"|\{`[^`]*`\})/g, " ")
         .replace(/aria-label="[^"]*"/g, " ");
 
+      // Styling props are not data: parity is about information, and the
+      // mobile card legitimately styles itself differently.
+      const PRESENTATIONAL = new Set(["className", "variant", "icon", "Icon", "color", "cls"]);
       for (const ident of idents) {
         // The leaf property name is what matters for parity (e.g. `isUrgent`
         // out of `d.isUrgent`); the mobile branch may reach it via a
         // differently-named local variable derived from the same field.
         const leaf = ident.split(/\??\./).pop()!;
+        if (PRESENTATIONAL.has(leaf)) continue;
         if (!new RegExp(`\\b${leaf}\\b`).test(searchable)) {
           violations.push(`${file}: desktop-only field "${leaf}" (from ${ident}) missing from the mobile card branch`);
         }
