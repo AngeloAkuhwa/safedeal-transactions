@@ -28,6 +28,7 @@ import {
   getProductCategories,
 } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "—";
@@ -172,8 +173,14 @@ const SellerProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background px-3 py-4 sm:px-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <div className="space-y-4 xl:col-span-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
+          </div>
+          <Skeleton className="h-64 rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -205,16 +212,16 @@ const SellerProductDetail = () => {
   // Read-only guard for private-offer products
   if (isPrivateOffer) {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex min-h-[100dvh] bg-background">
         <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} identityVerified={identityVerified} />
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex items-center gap-4 px-6 lg:px-8 py-4 border-b border-border">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center gap-3 border-b border-border px-3 py-3 pl-16 sm:px-6 lg:px-8 lg:pl-8 lg:py-4">
             <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate("/seller/storefront")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-foreground">{product.title}</h1>
+                <h1 className="truncate text-base font-bold text-foreground sm:text-xl">{product.title}</h1>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
                   <Lock className="h-3 w-3" /> Private
                 </span>
@@ -222,8 +229,8 @@ const SellerProductDetail = () => {
               <p className="text-sm text-muted-foreground">Private offer product · read-only</p>
             </div>
           </div>
-          <div className="flex-1 px-6 lg:px-8 py-6 max-w-3xl">
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-6">
+          <div className="max-w-3xl flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:mb-6 sm:p-6">
               <div className="flex items-start gap-3">
                 <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div>
@@ -234,7 +241,7 @@ const SellerProductDetail = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
+            <div className="space-y-3 rounded-2xl border border-border bg-card p-4 sm:p-6">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase">Snapshot</h3>
               <p className="text-2xl font-bold text-foreground">{product.title}</p>
               {product.short_description && <p className="text-sm text-muted-foreground">{product.short_description}</p>}
@@ -261,20 +268,20 @@ const SellerProductDetail = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
         identityVerified={identityVerified}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="relative flex min-w-0 flex-1 flex-col">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-border relative z-10">
-          <div className="flex items-center gap-4 lg:ml-0 ml-12">
+        {/* Header — sticky, and padded clear of the sidebar's fixed hamburger */}
+        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 pl-16 backdrop-blur sm:px-6 lg:px-8 lg:pl-8 lg:py-4">
+          <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -283,15 +290,15 @@ const SellerProductDetail = () => {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-foreground">Edit Product</h1>
+                <h1 className="text-base font-bold text-foreground sm:text-xl">Edit Product</h1>
                 <ProductStatusBadge status={product.status} />
               </div>
-              <p className="text-sm text-muted-foreground">Update listing details, stock, pricing, and visibility</p>
+              <p className="hidden text-sm text-muted-foreground sm:block">Update listing details, stock, pricing, and visibility</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <Button
               variant="outline"
               size="sm"
@@ -307,7 +314,7 @@ const SellerProductDetail = () => {
               size="sm"
               onClick={handleStatusToggle}
               disabled={updateMutation.isPending}
-              className="gap-1.5"
+              className="min-h-11 flex-1 gap-1.5 sm:min-h-0 sm:flex-none"
             >
               {product.status === "published" ? (
                 <><EyeOff className="h-3.5 w-3.5" /> Unpublish</>
@@ -319,7 +326,7 @@ const SellerProductDetail = () => {
               size="sm"
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-0"
+              className="min-h-11 flex-1 gap-1.5 border-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 sm:min-h-0 sm:flex-none"
             >
               {updateMutation.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -331,21 +338,21 @@ const SellerProductDetail = () => {
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 relative z-10">
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 max-w-7xl">
+        {/* Content — document scroll, no nested scroller */}
+        <div className="relative z-10 flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <div className="grid max-w-7xl grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-4">
             {/* Main content — col-span-3 */}
             <div className="xl:col-span-3 space-y-6">
               {/* Product Details */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Info className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Product Details</h2>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Basic information about your product</p>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-foreground">Product Title</Label>
@@ -399,7 +406,7 @@ const SellerProductDetail = () => {
 
               {/* Product Media */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <ImageIcon className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Product Media</h2>
@@ -451,7 +458,7 @@ const SellerProductDetail = () => {
                     Restock
                   </Button>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-foreground">Unit Price</Label>
@@ -495,14 +502,14 @@ const SellerProductDetail = () => {
 
               {/* Agreement & Delivery */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Handshake className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Agreement & Delivery</h2>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Transaction terms and delivery options</p>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div>
                     <Label className="text-sm font-medium text-foreground">Seller Notes</Label>
                     <Textarea value={sellerNotes} onChange={(e) => setSellerNotes(e.target.value)} rows={3} className="mt-1.5 px-4 py-3 rounded-lg" placeholder="Private notes about this product..." />
@@ -561,7 +568,7 @@ const SellerProductDetail = () => {
 
               {/* Visibility & Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Eye className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Visibility & Status</h2>
@@ -600,7 +607,7 @@ const SellerProductDetail = () => {
             <div className="xl:col-span-1 space-y-6">
               {/* Product Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">Product Status</h3>
                 </div>
                 <div className="p-6 space-y-3">
@@ -645,7 +652,7 @@ const SellerProductDetail = () => {
 
               {/* Quick Actions */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">Quick Actions</h3>
                 </div>
                 <div className="p-6 space-y-2">
@@ -679,7 +686,7 @@ const SellerProductDetail = () => {
 
               {/* SafeDeal Protection */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">SafeDeal Protection</h3>
                 </div>
                 <div className="p-6">

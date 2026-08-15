@@ -1,0 +1,4 @@
+ALTER TABLE public.disputes FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_deliveries FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.transaction_events FORCE ROW LEVEL SECURITY;
