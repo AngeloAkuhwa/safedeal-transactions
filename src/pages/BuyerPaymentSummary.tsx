@@ -65,6 +65,21 @@ function PaymentHeader() {
   );
 }
 
+/**
+ * Money states that mean "SafeDeal is holding the buyer's money".
+ *
+ * Deliberately an allowlist. "Anything that isn't pending counts as paid" would
+ * also fire on a refund, showing a payment-success screen for money that has
+ * just gone back to the buyer. Any state added later falls through to the
+ * normal render until someone decides it belongs here.
+ */
+const FUNDS_SECURED = new Set([
+  "funds_held_in_escrow",
+  "funds_pending_release",
+  "funds_releasing",
+  "funds_released",
+]);
+
 export default function BuyerPaymentSummary() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
@@ -136,9 +151,15 @@ export default function BuyerPaymentSummary() {
 
   // The webhook, not the popup, is the source of truth for money. When it
   // lands, show success regardless of how the buyer left the popup.
+  //
+  // Allowlist, not denylist. "Anything that isn't pending counts as paid" would
+  // also fire on a refund or a release — showing a buyer a payment-success
+  // screen for money that has just gone back to them. Name the states that
+  // actually mean "we are holding your money" and let every other value,
+  // including ones added later, fall through to the normal render.
   const moneyStatus = data?.transaction.money_status;
   useEffect(() => {
-    if (moneyStatus && moneyStatus !== "payment_pending" && moneyStatus !== "not_paid") {
+    if (moneyStatus && FUNDS_SECURED.has(moneyStatus)) {
       setIsProcessing(false);
       setShowSuccess(true);
     }
