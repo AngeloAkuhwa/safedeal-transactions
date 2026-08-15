@@ -80,17 +80,6 @@ export function InternalUsersTable({
             {rows.map((u) => {
               const suspended = u.status === "suspended" || u.status === "locked";
               const deactivated = u.status === "deactivated";
-              const invited = u.status === "invited";
-              const nowMs = Date.now();
-              const expiresMs = u.access_expires_at ? new Date(u.access_expires_at).getTime() : null;
-              const isExpired = expiresMs !== null && expiresMs < nowMs;
-              const nearExpiry = expiresMs !== null && expiresMs - nowMs < 14 * 24 * 60 * 60 * 1000;
-              const canResend =
-                invited ||
-                (u as any).invitation_status === "expired" ||
-                (invited && isExpired);
-              const canExtend = expiresMs !== null && (isExpired || nearExpiry);
-              const canHardDelete = invited || deactivated;
               return (
                 <tr
                   key={u.id}
