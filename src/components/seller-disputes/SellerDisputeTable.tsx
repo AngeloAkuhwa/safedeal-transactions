@@ -63,8 +63,8 @@ export function SellerDisputeTable({ items }: Props) {
         {items.map((d) => {
           const impact = resolveDisputeMoneyImpact(d.money_impact);
           const urgent = isDeadlineUrgent(d);
-          // Plain container + stretched link: `role="button"` around a real
-          // a Button element is invalid ARIA, and the nested action stays reachable.
+          // Plain container + stretched link: a role="button" wrapper around a
+          // real action element is invalid ARIA; the nested action stays reachable.
           return (
             <article key={d.id} className="relative space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
