@@ -72,8 +72,9 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-foreground">{formatDisputeRef(item.id)}</p>
+                  <p className="text-xs font-semibold text-primary">{item.transaction_code ? `#${item.transaction_code}` : "No transaction code"}</p>
                   <p className="truncate text-sm font-semibold text-foreground">{item.item_title ?? "Untitled Item"}</p>
-                  <p className="text-xs text-muted-foreground">{item.seller?.name ?? "Unknown seller"} · {format(openedDate, "MMM d, yyyy")}</p>
+                  <p className="text-xs text-muted-foreground">{item.seller?.name ?? "Unknown seller"} · {format(openedDate, "MMM d, yyyy")} · {formatDistanceToNow(openedDate, { addSuffix: true })}</p>
                 </div>
                 <p className="shrink-0 text-sm font-bold text-foreground">{formatAmount(item.buyer_total_amount)}</p>
               </div>
