@@ -1,0 +1,26 @@
+-- ============================================================================
+-- Phase 0 final closure. Applied 2026-08-15.
+--   1. payout_accounts: verification_status / provider_recipient_code /
+--      provider_recipient_id / last_verified_at / provider_response are
+--      service_role-only. Three layers: BEFORE trigger that pins (and
+--      downgrades to 'requires_update' when bank details change),
+--      column-level INSERT/UPDATE grants, and a pinning INSERT policy.
+--   2. check_admin_rate_limit: ceiling read from the
+--      `security.admin_rate_limit_caps` setting (caller argument may only
+--      lower it), subject must be active internal staff, a signed-in caller
+--      may only meter itself, EXECUTE revoked from PUBLIC/anon/authenticated.
+--   3. annotate_setting_version_reason: service_role or internal admin only,
+--      EXECUTE revoked from PUBLIC/anon/authenticated.
+--   4. transactions / transaction_items / transaction_delivery_terms /
+--      checkout_session_items: anon DML revoked, authenticated narrowed to
+--      the privileges backed by a policy, FORCE ROW LEVEL SECURITY on.
+--   5. checkout_session_items: quantity > 0 and
+--      round(line_total,2) = round(unit_price * quantity, 2).
+--   6. Dropped money-to-zero column defaults: transaction_pricing
+--      .platform_fee_amount, dispute_outcomes.refund_amount/.release_amount,
+--      vendor_plans.monthly_price_naira/.yearly_price_naira.
+--   7. effective_vendor_plan_code derives its fallback from the cheapest
+--      ACTIVE plan, and also falls back when the stored code is inactive.
+--   8. anon EXECUTE revoked from apply_permission_change_set and
+--      count_pending_approvals_for_actor.
+-- (full statements as applied; see migration history)
