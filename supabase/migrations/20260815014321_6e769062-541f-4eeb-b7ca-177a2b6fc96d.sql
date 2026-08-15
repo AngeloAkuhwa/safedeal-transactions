@@ -1,0 +1,2 @@
+ALTER TABLE public.products FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.transaction_messages FORCE ROW LEVEL SECURITY;
