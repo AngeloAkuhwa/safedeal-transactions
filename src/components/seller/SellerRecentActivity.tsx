@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatMoney } from "@/lib/format";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -118,13 +118,19 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                 return (
                   <TableRow
                     key={row.transaction_id}
-                    className="sd-row-hover cursor-pointer"
+                    className="relative sd-row-hover cursor-pointer"
                     onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
                   >
                      <TableCell className="px-4 py-3">
                        <div className="flex items-center gap-2">
                          <Shield className="h-4 w-4 text-primary shrink-0" />
-                         <span className="font-mono text-sm font-medium">{row.transaction_code}</span>
+                         <Link
+                           to={`/seller/transactions/${row.transaction_id}`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="font-mono text-sm font-medium after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                         >
+                           {row.transaction_code}
+                         </Link>
                        </div>
                      </TableCell>
                      <TableCell className="px-4 py-3">
@@ -142,7 +148,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                      <TableCell className="px-4 py-3">
                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                      </TableCell>
-                     <TableCell className="px-4 py-3">
+                     <TableCell className="relative z-rail px-4 py-3">
                        <div className="flex items-center gap-1.5">
                          {row.has_active_rider_token && (
                            <Button
@@ -204,6 +210,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{row.buyer_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{row.buyer_email}</p>
                     <p className="text-xs text-muted-foreground truncate">{row.item_title}</p>
                   </div>
                   <p className="text-sm font-bold text-foreground tabular-nums shrink-0">
