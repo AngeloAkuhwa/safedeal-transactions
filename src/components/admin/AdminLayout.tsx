@@ -65,6 +65,22 @@ export function AdminLayout({
 
         {/* Main column */}
         <div className={"flex min-w-0 flex-1 flex-col" + (fullHeight ? " lg:h-screen lg:min-h-0 lg:overflow-hidden" : "") }>
+          {/* Mobile navigation rail. Rendered in normal flow (not `fixed`) so it
+              reserves its own space and can never be pushed below the fold on
+              screens that opt out of the default headers. */}
+          {hideDefaultHeaders && !mobileHeaderSlot && typeof headerSlot !== "function" && (
+            <div className="sticky top-0 z-40 flex h-14 shrink-0 items-center border-b border-border bg-card/95 px-3 backdrop-blur lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation menu"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card text-foreground hover:bg-muted"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <span className="ml-3 truncate text-sm font-semibold text-foreground">{title}</span>
+            </div>
+          )}
           {mobileHeaderSlot
             ? typeof mobileHeaderSlot === "function"
               ? mobileHeaderSlot({ onOpenMenu: () => setMobileOpen(true) })
@@ -94,16 +110,6 @@ export function AdminLayout({
           {!fullHeight && <AdminFooter />}
         </div>
       </div>
-      {hideDefaultHeaders && !mobileHeaderSlot && typeof headerSlot !== "function" && (
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open navigation menu"
-          className="fixed left-3 top-3 z-50 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/90 text-foreground shadow-md backdrop-blur hover:bg-muted lg:hidden relative before:absolute before:-inset-2 before:content-['']"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      )}
       <AdminReadingModeControl variant="mobile-floater" />
       <AdminReadingModeControl variant="desktop-floater" />
     </div>
