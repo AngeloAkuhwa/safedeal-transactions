@@ -432,7 +432,7 @@ export default function AdminDisputes() {
                         key={f.id}
                         type="button"
                         onClick={() => setParam("quick", f.id)}
-                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        className={`flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                           isActive ? baseActive : baseInactive
                         } min-h-11`}
                       >
