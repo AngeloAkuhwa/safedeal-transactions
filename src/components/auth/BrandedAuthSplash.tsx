@@ -6,7 +6,7 @@ interface BrandedAuthSplashProps {
 
 const BrandedAuthSplash = ({ label = "Securing your session…" }: BrandedAuthSplashProps) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-5">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-5">
       <img
         src={logo}
         alt="SafeDeal"

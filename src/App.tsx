@@ -95,7 +95,7 @@ import { TestModeBanner } from "./components/TestModeBanner";
 const queryClient = new QueryClient();
 
 const RouteFallback = () => (
-  <div className="flex min-h-screen items-center justify-center bg-background" role="status" aria-live="polite">
+  <div className="flex min-h-[100dvh] items-center justify-center bg-background" role="status" aria-live="polite">
     <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
     <span className="sr-only">Loading page…</span>
   </div>

@@ -273,7 +273,7 @@ export default function BuyerPaymentSummary() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
@@ -290,7 +290,7 @@ export default function BuyerPaymentSummary() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <div className="max-w-5xl mx-auto px-4 py-8 w-full space-y-6">
           <Skeleton className="h-12 w-full rounded-xl" />
@@ -317,7 +317,7 @@ export default function BuyerPaymentSummary() {
   const terminalStatus = deriveTerminalStatus(data.transaction.status);
   if (terminalStatus) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <TerminalTransactionScreen
           status={terminalStatus}
@@ -354,7 +354,7 @@ export default function BuyerPaymentSummary() {
 
   if (pricingUnavailable) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="max-w-md w-full text-center space-y-4">
@@ -404,7 +404,7 @@ export default function BuyerPaymentSummary() {
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
 
   return (
-    <div className="min-h-screen bg-muted flex flex-col">
+    <div className="min-h-[100dvh] bg-muted flex flex-col">
       <Header />
 
       {/* Context-aware Lock Banner */}

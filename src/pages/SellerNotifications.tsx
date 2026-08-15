@@ -140,7 +140,7 @@ const SellerNotifications = () => {
   const isFilterEmpty = data && data.items.length === 0 && hasActiveFilters;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav
         sellerName={navData?.seller.full_name ?? "Seller"}
         avatarUrl={navData?.seller.avatar_url ?? null}

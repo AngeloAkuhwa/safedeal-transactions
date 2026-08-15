@@ -68,7 +68,7 @@ export default function BuyerSavedProducts() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         <div className="sd-page sd-page-y space-y-4">

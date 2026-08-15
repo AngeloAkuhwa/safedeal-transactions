@@ -380,7 +380,7 @@ const SellerAnalytics = () => {
   const exportDisabled = !data;
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
+    <div className="min-h-[100dvh] bg-muted/30 flex flex-col">
       <SellerNav sellerName={seller.name} avatarUrl={seller.avatar} />
 
       <main className="flex-1">

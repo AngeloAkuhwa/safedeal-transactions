@@ -122,7 +122,7 @@ const SellerProductPreview = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -130,7 +130,7 @@ const SellerProductPreview = () => {
 
   if (isError || !data?.product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4">
         <h2 className="text-xl font-bold text-foreground">Product not found</h2>
         <Button onClick={() => navigate("/seller/storefront")}>Back to Storefront</Button>
       </div>

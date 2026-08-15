@@ -142,7 +142,7 @@ export default function BuyerTransactionReview() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
@@ -159,7 +159,7 @@ export default function BuyerTransactionReview() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <div className="max-w-7xl mx-auto px-4 py-8 w-full space-y-6">
           <Skeleton className="h-12 w-full rounded-xl" />
@@ -187,7 +187,7 @@ export default function BuyerTransactionReview() {
   const terminalStatus = deriveTerminalStatus(data.transaction.status);
   if (terminalStatus) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <Header />
         <TerminalTransactionScreen
           status={terminalStatus}

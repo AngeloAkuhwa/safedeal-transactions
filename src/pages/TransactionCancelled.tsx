@@ -59,7 +59,7 @@ export default function TransactionCancelled() {
     "No reason was recorded for this cancellation.";
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
+    <div className="min-h-[100dvh] bg-muted/30 flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">

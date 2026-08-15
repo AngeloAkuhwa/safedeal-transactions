@@ -102,7 +102,7 @@ const BuyerProfileSettings = () => {
   // ── Loading state ──
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -111,7 +111,7 @@ const BuyerProfileSettings = () => {
   // ── Error state ──
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
           <RefreshCw className="h-7 w-7 text-destructive" />
         </div>
@@ -130,7 +130,7 @@ const BuyerProfileSettings = () => {
   const hasLocation = !!(data.profile.state_name && data.profile.city_name);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
       {/* Compact header */}

@@ -360,7 +360,7 @@ const SellerCreateTransaction = () => {
     const conditionLabel = CONDITION_OPTIONS.find((c) => c.value === form.item_condition)?.label ?? form.item_condition;
     const deliveryLabel = DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? form.delivery_method;
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-[100dvh] bg-background flex flex-col">
         <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
         <TransactionSuccess
           publishedUrl={publishedUrl}
@@ -377,7 +377,7 @@ const SellerCreateTransaction = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
 
       {/* Hero */}

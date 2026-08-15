@@ -137,7 +137,7 @@ const CartCheckoutReview = () => {
 
   if (!sessionId) {
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-[100dvh] bg-background">
         <BuyerSidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
@@ -152,7 +152,7 @@ const CartCheckoutReview = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-[100dvh] bg-background">
         <BuyerSidebar />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -183,7 +183,7 @@ const CartCheckoutReview = () => {
     }
 
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-[100dvh] bg-background">
         <BuyerSidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4 max-w-md px-4">
@@ -234,7 +234,7 @@ const CartCheckoutReview = () => {
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">

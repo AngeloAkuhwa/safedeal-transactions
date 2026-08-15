@@ -83,7 +83,7 @@ const StorefrontCheckout = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -91,7 +91,7 @@ const StorefrontCheckout = () => {
 
   if (isError || !data?.product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <Package className="h-16 w-16 text-muted-foreground/30" />
         <h1 className="text-2xl font-bold">Product not found</h1>
         <Button asChild>
@@ -504,7 +504,7 @@ const StorefrontCheckout = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         {content}

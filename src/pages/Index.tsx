@@ -30,7 +30,7 @@ const Index = () => {
   });
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-[100dvh] flex-col">
       <ScrollProgressBar />
       <Header />
       <main className="flex-1 pb-8">

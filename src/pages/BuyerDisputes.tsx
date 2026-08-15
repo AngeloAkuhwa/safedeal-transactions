@@ -72,7 +72,7 @@ const BuyerDisputes = () => {
   const isFilterEmpty = data && data.items.length === 0 && (hasActiveFilters || totalAll > 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       {/* Compact header */}

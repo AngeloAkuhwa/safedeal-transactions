@@ -44,8 +44,8 @@ export function AdminLayout({
 
   return (
     <ReadingModeProvider>
-    <div className={fullHeight ? "min-h-screen bg-background text-foreground lg:h-screen lg:overflow-hidden" : "min-h-screen bg-background text-foreground"}>
-      <div className={fullHeight ? "flex min-h-screen lg:h-screen lg:overflow-hidden" : "flex min-h-screen"}>
+    <div className={fullHeight ? "min-h-[100dvh] bg-background text-foreground lg:h-screen lg:overflow-hidden" : "min-h-[100dvh] bg-background text-foreground"}>
+      <div className={fullHeight ? "flex min-h-[100dvh] lg:h-screen lg:overflow-hidden" : "flex min-h-[100dvh]"}>
         {/* Desktop sidebar */}
         <div className="hidden w-72 shrink-0 border-r border-border lg:block">
           <div className="sticky top-0 h-screen overflow-hidden">

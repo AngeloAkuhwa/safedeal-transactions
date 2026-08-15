@@ -67,7 +67,7 @@ const ResetPassword = () => {
   if (!ready) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-success/5 p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-success/5 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl">
         <div className="flex items-center justify-center gap-2 mb-6">
           <Shield className="h-7 w-7 text-primary" />

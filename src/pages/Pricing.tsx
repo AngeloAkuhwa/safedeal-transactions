@@ -49,7 +49,7 @@ export default function Pricing() {
   const baseRate = copy.platformFeeRate;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-6">
+    <main className="min-h-[100dvh] bg-background px-4 py-12 text-foreground sm:px-6">
       <div className="mx-auto w-full max-w-5xl">
         <Link
           to="/"

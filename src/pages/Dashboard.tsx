@@ -34,7 +34,7 @@ const Dashboard = () => {
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
           <RefreshCw className="h-7 w-7 text-destructive" />
         </div>
