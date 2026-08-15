@@ -24,6 +24,7 @@ import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
+import { ProductImage } from "@/components/common/ProductImage";
 
 /**
  * Money in this screen speaks the checkout session's own currency. NEVER
@@ -369,7 +370,7 @@ const CartCheckoutReview = () => {
                           <div key={item.id} className="flex gap-3 py-3">
                             <div className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0">
                               {image ? (
-                                <img src={image} alt={title} className="h-full w-full object-cover" />
+                                <ProductImage url={image} alt={title} rendition="card" sizes="(max-width: 640px) 96px, 128px" />
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center">
                                   <Package className="h-6 w-6 text-muted-foreground/30" />
