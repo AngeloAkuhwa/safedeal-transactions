@@ -567,7 +567,19 @@ export function contentWidthPx(body: string): number | null {
   return null;
 }
 
+/**
+ * `after:absolute after:inset-0` stretches the control over its positioned
+ * ancestor (the card/row), so the real hit area is that box, not the text line.
+ */
+function isStretched(classes: string[]): boolean {
+  return (
+    classes.some((c) => /^(?:[\w-]+:)*after:absolute$/.test(c)) &&
+    classes.some((c) => /^(?:[\w-]+:)*after:inset-0$/.test(c))
+  );
+}
+
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
+  if (isStretched(classes)) return { classes, height: 360, width: 360 };
   const bonus = insetBonus(classes);
   const h = pick(classes, "h-");
   const minH = pick(classes, "min-h-");

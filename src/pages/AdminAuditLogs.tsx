@@ -233,7 +233,7 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Changes</div>
                   <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-xs">
+                    <table className="sd-stack w-full text-xs">
                       <thead className="bg-muted/40">
                         <tr>
                           <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Field</th>
@@ -594,7 +594,7 @@ export default function AdminAuditLogs() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="sd-stack w-full">
                 <thead className="bg-muted/40 border-b border-border">
                   <tr>
                     {["Timestamp","Action","Actor","Target","Description","Metadata","IP Address","Actions"].map((h, i) => (

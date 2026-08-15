@@ -1583,7 +1583,7 @@ export default function AdminTransactionDetail() {
                   <div>
                     <h3 className="text-sm font-medium text-foreground mb-3">Escrow Ledger (Full History)</h3>
                     <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
+                  <table className="sd-stack w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground"><tr>
                       <th className="p-2 text-left">Date</th>
                       <th className="p-2 text-left">Type</th>
