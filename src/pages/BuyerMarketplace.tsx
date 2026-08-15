@@ -26,6 +26,7 @@ import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 import { useAuthState } from "@/hooks/useSavedProducts";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { PublicPageHeader } from "@/components/layout/PublicPageHeader";
 
 export default function BuyerMarketplace() {
   usePageMeta({
@@ -112,7 +113,13 @@ export default function BuyerMarketplace() {
   }, [categories]);
 
   return (
-    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col bg-background lg:h-[100dvh] lg:flex-row lg:overflow-hidden">
+      {/* Signed out, this page had no chrome at all — no logo, no route back to
+          the site, no way to sign up. A visitor arriving on a shared product
+          link could browse and then had nowhere to go. */}
+      {!isAuthenticated && <PublicPageHeader current="marketplace" />}
+
+      <div className="flex flex-1 lg:overflow-hidden">
       {isAuthenticated && <BuyerSidebar />}
 
       <main className="flex-1 relative lg:overflow-y-auto">
@@ -330,6 +337,7 @@ export default function BuyerMarketplace() {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }
