@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { scanSource } from "./helpers/touch-target-scan";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
