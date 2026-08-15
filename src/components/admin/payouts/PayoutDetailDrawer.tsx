@@ -400,16 +400,16 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     Retry Payout
                   </button>
                   {p!.release_blocked ? (
-                    <button className={actionBtn} onClick={() => { setReasonOpen("min-h-11 unblock"); setReason(""); }}>
+                    <button className={actionBtn} onClick={() => { setReasonOpen("unblock"); setReason(""); }}>
                       <ShieldCheck className="h-4 w-4" /> Unblock Payout
                     </button>
                   ) : (p!.status === "awaiting_release" || p!.status === "failed") ? (
-                    <button className={actionBtn} onClick={() => { setReasonOpen("min-h-11 block"); setReason(""); }}>
+                    <button className={actionBtn} onClick={() => { setReasonOpen("block"); setReason(""); }}>
                       <ShieldOff className="h-4 w-4" /> Block Payout
                     </button>
                   ) : null}
                   {detail.transaction?.id && (
-                    <button className={actionBtn} onClick={() => navigate(`min-h-11 /admin/transactions/${detail.transaction!.id}`)}>
+                    <button className={actionBtn} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
                       <ExternalLink className="h-4 w-4" /> Open Transaction
                     </button>
                   )}

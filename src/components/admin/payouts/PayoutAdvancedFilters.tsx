@@ -56,7 +56,7 @@ export function PayoutAdvancedFilters({ value, onChange, className, variant = "d
     <div className={wrapperCls}>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Status</label>
-        <select className={selectCls} value={value.status} onChange={(e) => set("min-h-11 status", e.target.value as PayoutTab)}>
+        <select className={selectCls} value={value.status} onChange={(e) => set("status", e.target.value as PayoutTab)}>
           <option value="all">All Statuses</option>
           <option value="pending_release">Pending</option>
           <option value="processing">Processing</option>
@@ -67,7 +67,7 @@ export function PayoutAdvancedFilters({ value, onChange, className, variant = "d
       </div>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Date Range</label>
-        <select className={selectCls} value={value.dateRange} onChange={(e) => set("min-h-11 dateRange", e.target.value as DateRangePreset)}>
+        <select className={selectCls} value={value.dateRange} onChange={(e) => set("dateRange", e.target.value as DateRangePreset)}>
           <option value="all_time">All time</option>
           <option value="last_7d">Last 7 days</option>
           <option value="last_30d">Last 30 days</option>
@@ -106,7 +106,7 @@ export function PayoutAdvancedFilters({ value, onChange, className, variant = "d
       </div>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Amount Range</label>
-        <select className={selectCls} value={value.amount} onChange={(e) => set("min-h-11 amount", e.target.value as AmountRange)}>
+        <select className={selectCls} value={value.amount} onChange={(e) => set("amount", e.target.value as AmountRange)}>
           <option value="any">Any Amount</option>
           <option value="0_10k">₦0 - ₦10,000</option>
           <option value="10k_100k">₦10,000 - ₦100,000</option>
@@ -116,7 +116,7 @@ export function PayoutAdvancedFilters({ value, onChange, className, variant = "d
       </div>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Bank Verification</label>
-        <select className={selectCls} value={value.bank} onChange={(e) => set("min-h-11 bank", e.target.value as BankStatus)}>
+        <select className={selectCls} value={value.bank} onChange={(e) => set("bank", e.target.value as BankStatus)}>
           <option value="all">All Accounts</option>
           <option value="verified">Verified</option>
           <option value="unverified">Unverified</option>
@@ -125,7 +125,7 @@ export function PayoutAdvancedFilters({ value, onChange, className, variant = "d
       </div>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Quick Filters</label>
-        <select className={selectCls} value={value.quick} onChange={(e) => set("min-h-11 quick", e.target.value as QuickFilter)}>
+        <select className={selectCls} value={value.quick} onChange={(e) => set("quick", e.target.value as QuickFilter)}>
           <option value="none">None</option>
           <option value="failed_only">Failed Only</option>
           <option value="blocked_only">Blocked Only</option>
