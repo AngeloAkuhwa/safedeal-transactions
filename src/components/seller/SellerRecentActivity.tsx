@@ -222,7 +222,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                     {formatMoney(row.amount, row.currency_code)}
                   </p>
                 </div>
-                <div className="relative z-10 flex items-center gap-2">
+                <div className="relative z-rail flex items-center gap-2">
                   {row.has_active_rider_token && (
                     <Button
                       variant="outline"

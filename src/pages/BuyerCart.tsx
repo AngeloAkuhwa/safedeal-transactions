@@ -533,7 +533,7 @@ const BuyerCart = () => {
                                       <Link
                                         to={`/store/${item.product.seller_slug}`}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="relative z-10 font-medium text-foreground hover:text-primary transition-colors"
+                                        className="relative z-rail font-medium text-foreground hover:text-primary transition-colors"
                                       >
                                         {item.product?.seller_name || "Seller"}
                                       </Link>

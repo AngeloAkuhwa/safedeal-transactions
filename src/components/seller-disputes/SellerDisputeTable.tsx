@@ -101,7 +101,7 @@ export function SellerDisputeTable({ items }: Props) {
               </p>
               <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
               <Button
-                className="relative z-10 min-h-11 w-full"
+                className="relative z-rail min-h-11 w-full"
                 variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
                 onClick={(event) => {
                   event.stopPropagation();
