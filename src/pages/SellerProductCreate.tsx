@@ -431,6 +431,7 @@ const SellerProductCreate = () => {
                   <div>
                     <Label htmlFor="title">Product Title *</Label>
                     <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. iPhone 15 Pro Max 256GB" className="mt-1.5" />
+                    <FieldError field="title" />
                   </div>
                   <div>
                     <Label>Category</Label>
@@ -451,6 +452,7 @@ const SellerProductCreate = () => {
                 <div>
                   <Label htmlFor="desc">Full Description *</Label>
                   <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed product description..." rows={5} className="mt-1.5" />
+                    <FieldError field="desc" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -479,7 +481,7 @@ const SellerProductCreate = () => {
             </div>
 
             {/* Product Media */}
-            <div className="rounded-2xl border border-border shadow-sm bg-card">
+            <div id="media-section" className="scroll-mt-24 rounded-2xl border border-border shadow-sm bg-card">
               <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <ImageIcon className="h-5 w-5 text-primary" />
                 <div>
@@ -489,8 +491,9 @@ const SellerProductCreate = () => {
               </div>
               <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                 <MediaRequirementsPanel config={mediaConfig} />
-                <label className="flex flex-col items-center justify-center gap-3 py-12 rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer transition-colors bg-muted/30">
-                  <CloudUpload className="h-10 w-10 text-muted-foreground" />
+                <FieldError field="media" />
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 px-3 py-8 transition-colors hover:border-primary/40 sm:py-12">
+                  <CloudUpload className="h-10 w-10 text-muted-foreground" aria-hidden />
                   <div className="text-center">
                     <p className="font-medium text-foreground">Upload Product Images</p>
                     <p className="text-sm text-muted-foreground">Drag and drop or click to browse your files</p>
@@ -498,11 +501,16 @@ const SellerProductCreate = () => {
                   <span className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 mt-1 pointer-events-none">
                     Choose Files
                   </span>
-                  <p className="text-xs text-muted-foreground">
-                    Up to {mediaConfig.productMaxImages} images + {mediaConfig.productMaxVideos} video ·
+                  <p className="text-center text-xs text-muted-foreground">
+                    Up to {effectiveMaxImages} images + {mediaConfig.productMaxVideos} video ·
                     {" "}{mediaConfig.imageAllowedFormats.map((f) => f.toUpperCase()).join(", ")},
                     {" "}{mediaConfig.videoAllowedFormats.map((f) => f.toUpperCase()).join("/")}
                   </p>
+                  {planPhotoSlots !== null && effectiveMaxImages < mediaConfig.productMaxImages && (
+                    <p className="text-center text-xs font-medium text-muted-foreground">
+                      Your plan includes {effectiveMaxImages} photo slots.
+                    </p>
+                  )}
                   <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />
                 </label>
 
@@ -531,8 +539,15 @@ const SellerProductCreate = () => {
                             </button>
                           </div>
                         )}
-                        <button onClick={() => removeFile(idx)} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <X className="h-3 w-3" />
+                        {/* Always visible and 44px on touch: hover-reveal made
+                            photo removal impossible on a phone. */}
+                        <button
+                          type="button"
+                          onClick={() => removeFile(idx)}
+                          aria-label={`Remove ${f.name}`}
+                          className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-opacity md:h-7 md:w-7 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                        >
+                          <X className="h-4 w-4" aria-hidden />
                         </button>
                         {idx === 0 && f.status === "done" && (
                           <span className="absolute bottom-1 left-1 bg-success text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">Primary</span>
@@ -542,7 +557,7 @@ const SellerProductCreate = () => {
                     {(() => {
                       const imgCount = files.filter((f) => f.media_type === "image").length;
                       const vidCount = files.filter((f) => f.media_type === "video").length;
-                       if (imgCount >= mediaConfig.productMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
+                       if (imgCount >= effectiveMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
                       return (
                         <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
                           <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
