@@ -102,7 +102,7 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Condition</span>
-              <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10 text-xs">
+              <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
                 {item.condition_label?.replace(/_/g, " ") || "N/A"}
               </Badge>
             </div>

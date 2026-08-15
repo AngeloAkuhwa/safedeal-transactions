@@ -320,7 +320,7 @@ const PublicProductDetail = () => {
           {/* Category + Stock inline */}
           <div className="flex items-center gap-2 flex-wrap">
             {product.category && (
-              <Badge className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+              <Badge className="rounded-full bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                 {product.category.name}
               </Badge>
             )}

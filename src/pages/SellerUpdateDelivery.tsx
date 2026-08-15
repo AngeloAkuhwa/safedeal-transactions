@@ -322,7 +322,7 @@ export default function SellerUpdateDelivery() {
             <div className="flex items-center gap-2 mb-1">
               <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">MONEY STATUS</span>
-              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full text-xs px-2 py-0.5 ml-auto">
+              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full px-2 py-0.5 ml-auto">
                 Funds Held in Escrow
               </Badge>
             </div>

@@ -127,7 +127,7 @@ export function BuyerSidebar() {
                   isCollapsed ? (
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
                   ) : (
-                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-xs bg-primary text-primary-foreground">
+                    <Badge className="ml-auto h-5 min-w-[20px] px-1.5 bg-primary text-primary-foreground">
                       {cartCount}
                     </Badge>
                   )

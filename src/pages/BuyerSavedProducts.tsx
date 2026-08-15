@@ -85,7 +85,7 @@ export default function BuyerSavedProducts() {
                 <p className="sd-page-sub">Products you've saved for later</p>
               </div>
             </div>
-            <Badge className="self-start sm:self-auto bg-primary/10 text-primary border-primary/20 text-xs px-2 py-0.5">
+            <Badge className="self-start sm:self-auto bg-primary/10 text-primary border-primary/20 px-2 py-0.5">
               {items.length} {items.length === 1 ? "item" : "items"}
             </Badge>
           </div>

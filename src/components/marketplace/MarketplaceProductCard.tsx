@@ -111,7 +111,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Featured placement (paid) */}
           {product.is_featured && (
-            <Badge className="absolute left-2.5 top-2.5 border-none bg-primary/90 text-xs text-primary-foreground backdrop-blur-sm">
+            <Badge className="absolute left-2.5 top-2.5 border-none bg-primary/90 text-primary-foreground backdrop-blur-sm">
               <Star className="h-3 w-3 fill-current" />
               Featured
             </Badge>
@@ -119,7 +119,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Category badge */}
           {categoryName && !product.is_featured && (
-            <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none text-xs">
+            <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none">
               {categoryName}
             </Badge>
           )}
@@ -173,11 +173,11 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                   Unavailable
                 </Badge>
               ) : lowStock ? (
-                <Badge className="bg-warning/15 text-warning border-warning/30 text-xs px-1.5 py-0">
+                <Badge className="bg-warning/15 text-warning border-warning/30 px-1.5 py-0">
                   Low Stock
                 </Badge>
               ) : (
-                <Badge className="bg-success/15 text-success border-success/30 text-xs px-1.5 py-0">
+                <Badge className="bg-success/15 text-success border-success/30 px-1.5 py-0">
                   In Stock
                 </Badge>
               )}

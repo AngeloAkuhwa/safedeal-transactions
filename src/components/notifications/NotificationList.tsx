@@ -126,12 +126,12 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                         {item.title}
                       </h4>
                       {isUnread && item.ui_type === "verification_reminders" && (
-                        <Badge className="bg-warning/10 text-warning border-warning/20 text-xs font-bold px-1.5 py-0">
+                        <Badge className="bg-warning/10 text-warning border-warning/20 font-bold px-1.5 py-0">
                           Urgent
                         </Badge>
                       )}
                       {isUnread && item.ui_type !== "verification_reminders" && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-bold px-1.5 py-0">
+                        <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-1.5 py-0">
                           Unread
                         </Badge>
                       )}
