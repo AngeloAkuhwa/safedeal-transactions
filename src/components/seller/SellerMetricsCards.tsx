@@ -181,7 +181,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                       <button
                         type="button"
                         aria-label={`More info about ${card.label}`}
-                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0 relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']"
+                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0 relative before:absolute before:-inset-4 before:content-['']"
                       >
                         <Info className="h-3 w-3" />
                       </button>
