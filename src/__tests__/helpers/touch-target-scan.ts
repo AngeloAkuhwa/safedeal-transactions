@@ -195,8 +195,16 @@ export function measure(tagText: string, tag: string) {
   };
 }
 
-export function scanSource(source: string, file: string): Violation[] {
+export function scanSource(rawSource: string, file: string): Violation[] {
   const out: Violation[] = [];
+  // Inline file-scope class constants so `className={btn}` is measurable.
+  const consts = new Map<string, string>();
+  for (const m of rawSource.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*"([^"\n]*)"/g)) consts.set(m[1], m[2]);
+  let source = rawSource;
+  for (const [name, value] of consts) {
+    source = source.split(`className={${name}}`).join(`className="${value}"`);
+    source = source.split("${" + name + "}").join(value);
+  }
   for (let i = 0; i < source.length; i += 1) {
     if (source[i] !== "<") continue;
     const nameMatch = /^<([A-Za-z][A-Za-z0-9_.]*)/.exec(source.slice(i, i + 40));
@@ -219,7 +227,7 @@ export function scanSource(source: string, file: string): Violation[] {
       // hit area. Flag them so they get an explicit target.
       const body = source.slice(read.end, read.end + 300);
       const sole = /^\s*<([A-Z][A-Za-z0-9]*)\s+className="([^"]*)"\s*\/>\s*<\//.exec(body);
-      if (!sole || COMPONENT_TAGS.has(sole[1])) continue;
+      if (!sole || COMPONENT_TAGS.has(sole[1]) || !RAW_TAGS.has(tag)) continue;
       const iconPx = Number(/\bh-([0-9.]+)/.exec(sole[2])?.[1] ?? "0") * 4;
       if (iconPx >= MIN_TARGET_PX) continue;
       out.push({
