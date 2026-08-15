@@ -139,6 +139,26 @@ export class TooComplex extends Error {}
 
 type Consts = Map<string, string>;
 
+/** Strip `//` and block comments that sit inside a className expression. */
+function stripComments(src: string): string {
+  let out = "";
+  let quote: string | null = null;
+  for (let i = 0; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      out += ch;
+      if (ch === "\\") { out += src[i + 1] ?? ""; i += 1; }
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { quote = ch; out += ch; continue; }
+    if (ch === "/" && src[i + 1] === "/") { while (i < src.length && src[i] !== "\n") i += 1; out += "\n"; continue; }
+    if (ch === "/" && src[i + 1] === "*") { i += 2; while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) i += 1; i += 1; continue; }
+    out += ch;
+  }
+  return out;
+}
+
 function stripOuter(s: string): string {
   let t = s.trim();
   for (;;) {
@@ -422,7 +442,7 @@ export function classNameVariants(tagText: string, consts: Consts = new Map()): 
     return [tagText.slice(after + 1, end).split(/\s+/).filter(Boolean)];
   }
   if (ch === "{") {
-    const expr = readBalanced(tagText, after);
+    const expr = stripComments(readBalanced(tagText, after));
     return evalExpr(expr, consts).map((s) => s.split(/\s+/).filter(Boolean));
   }
   return [];
