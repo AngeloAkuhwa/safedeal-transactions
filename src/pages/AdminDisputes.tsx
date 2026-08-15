@@ -515,7 +515,7 @@ export default function AdminDisputes() {
               <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
-                <button type="button" onClick={() => void load()} className="rounded-md p-1 hover:bg-muted min-h-11">
+                <button type="button" onClick={() => void load()} aria-label="Refresh dispute queue" className="rounded-md p-1 hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center">
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 </button>
               </div>

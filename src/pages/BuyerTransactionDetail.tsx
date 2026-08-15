@@ -311,14 +311,14 @@ const BuyerTransactionDetail = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
               <Button
-                className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto"
+                className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto min-h-11"
                 onClick={() => navigate(`/dashboard/transactions/${tx.id}/tracking`)}
               >
                 <Truck className="h-4 w-4" /> Track Order
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm h-auto" variant="ghost">
+                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm h-auto min-h-11" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" /> More Actions
                   </Button>
                 </DropdownMenuTrigger>
@@ -733,7 +733,7 @@ const BuyerTransactionDetail = () => {
                     <p className="text-xs text-primary/70">{mBadge.label}</p>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
+                <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto min-h-11 text-sm" onClick={handlePrint}>
                   <Printer className="h-4 w-4" /> Print receipt
                 </Button>
               </div>
@@ -800,7 +800,7 @@ const BuyerTransactionDetail = () => {
                       <p className="text-xs text-primary/70">{mBadge.label}</p>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
+                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto min-h-11 text-sm" onClick={handlePrint}>
                     <Printer className="h-4 w-4" /> Print receipt
                   </Button>
                 </div>
