@@ -202,7 +202,7 @@ const SellerPayouts = () => {
             badgeLabel="Pending"
             badgeBg="bg-warning/10 text-warning"
             tooltip={
-              "Money the buyer has released to you but that hasn't been deposited to your bank account yet." +
+              "Money the buyer has released to you but that hasn't been deposited to your bank account yet. " +
               (settlementCopy ? ` Usually settles in ${settlementCopy}.` : "")
             }
           />

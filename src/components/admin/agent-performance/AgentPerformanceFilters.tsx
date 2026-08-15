@@ -103,7 +103,7 @@ export function AgentPerformanceFilters({
       <div
         role="group"
         aria-label="Statistics scope"
-        className="inline-flex h-9 items-center rounded-lg border border-border/60 bg-card/60 p-0.5"
+        className="inline-flex min-h-11 items-center rounded-lg border border-border/60 bg-card/60 p-0.5"
       >
         {(["range", "all_time"] as const).map((s) => (
           <button
@@ -112,7 +112,7 @@ export function AgentPerformanceFilters({
             aria-pressed={filters.scope === s}
             onClick={() => onChange({ scope: s })}
             className={
-              "rounded-md px-3 py-1 text-xs font-medium transition min-h-11" +
+              "rounded-md px-3 py-1 text-xs font-medium transition min-h-11 " +
               (filters.scope === s
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground")

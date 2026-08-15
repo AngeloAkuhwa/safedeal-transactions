@@ -130,7 +130,7 @@ export function InvestigationDrawer({ open, onOpenChange, transactionCode, inves
                     type="button"
                     onClick={() => toggleTag(t)}
                     className={
-                      "rounded-full border px-2.5 py-1 text-xs transition-colors min-h-11" +
+                      "rounded-full border px-2.5 py-1 text-xs transition-colors min-h-11 " +
                       (on
                         ? "border-primary/50 bg-primary/15 text-primary"
                         : "border-border bg-muted/40 text-muted-foreground hover:text-foreground")

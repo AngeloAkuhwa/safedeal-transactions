@@ -491,7 +491,7 @@ function insetBonus(classes: string[]): number {
   const wired =
     classes.some((c) => /^(?:[\w-]+:)*before:absolute$/.test(c)) &&
     classes.some((c) => /^(?:[\w-]+:)*before:content-\[/.test(c)) &&
-    classes.some((c) => /^(?:[\w-]+:)*relative$/.test(c));
+    classes.some((c) => /^(?:[\w-]+:)*(relative|absolute|fixed|sticky)$/.test(c));
   if (!wired) return 0;
   let bonus = 0;
   for (const c of classes) {

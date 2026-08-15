@@ -131,7 +131,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             className={cn(
               // Visual size stays 32px; the pseudo-element expands the real hit
               // area to 48x48 (>=44px) without shifting layout.
-              "min-h-11 absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
+              "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
               "before:absolute before:-inset-2 before:content-['']",
               isSaved ? "text-destructive" : "text-muted-foreground hover:text-destructive"
             )}

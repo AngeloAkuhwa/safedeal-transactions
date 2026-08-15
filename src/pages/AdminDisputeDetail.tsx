@@ -2498,7 +2498,7 @@ function SidebarBtn({
 }) {
   const isSolid = variant === "solid";
   const base = cn(
-    "w-full flex items-center rounded-md border px-3 text-sm font-medium transition-colors text-left",
+    "w-full min-h-11 flex items-center rounded-md border px-3 text-sm font-medium transition-colors text-left",
     isSolid ? "gap-2.5 py-3" : "gap-3 py-2.5",
   );
   const outlineCls = "border-[#253044] bg-[#0F172A]/40 text-foreground hover:bg-[#0F172A]/70";
@@ -2511,7 +2511,7 @@ function SidebarBtn({
       className={cn(
         base,
         isSolid ? solidCls : outlineCls,
-        (disabled || !onClick) && "opacity-60 cursor-not-allowed min-h-11 inline-flex items-center",
+        (disabled || !onClick) && "opacity-60 cursor-not-allowed",
       )}
     >
       <span className={cn(
