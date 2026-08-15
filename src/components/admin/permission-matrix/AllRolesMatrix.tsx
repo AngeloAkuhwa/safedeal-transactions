@@ -240,7 +240,7 @@ function ModuleGroup({
                   onClick={() => onStage(r.key, p.key, held)}
                   title={editable ? "Click to stage change" : isProtectedRole(r.key) ? "Protected role — cannot edit" : "Read-only"}
                   className={cn(
-                    "inline-flex h-11 w-9 items-center justify-center rounded-full transition",
+                    "min-w-11 inline-flex h-11 w-9 items-center justify-center rounded-full transition",
                     effectiveGranted
                       ? "bg-emerald-500/20 text-emerald-300"
                       : "bg-muted/40 text-muted-foreground",

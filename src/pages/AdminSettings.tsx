@@ -65,7 +65,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className={`w-10 h-11 rounded-full relative cursor-pointer transition-colors ${
+      className={`min-w-11 inline-flex items-center justify-center w-10 h-11 rounded-full relative cursor-pointer transition-colors ${
         on ? "bg-emerald-600" : "bg-muted"
       }`}
       aria-pressed={on}

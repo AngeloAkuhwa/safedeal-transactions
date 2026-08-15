@@ -200,7 +200,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }}
                     disabled={r.disputes.total === 0}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
+                    className={`min-h-11 flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
                       r.disputes.total === 0 ? "bg-slate-800/60 text-slate-500" : "bg-slate-800 text-slate-300"
                     }`}
                   >

@@ -77,7 +77,7 @@ export function MobileTabBar() {
                 <Link
                   to={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex h-full flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${
+                  className={`min-h-11 flex h-full flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >

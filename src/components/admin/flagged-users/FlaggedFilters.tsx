@@ -26,7 +26,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
             <label className="text-slate-400 text-sm font-medium mb-2 block">Risk Level</label>
             <select
               className={SELECT_CLS}
-              value={value.risk ?? "all"}
+              value={value.risk ?? "min-h-11 all"}
               onChange={(e) => onChange({ ...value, risk: e.target.value as FlaggedQuery["risk"] })}
             >
               <option value="all">All Risk Levels</option>
@@ -40,7 +40,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
             <label className="text-slate-400 text-sm font-medium mb-2 block">Flag Reason</label>
             <select
               className={SELECT_CLS}
-              value={value.reason ?? "all"}
+              value={value.reason ?? "min-h-11 all"}
               onChange={(e) => onChange({ ...value, reason: e.target.value as FlaggedQuery["reason"] })}
             >
               <option value="all">All Reasons</option>
@@ -57,7 +57,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
             <label className="text-slate-400 text-sm font-medium mb-2 block">Date Range</label>
             <select
               className={SELECT_CLS}
-              value={value.range ?? "30d"}
+              value={value.range ?? "min-h-11 30d"}
               onChange={(e) => onChange({ ...value, range: e.target.value as FlaggedQuery["range"] })}
             >
               <option value="30d">Last 30 Days</option>
@@ -70,7 +70,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
             <label className="text-slate-400 text-sm font-medium mb-2 block">Status</label>
             <select
               className={SELECT_CLS}
-              value={value.status ?? "all"}
+              value={value.status ?? "min-h-11 all"}
               onChange={(e) => onChange({ ...value, status: e.target.value as FlaggedQuery["status"] })}
             >
               <option value="all">All Statuses</option>

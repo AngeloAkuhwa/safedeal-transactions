@@ -129,7 +129,7 @@ function KpiCard({
       to={to}
       aria-label={ariaLabel}
       className={cn(
-        "block group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "min-h-11 block group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         animate && "animate-fade-in",
       )}
       style={animate ? { animationDelay: `${index * 50}ms`, animationFillMode: "both" } : undefined}
