@@ -16,6 +16,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { createStorefrontTransaction } from "@/services/storefront-checkout.service";
 import { computePricing } from "@/lib/pricing";
+import { StickyPayBar } from "@/components/payment/StickyPayBar";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { alwaysClaim, resolveClaim, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
@@ -488,6 +489,14 @@ const StorefrontCheckout = () => {
               )}
               {isSubmitting ? "Creating Order..." : gateBlocked ? "Checkout unavailable" : "Confirm & Continue to Payment"}
             </Button>
+
+            <StickyPayBar
+              total={formatPrice(pricing.total_amount, product.currency_code)}
+              actionLabel={isSubmitting ? "Creating…" : "Confirm"}
+              onAction={handleConfirm}
+              disabled={isSubmitting || gateBlocked}
+              note={gateBlocked ? gate.disabledReason : undefined}
+            />
 
             <p className="text-xs text-muted-foreground text-center">
               By confirming, you agree to SafeDeal's{" "}
