@@ -11,7 +11,7 @@ interface Props {
 }
 
 const SELECT_CLS =
-  "w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-red-500";
+  "min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-red-500";
 
 export function FlaggedFilters({ value, search, onChange, onSearchChange, onApply, onReset }: Props) {
   return (

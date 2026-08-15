@@ -57,7 +57,7 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
 }
 
 function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: EscrowRecordRow; onOpenTx: () => void; onOpenDetail: () => void; onDispute: () => void }) {
-  const btn = "w-9 h-9 rounded-lg flex items-center justify-center transition-all group";
+  const btn = "h-11 w-11 rounded-lg flex items-center justify-center transition-all group";
   return (
     <div className="flex items-center justify-center gap-1.5">
       <button type="button" onClick={onOpenTx} title="View Transaction" className={`min-h-11 min-w-11 inline-flex items-center justify-center ${btn} bg-slate-800 hover:bg-blue-600 relative before:absolute before:-inset-1 before:content-['']`}>
