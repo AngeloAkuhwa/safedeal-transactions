@@ -200,7 +200,7 @@ export function SLAComplianceTable({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1080px] sd-stack">
             <caption className="sr-only">Case-level SLA tracking</caption>
-            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur">
+            <thead className="sticky top-0 z-sticky bg-card/95 backdrop-blur">
               <tr className="border-b border-border/70">
                 {["Case", "Agent", "Priority", "Stage", "Assigned", "First action", "Due", "Remaining", "SLA state", "Updated", ""].map((h) => (
                   <th key={h} scope="col" className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">

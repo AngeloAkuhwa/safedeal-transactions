@@ -354,7 +354,7 @@ export default function AdminDisputes() {
       hideDefaultHeaders
       fullBleed
       headerSlot={({ onOpenMenu }) => (
-        <header className="sticky top-0 z-20 border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+        <header className="sticky top-0 z-sticky border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2 min-w-0">
               <button

@@ -76,11 +76,11 @@ export function AllRolesMatrix({
         <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm sd-stack">
           <thead>
             <tr className="text-xs uppercase tracking-wider text-muted-foreground">
-              <th className="sticky left-0 top-0 z-20 min-w-[300px] bg-card/95 px-4 py-2.5 text-left font-semibold backdrop-blur">
+              <th className="sticky left-0 top-0 z-sticky min-w-[300px] bg-card/95 px-4 py-2.5 text-left font-semibold backdrop-blur">
                 Permission
               </th>
               {roles.map((r) => (
-                <th key={r.key} className="sticky top-0 z-10 bg-card/95 px-2 py-2.5 text-center font-semibold backdrop-blur">
+                <th key={r.key} className="sticky top-0 z-sticky bg-card/95 px-2 py-2.5 text-center font-semibold backdrop-blur">
                   <div className="mx-auto max-w-[120px] text-balance text-xs leading-tight">{ROLE_LABEL[r.key]}</div>
                 </th>
               ))}
@@ -155,7 +155,7 @@ function ModuleGroup({
       <tr className="group">
         <td
           colSpan={roles.length + 1}
-          className="sticky left-0 z-[5] bg-muted/30 px-3 py-2 backdrop-blur"
+          className="sticky left-0 z-sticky bg-muted/30 px-3 py-2 backdrop-blur"
         >
           <div className="flex items-center gap-2">
             <button
@@ -195,8 +195,8 @@ function ModuleGroup({
                     )}
                     {menuRole === r.key && (
                       <>
-                        <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-40" onClick={() => setMenuRole(null)} />
-                        <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
+                        <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-overlay" onClick={() => setMenuRole(null)} />
+                        <div className="absolute right-0 z-overlay mt-1 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
                           <button type="button" onClick={() => bulkGrant(r.key)} className="block min-h-11 w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted">
                             Grant all in module
                           </button>
@@ -216,7 +216,7 @@ function ModuleGroup({
 
       {expanded && mod.permissions.map((p) => (
         <tr key={p.key} className="group hover:bg-primary/[0.04]">
-          <td className="sticky left-0 z-[3] min-w-[300px] bg-background/70 px-4 py-2 backdrop-blur">
+          <td className="sticky left-0 z-sticky min-w-[300px] bg-background/70 px-4 py-2 backdrop-blur">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground/90">

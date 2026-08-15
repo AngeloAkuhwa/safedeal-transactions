@@ -243,7 +243,7 @@ export default function AdminPayouts() {
   }
 
   const headerSlot = (
-    <div className="sticky top-0 z-30 hidden border-b border-border bg-card lg:block">
+    <div className="sticky top-0 z-sticky hidden border-b border-border bg-card lg:block">
       <div className="flex items-start justify-between gap-4 px-8 py-5">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold leading-tight text-foreground">Payout Management</h1>

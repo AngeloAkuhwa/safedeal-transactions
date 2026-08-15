@@ -94,7 +94,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       aria-modal="true"
       aria-label={alt || "Image preview"}
       tabIndex={-1}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      className="fixed inset-0 z-modal bg-black/90 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
@@ -471,7 +471,7 @@ const BuyerTransactionTracking = () => {
                   <div className="space-y-0">
                     {[...status_history].reverse().map((entry, i) => (
                       <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
-                        <div className="relative z-10 h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shrink-0">
+                        <div className="relative z-rail h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shrink-0">
                           <CheckCircle className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">

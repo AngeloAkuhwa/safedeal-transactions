@@ -171,7 +171,7 @@ const StorefrontCheckout = () => {
   const sellerClaim = sellerVerificationClaim({ identityVerified: seller.identity_verified });
 
   const content = (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-rail">
       {/* Background glows */}
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
 

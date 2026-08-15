@@ -69,7 +69,7 @@ export function AdminLayout({
               reserves its own space and can never be pushed below the fold on
               screens that opt out of the default headers. */}
           {hideDefaultHeaders && !mobileHeaderSlot && typeof headerSlot !== "function" && (
-            <div className="sticky top-0 z-40 flex h-14 shrink-0 items-center border-b border-border bg-card/95 px-3 backdrop-blur lg:hidden">
+            <div className="sticky top-0 z-sticky flex h-14 shrink-0 items-center border-b border-border bg-card/95 px-3 backdrop-blur lg:hidden">
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}

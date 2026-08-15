@@ -61,7 +61,7 @@ export default function TransactionCancelled() {
   return (
     <div className="min-h-[100dvh] bg-muted/30 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-sticky w-full border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
             <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">

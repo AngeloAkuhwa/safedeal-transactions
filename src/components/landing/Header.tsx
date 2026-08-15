@@ -59,7 +59,7 @@ export function Header() {
   };
 
   return (
-    <header className="safe-top sticky top-0 z-50 w-full border-b border-border/80 bg-background/85 shadow-sm backdrop-blur-md">
+    <header className="safe-top sticky top-0 z-sticky w-full border-b border-border/80 bg-background/85 shadow-sm backdrop-blur-md">
       <div className="container-x mx-auto flex h-14 max-w-7xl items-center justify-between sm:h-16 lg:h-20">
         <Link to="/" className="flex items-center gap-2.5 min-h-11">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md sm:h-10 sm:w-10 lg:h-11 lg:w-11">

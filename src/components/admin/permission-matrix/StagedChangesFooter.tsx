@@ -42,7 +42,7 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
   if (changes.length === 0) return null;
 
   return (
-    <div className="sticky bottom-4 z-40 mx-auto max-w-[1400px]">
+    <div className="sticky bottom-4 z-sticky mx-auto max-w-[1400px]">
       <div className="rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-2xl backdrop-blur">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">

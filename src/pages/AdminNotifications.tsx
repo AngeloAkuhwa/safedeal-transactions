@@ -95,7 +95,7 @@ const shortDisId = (id: string | null) =>
 // ---------- Header ----------
 function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onBroadcast: () => void; onExport: () => void }) {
   return (
-    <div className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+    <div className="sticky top-0 z-sticky border-b border-border bg-background/85 backdrop-blur">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>

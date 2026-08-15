@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
@@ -246,7 +245,7 @@ export function BuyerSidebar() {
       {/* Normal-flow mobile rail reserves its own space instead of forcing every
           buyer page to compensate for a fixed, overlapping trigger. */}
       <div className="w-14 shrink-0 border-r border-sidebar-border bg-sidebar lg:hidden">
-        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle buyer navigation">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
@@ -256,7 +255,7 @@ export function BuyerSidebar() {
       {mobileOpen && (
         <div
           aria-hidden
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-overlay bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -264,7 +263,7 @@ export function BuyerSidebar() {
       {/* Mobile sidebar — always expanded */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-sheet transition-transform lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

@@ -90,7 +90,7 @@ function AuditHeader({
   onOpenMenu: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-card px-4 py-5 md:px-8">
+    <header className="sticky top-0 z-sticky border-b border-border bg-card px-4 py-5 md:px-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="flex items-center gap-4">
           <button
@@ -183,9 +183,9 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
   };
   return (
     <>
-      {open && <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
+      {open && <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 bg-black/50 z-overlay" onClick={onClose} />}
       <aside
-        className={`fixed top-0 right-0 h-full w-full max-w-xl bg-card border-l border-border z-50 transform transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-xl bg-card border-l border-border z-sheet transform transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
       >
         {row && (
           <div className="h-full flex flex-col">

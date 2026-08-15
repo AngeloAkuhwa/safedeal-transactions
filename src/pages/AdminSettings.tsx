@@ -110,7 +110,7 @@ function HeaderBar({
   setApplyToAll: (v: boolean) => void;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-sticky border-b border-border bg-background/85 backdrop-blur">
       <div className="sd-page py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div>

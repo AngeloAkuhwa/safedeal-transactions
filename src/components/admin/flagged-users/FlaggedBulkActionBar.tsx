@@ -49,7 +49,7 @@ export function FlaggedBulkActionBar({ userIds, onClear }: Props) {
   if (userIds.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-3xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-overlay w-[95%] max-w-3xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3">
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="text-white text-sm font-semibold">
           {userIds.length} selected

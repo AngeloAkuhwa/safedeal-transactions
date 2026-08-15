@@ -909,7 +909,7 @@ function TransactionTimeline({
           return (
             <div key={step.status} className="relative flex items-start gap-4 pb-6 last:pb-0">
               {/* Circle */}
-              <div className={`relative z-10 h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
+              <div className={`relative z-rail h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
                 isReached
                   ? "bg-success/10"
                   : isCurrent

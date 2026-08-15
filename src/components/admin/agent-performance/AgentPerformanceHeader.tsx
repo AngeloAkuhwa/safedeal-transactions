@@ -13,7 +13,7 @@ export function AgentPerformanceHeader({
 }) {
   const navigate = useNavigate();
   return (
-    <div className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <div className="sticky top-0 z-sticky border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 lg:px-8">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight text-foreground lg:text-2xl">

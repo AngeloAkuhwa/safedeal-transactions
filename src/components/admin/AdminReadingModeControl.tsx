@@ -62,7 +62,7 @@ export function AdminReadingModeControl({ variant }: Props) {
     if (!isActive) {
       return (
         <div
-          className="fixed left-1/2 z-50 -translate-x-1/2 lg:hidden"
+          className="fixed left-1/2 z-overlay -translate-x-1/2 lg:hidden"
           style={{ bottom: "calc(env(safe-area-inset-bottom) + 72px)" }}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -80,7 +80,7 @@ export function AdminReadingModeControl({ variant }: Props) {
     }
     return (
       <div
-        className="fixed left-1/2 z-50 -translate-x-1/2 lg:hidden"
+        className="fixed left-1/2 z-overlay -translate-x-1/2 lg:hidden"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 72px)" }}
         onPointerDown={(e) => e.stopPropagation()}
       >
@@ -134,7 +134,7 @@ export function AdminReadingModeControl({ variant }: Props) {
     if (!scrolledPast) return null;
     return (
       <div
-        className="fixed bottom-5 left-5 z-40 hidden transition-opacity duration-200 lg:block"
+        className="fixed bottom-5 left-5 z-overlay hidden transition-opacity duration-200 lg:block"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {!isActive ? (

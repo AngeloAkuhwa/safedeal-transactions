@@ -313,7 +313,7 @@ function FeatureCard({
         />
       )}
 
-      <div className="relative z-10 flex h-full min-w-0 flex-col">
+      <div className="relative z-rail flex h-full min-w-0 flex-col">
         {/* Header */}
         <div className="mb-3 flex items-start gap-3">
           <div

@@ -375,7 +375,7 @@ const SellerProductCreate = () => {
         />
 
         <div className="min-w-0 flex-1">
-          <div className="sticky top-0 z-30 border-b border-border bg-background px-3 py-3 sm:px-6 sm:py-4 lg:px-6">
+          <div className="sticky top-0 z-sticky border-b border-border bg-background px-3 py-3 sm:px-6 sm:py-4 lg:px-6">
             <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button

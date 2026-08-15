@@ -89,7 +89,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-sticky border-b bg-card/80 backdrop-blur-md">
       <div className="sd-page flex h-14 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">

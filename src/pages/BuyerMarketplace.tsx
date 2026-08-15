@@ -119,7 +119,7 @@ export default function BuyerMarketplace() {
         <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
-        <div className="sd-page sd-page-y space-y-4 relative z-10">
+        <div className="sd-page sd-page-y space-y-4 relative z-rail">
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div>

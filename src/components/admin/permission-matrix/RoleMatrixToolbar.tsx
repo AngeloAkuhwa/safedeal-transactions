@@ -70,8 +70,8 @@ function MultiPopover<T extends string>({
       </button>
       {open && (
         <>
-          <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-40 mt-1 max-h-72 w-64 overflow-auto rounded-lg border border-border bg-card p-2 shadow-xl">
+          <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-overlay" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 z-overlay mt-1 max-h-72 w-64 overflow-auto rounded-lg border border-border bg-card p-2 shadow-xl">
             <div className="flex flex-col gap-1">
               {values.map((v) => {
                 const on = selected.includes(v);

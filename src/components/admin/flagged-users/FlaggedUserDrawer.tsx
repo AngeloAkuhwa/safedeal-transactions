@@ -98,7 +98,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
   // While detail is loading and we have no row, show a minimal shell
   if (!view) {
     return (
-      <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="fixed inset-0 z-overlay flex justify-end">
         <div role="button" tabIndex={0} onKeyDown={keyActivate} className="absolute inset-0 bg-black/60" onClick={onClose} />
         <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
@@ -108,10 +108,10 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-overlay flex justify-end">
       <div role="button" tabIndex={0} onKeyDown={keyActivate} className="absolute inset-0 bg-black/60" onClick={onClose} />
       <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto">
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
+        <div className="sticky top-0 z-sticky flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
           <div className="flex items-center gap-2">
             <Flag className="h-4 w-4 text-red-400" />
             <h3 className="text-white font-semibold text-base">Flagged user</h3>

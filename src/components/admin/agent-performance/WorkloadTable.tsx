@@ -25,7 +25,7 @@ export interface RowActions {
 
 const TH = "px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground";
 /** Sticky column header — the page header sits above it, so no extra offset. */
-const THEAD = "sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80";
+const THEAD = "sticky top-0 z-sticky bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80";
 
 function ActionButton({ label, onClick, disabled, title }: { label: string; onClick: () => void; disabled?: boolean; title?: string }) {
   return (

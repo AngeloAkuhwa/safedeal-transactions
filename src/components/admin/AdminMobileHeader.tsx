@@ -13,7 +13,7 @@ interface AdminMobileHeaderProps {
 export function AdminMobileHeader({ onOpenMenu, title, subtitle, rightSlot }: AdminMobileHeaderProps) {
   const { go } = useAdminNav();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-sticky border-b border-border bg-card/95 backdrop-blur lg:hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <button

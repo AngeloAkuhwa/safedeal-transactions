@@ -38,7 +38,7 @@ export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCoun
   };
 
   return (
-    <header className="sticky top-0 z-30 hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-5 md:px-8 lg:block">
+    <header className="sticky top-0 z-sticky hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-5 md:px-8 lg:block">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>

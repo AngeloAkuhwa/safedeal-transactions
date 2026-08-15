@@ -65,7 +65,7 @@ export function MobileTabBar() {
       <div aria-hidden className="md:hidden" style={{ height: "calc(56px + env(safe-area-inset-bottom))" }} />
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-lg md:hidden"
+        className="fixed inset-x-0 bottom-0 z-sticky border-t border-border bg-card/95 backdrop-blur-lg md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex h-14 max-w-lg items-stretch">

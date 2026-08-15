@@ -515,7 +515,7 @@ export default function AdminTransactionDetail() {
 
   // Header (desktop)
   const headerSlot = (
-    <header className={cn("sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
+    <header className={cn("sticky top-0 z-sticky hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
       <div className="flex items-center justify-between gap-4 px-6 pt-3 pb-3">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Back">
@@ -657,7 +657,7 @@ export default function AdminTransactionDetail() {
   );
 
   const mobileHeaderSlot = ({ onOpenMenu }: { onOpenMenu: () => void }) => (
-    <header className="lg:hidden sticky top-0 z-30 border-b border-border bg-card">
+    <header className="lg:hidden sticky top-0 z-sticky border-b border-border bg-card">
       <div className="flex items-center justify-between px-3 py-2.5">
         <button type="button" onClick={() => navigate(returnTo)} className="p-2 text-muted-foreground min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
@@ -1615,7 +1615,7 @@ export default function AdminTransactionDetail() {
 
       {/* Mobile sticky bottom bar */}
       {!loading && !denied && !notFound && data && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-sticky border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
             <Gavel className="h-4 w-4 mr-1.5" /> Take Action
           </Button>

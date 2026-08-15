@@ -280,7 +280,7 @@ const SellerProductDetail = () => {
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
+        <div className="sticky top-0 z-sticky flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"

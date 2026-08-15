@@ -163,7 +163,7 @@ const SellerStorefront = () => {
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-5 border-b border-border relative z-10">
+        <div className="flex items-center justify-between px-6 lg:px-8 py-5 border-b border-border relative z-rail">
           <div className="lg:ml-0 ml-12">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
@@ -187,7 +187,7 @@ const SellerStorefront = () => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 space-y-6 relative z-10">
+        <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 space-y-6 relative z-rail">
               {/* Filters */}
               <div className="bg-card border border-border rounded-2xl p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

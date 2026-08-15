@@ -382,7 +382,7 @@ export default function SellerUpdateDelivery() {
               const isCompleted = i < activeStep;
               const isCurrent = i === activeStep;
               return (
-                <div key={step.key} className={`flex flex-col items-center flex-1 relative z-10 ${!isCompleted && !isCurrent ? "opacity-50" : ""}`}>
+                <div key={step.key} className={`flex flex-col items-center flex-1 relative z-rail ${!isCompleted && !isCurrent ? "opacity-50" : ""}`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-background transition-all ${
                     isCompleted
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"

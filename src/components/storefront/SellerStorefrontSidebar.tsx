@@ -140,7 +140,7 @@ export function SellerStorefrontSidebar(props: SellerStorefrontSidebarProps) {
       {/* This normal-flow rail reserves the trigger's space on every seller
           screen; pages no longer copy fragile left-padding compensations. */}
       <div className="w-14 shrink-0 border-r border-border bg-card lg:hidden">
-        <Button variant="ghost" size="icon" className="sticky top-2 z-50 m-1.5 border border-border bg-card/90" onClick={() => setMobileOpen(true)} aria-label="Open seller navigation">
+        <Button variant="ghost" size="icon" className="sticky top-2 z-sticky m-1.5 border border-border bg-card/90" onClick={() => setMobileOpen(true)} aria-label="Open seller navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </div>

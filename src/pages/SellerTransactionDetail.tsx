@@ -542,7 +542,7 @@ const SellerTransactionDetail = () => {
             <div className="space-y-4">
               {timeline.map((step) => (
                 <div key={step.key} className="flex items-start gap-4">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative z-10 ${
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative z-rail ${
                     step.status === "completed" ? "bg-green-600" :
                     step.status === "current" ? "bg-primary" : "bg-muted"
                   }`}>

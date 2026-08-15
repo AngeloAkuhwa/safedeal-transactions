@@ -160,7 +160,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
+        <div className="sticky top-0 z-sticky bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
           <h3 className="text-white text-lg font-semibold">Payout Details</h3>
           <button
             onClick={onClose}

@@ -127,7 +127,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
       className="relative flex flex-col items-center text-center transition-all duration-500"
     >
       <span
-        className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background shadow-md transition-all duration-500 ${
+        className={`relative z-rail flex h-14 w-14 items-center justify-center rounded-full border-4 border-background shadow-md transition-all duration-500 ${
           state === "done"
             ? "bg-muted text-success"
             : state === "current"
@@ -165,7 +165,7 @@ function MobileStep({ step, index, active }: { step: Step; index: number; active
       className="relative flex items-start gap-3 transition-all duration-500"
     >
       <span
-        className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-background shadow-md transition-all duration-500 ${
+        className={`relative z-rail flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-background shadow-md transition-all duration-500 ${
           state === "done"
             ? "bg-muted text-success"
             : state === "current"

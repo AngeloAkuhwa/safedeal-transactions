@@ -624,7 +624,7 @@ export default function AdminTransactions() {
       subtitle="Monitor and investigate all platform transactions"
       badges={SIDEBAR_BADGES}
       headerSlot={
-        <div className="sticky top-0 z-30 hidden border-b border-border bg-background/85 backdrop-blur lg:block">
+        <div className="sticky top-0 z-sticky hidden border-b border-border bg-background/85 backdrop-blur lg:block">
           <div className="flex items-center justify-between gap-4 px-8 py-4">
             <div className="flex min-w-0 items-center gap-4">
               <div>
@@ -664,7 +664,7 @@ export default function AdminTransactions() {
         </div>
       }
       mobileHeaderSlot={({ onOpenMenu }) => (
-        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-sticky border-b border-border bg-card/95 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <button
               type="button"
@@ -859,7 +859,7 @@ export default function AdminTransactions() {
         >
           <table className="w-full text-sm">
             <caption className="sr-only">Platform transactions, sortable and filterable</caption>
-            <thead className="sticky top-0 z-10 bg-card">
+            <thead className="sticky top-0 z-sticky bg-card">
               <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left font-semibold">Transaction</th>
                 <th className="px-3 py-2 text-left font-semibold">Item</th>
@@ -1154,7 +1154,7 @@ export default function AdminTransactions() {
 
       {/* Mobile bottom navigation */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-sticky border-t border-border bg-card/95 backdrop-blur lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="grid grid-cols-4">

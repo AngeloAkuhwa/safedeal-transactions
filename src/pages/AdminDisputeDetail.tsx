@@ -457,7 +457,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
   // ---------- sticky header ----------
   const renderHeader = (onOpenMenu?: () => void) => (
-    <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <div className="sticky top-0 z-sticky border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8 lg:py-4">
         <div className="flex items-center gap-2 min-w-0">
           {onOpenMenu && (
