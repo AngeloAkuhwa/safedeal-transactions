@@ -528,21 +528,27 @@ function has(classes: string[], token: string): boolean {
  * A `before:-inset-*` hit-area expansion only renders when the pseudo-element
  * actually exists and is positioned against a positioned parent.
  */
-function insetBonus(classes: string[]): number {
+function insetBonus(classes: string[]): { x: number; y: number } {
   const wired =
     classes.some((c) => /^(?:[\w-]+:)*before:absolute$/.test(c)) &&
     classes.some((c) => /^(?:[\w-]+:)*before:content-\[/.test(c)) &&
     classes.some((c) => /^(?:[\w-]+:)*(relative|absolute|fixed|sticky)$/.test(c));
-  if (!wired) return 0;
-  let bonus = 0;
+  if (!wired) return { x: 0, y: 0 };
+  let x = 0;
+  let y = 0;
   for (const c of classes) {
-    const m = c.match(/before:-inset-(\S+)$/);
-    if (m) {
-      const v = unit(m[1]);
-      if (v && Number.isFinite(v)) bonus = Math.max(bonus, v * 2);
+    const m = c.match(/before:-inset-(x-|y-)?(\S+)$/);
+    if (!m) continue;
+    const v = unit(m[2]);
+    if (!v || !Number.isFinite(v)) continue;
+    if (m[1] === "x-") x = Math.max(x, v * 2);
+    else if (m[1] === "y-") y = Math.max(y, v * 2);
+    else {
+      x = Math.max(x, v * 2);
+      y = Math.max(y, v * 2);
     }
   }
-  return bonus;
+  return { x, y };
 }
 
 const TEXT_LINE_PX: Record<string, number> = {
