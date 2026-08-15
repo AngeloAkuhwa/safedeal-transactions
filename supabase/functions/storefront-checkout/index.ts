@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
     // Fetch seller profile
     const { data: sellerProfile } = await adminClient
       .from("profiles")
-      .select("id, full_name, email, phone")
+      .select("id, full_name, email, phone, country_code, state_name, city_name")
       .eq("id", product.seller_id)
       .single();
 
@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
     // Fetch buyer profile
     const { data: buyerProfile } = await adminClient
       .from("profiles")
-      .select("id, full_name, email, phone")
+      .select("id, full_name, email, phone, country_code, state_name, city_name")
       .eq("id", buyerId)
       .single();
 
@@ -287,6 +287,44 @@ Deno.serve(async (req) => {
     }
     if (needsPhone && !buyerContactPhone && !buyerProfile.phone) {
       return jsonResponse({ error: "contact_phone is required for this delivery method" }, 400);
+    }
+
+    // Serviceability, checked here and on the thing it is actually about.
+    //
+    // Until now this function applied no region gate at all. It validated auth,
+    // role, stock, self-purchase, delivery method and whether an address was
+    // present — but never whether SafeDeal serves the place the goods are going.
+    // The check existed only in the UI, in the permissions object behind the pay
+    // button, which means any caller that skips the UI could create a protected
+    // transaction into a region we cannot deliver to or adjudicate a dispute in.
+    //
+    // It is deliberately asked about the DELIVERY ADDRESS, not the buyer's
+    // profile. Where the goods go is a property of this deal; where the buyer
+    // happens to live is not. For an in-person method there is no address, so
+    // the seller's own region is what governs — that is where the handover
+    // happens.
+    {
+      const place = needsAddress
+        ? { country: buyerProfile.country_code ?? "NG", state: buyerAddress!.state, city: buyerAddress!.city }
+        : { country: seller.country_code ?? "NG", state: seller.state_name, city: seller.city_name };
+
+      const { data: serviceable, error: serviceabilityError } = await adminClient.rpc(
+        "is_region_serviceable",
+        { _country_code: place.country, _state_name: place.state, _city_name: place.city },
+      );
+
+      // Fail closed: an error resolving serviceability is not permission.
+      if (serviceabilityError || !serviceable) {
+        return jsonResponse(
+          {
+            error: "region_not_serviceable",
+            reason: needsAddress
+              ? `SafeDeal does not yet cover deliveries to ${place.city}, ${place.state}.`
+              : `SafeDeal does not yet cover in-person handover in ${place.city}, ${place.state}.`,
+          },
+          409,
+        );
+      }
     }
     const primaryDeliveryMethod = mapDeliveryMethod(chosenRawMethod);
     if (!primaryDeliveryMethod) {
