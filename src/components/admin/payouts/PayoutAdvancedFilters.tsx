@@ -30,7 +30,7 @@ export const DEFAULT_PAYOUT_FILTERS: PayoutFilterState = {
   quick: "none",
 };
 
-const selectCls = "w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500";
+const selectCls = "min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500";
 
 interface Props {
   value: PayoutFilterState;

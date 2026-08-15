@@ -243,6 +243,15 @@ export function evalExpr(raw: string, consts: Consts = new Map(), depth = 0): st
     }
   }
 
+  // nullish coalescing -> either side
+  const nullish = topLevelIndexes(s, "??");
+  if (nullish.length) {
+    const parts = splitTop(s, "??");
+    const out = parts.flatMap((p) => evalExpr(p, consts, depth + 1));
+    if (out.length > MAX_VARIANTS) throw new TooComplex("too many ?? branches");
+    return out;
+  }
+
   // logical OR -> either side
   const ors = topLevelIndexes(s, "||");
   if (ors.length) {
@@ -266,6 +275,17 @@ export function evalExpr(raw: string, consts: Consts = new Map(), depth = 0): st
     const parts = splitTop(s, "+");
     let acc = evalExpr(parts[0], consts, depth + 1);
     for (const p of parts.slice(1)) acc = cross(acc, evalExpr(p, consts, depth + 1), "");
+    return acc;
+  }
+
+  // array literal joined into a class string: ["a", cond && "b"].join(" ")
+  const arr = /^\[([\s\S]*)\]\s*(?:\.\s*(?:filter|join)\s*\([^)]*\)\s*)*$/.exec(s);
+  if (arr) {
+    let acc = [""];
+    for (const item of splitTop(arr[1], ",")) {
+      if (!item.trim()) continue;
+      acc = cross(acc, evalExpr(item, consts, depth + 1), " ");
+    }
     return acc;
   }
 
@@ -325,7 +345,7 @@ export function evalExpr(raw: string, consts: Consts = new Map(), depth = 0): st
 export function collectConsts(source: string): Consts {
   const consts: Consts = new Map();
   const re = /\bconst\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`[^`]*`|cn\()/g;
-  for (const m of re.exec(source) ? source.matchAll(re) : []) {
+  for (const m of source.matchAll(re)) {
     if (m[2] === "cn(") {
       const open = source.indexOf("(", m.index + m[0].length - 1);
       consts.set(m[1], readBalancedParen(source, open, "cn"));
