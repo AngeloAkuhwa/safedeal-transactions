@@ -304,12 +304,57 @@ const SellerProductCreate = () => {
   // image count. This mirrors the server gate in seller-products.
   const readyImageCount = files.filter((f) => f.media_type === "image" && f.status === "done").length;
   const hasEnoughImages = readyImageCount >= mediaConfig.productMinImagesToPublish;
-  const canPublish =
-    title.trim().length >= 2 && description.trim().length >= 10 &&
-    !!unitPrice && parseFloat(unitPrice) > 0 && hasEnoughImages;
-  const publishBlockedReason = !hasEnoughImages
-    ? `Add at least ${mediaConfig.productMinImagesToPublish} photos to publish (you have ${readyImageCount}). You can still save a draft.`
-    : undefined;
+
+  /**
+   * Every publish blocker, each anchored to the field that causes it. The old
+   * build gated on four conditions but only ever surfaced one of them, through
+   * a `title` tooltip on a DISABLED button — which has no touch equivalent and
+   * is suppressed by mobile browsers, so publishing simply did nothing.
+   */
+  const publishBlockers: { field: string; message: string }[] = [
+    title.trim().length < 2
+      ? { field: "title", message: "Product title needs at least 2 characters." }
+      : null,
+    description.trim().length < 10
+      ? { field: "desc", message: "Full description needs at least 10 characters." }
+      : null,
+    !unitPrice || !(parseFloat(unitPrice) > 0)
+      ? { field: "price", message: "Set a unit price greater than ₦0." }
+      : null,
+    !hasEnoughImages
+      ? {
+          field: "media",
+          message: `Add at least ${mediaConfig.productMinImagesToPublish} photos to publish (you have ${readyImageCount}).`,
+        }
+      : null,
+  ].filter(Boolean) as { field: string; message: string }[];
+
+  const blockerFor = (field: string) => publishBlockers.find((b) => b.field === field)?.message;
+  const [showBlockers, setShowBlockers] = useState(false);
+
+  const attemptPublish = () => {
+    if (publishBlockers.length > 0) {
+      setShowBlockers(true);
+      const first = document.getElementById(
+        publishBlockers[0].field === "media" ? "media-section" : publishBlockers[0].field,
+      );
+      first?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast.error(publishBlockers[0].message);
+      return;
+    }
+    createMutation.mutate("published");
+  };
+
+  const FieldError = ({ field }: { field: string }) => {
+    const message = blockerFor(field);
+    if (!message || !showBlockers) return null;
+    return (
+      <p role="alert" className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-destructive">
+        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>{message}</span>
+      </p>
+    );
+  };
 
   const visibilityOptions = [
     { value: "public", label: "Public", description: "Visible on your storefront", icon: Globe, color: "text-primary" },
