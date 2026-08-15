@@ -59,8 +59,8 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
-const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 disabled:opacity-50 disabled:cursor-not-allowed";
-const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap min-h-11";
+const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 min-w-11 disabled:opacity-50 disabled:cursor-not-allowed";
+const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium whitespace-nowrap min-h-11 min-w-11";
 
 const iconSquareBtn = "w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
 

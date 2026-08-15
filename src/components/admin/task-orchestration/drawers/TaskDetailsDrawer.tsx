@@ -288,7 +288,7 @@ export function TaskDetailsDrawer({
                             <div className="text-xs text-muted-foreground">{humanize(e.kind)} · {relative(e.created_at)}</div>
                           </div>
                           {e.url && (
-                            <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline min-h-11">
+                            <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 text-xs font-medium text-primary hover:underline min-h-11">
                               Open <ExtLink className="h-3 w-3" />
                             </a>
                           )}
