@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:admin-auth": "vitest run src/__tests__/admin-auth.contract.test.ts",
+    "audit:mobile": "node scripts/mobile-audit.mjs",
     "typecheck:edge": "deno check --no-lock supabase/functions/**/index.ts supabase/functions/_shared/*.ts"
   },
   "dependencies": {

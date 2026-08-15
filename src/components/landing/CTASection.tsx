@@ -23,7 +23,7 @@ export function CTASection() {
           </Link>
           <Link
             to="/marketplace"
-            className="text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
           >
             Browse marketplace
           </Link>
