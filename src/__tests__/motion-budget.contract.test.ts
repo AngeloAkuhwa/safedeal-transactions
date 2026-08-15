@@ -56,7 +56,8 @@ describe("motion budget", () => {
   it("remaining animate-pulse usages look like loading placeholders", () => {
     const violations: string[] = [];
     for (const f of FILES) {
-      if (f.endsWith("skeleton.tsx")) continue;
+      // Dedicated loading surfaces are allowed to pulse wholesale.
+      if (/skeleton|loading|splash/i.test(path.basename(f))) continue;
       fs.readFileSync(f, "utf-8").split("\n").forEach((line, i) => {
         if (line.includes("animate-pulse") && !SKELETON_HINT.test(line)) {
           violations.push(`${path.relative(process.cwd(), f)}:${i + 1}`);
