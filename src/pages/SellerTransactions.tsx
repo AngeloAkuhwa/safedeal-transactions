@@ -117,8 +117,19 @@ const SellerTransactions = () => {
 
   if (isLoading && !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      // Skeleton in the real layout shape: a centred full-screen spinner made
+      // the page jump on load and told the seller nothing about what loads.
+      <div className="min-h-[100dvh] bg-background">
+        <div className="sd-page space-y-3 py-4">
+          <Skeleton className="h-8 w-56" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          </div>
+          <Skeleton className="h-16 rounded-lg" />
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+          </div>
+        </div>
       </div>
     );
   }
