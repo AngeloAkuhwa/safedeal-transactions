@@ -214,7 +214,23 @@ export function scanSource(source: string, file: string): Violation[] {
     if (tag === "a" && !/className=/.test(text) && !clickable) continue;
 
     const { height, width, classes } = measure(text, tag);
-    if (height === null && width === null) continue;
+    if (height === null && width === null) {
+      // Icon-only controls that declare no box at all: the icon size *is* the
+      // hit area. Flag them so they get an explicit target.
+      const body = source.slice(read.end, read.end + 400);
+      const iconOnly = /^\s*<[A-Z][A-Za-z0-9]*\s+className="[^"]*\bh-[0-9.]+/.test(body);
+      if (!iconOnly) continue;
+      const iconPx = Number(/\bh-([0-9.]+)/.exec(body)?.[1] ?? "0") * 4;
+      if (iconPx >= MIN_TARGET_PX) continue;
+      out.push({
+        file,
+        line: source.slice(0, i).split("\n").length,
+        tag,
+        reason: `icon-only, no box declared (icon≈${iconPx}px)`,
+        snippet: `${classes.join(" ")} :: ${text.replace(/\s+/g, " ").slice(0, 150)}`,
+      });
+      continue;
+    }
 
     const line = source.slice(0, i).split("\n").length;
     const snippet = text.replace(/\s+/g, " ").slice(0, 150);
