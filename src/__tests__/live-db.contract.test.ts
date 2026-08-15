@@ -398,13 +398,46 @@ d("live money-table grants", () => {
  * is not a control. Nothing had ever read this catalog.
  */
 d("live default privileges", () => {
-  // supabase_admin's own default ACLs are platform-owned: our migration role
-  // is not a member of supabase_admin and cannot ALTER them. They only apply
-  // to objects CREATED BY supabase_admin, which no SafeDeal migration is —
-  // migrations run as postgres. Documented, not silently skipped.
-  const PLATFORM_OWNED_GRANTORS = ["supabase_admin"];
+  /**
+   * EXPLICIT BASELINE, not a grantor allowlist. A previous version filtered
+   * out every row whose grantor was `supabase_admin`, which erased all 24 live
+   * rows — including `supabase_admin:r:anon:TRUNCATE` and
+   * `supabase_admin:f:anon:EXECUTE`. A green tick then carried zero
+   * information. These rows are KNOWN, UNFIXED and PLATFORM-OWNED: our
+   * migration role is not a member of supabase_admin and cannot ALTER them.
+   * They bind only to objects CREATED BY supabase_admin; SafeDeal migrations
+   * run as `postgres`, whose default ACLs are now empty for client roles.
+   * Listing them verbatim keeps them visible and fails on ANY change — a new
+   * row, a removed row, or a postgres-granted row appearing.
+   */
+  const DEFAULT_ACL_BASELINE = [
+    "supabase_admin:S:anon:SELECT",
+    "supabase_admin:S:anon:UPDATE",
+    "supabase_admin:S:anon:USAGE",
+    "supabase_admin:S:authenticated:SELECT",
+    "supabase_admin:S:authenticated:UPDATE",
+    "supabase_admin:S:authenticated:USAGE",
+    "supabase_admin:f:anon:EXECUTE",
+    "supabase_admin:f:authenticated:EXECUTE",
+    "supabase_admin:r:anon:DELETE",
+    "supabase_admin:r:anon:INSERT",
+    "supabase_admin:r:anon:MAINTAIN",
+    "supabase_admin:r:anon:REFERENCES",
+    "supabase_admin:r:anon:SELECT",
+    "supabase_admin:r:anon:TRIGGER",
+    "supabase_admin:r:anon:TRUNCATE",
+    "supabase_admin:r:anon:UPDATE",
+    "supabase_admin:r:authenticated:DELETE",
+    "supabase_admin:r:authenticated:INSERT",
+    "supabase_admin:r:authenticated:MAINTAIN",
+    "supabase_admin:r:authenticated:REFERENCES",
+    "supabase_admin:r:authenticated:SELECT",
+    "supabase_admin:r:authenticated:TRIGGER",
+    "supabase_admin:r:authenticated:TRUNCATE",
+    "supabase_admin:r:authenticated:UPDATE",
+  ].sort();
 
-  it("grants client roles nothing by default on future tables, sequences or functions", () => {
+  it("matches the recorded default-privilege baseline exactly", () => {
     const found = psql(
       "select d.defaclrole::regrole::text || ':' || d.defaclobjtype::text || ':' ||" +
         " a.grantee::regrole::text || ':' || a.privilege_type" +
@@ -412,10 +445,21 @@ d("live default privileges", () => {
         " where d.defaclnamespace::regnamespace::text = 'public'" +
         " and a.grantee::regrole::text in ('anon','authenticated','public') order by 1",
     );
-    const list = found ? found.split("\n") : [];
-    expect(
-      list.filter((g) => !PLATFORM_OWNED_GRANTORS.includes(g.split(":")[0])),
-    ).toEqual([]);
+    const list = (found ? found.split("\n") : []).sort();
+    expect(list).toEqual(DEFAULT_ACL_BASELINE);
+  });
+
+  it("grants client roles nothing by default from the postgres migration role", () => {
+    // The half we DO control, asserted separately so it cannot be masked by
+    // the platform baseline above.
+    const found = psql(
+      "select d.defaclobjtype::text || ':' || a.grantee::regrole::text || ':' || a.privilege_type" +
+        " from pg_default_acl d, aclexplode(d.defaclacl) a" +
+        " where d.defaclnamespace::regnamespace::text = 'public'" +
+        " and d.defaclrole::regrole::text = 'postgres'" +
+        " and a.grantee::regrole::text in ('anon','authenticated','public') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
   });
 
   it("leaves anon no write privilege on any relation in public", () => {
@@ -460,20 +504,53 @@ d("live default privileges", () => {
     expect(found ? found.split("\n") : []).toEqual([]);
   });
 
-  it("keeps pg_net out of reach of the exposed schemas", () => {
-    // net.http_* is latent SSRF. anon holds USAGE on schema `net` and EXECUTE
-    // on the http_* functions — BOTH are owned by supabase_admin and neither
-    // the schema nor the functions can be revoked by our migration role. This
-    // is stated, not papered over: the only barrier is that `net` is not an
-    // exposed PostgREST schema. So assert the one thing we DO control — that
-    // no function in the exposed `public` schema wraps a net.http_* call and
-    // hands anon a reachable door to it.
+  it("matches the recorded pg_net grant baseline exactly", () => {
+    // KNOWN, UNFIXED, PLATFORM-OWNED. net.http_* is latent SSRF: the grant is
+    // to PUBLIC ('-'), so anon inherits it, and both the schema and the
+    // functions are owned by supabase_admin and are not revocable by our
+    // migration role. Recorded as an explicit row list rather than skipped, so
+    // the hole stays visible and any change to it fails the suite. The only
+    // barrier is that `net` is not an exposed PostgREST schema.
+    const NET_GRANT_BASELINE = [
+      "http_collect_response:-:EXECUTE",
+      "http_delete:-:EXECUTE",
+      "http_get:-:EXECUTE",
+      "http_post:-:EXECUTE",
+    ];
+    const found = psql(
+      "select p.proname || ':' || a.grantee::regrole::text || ':' || a.privilege_type" +
+        " from pg_proc p join pg_namespace n on n.oid = p.pronamespace," +
+        " aclexplode(p.proacl) a where n.nspname = 'net'" +
+        " and a.grantee::regrole::text in ('anon','authenticated','public','-') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual(NET_GRANT_BASELINE);
+  });
+
+  it("exposes no public wrapper around a net.http_* call", () => {
+    // The half we DO control: no function in the exposed `public` schema may
+    // wrap net.http_* and hand anon a reachable door to it.
     const wrappers = psql(
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
         " where n.nspname = 'public' and pg_get_functiondef(p.oid) ~ 'net\\.http_'" +
         " and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1",
     );
     expect(wrappers ? wrappers.split("\n") : []).toEqual([]);
+  });
+
+  it("forces RLS on every table in the realtime publication", () => {
+    // supabase_realtime streams complete OLD rows for tables with
+    // REPLICA IDENTITY FULL. The decision to keep FULL rests on RLS being
+    // enforced for every publisher — which was true for payments, payouts,
+    // transactions and money_status_history but NOT for disputes,
+    // notifications, notification_deliveries and transaction_events.
+    const found = psql(
+      "select c.relname from pg_publication_rel pr" +
+        " join pg_class c on c.oid = pr.prrelid" +
+        " join pg_publication p on p.oid = pr.prpubid" +
+        " where p.pubname = 'supabase_realtime'" +
+        " and not (c.relrowsecurity and c.relforcerowsecurity) order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
   });
 });
 
