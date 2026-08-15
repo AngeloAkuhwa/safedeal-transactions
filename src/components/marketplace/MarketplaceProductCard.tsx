@@ -15,7 +15,6 @@ import { getAvailableQuantity } from "@/lib/inventory";
 import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { ProductImage } from "@/components/common/ProductImage";
 import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
-import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   product: MarketplaceProduct;
@@ -75,7 +74,9 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
   return (
     <>
-      <div role="button" tabIndex={0} onKeyDown={keyActivate}
+      {/* The card is a plain container. The title below is the real control and
+          is stretched over the whole card, so nested buttons stay valid. */}
+      <div
         onClick={onClick}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm transition-all hover:shadow-lg cursor-pointer",
@@ -131,7 +132,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             className={cn(
               // Visual size stays 32px; the pseudo-element expands the real hit
               // area to 48x48 (>=44px) without shifting layout.
-              "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
+              "absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
               "before:absolute before:-inset-2 before:content-['']",
               isSaved ? "text-destructive" : "text-muted-foreground hover:text-destructive"
             )}
@@ -149,7 +150,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
                 e.stopPropagation();
                 if (seller.store_slug) navigate(`/store/${seller.store_slug}`);
               }}
-              className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity min-h-11"
+              className="relative z-10 flex min-h-11 min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
             >
               <div
                 className={cn(
@@ -162,12 +163,15 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               <span className="truncate text-xs text-muted-foreground hover:text-foreground transition-colors">{seller.full_name}</span>
             </button>
             {sellerTrustClaim && (
-              <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                {sellerTrustClaim}
+              /* At 360px the claim collapses to its icon; the wording stays in
+                 the accessibility tree rather than being dropped. */
+              <span className="inline-flex min-w-0 shrink items-center gap-1 text-xs text-primary">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="sr-only sm:not-sr-only sm:truncate">{sellerTrustClaim}</span>
+                <span className="sr-only">{sellerTrustClaim}</span>
               </span>
             )}
-            <div className="ml-auto">
+            <div className="ml-auto shrink-0">
               {outOfStock ? (
                 <Badge variant="destructive" className="text-xs px-1.5 py-0">
                   Unavailable
@@ -186,7 +190,13 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Title */}
           <h3 className="mb-2 line-clamp-2 text-sm font-semibold text-foreground leading-tight">
-            {product.title}
+            <button
+              type="button"
+              onClick={onClick}
+              className="text-left after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {product.title}
+            </button>
           </h3>
 
           {/* Price + cart */}
@@ -205,7 +215,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               size="icon"
               variant={outOfStock ? "outline" : "default"}
               aria-label={outOfStock ? "Notify me when back in stock" : "Add to cart"}
-              className="relative h-8 w-8 rounded-lg shrink-0 before:absolute before:-inset-2 before:content-['']"
+              className="relative z-10 h-8 w-8 shrink-0 rounded-lg before:absolute before:-inset-2 before:content-['']"
               disabled={outOfStock || addingToCart}
               onClick={async (e) => {
                 e.stopPropagation();

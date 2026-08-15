@@ -21,7 +21,6 @@ import {
   Image as ImageIcon,
   Scale,
   ChevronRight,
-  Loader2,
   RefreshCw,
   Layers,
   Tag,

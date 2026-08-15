@@ -3,7 +3,7 @@ import { formatMoney } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import {
-  Loader2, RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
+  RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
   Search, Filter, Download, Clock, CheckCircle2,
   CreditCard, Banknote, Send, RotateCcw,
   Eye, FileText, AlertCircle, ChevronLeft, ChevronRight, Info,
