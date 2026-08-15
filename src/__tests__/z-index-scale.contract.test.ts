@@ -59,4 +59,32 @@ describe("z-index scale", () => {
     }
     expect(violations).toEqual([]);
   });
+
+  /**
+   * Ascending numbers alone prove nothing: the point of the scale is that the
+   * real chrome sits on the right rung. These assertions pin the layers that
+   * have actually collided in this app.
+   */
+  it("chrome uses the tier its role requires", () => {
+    const expectations: [string, string][] = [
+      ["src/components/layout/MobileTabBar.tsx", "z-sticky"],
+      ["src/components/ui/dialog.tsx", "z-modal"],
+      ["src/components/ui/sheet.tsx", "z-sheet"],
+      ["src/components/ui/sonner.tsx", "z-toast"],
+    ];
+    for (const [rel, tier] of expectations) {
+      const p = path.join(process.cwd(), rel);
+      if (!fs.existsSync(p)) continue;
+      expect(fs.readFileSync(p, "utf-8"), `${rel} must render at ${tier}`).toContain(tier);
+    }
+  });
+
+  it("a modal always outranks sticky chrome and a toast outranks a modal", () => {
+    const cfg = fs.readFileSync(path.join(process.cwd(), "tailwind.config.ts"), "utf-8");
+    const val = (t: string) => Number(cfg.match(new RegExp(`${t}:\\s*"(\\d+)"`))![1]);
+    expect(val("modal")).toBeGreaterThan(val("sticky"));
+    expect(val("sheet")).toBeGreaterThan(val("overlay"));
+    expect(val("toast")).toBeGreaterThan(val("modal"));
+    expect(val("sticky")).toBeGreaterThan(val("rail"));
+  });
 });
