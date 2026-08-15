@@ -29,13 +29,15 @@ describe("mobile touch targets", () => {
 
   it("finds no explicit sub-44px raw interactive target", () => {
     const violations: string[] = [];
-    const tag = /<(button|a|input|select|textarea)\b[^>]*?className="([^"]*)"[^>]*>/gs;
+    const tag = /<(button|a|input|select|textarea)\b[^>]*>/gs;
 
     for (const absolute of tsxFiles(ROOT)) {
       const file = relative(process.cwd(), absolute).replace(/\\/g, "/");
       const source = readFileSync(absolute, "utf8");
       for (const match of source.matchAll(tag)) {
-        const classes = match[2].split(/\s+/);
+        const literalClass = match[0].match(/className="([^"]*)"/s);
+        if (!literalClass) continue;
+        const classes = literalClass[1].split(/\s+/);
         const smallHeight = classes.find((c) => c.startsWith("h-") && SMALL.has(c.slice(2)));
         const smallWidth = classes.find((c) => c.startsWith("w-") && SMALL.has(c.slice(2)));
         if (!smallHeight && !(smallWidth && classes.some((c) => c.startsWith("h-")))) continue;
