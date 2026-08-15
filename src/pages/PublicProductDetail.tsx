@@ -27,6 +27,7 @@ import { productShareMetaUrl, openWhatsAppShare } from "@/lib/share-urls";
 import { ProductImage } from "@/components/common/ProductImage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { alwaysClaim, resolveClaim, isTrackedDelivery, sellerVerificationClaim } from "@/lib/trust/trust-claims";
+import { usePublicPricing } from "@/hooks/usePublicPricing";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -61,6 +62,7 @@ const PublicProductDetail = () => {
   const { data: isSaved } = useIsProductSaved(productId);
   const toggleSave = useToggleSave();
   const gate = useCommerceGate(data?.seller?.id);
+  const { copy: pricingCopy } = usePublicPricing();
   // Split gating: cart and checkout are independent. Buy Now depends only on
   // checkout; Add to Cart depends only on add_to_cart.
   const cartAllowed = !gate.loading && gate.addToCartEnabled;
@@ -357,6 +359,16 @@ const PublicProductDetail = () => {
                   </span>
                 )}
               </div>
+              {/* The escrow fee used to appear for the first time on the payment
+                  screen, after the buyer had committed. A cost revealed late
+                  reads as a surprise charge — the single most cited reason for
+                  abandoning a checkout — and on a trust product it costs more
+                  than the sale. Stated here, from live pricing config rather
+                  than a hardcoded string, so it cannot drift from what is
+                  actually charged. */}
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                {pricingCopy.feeDisclosure}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
