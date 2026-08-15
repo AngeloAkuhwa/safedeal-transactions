@@ -70,7 +70,7 @@ export default function BuyerPaymentSummary() {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
   const { buyerName, avatarUrl } = useBuyerIdentity();
-  const [selectedMethod, setSelectedMethod] = useState<"card" | "bank">("card");
+  const [selectedMethod, setSelectedMethod] = useState<"card" | "bank">("bank");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -118,11 +118,31 @@ export default function BuyerPaymentSummary() {
     }
   }, [authState, navigate, shareToken]);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transaction-review", shareToken],
     queryFn: () => getTransactionReview(shareToken!),
     enabled: !!shareToken,
+    // A bank transfer is asynchronous: the buyer leaves, moves the money, and
+    // comes back. Success here was driven purely by the Paystack popup's
+    // synchronous callback, so a buyer who completed a transfer and closed the
+    // popup got a toast telling them to try again — on money that had already
+    // left their account. The review screen one step earlier already polls on
+    // `payment_pending`; the screen where payment actually happens did not.
+    refetchInterval: (q) => {
+      const ms = (q.state.data as ReviewData | undefined)?.transaction.money_status;
+      return ms === "payment_pending" ? 3000 : false;
+    },
   });
+
+  // The webhook, not the popup, is the source of truth for money. When it
+  // lands, show success regardless of how the buyer left the popup.
+  const moneyStatus = data?.transaction.money_status;
+  useEffect(() => {
+    if (moneyStatus && moneyStatus !== "payment_pending" && moneyStatus !== "not_paid") {
+      setIsProcessing(false);
+      setShowSuccess(true);
+    }
+  }, [moneyStatus]);
 
   // Fetch buyer verification status for payment gating
   const { data: profileData } = useQuery({
@@ -234,8 +254,12 @@ export default function BuyerPaymentSummary() {
           });
         },
         onClose: () => {
+          // Closing the popup does not mean the payment did not happen — with a
+          // transfer it usually means the opposite. Keep watching rather than
+          // telling someone who has just paid to try again.
           setIsProcessing(false);
-          toast.info("Payment window was closed. You can try again when ready.");
+          void refetch();
+          toast.info("Checking for your payment — this updates automatically once it arrives.");
         },
       });
 
@@ -246,7 +270,7 @@ export default function BuyerPaymentSummary() {
       setIsProcessing(false);
       setShowFailed(true);
     }
-  }, [paystackLoaded, shareToken, selectedMethod]);
+  }, [paystackLoaded, shareToken, selectedMethod, refetch]);
 
   const handlePay = useCallback(async () => {
     if (!agreedToTerms) {
@@ -765,9 +789,22 @@ export default function BuyerPaymentSummary() {
                 <h2 className="text-xl font-bold text-foreground">Payment Method</h2>
               </div>
 
-              <div className="space-y-4">
-                {/* Card method */}
-                <div role="button" tabIndex={0} onKeyDown={keyActivate}
+              <div className="space-y-4" aria-label="Payment method">
+                {/* Bank transfer — first, and the default. */}
+                <div role="button" tabIndex={0} onKeyDown={keyActivate} aria-pressed={selectedMethod === "bank"}
+                  onClick={() => setSelectedMethod("bank")}
+                  className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
+                    selectedMethod === "bank"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${selectedMethod === "bank" ? "bg-primary/10" : "bg-muted"}`}>
+                        <Building2 className={`h-5 w-5 ${selectedMethod === "bank" ? "text-primary" : "text-muted-foreground"}`} />
+                        {/* Card — second: fewer than half of Nigerian buyers reach for it first. */}
+                <div role="button" tabIndex={0} onKeyDown={keyActivate} aria-pressed={selectedMethod === "card"}
                   onClick={() => setSelectedMethod("card")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
                     selectedMethod === "card"
@@ -808,20 +845,7 @@ export default function BuyerPaymentSummary() {
                   )}
                 </div>
 
-                {/* Bank transfer method */}
-                <div role="button" tabIndex={0} onKeyDown={keyActivate}
-                  onClick={() => setSelectedMethod("bank")}
-                  className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
-                    selectedMethod === "bank"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${selectedMethod === "bank" ? "bg-primary/10" : "bg-muted"}`}>
-                        <Building2 className={`h-5 w-5 ${selectedMethod === "bank" ? "text-primary" : "text-muted-foreground"}`} />
-                      </div>
+              </div>
                       <div>
                         <h3 className="text-base font-bold text-foreground mb-1">Bank Transfer</h3>
                         <p className="text-sm text-muted-foreground">Pay via bank transfer through Paystack</p>
@@ -847,15 +871,17 @@ export default function BuyerPaymentSummary() {
             </div>
 
             {/* Critical Warning */}
-            <div className="bg-destructive/5 border-2 border-destructive/30 rounded-2xl shadow-md p-5">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-6 w-6 text-destructive mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-base font-bold text-destructive mb-2">Critical: Do Not Close the Payment Popup</h3>
+                <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  {/* Informational, not destructive: this describes what is about
+                      to happen normally. Nothing has gone wrong yet. */}
+                  <h3 className="mb-2 text-base font-bold text-foreground">Keep the payment popup open</h3>
                   <p className="text-sm text-foreground/80 mb-3">
                     While your payment is being processed in the Paystack popup, <strong>do not close the popup window</strong>. Doing so will interrupt the payment process.
                   </p>
-                  <div className="bg-card rounded-lg p-3 border border-destructive/20">
+                  <div className="rounded-lg border border-border bg-muted/50 p-3">
                     <p className="text-xs font-semibold text-foreground mb-2">What to expect during processing:</p>
                     <ul className="text-xs text-foreground/70 space-y-1">
                       {[

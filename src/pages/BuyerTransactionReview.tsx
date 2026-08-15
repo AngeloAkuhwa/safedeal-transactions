@@ -876,14 +876,20 @@ function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; curren
 
 function FraudWarningCard() {
   return (
-    <div className="bg-destructive rounded-2xl shadow-2xl border-4 border-destructive/80 p-6 text-destructive-foreground">
-      <div className="flex items-start gap-4 mb-4">
-        <div className="w-14 h-14 bg-card rounded-xl flex items-center justify-center shrink-0">
-          <AlertTriangle className="h-7 w-7 text-destructive" />
+    /* Neutral, not alarming. This panel sits directly above the pay button on
+       every single transaction, so a solid destructive fill with a 4px border
+       shouted danger at the exact moment nothing is wrong — the buyer is about
+       to do the safe thing. Red that fires unconditionally stops being read.
+       The advice is unchanged; it is now stated calmly, and the destructive
+       colour is kept in reserve for states that genuinely are destructive. */
+    <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning/15">
+          <AlertTriangle className="h-6 w-6 text-warning" />
         </div>
-        <div>
-          <h3 className="text-xl font-bold mb-1">CRITICAL: Never Pay Outside SafeDeal</h3>
-          <p className="text-sm opacity-80">This warning protects you from fraud and scams</p>
+        <div className="min-w-0">
+          <h3 className="mb-1 text-lg font-bold text-foreground">Only ever pay inside SafeDeal</h3>
+          <p className="text-sm text-muted-foreground">Paying the seller directly leaves you unprotected</p>
         </div>
       </div>
       <div className="space-y-3 mb-5">
@@ -892,21 +898,21 @@ function FraudWarningCard() {
           { icon: ShieldAlert, title: "Off-platform payment is outside SafeDeal", desc: "SafeDeal cannot review or reconcile payments made outside its checkout" },
           { icon: User, title: "SafeDeal holds your payment securely", desc: "Only pay through SafeDeal's secure payment system on this page" },
         ].map((item) => (
-          <div key={item.title} className="bg-destructive-foreground/10 backdrop-blur-sm rounded-lg p-4 border-2 border-destructive-foreground/30">
+          <div key={item.title} className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-start gap-3">
-              <item.icon className="h-6 w-6 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-bold text-base mb-1">{item.title}</p>
-                <p className="text-sm opacity-80">{item.desc}</p>
+              <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="mb-1 text-sm font-semibold text-foreground">{item.title}</p>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
-      <div className="bg-destructive-foreground/10 rounded-lg p-3 border-2 border-destructive-foreground/40">
-        <div className="flex items-center gap-2 text-sm">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <p className="font-bold">If a seller asks you to pay outside SafeDeal, report them immediately</p>
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+        <div className="flex items-start gap-2 text-sm text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <p className="font-semibold">If a seller asks you to pay outside SafeDeal, report them</p>
         </div>
       </div>
     </div>
@@ -931,7 +937,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
       </div>
 
       {isLocked && (
-        <div className="bg-destructive/20 border border-destructive/40 rounded-xl p-4 mb-4">
+        <div className="mb-4 rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 p-4">
           <div className="flex items-start gap-2">
             <Lock className="h-5 w-5 mt-0.5 shrink-0" />
             <div>
