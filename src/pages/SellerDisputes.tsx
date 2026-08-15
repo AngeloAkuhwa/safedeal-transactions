@@ -16,6 +16,7 @@ import { ExportDisputesDialog } from "@/components/seller-disputes/ExportDispute
 import { TransactionPagination } from "@/components/transactions/TransactionPagination";
 import { getSellerDisputes, type SellerDisputeFilters as FiltersType } from "@/services/seller-disputes.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const SellerDisputes = () => {
   const [searchParams] = useSearchParams();
@@ -83,8 +84,16 @@ const SellerDisputes = () => {
 
   if (isLoading && !data) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background">
+        <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6">
+          <Skeleton className="h-8 w-52" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
+        </div>
       </div>
     );
   }

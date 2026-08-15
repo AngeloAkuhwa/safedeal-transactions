@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { resolveClaim } from "@/lib/trust/trust-claims";
 import { formatMoney } from "@/lib/format";
 import { keyActivate } from "@/lib/a11y";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -138,8 +139,8 @@ export default function BuyerSavedProducts() {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="grid grid-cols-2 gap-4 py-6 sm:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[4/5] rounded-xl" />)}
             </div>
           )}
 

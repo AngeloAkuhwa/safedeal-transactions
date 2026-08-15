@@ -60,6 +60,7 @@ import { TransactionCompletionBanner } from "@/components/transactions/Transacti
 import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { MessageThread } from "@/components/transactions/MessageThread";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* ───── Timeline step definitions ───── */
 const timelineSteps = [
@@ -234,8 +235,16 @@ const BuyerTransactionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background">
+        <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6">
+          <Skeleton className="h-8 w-52" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
+        </div>
       </div>
     );
   }
