@@ -338,14 +338,14 @@ const SellerProductDetail = () => {
             <div className="xl:col-span-3 space-y-6">
               {/* Product Details */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Info className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Product Details</h2>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Basic information about your product</p>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-foreground">Product Title</Label>
@@ -399,7 +399,7 @@ const SellerProductDetail = () => {
 
               {/* Product Media */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <ImageIcon className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Product Media</h2>
@@ -451,7 +451,7 @@ const SellerProductDetail = () => {
                     Restock
                   </Button>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-foreground">Unit Price</Label>
@@ -495,14 +495,14 @@ const SellerProductDetail = () => {
 
               {/* Agreement & Delivery */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Handshake className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Agreement & Delivery</h2>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Transaction terms and delivery options</p>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-4 sm:p-6">
                   <div>
                     <Label className="text-sm font-medium text-foreground">Seller Notes</Label>
                     <Textarea value={sellerNotes} onChange={(e) => setSellerNotes(e.target.value)} rows={3} className="mt-1.5 px-4 py-3 rounded-lg" placeholder="Private notes about this product..." />
@@ -561,7 +561,7 @@ const SellerProductDetail = () => {
 
               {/* Visibility & Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <Eye className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Visibility & Status</h2>
@@ -600,7 +600,7 @@ const SellerProductDetail = () => {
             <div className="xl:col-span-1 space-y-6">
               {/* Product Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">Product Status</h3>
                 </div>
                 <div className="p-6 space-y-3">
@@ -645,7 +645,7 @@ const SellerProductDetail = () => {
 
               {/* Quick Actions */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">Quick Actions</h3>
                 </div>
                 <div className="p-6 space-y-2">
@@ -679,7 +679,7 @@ const SellerProductDetail = () => {
 
               {/* SafeDeal Protection */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="border-b border-border px-4 py-4 sm:px-6">
                   <h3 className="text-base font-semibold text-foreground">SafeDeal Protection</h3>
                 </div>
                 <div className="p-6">
