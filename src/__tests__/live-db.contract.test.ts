@@ -247,6 +247,10 @@ d("live refund rail", () => {
  * finding even when no policy exists today, because the next policy someone
  * writes inherits that surface.
  */
+// ONE list, used by every scan in this file (grants, forced RLS, policy value
+// checks, and the SECURITY DEFINER regex). Two lists of different widths is
+// how `financial_idempotency_conflicts` sat outside the grant scan while the
+// definer scan covered it.
 const MONEY_TABLE_LIST = [
   "payments",
   "payouts",
@@ -270,6 +274,22 @@ const MONEY_TABLE_LIST = [
   "transaction_items",
   "transaction_delivery_terms",
   "checkout_session_items",
+  // ---- Merged in from the (previously wider) definer regex. Security-relevant
+  // contents, not amounts: settings, audit trail, roles, staff and identity. ----
+  "financial_idempotency_conflicts",
+  "admin_rate_limits",
+  "system_settings",
+  "system_settings_history",
+  "internal_users",
+  "internal_user_roles",
+  "user_roles",
+  "permissions",
+  "role_permissions",
+  "user_permission_overrides",
+  "audit_logs",
+  "admin_actions",
+  "vendor_plans",
+  "profiles",
 ];
 
 const MONEY_TABLE_SQL_ARRAY = `array[${MONEY_TABLE_LIST.map((t) => `'${t}'`).join(",")}]`;
@@ -299,6 +319,30 @@ const CLIENT_MONEY_DML_ALLOWLIST = [
   "authenticated:transaction_delivery_terms:UPDATE",
   // Buyer writes their own checkout line items (buyers_insert_own_checkout_items).
   "authenticated:checkout_session_items:INSERT",
+  // ---- Policy-backed staff/self writes on the merged security tables. ----
+  "authenticated:admin_actions:INSERT", // admins_insert_admin_actions
+  "authenticated:user_roles:INSERT", // users_insert_own_non_admin_role
+  "authenticated:profiles:UPDATE", // users_update_own_profile (self-scoped)
+  "authenticated:system_settings:INSERT", // admins_insert_system_settings
+  "authenticated:system_settings:UPDATE", // admins_update_system_settings
+  "authenticated:internal_users:INSERT", // staff manage internal_users
+  "authenticated:internal_users:UPDATE",
+  "authenticated:internal_users:DELETE",
+  "authenticated:internal_user_roles:INSERT", // staff manage user_roles
+  "authenticated:internal_user_roles:UPDATE",
+  "authenticated:internal_user_roles:DELETE",
+  "authenticated:permissions:INSERT", // super admin manage permissions
+  "authenticated:permissions:UPDATE",
+  "authenticated:permissions:DELETE",
+  "authenticated:role_permissions:INSERT", // super_admin manage role_permissions
+  "authenticated:role_permissions:UPDATE",
+  "authenticated:role_permissions:DELETE",
+  "authenticated:user_permission_overrides:INSERT", // super_admin manage overrides
+  "authenticated:user_permission_overrides:UPDATE",
+  "authenticated:user_permission_overrides:DELETE",
+  "authenticated:vendor_plans:INSERT", // Internal admins manage plan catalogue
+  "authenticated:vendor_plans:UPDATE",
+  "authenticated:vendor_plans:DELETE",
 ];
 
 d("live money-table grants", () => {
@@ -322,6 +366,66 @@ d("live money-table grants", () => {
         " and not c.relforcerowsecurity order by 1",
     );
     expect(missing ? missing.split("\n") : []).toEqual([]);
+  });
+
+  /**
+   * TRUNCATE is NOT subject to row level security — neither relrowsecurity nor
+   * relforcerowsecurity mitigates it — so it is scanned across EVERY public
+   * table, not just the list above.
+   */
+  it("leaves TRUNCATE on no public table for any client role", () => {
+    const found = psql(
+      "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        " where n.nspname = 'public' and c.relkind in ('r','p')" +
+        " and (has_table_privilege('anon', c.oid, 'TRUNCATE')" +
+        " or has_table_privilege('authenticated', c.oid, 'TRUNCATE')) order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+});
+
+/**
+ * VIEW class. Nothing in this suite read pg_class for relkind 'v'/'m' until a
+ * single-table, auto-updatable view (`public_seller_profiles`) with
+ * `security_invoker = off`, owned by a rolbypassrls role and granted full DML
+ * to anon, turned out to be an unauthenticated write path into `profiles`.
+ * Functions, then column defaults, now views: a catalog nobody reads is where
+ * the next defect lives.
+ */
+d("live view surface", () => {
+  // Individually justified exceptions. Empty by design — a definer view is a
+  // deliberate RLS bypass and must be argued for in writing, here.
+  const SECURITY_DEFINER_VIEW_BASELINE: string[] = [];
+
+  it("runs every view with security_invoker = on", () => {
+    const found = psql(
+      "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        " where n.nspname = 'public' and c.relkind = 'v'" +
+        " and not coalesce(array_to_string(c.reloptions, ',') ~ 'security_invoker=(on|true)', false)" +
+        " order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(list.filter((v) => !SECURITY_DEFINER_VIEW_BASELINE.includes(v))).toEqual([]);
+  });
+
+  it("gives client roles no DML on any view or materialized view", () => {
+    const found = psql(
+      "select a.grantee::regrole::text || ':' || c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind in ('v','m')" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps the public storefront projection structurally non-writable", () => {
+    // Sourced from a SECURITY DEFINER set-returning function, so PostgreSQL
+    // cannot make it auto-updatable even if a grant is restored by mistake.
+    expect(
+      psql("select pg_relation_is_updatable('public.public_seller_profiles'::regclass, false)"),
+    ).toBe("0");
   });
 });
 
@@ -438,18 +542,9 @@ d("live helper reachability", () => {
  * Inversion, like the column and guard scans: everything touching a money
  * table is a finding unless it appears in the commented allowlist below.
  */
-// Widened from "tables holding amounts" to "tables whose contents are
-// security-relevant". `admin_rate_limits` and `system_settings_history` hold
-// no money, and two anon-executable SECURITY DEFINER writers over them went
-// unseen for exactly that reason.
-const MONEY_TABLES =
-  "escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing" +
-  "|dispute_outcomes|financial_remediations|transactions|money_status_history" +
-  "|vendor_plan_purchases|payout_accounts|checkout_sessions|checkout_session_items" +
-  "|release_review_queue|escrow_reconciliation_results|transaction_items" +
-  "|transaction_delivery_terms|admin_rate_limits|system_settings|system_settings_history" +
-  "|internal_users|internal_user_roles|user_roles|permissions|role_permissions" +
-  "|user_permission_overrides|audit_logs|admin_actions|vendor_plans";
+// DERIVED from MONEY_TABLE_LIST — the single subject list. It is no longer
+// possible for the grant scan and the definer scan to disagree on scope.
+const MONEY_TABLES = MONEY_TABLE_LIST.join("|");
 
 // Each entry is READ-ONLY over money tables and justified individually.
 const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
@@ -487,6 +582,16 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
   // Read-only plan/slot resolvers backing the public pricing page.
   "effective_vendor_plan_code",
   "vendor_photo_slot_limit",
+  // ---- Surfaced by unifying the subject list (adds `profiles`). ----
+  // Read-only trust-tier derivation over profiles/identity submissions.
+  "compute_verification_level",
+  // Read-only regional gate evaluated during onboarding and checkout.
+  "is_user_region_allowed",
+  // Read-only public projection behind `public_seller_profiles`: nine
+  // non-sensitive columns, rows filtered to store_slug IS NOT NULL. Definer so
+  // the storefront can render before sign-in WITHOUT opening a profiles SELECT
+  // policy that would expose email and phone to every signed-in user.
+  "storefront_seller_profiles",
 ];
 
 // SECURITY DEFINER WRITERS a signed-in client may reach. Each must carry its
@@ -652,9 +757,12 @@ d("live pg_proc invented-defaults scan", () => {
   });
 
   // Zero is NOT carved out of the scan any more: "money coerced to zero by
-  // column default" is the same class as any other invented default. Each
-  // remaining entry is a running accumulator that legitimately starts empty
-  // and is only ever moved by a guarded ledger write.
+  // column default" is the same class as any other invented default. Nor is
+  // the column NAME a filter any more — `escrow_reconciliation_results
+  // .ledger_balance DEFAULT 0` was invisible because it matches none of
+  // (fee|rate|amount|price|cap). Every numeric-typed column in the schema is
+  // scanned. Each remaining entry is a running accumulator that legitimately
+  // starts empty and is only ever moved by a guarded write.
   const ZERO_DEFAULT_BASELINE = [
     "checkout_sessions.subtotal_amount = 0",
     "checkout_sessions.total_amount = 0",
@@ -673,7 +781,8 @@ d("live pg_proc invented-defaults scan", () => {
         " from pg_attrdef d join pg_class c on c.oid = d.adrelid" +
         " join pg_namespace n on n.oid = c.relnamespace" +
         " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
-        " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
+        " where n.nspname = 'public' and c.relkind = 'r'" +
+        " and format_type(a.atttypid, null) in ('numeric','double precision','real','money')" +
         " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|false|true|now\\(\\))$'" +
         " order by 1",
     );
