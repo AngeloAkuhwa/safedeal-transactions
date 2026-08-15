@@ -122,7 +122,7 @@ export function SellerAlertsDrawer({ open, onOpenChange, alerts, userId }: Selle
                         <div className="flex items-center gap-2 pl-6">
                           <button
                             onClick={() => handleAction(alert.action_href)}
-                            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${c.primaryBtn}`}
+                            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${c.primaryBtn} min-h-11 min-w-11 justify-center`}
                           >
                             {alert.action_label}
                             <ArrowRight className="h-3 w-3" />
@@ -130,7 +130,7 @@ export function SellerAlertsDrawer({ open, onOpenChange, alerts, userId }: Selle
                           {alert.secondary_action && (
                             <button
                               onClick={() => handleAction(alert.secondary_action!.href)}
-                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${c.secondaryBtn}`}
+                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${c.secondaryBtn} min-h-11 min-w-11 justify-center`}
                             >
                               {alert.secondary_action.label}
                             </button>

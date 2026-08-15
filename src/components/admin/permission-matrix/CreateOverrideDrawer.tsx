@@ -162,7 +162,7 @@ export function CreateOverrideDrawer({
             <div className="max-h-40 overflow-y-auto rounded-md border border-border/60">
               {users.map((u) => (
                 <button type="button" key={u.id} onClick={() => setUser(u)}
-                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted ${user?.id === u.id ? "bg-primary/5 min-h-11" : ""}`}>
+                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted ${user?.id === u.id ? "bg-primary/5" : ""} min-h-11`}>
                   <div className="flex-1">
                     <div className="font-medium">{u.name}</div>
                     <div className="text-[10px] text-muted-foreground">{u.email}</div>
@@ -185,7 +185,7 @@ export function CreateOverrideDrawer({
             <div className="max-h-40 overflow-y-auto rounded-md border border-border/60">
               {permOptions.map((p) => (
                 <button type="button" key={p.key} onClick={() => setPermKey(p.key)}
-                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted ${permKey === p.key ? "bg-primary/5 min-h-11" : ""}`}>
+                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted ${permKey === p.key ? "bg-primary/5" : ""} min-h-11`}>
                   <span className="font-mono text-[10px] text-muted-foreground">{p.key}</span>
                   <span className="ml-auto truncate text-muted-foreground">{p.module}</span>
                   {isPrivilegedPermission(p.key) && <ShieldAlert className="h-3 w-3 text-amber-300" />}
@@ -200,7 +200,7 @@ export function CreateOverrideDrawer({
             <div className="flex flex-wrap gap-2">
               {(["grant","deny","temporary"] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setType(t)}
-                  className={`rounded-md border px-2 py-1 text-xs ${type === t ? "border-primary/50 bg-primary/10 text-primary min-h-11" : "border-border bg-background text-muted-foreground"}`}>
+                  className={`rounded-md border px-2 py-1 text-xs ${type === t ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"} min-h-11 min-w-11 justify-center`}>
                   {t === "grant" ? "Grant" : t === "deny" ? "Deny" : "Temporary"}
                 </button>
               ))}

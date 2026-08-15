@@ -196,7 +196,7 @@ export function RegisterPermissionDialog({
                     type="button"
                     key={e}
                     onClick={() => setEnvs((prev) => active ? prev.filter((x) => x !== e) : [...prev, e])}
-                    className={`rounded-md border px-2 py-1 text-xs ${active ? "border-primary/50 bg-primary/10 text-primary min-h-11" : "border-border bg-background text-muted-foreground"}`}
+                    className={`rounded-md border px-2 py-1 text-xs ${active ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"} min-h-11 min-w-11 justify-center`}
                   >{e}</button>
                 );
               })}
@@ -248,7 +248,7 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
         {filtered.map((p) => (
           <button
             key={p.key} type="button" onClick={() => toggle(p.key)}
-            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5 min-h-11" : ""}`}
+            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""} min-h-11`}
           >
             <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none" />
             <span className="font-mono text-muted-foreground">{p.key}</span>

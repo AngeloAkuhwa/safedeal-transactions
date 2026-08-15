@@ -761,9 +761,9 @@ export default function AdminTransactions() {
               onClick={() => setActiveQuick(f.key)}
               className={`shrink-0 snap-start rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
                 active
-                  ? "border-blue-500/40 bg-blue-500/15 text-blue-300 min-h-11"
+                  ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              } min-h-11`}
             >
               {f.label}
             </button>
@@ -1304,8 +1304,8 @@ function BottomNav({
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
-        active ? "text-blue-400 min-h-11" : "text-muted-foreground hover:text-foreground"
-      }`}
+        active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
+      } min-h-11`}
     >
       <Icon className="h-5 w-5" aria-hidden />
       {label}

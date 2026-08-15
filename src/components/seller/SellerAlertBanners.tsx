@@ -83,7 +83,7 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => navigate(alert.action_href)}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${c.primaryBtn}`}
+                className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${c.primaryBtn} min-h-11`}
               >
                 {alert.action_label}
                 <ArrowRight className="h-4 w-4" />
@@ -91,7 +91,7 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
               {alert.secondary_action && (
                 <button
                   onClick={() => navigate(alert.secondary_action!.href)}
-                  className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${c.secondaryBtn}`}
+                  className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${c.secondaryBtn} min-h-11`}
                 >
                   {alert.secondary_action.label}
                 </button>

@@ -60,7 +60,7 @@ export function UserAccessFilters({
                 type="button"
                 onClick={() => onFilter(c.id)}
                 aria-pressed={filter === c.id}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${chipClass(filter === c.id, c.tone)}`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${chipClass(filter === c.id, c.tone)} min-h-11`}
               >
                 {c.icon}
                 {c.label}

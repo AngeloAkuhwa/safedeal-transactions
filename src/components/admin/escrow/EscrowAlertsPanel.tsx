@@ -65,7 +65,7 @@ function AlertCard({
             key={it.id}
             type="button"
             onClick={() => onOpen(it.id)}
-            className={`w-full flex items-center justify-between p-2.5 bg-slate-900/50 rounded border border-slate-700 ${accent.hoverBorder} transition-all text-left`}
+            className={`w-full flex items-center justify-between p-2.5 bg-slate-900/50 rounded border border-slate-700 ${accent.hoverBorder} transition-all text-left min-h-11`}
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`${accent.text} shrink-0`}>{it.rowIcon}</span>

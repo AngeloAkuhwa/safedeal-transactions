@@ -121,7 +121,7 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
                       {route && (
                         <Button
                           size="sm"
-                          className={`${style.buttonClass} h-7 text-xs`}
+                          className={`${style.buttonClass} h-11 text-xs`}
                           onClick={() => navigate(route)}
                         >
                           {style.actionLabel}

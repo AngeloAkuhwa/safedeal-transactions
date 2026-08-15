@@ -150,8 +150,8 @@ export function VendorPlanSection() {
                   type="button"
                   onClick={() => setPeriod(p)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
-                    period === p ? "bg-primary text-primary-foreground min-h-11" : "text-muted-foreground"
-                  }`}
+                    period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  } min-h-11 min-w-11 justify-center`}
                 >
                   {p}
                 </button>

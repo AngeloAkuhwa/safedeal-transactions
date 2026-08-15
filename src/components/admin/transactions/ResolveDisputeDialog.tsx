@@ -187,8 +187,8 @@ export function ResolveDisputeDialog({
                   key={o.value}
                   onClick={() => setMode(o.value)}
                   className={`text-left rounded-md border px-3 py-2 transition-colors ${
-                    mode === o.value ? "border-primary bg-primary/10 min-h-11" : "border-border hover:bg-muted/40"
-                  }`}
+                    mode === o.value ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40"
+                  } min-h-11`}
                 >
                   <div className="text-sm font-medium">{o.label}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{o.help}</div>
@@ -198,8 +198,8 @@ export function ResolveDisputeDialog({
                 type="button"
                 onClick={() => setMode("request_more_information")}
                 className={`text-left rounded-md border px-3 py-2 transition-colors sm:col-span-2 ${
-                  mode === "request_more_information min-h-11" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40"
-                }`}
+                  mode === "request_more_information" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40"
+                } min-h-11`}
               >
                 <div className="text-sm font-medium">Request more information</div>
                 <div className="text-xs text-muted-foreground mt-0.5">Does not resolve the dispute. Extends seller response window.</div>

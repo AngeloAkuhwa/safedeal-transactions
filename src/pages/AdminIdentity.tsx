@@ -93,9 +93,9 @@ export default function AdminIdentity() {
                 }}
                 className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                   status === t.key
-                    ? "border-primary/40 bg-primary/15 text-primary min-h-11"
+                    ? "border-primary/40 bg-primary/15 text-primary"
                     : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
-                }`}
+                } min-h-11`}
               >
                 {t.label}
               </button>

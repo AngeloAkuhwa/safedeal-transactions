@@ -213,7 +213,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
             <Link
               key={chip.key}
               to={chip.href}
-              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone}`}
+              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone} min-h-11 min-w-11 justify-center`}
             >
               <span className="inline-flex items-center gap-1.5">
                 <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />

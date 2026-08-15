@@ -56,7 +56,7 @@ export function AdminActionRequired({ items }: AdminActionRequiredProps) {
               <button
                 type="button"
                 onClick={() => go(item.action_href, item.label)}
-                className={`mt-auto inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${SEVERITY_BTN[item.severity]}`}
+                className={`mt-auto inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${SEVERITY_BTN[item.severity]} min-h-11 min-w-11`}
               >
                 {item.action_label}
                 <ArrowRight className="h-3 w-3" />

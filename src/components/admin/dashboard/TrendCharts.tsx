@@ -74,8 +74,8 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
                 type="button"
                 onClick={() => setWin(w)}
                 className={`rounded-sm px-2.5 py-1 transition-colors ${
-                  win === w ? "bg-blue-500/20 text-blue-300 min-h-11" : "text-muted-foreground hover:text-foreground"
-                }`}
+                  win === w ? "bg-blue-500/20 text-blue-300" : "text-muted-foreground hover:text-foreground"
+                } min-h-11 min-w-11 justify-center`}
               >
                 {w}
               </button>

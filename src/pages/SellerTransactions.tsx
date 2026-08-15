@@ -299,7 +299,7 @@ const SellerTransactions = () => {
                 key={chip.key}
                 type="button"
                 onClick={() => setStatusFilter(active ? "all" : chip.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30 min-h-11" : ""}`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
               >
                 {chip.label}
                 <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[9px] font-bold px-1">

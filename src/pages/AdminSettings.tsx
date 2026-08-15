@@ -65,7 +65,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${
+      className={`w-10 h-11 rounded-full relative cursor-pointer transition-colors ${
         on ? "bg-emerald-600" : "bg-muted"
       }`}
       aria-pressed={on}
@@ -87,7 +87,7 @@ function NumInput({
       type="number"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`${className} h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40`}
+      className={`${className} h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 relative before:absolute before:-inset-2 before:content-['']`}
     />
   );
 }
@@ -136,11 +136,11 @@ function HeaderBar({
           <div className="inline-flex rounded-lg border border-border overflow-hidden">
             <button
               onClick={() => setScope("platform")}
-              className={`h-9 px-3 text-xs font-medium transition-colors ${scope === "platform" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+              className={`h-11 px-3 text-xs font-medium transition-colors ${scope === "platform" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
             >Platform</button>
             <button
               onClick={() => setScope("vendor")}
-              className={`h-9 px-3 text-xs font-medium transition-colors border-l border-border ${scope === "vendor" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+              className={`h-11 px-3 text-xs font-medium transition-colors border-l border-border ${scope === "vendor" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
             >Vendor</button>
           </div>
           <button
@@ -153,7 +153,7 @@ function HeaderBar({
           <button
             onClick={onSave}
             disabled={!dirty}
-            className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-foreground transition-colors ${
+            className={`h-11 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-foreground transition-colors ${
               dirty
                 ? "bg-amber-600 hover:bg-amber-500"
                 : "bg-muted border border-border opacity-60 cursor-not-allowed"
@@ -654,7 +654,7 @@ export default function AdminSettings() {
                       value={refundPolicy}
                       disabled={isLocked("fees.refund_policy") || !canConfigureFinancial}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
+                      className={`w-full h-11 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>
@@ -1085,7 +1085,7 @@ function TimeoutRow({
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-20 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${disabled ? "cursor-not-allowed" : ""}`}
+          className={`w-20 h-11 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${disabled ? "cursor-not-allowed" : ""}`}
         />
         <span className="text-muted-foreground text-xs">{unit}</span>
       </div>

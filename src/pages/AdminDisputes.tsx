@@ -433,7 +433,7 @@ export default function AdminDisputes() {
                         onClick={() => setParam("quick", f.id)}
                         className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                           isActive ? baseActive : baseInactive
-                        }`}
+                        } min-h-11`}
                       >
                         {f.id === "overdue" && <AlertTriangle className="h-3 w-3" />}
                         <span>{f.label}{count != null ? ` (${count})` : ""}</span>
@@ -646,7 +646,7 @@ export default function AdminDisputes() {
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={`h-9 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
+                                  className={`h-11 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
