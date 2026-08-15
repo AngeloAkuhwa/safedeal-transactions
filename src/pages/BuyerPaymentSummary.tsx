@@ -704,7 +704,7 @@ export default function BuyerPaymentSummary() {
                 </div>
                 <p className="text-xs text-muted-foreground -mt-1 pl-0.5">{FEE_CAPTION}</p>
                 <Collapsible>
-                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors pl-0.5">
+                  <CollapsibleTrigger className="-ml-1.5 inline-flex min-h-11 items-center gap-1 px-2 text-xs text-muted-foreground transition-colors hover:text-foreground">
                     <ChevronDown className="h-3 w-3" />
                     How this fee is calculated
                   </CollapsibleTrigger>
