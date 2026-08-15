@@ -33,7 +33,10 @@ export function PublicPageHeader({ current }: { current?: "marketplace" | "prici
           <span className="text-lg font-bold tracking-tight text-foreground sm:text-xl">SafeDeal</span>
         </Link>
 
-        <nav className="flex items-center gap-4 sm:gap-6" aria-label="Main navigation">
+        {/* Below sm the bar is logo + Sign up only: at 320px the full set needed
+              358px of a 328px line and pushed the whole header off-screen. The
+              two links live in the footer on every public page. */}
+        <nav className="flex items-center gap-2 sm:gap-6" aria-label="Main navigation">
           {/* Classes are inline rather than behind a helper so the touch-target
               scanner can resolve them — a className it cannot read is a target
               it cannot verify, and it correctly refuses to assume. */}
@@ -41,7 +44,7 @@ export function PublicPageHeader({ current }: { current?: "marketplace" | "prici
             to="/marketplace"
             aria-current={current === "marketplace" ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-sm font-semibold transition-colors",
+              "hidden min-h-11 min-w-11 items-center justify-center px-3 text-sm font-semibold transition-colors sm:inline-flex",
               current === "marketplace" ? "text-foreground" : "text-muted-foreground hover:text-primary",
             )}
           >
@@ -51,7 +54,7 @@ export function PublicPageHeader({ current }: { current?: "marketplace" | "prici
             to="/pricing"
             aria-current={current === "pricing" ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-sm font-semibold transition-colors",
+              "hidden min-h-11 min-w-11 items-center justify-center px-3 text-sm font-semibold transition-colors sm:inline-flex",
               current === "pricing" ? "text-foreground" : "text-muted-foreground hover:text-primary",
             )}
           >
