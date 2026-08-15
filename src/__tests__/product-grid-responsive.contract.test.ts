@@ -52,7 +52,7 @@ describe("tap targets reach 44px without changing visual size", () => {
   });
 
   it("cart button keeps h-8 w-8 visuals and expands the hit area by 8px per side", () => {
-    expect(src).toContain("relative h-8 w-8 rounded-lg shrink-0 before:absolute before:-inset-2 before:content-['']");
+    expect(src).toContain("relative z-10 h-8 w-8 shrink-0 rounded-lg before:absolute before:-inset-2 before:content-['']");
   });
 
   it("computed hit areas are >= 44px in both dimensions", () => {
@@ -62,7 +62,7 @@ describe("tap targets reach 44px without changing visual size", () => {
 
   it("the heart lives in the media well and the cart control in the content block", () => {
     const heart = src.indexOf("before:-inset-2");
-    const cart = src.indexOf("relative h-8 w-8 rounded-lg shrink-0");
+    const cart = src.indexOf("relative z-10 h-8 w-8 shrink-0 rounded-lg");
     expect(heart).toBeGreaterThan(-1);
     expect(cart).toBeGreaterThan(heart);
     expect(src.slice(heart, cart)).toContain("</div>");

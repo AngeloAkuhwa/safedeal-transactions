@@ -236,7 +236,7 @@ const CartCheckoutReview = () => {
   return (
     <div className="flex min-h-[100dvh] bg-background">
       <BuyerSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 lg:overflow-auto">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           <header className="flex items-center justify-between">
             <button

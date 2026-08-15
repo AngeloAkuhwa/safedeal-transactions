@@ -40,8 +40,12 @@ export function occlusionOffenders(source: string): string[] {
   const offenders: string[] = [];
   for (const attr of source.match(/className=\{?[^>]*?["'`][^"'`]*["'`]/g) ?? []) {
     const tokens = attr.replace(/[{}"'`]/g, "").split(/\s+/);
-    const decorative = tokens.some((t) => /^(rounded|aspect)-/.test(t));
-    if (decorative) continue;
+    // Card decoration (rounded/aspect clipping) is not a scroll port.
+    if (tokens.some((t) => /^(rounded|aspect)(-|$)/.test(t))) continue;
+    // Desktop-only blocks (`hidden md:block`) never render under the tab bar.
+    if (tokens.includes("hidden") && tokens.some((t) => /^(sm|md|lg):(block|table|flex|grid)$/.test(t))) continue;
+    // Class lists built from an interpolated token cannot be resolved here.
+    if (attr.includes("$")) continue;
     for (const token of tokens) if (LAYOUT_TRAP.test(token)) offenders.push(token);
   }
   return offenders;

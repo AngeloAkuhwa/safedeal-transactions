@@ -177,7 +177,7 @@ const SellerProductPreview = () => {
         identityVerified={identityVerified}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="relative flex flex-1 flex-col lg:overflow-hidden">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
