@@ -352,17 +352,20 @@
 /* Standard 6px pulsing "live" status dot. Use at most one per viewport
    region — it already includes the pulse animation, so do not also add
    `animate-pulse` alongside it. */
+/**
+ * Decorative "this is live" pulse. Carries the animation only — size, shape
+ * and colour stay with the component so the utility can be dropped onto any
+ * existing dot. Use this instead of `animate-pulse` for status/presence dots;
+ * `animate-pulse` is reserved for loading skeletons.
+ */
 .sd-live-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background-color: currentColor;
-  color: hsl(var(--success));
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .sd-live-dot {
+  /* Decorative motion is dropped entirely; skeletons keep a static shimmer-free
+     surface rather than flashing. */
+  .sd-live-dot,
+  .animate-pulse {
     animation: none;
   }
 }
