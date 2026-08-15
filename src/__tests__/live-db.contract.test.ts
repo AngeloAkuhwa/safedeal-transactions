@@ -542,18 +542,9 @@ d("live helper reachability", () => {
  * Inversion, like the column and guard scans: everything touching a money
  * table is a finding unless it appears in the commented allowlist below.
  */
-// Widened from "tables holding amounts" to "tables whose contents are
-// security-relevant". `admin_rate_limits` and `system_settings_history` hold
-// no money, and two anon-executable SECURITY DEFINER writers over them went
-// unseen for exactly that reason.
-const MONEY_TABLES =
-  "escrow_ledger_entries|escrow_states|payouts|refunds|payments|transaction_pricing" +
-  "|dispute_outcomes|financial_remediations|transactions|money_status_history" +
-  "|vendor_plan_purchases|payout_accounts|checkout_sessions|checkout_session_items" +
-  "|release_review_queue|escrow_reconciliation_results|transaction_items" +
-  "|transaction_delivery_terms|admin_rate_limits|system_settings|system_settings_history" +
-  "|internal_users|internal_user_roles|user_roles|permissions|role_permissions" +
-  "|user_permission_overrides|audit_logs|admin_actions|vendor_plans";
+// DERIVED from MONEY_TABLE_LIST — the single subject list. It is no longer
+// possible for the grant scan and the definer scan to disagree on scope.
+const MONEY_TABLES = MONEY_TABLE_LIST.join("|");
 
 // Each entry is READ-ONLY over money tables and justified individually.
 const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
@@ -591,6 +582,16 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
   // Read-only plan/slot resolvers backing the public pricing page.
   "effective_vendor_plan_code",
   "vendor_photo_slot_limit",
+  // ---- Surfaced by unifying the subject list (adds `profiles`). ----
+  // Read-only trust-tier derivation over profiles/identity submissions.
+  "compute_verification_level",
+  // Read-only regional gate evaluated during onboarding and checkout.
+  "is_user_region_allowed",
+  // Read-only public projection behind `public_seller_profiles`: nine
+  // non-sensitive columns, rows filtered to store_slug IS NOT NULL. Definer so
+  // the storefront can render before sign-in WITHOUT opening a profiles SELECT
+  // policy that would expose email and phone to every signed-in user.
+  "storefront_seller_profiles",
 ];
 
 // SECURITY DEFINER WRITERS a signed-in client may reach. Each must carry its
