@@ -36,7 +36,7 @@ export function FlaggedHeaderBar({ activeFlags, critical, query, isFetching, onR
         </div>
         <div className="flex items-center gap-3">
           <FlaggedExportButton query={query} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60" />
-          <button type="button" onClick={onRefresh} disabled={isFetching} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60">
+          <button type="button" onClick={onRefresh} disabled={isFetching} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11">
             {isFetching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
             <span className="hidden sm:inline">Fraud Detection</span>
           </button>

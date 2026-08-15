@@ -77,7 +77,7 @@ export function ExportDataDialog({ open, onOpenChange, transactionCode, onSubmit
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {SECTIONS.map((s) => (
-              <label key={s.key} className="flex items-start gap-2 rounded-md border border-border p-2 text-sm">
+              <label key={s.key} className="flex items-start gap-2 rounded-md border border-border p-2 text-sm min-h-11">
                 <input
                   type="checkbox"
                   checked={!!sections[s.key]}
@@ -106,9 +106,9 @@ export function ExportDataDialog({ open, onOpenChange, transactionCode, onSubmit
         </div>
         <DialogFooter>
           <button onClick={() => close(false)} disabled={submitting}
-            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm">Cancel</button>
+            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm min-h-11">Cancel</button>
           <button onClick={submit} disabled={!canSubmit}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 min-h-11">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Generate export
           </button>

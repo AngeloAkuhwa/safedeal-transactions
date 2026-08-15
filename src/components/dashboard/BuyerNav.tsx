@@ -181,7 +181,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               key={link.href}
               to={link.href}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors min-h-11"
             >
               <link.icon className="h-4 w-4" />
               {link.label}
@@ -189,7 +189,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
           ))}
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors min-h-11"
           >
             <LogOut className="h-4 w-4" />
             Sign Out

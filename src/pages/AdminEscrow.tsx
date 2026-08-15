@@ -105,7 +105,7 @@ export default function AdminEscrow() {
             type="button"
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Refresh Data</span>

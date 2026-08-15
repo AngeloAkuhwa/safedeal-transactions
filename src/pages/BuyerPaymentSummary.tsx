@@ -903,7 +903,7 @@ export default function BuyerPaymentSummary() {
                       id="terms-checkbox"
                       checked={agreedToTerms}
                       onChange={(e) => setAgreedToTerms(e.target.checked)}
-                      className="mt-2 h-6 w-6 shrink-0 rounded border-input accent-primary"
+                      className="mt-2 h-6 w-6 shrink-0 rounded border-input accent-primary relative before:absolute before:-inset-3 before:content-['']"
                     />
                     <span className="py-1 text-xs text-muted-foreground">
                       I understand that this payment creates an escrow account and funds will not be released to the seller without my confirmation
@@ -1199,7 +1199,7 @@ export default function BuyerPaymentSummary() {
                     {failureTerminal ? (
                       <button
                         onClick={() => navigate("/marketplace")}
-                        className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
+                        className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 min-h-11"
                       >
                         <ArrowLeft className="h-3.5 w-3.5" />
                         Back to Marketplace
@@ -1208,14 +1208,14 @@ export default function BuyerPaymentSummary() {
                       <>
                         <button
                           onClick={() => { setShowFailed(false); navigate("/dashboard/transactions"); }}
-                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
+                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 min-h-11"
                         >
                           <FileText className="h-3.5 w-3.5" />
                           View My Transactions
                         </button>
                         <button
                           onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
-                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5 min-h-11"
                         >
                           <ArrowLeft className="h-3.5 w-3.5" />
                           Return to Review
@@ -1226,7 +1226,7 @@ export default function BuyerPaymentSummary() {
                         <button
                           onClick={handleRetryPay}
                           disabled={isProcessing}
-                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-11"
                         >
                           {isProcessing ? (
                             <>
@@ -1242,7 +1242,7 @@ export default function BuyerPaymentSummary() {
                         </button>
                         <button
                           onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
-                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5 min-h-11"
                         >
                           <ArrowLeft className="h-3.5 w-3.5" />
                           Return to Review
@@ -1255,7 +1255,7 @@ export default function BuyerPaymentSummary() {
                           `/contact?topic=payment&ref=${encodeURIComponent(data.transaction.transaction_code)}`,
                         )
                       }
-                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5 min-h-11"
                     >
                       <Headphones className="h-3.5 w-3.5" />
                       Contact support if card appears charged

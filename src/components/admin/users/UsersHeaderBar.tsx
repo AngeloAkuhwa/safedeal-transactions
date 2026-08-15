@@ -62,11 +62,11 @@ export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCoun
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={onExport} disabled={busy} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60">
+          <button type="button" onClick={onExport} disabled={busy} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             <span className="hidden sm:inline">{busy ? "Exporting…" : "Export Users"}</span>
           </button>
-          <button type="button" onClick={() => toast({ title: "Coming soon", description: "User creation is on the roadmap." })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium">
+          <button type="button" onClick={() => toast({ title: "Coming soon", description: "User creation is on the roadmap." })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium min-h-11">
             <UserPlus className="h-4 w-4" />
             <span className="hidden sm:inline">Add User</span>
           </button>

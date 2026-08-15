@@ -79,7 +79,7 @@ function SidebarInner({ sellerName, avatarUrl, identityVerified, onNavigate }: S
               onClick={onNavigate}
               className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-primary/10 border border-primary/20 text-foreground"
+                  ? "bg-primary/10 border border-primary/20 text-foreground min-h-11"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
@@ -98,14 +98,14 @@ function SidebarInner({ sellerName, avatarUrl, identityVerified, onNavigate }: S
         <Link
           to="/seller/profile"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all min-h-11"
         >
           <Settings className="h-4.5 w-4.5" />
           <span>Settings</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-all"
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-all min-h-11"
         >
           <LogOut className="h-4.5 w-4.5" />
           <span>Sign Out</span>

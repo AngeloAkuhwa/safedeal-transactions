@@ -19,7 +19,7 @@ export function RankingsFilters({
           id="min-completed"
           type="number"
           min={0}
-          className="h-9 w-[160px] bg-card/60"
+          className="h-11 w-[160px] bg-card/60"
           value={filters.min_completed}
           onChange={(e) => onChange({ min_completed: Math.max(0, Number(e.target.value) || 0) })}
         />
@@ -27,7 +27,7 @@ export function RankingsFilters({
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Performance level</Label>
         <Select value={filters.performance_level} onValueChange={(v) => onChange({ performance_level: v })}>
-          <SelectTrigger className="h-9 w-[180px] bg-card/60" aria-label="Filter by performance level">
+          <SelectTrigger className="h-11 w-[180px] bg-card/60" aria-label="Filter by performance level">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

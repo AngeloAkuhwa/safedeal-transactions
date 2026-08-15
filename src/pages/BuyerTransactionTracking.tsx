@@ -93,7 +93,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       onClick={onClose}
     >
       <button
-        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors"
+        className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11"
         onClick={onClose}
         aria-label="Close"
       >
@@ -402,7 +402,7 @@ const BuyerTransactionTracking = () => {
                       href={delivery_tracking.tracking_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold rounded-xl py-2.5 text-sm hover:bg-primary/90 transition-colors"
+                      className="mt-2 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground font-bold rounded-xl py-2.5 text-sm hover:bg-primary/90 transition-colors min-h-11"
                     >
                       <ExternalLink className="h-4 w-4" /> Track Package
                     </a>

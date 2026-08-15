@@ -19,7 +19,7 @@ export function TransactionsEmptyState({ variant, onClearFilters }: Transactions
           Try adjusting your search or filter criteria to find what you're looking for.
         </p>
         {onClearFilters && (
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClearFilters}>
+          <Button variant="outline" size="sm" className="h-11 text-xs" onClick={onClearFilters}>
             Clear Filters
           </Button>
         )}
@@ -37,10 +37,10 @@ export function TransactionsEmptyState({ variant, onClearFilters }: Transactions
         When you make your first purchase through SafeDeal, its transaction and delivery status will appear here.
       </p>
       <div className="flex items-center justify-center gap-2">
-        <Button asChild size="sm" className="h-8 text-xs">
+        <Button asChild size="sm" className="h-11 text-xs">
           <Link to="/dashboard">Back to Dashboard</Link>
         </Button>
-        <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+        <Button variant="outline" size="sm" className="h-11 text-xs" asChild>
           <Link to="/#how-it-works">Learn how SafeDeal works</Link>
         </Button>
       </div>

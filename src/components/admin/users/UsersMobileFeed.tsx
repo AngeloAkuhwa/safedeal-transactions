@@ -227,7 +227,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
             <button
               disabled={page <= 1}
               onClick={() => onPage(page - 1)}
-              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -235,7 +235,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
             <button
               disabled={page >= pageCount}
               onClick={() => onPage(page + 1)}
-              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

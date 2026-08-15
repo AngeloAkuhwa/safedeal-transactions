@@ -46,7 +46,7 @@ export function AgentPerformanceFilters({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select value={filters.team} onValueChange={(v) => onChange({ team: v })}>
-        <SelectTrigger className="h-9 w-[150px] bg-card/60" aria-label="Filter by team">
+        <SelectTrigger className="h-11 w-[150px] bg-card/60" aria-label="Filter by team">
           <SelectValue placeholder="All Teams" />
         </SelectTrigger>
         <SelectContent>
@@ -61,7 +61,7 @@ export function AgentPerformanceFilters({
         onValueChange={(v) => onChange({ range: v as Filters["range"] })}
       >
         <SelectTrigger
-          className="h-9 w-[150px] bg-card/60 disabled:opacity-50"
+          className="h-11 w-[150px] bg-card/60 disabled:opacity-50"
           aria-label="Filter by date range"
         >
           <SelectValue />
@@ -83,7 +83,7 @@ export function AgentPerformanceFilters({
           <Input
             type="date"
             aria-label="Custom range start date"
-            className="h-9 w-[150px] bg-card/60"
+            className="h-11 w-[150px] bg-card/60"
             value={(filters.date_from ?? "").slice(0, 10)}
             onChange={(e) => onChange({ date_from: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
           />
@@ -91,7 +91,7 @@ export function AgentPerformanceFilters({
           <Input
             type="date"
             aria-label="Custom range end date"
-            className="h-9 w-[150px] bg-card/60"
+            className="h-11 w-[150px] bg-card/60"
             value={(filters.date_to ?? "").slice(0, 10)}
             onChange={(e) => onChange({ date_to: e.target.value ? new Date(`${e.target.value}T23:59:59Z`).toISOString() : undefined })}
           />
@@ -112,7 +112,7 @@ export function AgentPerformanceFilters({
             aria-pressed={filters.scope === s}
             onClick={() => onChange({ scope: s })}
             className={
-              "rounded-md px-3 py-1 text-xs font-medium transition " +
+              "rounded-md px-3 py-1 text-xs font-medium transition min-h-11" +
               (filters.scope === s
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground")
@@ -125,7 +125,7 @@ export function AgentPerformanceFilters({
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 bg-card/60">
+          <Button variant="outline" size="sm" className="h-11 bg-card/60">
             <Filter className="mr-2 h-4 w-4" />
             More Filters
             {activeExtra > 0 && (
@@ -144,7 +144,7 @@ export function AgentPerformanceFilters({
                 value={filters.search}
                 onChange={(e) => onChange({ search: e.target.value })}
                 placeholder="Name, user ID or email"
-                className="h-9 pl-8"
+                className="h-11 pl-8"
               />
             </div>
           </div>
@@ -152,7 +152,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Role</Label>
             <Select value={filters.role} onValueChange={(v) => onChange({ role: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All roles</SelectItem>
                 {roles.map((r) => <SelectItem key={r.key} value={r.key}>{r.name}</SelectItem>)}
@@ -163,7 +163,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Availability</Label>
             <Select value={filters.availability} onValueChange={(v) => onChange({ availability: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any status</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
@@ -180,7 +180,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Workload status</Label>
             <Select value={filters.workload_status} onValueChange={(v) => onChange({ workload_status: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any workload</SelectItem>
                 {WORKLOAD_STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -191,7 +191,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Case priority</Label>
             <Select value={filters.case_priority} onValueChange={(v) => onChange({ case_priority: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any priority</SelectItem>
                 <SelectItem value="critical">Critical</SelectItem>
@@ -205,7 +205,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Case status</Label>
             <Select value={filters.case_status} onValueChange={(v) => onChange({ case_status: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any case status</SelectItem>
                 <SelectItem value="open">Open work</SelectItem>
@@ -218,7 +218,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Case SLA</Label>
             <Select value={filters.case_sla} onValueChange={(v) => onChange({ case_sla: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any</SelectItem>
                 <SelectItem value="on_track">On track</SelectItem>
@@ -230,7 +230,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">Case stage</Label>
             <Select value={filters.case_stage} onValueChange={(v) => onChange({ case_stage: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any stage</SelectItem>
                 {CASE_STAGE_OPTIONS.map((s) => (
@@ -243,7 +243,7 @@ export function AgentPerformanceFilters({
           <div className="space-y-1.5">
             <Label className="text-xs">SLA state</Label>
             <Select value={filters.sla} onValueChange={(v) => onChange({ sla: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any</SelectItem>
                 <SelectItem value="compliant">Fully compliant</SelectItem>
@@ -259,7 +259,7 @@ export function AgentPerformanceFilters({
               min={0}
               value={filters.min_active}
               onChange={(e) => onChange({ min_active: Number(e.target.value) || 0 })}
-              className="h-9"
+              className="h-11"
             />
           </div>
 
@@ -270,7 +270,7 @@ export function AgentPerformanceFilters({
               min={0}
               value={filters.min_overdue}
               onChange={(e) => onChange({ min_overdue: Number(e.target.value) || 0 })}
-              className="h-9"
+              className="h-11"
             />
           </div>
 
@@ -281,14 +281,14 @@ export function AgentPerformanceFilters({
                 type="number" min={0} max={100} aria-label="Minimum score"
                 value={filters.score_min}
                 onChange={(e) => onChange({ score_min: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                className="h-9"
+                className="h-11"
               />
               <span className="text-xs text-muted-foreground">to</span>
               <Input
                 type="number" min={0} max={100} aria-label="Maximum score"
                 value={filters.score_max}
                 onChange={(e) => onChange({ score_max: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                className="h-9"
+                className="h-11"
               />
             </div>
           </div>

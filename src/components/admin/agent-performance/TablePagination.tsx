@@ -27,7 +27,7 @@ export function TablePagination({
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Rows</span>
           <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-            <SelectTrigger className="h-8 w-[74px] bg-card/60" aria-label="Rows per page">
+            <SelectTrigger className="h-11 w-[74px] bg-card/60" aria-label="Rows per page">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -36,11 +36,11 @@ export function TablePagination({
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+          <Button variant="outline" size="sm" className="h-11" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
             Previous
           </Button>
           <span className="text-xs text-muted-foreground">Page {page} of {pages}</span>
-          <Button variant="outline" size="sm" className="h-8" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>
+          <Button variant="outline" size="sm" className="h-11" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>
             Next
           </Button>
         </div>

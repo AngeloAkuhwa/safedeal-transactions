@@ -187,7 +187,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                   onSetCompareRoles(next);
                 }}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition",
+                  "rounded-full border px-3 py-1 text-xs font-medium transition min-h-11",
                   on
                     ? "border-primary/50 bg-primary/15 text-primary-foreground"
                     : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground",
@@ -330,7 +330,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                         <button
                           type="button"
                           onClick={() => stageMissingDependency(x.role, m.needs)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-emerald-300 hover:border-emerald-500/40"
+                          className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-emerald-300 hover:border-emerald-500/40 min-h-11"
                         >
                           <Wand2 className="h-3 w-3" /> Fix by staging
                         </button>
@@ -419,7 +419,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                                 revokeMutation.mutate(ack.id);
                               }
                             }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:border-rose-500/40 hover:text-rose-300"
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:border-rose-500/40 hover:text-rose-300 min-h-11"
                           >
                             <BellOff className="h-3 w-3" /> Revoke ack
                           </button>
@@ -427,7 +427,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
                           <button
                             type="button"
                             onClick={() => setAckTarget({ role: x.role, a: c.a, b: c.b })}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-amber-300 hover:border-amber-500/40"
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-amber-300 hover:border-amber-500/40 min-h-11"
                           >
                             <ShieldCheck className="h-3 w-3" /> Acknowledge
                           </button>

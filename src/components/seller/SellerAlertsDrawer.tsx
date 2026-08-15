@@ -113,7 +113,7 @@ export function SellerAlertsDrawer({ open, onOpenChange, alerts, userId }: Selle
                             <button
                               onClick={() => handleDismiss(alert.type)}
                               aria-label="Dismiss alert"
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 relative before:absolute before:-inset-2 before:content-['']"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>

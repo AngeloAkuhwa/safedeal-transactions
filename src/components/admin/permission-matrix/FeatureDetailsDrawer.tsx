@@ -115,7 +115,7 @@ export function FeatureDetailsDrawer({
                 <button
                   type="button"
                   onClick={() => onEdit(meta.key)}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted"
+                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11"
                 >
                   <Settings2 className="h-3 w-3" /> Edit
                 </button>
@@ -126,19 +126,19 @@ export function FeatureDetailsDrawer({
               <div className="flex flex-wrap gap-2">
                 {meta.status !== "active" && (
                   <button type="button" onClick={() => setStatus.mutate("active")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-500/20">
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-500/20 min-h-11">
                     <Play className="h-3 w-3" /> Reactivate
                   </button>
                 )}
                 {meta.status !== "suspended" && (
                   <button type="button" onClick={() => setStatus.mutate("suspended")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/20">
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/20 min-h-11">
                     <Pause className="h-3 w-3" /> Suspend
                   </button>
                 )}
                 {meta.status !== "deprecated" && (
                   <button type="button" onClick={() => setStatus.mutate("deprecated")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20">
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20 min-h-11">
                     <Ban className="h-3 w-3" /> Deprecate
                   </button>
                 )}

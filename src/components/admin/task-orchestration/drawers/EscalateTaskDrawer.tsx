@@ -100,7 +100,7 @@ export function EscalateTaskDrawer({
             <div>
               <Label className="text-xs">Target queue</Label>
               <Select value={targetQueue} onValueChange={setTargetQueue}>
-                <SelectTrigger className="mt-1 h-9 bg-background/60"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-11 bg-background/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TARGET_QUEUES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
@@ -109,7 +109,7 @@ export function EscalateTaskDrawer({
             <div>
               <Label className="text-xs">Escalation priority</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
-                <SelectTrigger className="mt-1 h-9 bg-background/60"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-11 bg-background/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">High</SelectItem>
                   <SelectItem value="critical">Critical</SelectItem>
@@ -118,13 +118,13 @@ export function EscalateTaskDrawer({
             </div>
             <div>
               <Label className="text-xs">Team (optional)</Label>
-              <Input className="mt-1 h-9 bg-background/60" value={targetTeam}
+              <Input className="mt-1 h-11 bg-background/60" value={targetTeam}
                 onChange={(e) => setTargetTeam(e.target.value)} placeholder="e.g. financial-ops" />
             </div>
             <div>
               <Label className="text-xs">Requested reviewer (optional)</Label>
               <Select value={reviewer || "__any"} onValueChange={(v) => setReviewer(v === "__any" ? "" : v)}>
-                <SelectTrigger className="mt-1 h-9 bg-background/60"><SelectValue placeholder="Any eligible" /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-11 bg-background/60"><SelectValue placeholder="Any eligible" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__any">Any eligible</SelectItem>
                   {roster.map((a) => (

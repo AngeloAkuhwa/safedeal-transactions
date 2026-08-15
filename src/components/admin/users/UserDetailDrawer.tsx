@@ -35,7 +35,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
       <SheetContent side="right" className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 text-slate-200 p-0 overflow-y-auto">
         <div className="sticky top-0 bg-slate-900 border-b border-slate-800 px-5 py-4 flex items-center justify-between z-10">
           <h3 className="text-white font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> User Detail</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded min-h-11"><X className="h-4 w-4" /></button>
         </div>
 
         {isLoading && (
@@ -138,18 +138,18 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
             <div className="sticky bottom-0 bg-slate-950 pt-3 -mx-5 px-5 border-t border-slate-800">
               <button
                 onClick={() => { onClose(); navigate(`/admin/users/${data.user.user_id}`); }}
-                className="w-full mb-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center justify-center gap-1 font-medium"
+                className="w-full mb-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center justify-center gap-1 font-medium min-h-11"
               >
                 <ExternalLink className="h-3 w-3" /> Open Full Investigation Hub
               </button>
               <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => navigate(`/admin/flagged-users?u=${data.user.user_id}`)} className="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs flex items-center justify-center gap-1">
+                <button onClick={() => navigate(`/admin/flagged-users?u=${data.user.user_id}`)} className="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs flex items-center justify-center gap-1 min-h-11">
                   <ExternalLink className="h-3 w-3" /> Fraud workspace
                 </button>
                 {data.user.is_flagged
-                  ? <button onClick={() => onClearFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs flex items-center justify-center gap-1"><CheckCircle2 className="h-3 w-3" /> Clear flag</button>
-                  : <button onClick={() => onFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs flex items-center justify-center gap-1"><Flag className="h-3 w-3" /> Flag</button>}
-                <button onClick={() => onSuspend(data.user.user_id, data.user.full_name)} disabled={data.user.is_suspended} className={`py-2 rounded text-xs flex items-center justify-center gap-1 ${data.user.is_suspended ? "bg-slate-700/50 text-slate-500" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
+                  ? <button onClick={() => onClearFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs flex items-center justify-center gap-1 min-h-11"><CheckCircle2 className="h-3 w-3" /> Clear flag</button>
+                  : <button onClick={() => onFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs flex items-center justify-center gap-1 min-h-11"><Flag className="h-3 w-3" /> Flag</button>}
+                <button onClick={() => onSuspend(data.user.user_id, data.user.full_name)} disabled={data.user.is_suspended} className={`py-2 rounded text-xs flex items-center justify-center gap-1 ${data.user.is_suspended ? "bg-slate-700/50 text-slate-500 min-h-11" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
                   <Ban className="h-3 w-3" /> {data.user.is_suspended ? "Suspended" : "Suspend"}
                 </button>
               </div>

@@ -105,7 +105,7 @@ export function ActionConfirmDialog({
               <input
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm uppercase tracking-wider text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm uppercase tracking-wider text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
               />
             </label>
           )}
@@ -115,7 +115,7 @@ export function ActionConfirmDialog({
             type="button"
             onClick={() => handleClose(false)}
             disabled={submitting}
-            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60"
+            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60 min-h-11"
           >
             Cancel
           </button>

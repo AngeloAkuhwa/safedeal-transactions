@@ -139,7 +139,7 @@ export function SLAComplianceTable({
             type="button"
             aria-pressed={selectedStates.length === 0}
             onClick={() => onStateFilterChange("all")}
-            className={cn("rounded-full border px-3 py-1 text-xs transition",
+            className={cn("rounded-full border px-3 py-1 text-xs transition min-h-11",
               selectedStates.length === 0 ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
           >
             All {totalAll}
@@ -150,7 +150,7 @@ export function SLAComplianceTable({
               type="button"
               aria-pressed={selectedStates.includes(s)}
               onClick={() => toggleState(s)}
-              className={cn("rounded-full border px-3 py-1 text-xs transition",
+              className={cn("rounded-full border px-3 py-1 text-xs transition min-h-11",
               selectedStates.includes(s) ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
             >
               {STATE_META[s].label} {counts[s]}
@@ -168,7 +168,7 @@ export function SLAComplianceTable({
           aria-label="Filter cases by agent"
           value={agentFilter}
           onChange={(e) => onAgentFilterChange(e.target.value)}
-          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground"
+          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground relative before:absolute before:-inset-2 before:content-['']"
         >
           <option value="all">All agents</option>
           {agents.map((a) => <option key={a.user_id} value={a.user_id}>{agentShortName(a)}</option>)}
@@ -177,7 +177,7 @@ export function SLAComplianceTable({
           aria-label="Filter cases by priority"
           value={priorityFilter}
           onChange={(e) => onPriorityFilterChange(e.target.value)}
-          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs capitalize text-foreground"
+          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs capitalize text-foreground relative before:absolute before:-inset-2 before:content-['']"
         >
           <option value="all">All priorities</option>
           {priorities.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -186,7 +186,7 @@ export function SLAComplianceTable({
           aria-label="Filter cases by stage"
           value={stageFilter}
           onChange={(e) => onStageFilterChange(e.target.value)}
-          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground"
+          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground relative before:absolute before:-inset-2 before:content-['']"
         >
           <option value="all">All stages</option>
           {stages.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
@@ -245,7 +245,7 @@ export function SLAComplianceTable({
                         <button
                           type="button"
                           onClick={() => onEscalate(c)}
-                          className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
                         >
                           Escalate
                         </button>
@@ -254,7 +254,7 @@ export function SLAComplianceTable({
                           <button
                             type="button"
                             onClick={() => onRebalance(agent)}
-                            className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
                           >
                             Rebalance
                           </button>
@@ -271,7 +271,7 @@ export function SLAComplianceTable({
               type="button"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+              className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40 min-h-11"
             >
               Previous
             </button>
@@ -280,7 +280,7 @@ export function SLAComplianceTable({
               type="button"
               disabled={!hasMore}
               onClick={() => onPageChange(page + 1)}
-              className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+              className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40 min-h-11"
             >
               Next
             </button>
@@ -321,7 +321,7 @@ export function SLAComplianceTable({
                 <button
                   type="button"
                   onClick={() => onReviewSla(a)}
-                  className="rounded-lg border border-border/70 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="rounded-lg border border-border/70 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
                 >
                   Review SLA
                 </button>

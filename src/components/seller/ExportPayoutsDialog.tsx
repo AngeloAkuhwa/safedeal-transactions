@@ -152,7 +152,7 @@ export function ExportPayoutsDialog({
               <div className="flex flex-col gap-1">
                 <Label className="text-[11px] text-muted-foreground">Scope</Label>
                 <Select value={scope} onValueChange={setScope}>
-                  <SelectTrigger className="w-48 bg-background h-9">
+                  <SelectTrigger className="w-48 bg-background h-11">
                     <SelectValue placeholder="Export Scope" />
                   </SelectTrigger>
                   <SelectContent>
@@ -174,7 +174,7 @@ export function ExportPayoutsDialog({
                   value={fromDate}
                   max={toDate || undefined}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-40 bg-background h-9"
+                  className="w-40 bg-background h-11"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -185,7 +185,7 @@ export function ExportPayoutsDialog({
                   value={toDate}
                   min={fromDate || undefined}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-40 bg-background h-9"
+                  className="w-40 bg-background h-11"
                 />
               </div>
               {(fromDate || toDate) && (
@@ -193,7 +193,7 @@ export function ExportPayoutsDialog({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-9 text-xs"
+                  className="h-11 text-xs"
                   onClick={() => { setFromDate(""); setToDate(""); }}
                 >
                   Clear dates

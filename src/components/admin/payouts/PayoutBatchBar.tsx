@@ -26,11 +26,11 @@ export function PayoutBatchBar({ selected, onClear, onProcess, processing }: Pro
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" onClick={onProcess} disabled={processing} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-8 sm:h-9 text-xs sm:text-sm">
+          <Button size="sm" onClick={onProcess} disabled={processing} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11 sm:h-9 text-xs sm:text-sm">
             {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
             Process
           </Button>
-          <Button size="sm" variant="ghost" onClick={onClear} className="gap-1 h-8 sm:h-9 text-xs sm:text-sm">
+          <Button size="sm" variant="ghost" onClick={onClear} className="gap-1 h-11 sm:h-9 text-xs sm:text-sm">
             <X className="h-4 w-4" /> <span className="hidden sm:inline">Clear</span>
           </Button>
         </div>

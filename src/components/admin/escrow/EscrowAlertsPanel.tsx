@@ -231,7 +231,7 @@ export function EscrowAlertsPanel({
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 shrink-0 transition-colors"
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 shrink-0 transition-colors min-h-11"
             >
               <Settings className="h-4 w-4" />
               Configure Alerts
@@ -243,7 +243,7 @@ export function EscrowAlertsPanel({
                   <button
                     type="button"
                     disabled
-                    className="px-4 py-2 bg-slate-700/60 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed shrink-0"
+                    className="px-4 py-2 bg-slate-700/60 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed shrink-0 min-h-11"
                   >
                     <Settings className="h-4 w-4" />
                     Configure Alerts

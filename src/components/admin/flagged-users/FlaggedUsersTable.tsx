@@ -209,29 +209,29 @@ export function FlaggedUsersTable(props: Props) {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-2 min-w-[180px]">
-                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2 transition-all text-white text-xs font-medium">
+                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2 transition-all text-white text-xs font-medium min-h-11">
                         <FolderOpen className="h-3 w-3" /> Review User
                       </button>
-                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center gap-2 transition-all text-slate-300 text-xs font-medium">
+                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center gap-2 transition-all text-slate-300 text-xs font-medium min-h-11">
                         <User className="h-3 w-3" /> View Profile
                       </button>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
                           <Search className="h-3 w-3" /> Investigate
                         </button>
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
                           <ArrowUpRight className="h-3 w-3" /> Escalate
                         </button>
                       </div>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
                           <Ban className="h-3 w-3" /> Suspend
                         </button>
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
                           <CheckCircle2 className="h-3 w-3" /> Unflag
                         </button>
                       </div>
-                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center gap-2 transition-all text-slate-300 text-xs font-medium">
+                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center gap-2 transition-all text-slate-300 text-xs font-medium min-h-11">
                         <StickyNote className="h-3 w-3" /> Add Note
                       </button>
                     </div>
@@ -246,8 +246,8 @@ export function FlaggedUsersTable(props: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800">
           <p className="text-slate-400 text-sm">Page {page} of {lastPage}</p>
           <div className="flex gap-2">
-            <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-sm disabled:opacity-50">Previous</button>
-            <button type="button" onClick={() => onPage(Math.min(lastPage, page + 1))} disabled={page >= lastPage} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-sm disabled:opacity-50">Next</button>
+            <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-sm disabled:opacity-50 min-h-11">Previous</button>
+            <button type="button" onClick={() => onPage(Math.min(lastPage, page + 1))} disabled={page >= lastPage} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-sm disabled:opacity-50 min-h-11">Next</button>
           </div>
         </div>
       )}

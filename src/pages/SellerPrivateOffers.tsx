@@ -73,7 +73,7 @@ export default function SellerPrivateOffers() {
             </div>
             <p className="sd-page-sub">Buyer-specific offers you've created. Hidden from public marketplace.</p>
           </div>
-          <Button size="sm" onClick={() => navigate("/seller/transactions/new")} className="gap-1.5 h-8 text-xs">
+          <Button size="sm" onClick={() => navigate("/seller/transactions/new")} className="gap-1.5 h-11 text-xs">
             <Plus className="h-3.5 w-3.5" /> Create Private Offer
           </Button>
         </div>
@@ -109,11 +109,11 @@ export default function SellerPrivateOffers() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by buyer email, item, or token…"
-                className="pl-8 h-8 text-xs"
+                className="pl-8 h-11 text-xs"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44 h-11 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>

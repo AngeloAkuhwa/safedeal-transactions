@@ -145,7 +145,7 @@ function HeaderBar({
           </div>
           <button
             onClick={() => toast.info("Audit history will open when wired to admin_actions")}
-            className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 text-foreground text-xs font-medium hover:bg-muted transition-colors"
+            className="h-11 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 text-foreground text-xs font-medium hover:bg-muted transition-colors"
           >
             <HistoryIcon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">View History</span>
@@ -171,12 +171,12 @@ function HeaderBar({
               value={vendorQuery}
               onChange={(e) => setVendorQuery(e.target.value)}
               placeholder="Search vendors by name or email"
-              className="flex-1 h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground"
+              className="flex-1 h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground relative before:absolute before:-inset-2 before:content-['']"
             />
             <select
               value={vendorId ?? ""}
               onChange={(e) => setVendorId(e.target.value || null)}
-              className="h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground min-w-[220px]"
+              className="h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground min-w-[220px] relative before:absolute before:-inset-2 before:content-['']"
             >
               <option value="">— Select vendor —</option>
               {vendorResults.map((v) => (
@@ -583,7 +583,7 @@ export default function AdminSettings() {
                   </div>
                   <button
                     onClick={() => { toast.success("Timeout rules saved locally"); setDirty(false); }}
-                    className="h-9 px-3 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+                    className="h-11 px-3 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
                   >
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Update Timeout Rules
@@ -680,7 +680,7 @@ export default function AdminSettings() {
                 <div className="flex items-center justify-end flex-wrap gap-2">
                   <button
                     onClick={() => { toast.success("Fee structure saved locally"); setDirty(false); }}
-                    className="h-9 px-3 bg-emerald-600 hover:bg-emerald-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+                    className="h-11 px-3 bg-emerald-600 hover:bg-emerald-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
                   >
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Update Fee Structure
@@ -966,7 +966,7 @@ export default function AdminSettings() {
                     document.body.appendChild(a); a.click(); a.remove();
                     URL.revokeObjectURL(url);
                   }}
-                  className="h-9 px-3 bg-muted/60 hover:bg-muted text-foreground rounded-lg transition-colors inline-flex items-center gap-1.5 text-xs font-medium border border-border"
+                  className="h-11 px-3 bg-muted/60 hover:bg-muted text-foreground rounded-lg transition-colors inline-flex items-center gap-1.5 text-xs font-medium border border-border"
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Export Full Log</span>
@@ -1115,7 +1115,7 @@ function FeeField({
           readOnly={locked}
           disabled={locked}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${locked ? "cursor-not-allowed" : ""}`}
+          className={`flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${locked ? "cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']" : ""}`}
         />
         {suffix && <span className="text-muted-foreground text-xs">{suffix}</span>}
       </div>
@@ -1134,7 +1134,7 @@ function NumField({
         type="number"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-11"
       />
     </div>
   );
@@ -1275,7 +1275,7 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="w-full text-[11px] text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left"
+                className="w-full text-[11px] text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left min-h-11"
               >
                 +{overflow} more
               </button>
@@ -1284,7 +1284,7 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="w-full text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left"
+                className="w-full text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left min-h-11"
               >
                 Show less
               </button>

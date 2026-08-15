@@ -160,7 +160,7 @@ function ModuleGroup({
             <button
               type="button"
               onClick={onToggle}
-              className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-sm font-semibold hover:bg-muted"
+              className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-sm font-semibold hover:bg-muted min-h-11"
             >
               {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               {mod.label}
@@ -239,7 +239,7 @@ function ModuleGroup({
                   onClick={() => onStage(r.key, p.key, held)}
                   title={editable ? "Click to stage change" : isProtectedRole(r.key) ? "Protected role — cannot edit" : "Read-only"}
                   className={cn(
-                    "inline-flex h-6 w-9 items-center justify-center rounded-full transition",
+                    "inline-flex h-11 w-9 items-center justify-center rounded-full transition",
                     effectiveGranted
                       ? "bg-emerald-500/20 text-emerald-300"
                       : "bg-muted/40 text-muted-foreground",

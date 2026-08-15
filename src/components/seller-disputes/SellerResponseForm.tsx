@@ -276,7 +276,7 @@ export function SellerResponseForm({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs h-7 gap-1"
+                  className="text-xs h-11 gap-1"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                 >

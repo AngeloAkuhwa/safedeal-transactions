@@ -247,9 +247,9 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
           <span className="text-slate-400">Page {page} of {lastPage}</span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}
-              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed min-h-11">Prev</button>
             <button type="button" disabled={page >= lastPage} onClick={() => onPage(page + 1)}
-              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed min-h-11">Next</button>
           </div>
         </div>
       )}

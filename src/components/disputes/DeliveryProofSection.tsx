@@ -56,7 +56,7 @@ export function DeliveryProofSection({ deliveryProof }: DeliveryProofSectionProp
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-mono font-medium text-foreground">{tracking.tracking_number}</p>
                   {tracking.tracking_url && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 relative before:absolute before:-inset-3 before:content-['']" asChild>
                       <a href={tracking.tracking_url} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3 w-3" />
                       </a>

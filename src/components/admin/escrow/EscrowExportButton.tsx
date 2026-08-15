@@ -38,7 +38,7 @@ export function EscrowExportButton({ query, className }: { query: EscrowQuery; c
       type="button"
       onClick={onClick}
       disabled={busy}
-      className={className ?? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60"}
+      className={className ?? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11"}
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       <span className="hidden sm:inline">{busy ? "Exporting…" : "Export Report"}</span>

@@ -46,11 +46,11 @@ export function NotificationFilters({
             placeholder="Search notifications..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-8 h-11 text-xs"
           />
         </div>
         <Select value={type} onValueChange={onTypeChange}>
-          <SelectTrigger className="h-8 text-xs sm:w-48">
+          <SelectTrigger className="h-11 text-xs sm:w-48">
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
@@ -66,7 +66,7 @@ export function NotificationFilters({
             id="unread-only"
             checked={unreadOnly}
             onCheckedChange={(checked) => onUnreadOnlyChange(checked === true)}
-            className="h-3.5 w-3.5"
+            className=""
           />
           <label
             htmlFor="unread-only"

@@ -23,7 +23,7 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
           Try adjusting your search terms or clearing the filters.
         </p>
         {onClearFilters && (
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClearFilters}>
+          <Button variant="outline" size="sm" className="h-11 text-xs" onClick={onClearFilters}>
             Clear Filters
           </Button>
         )}
@@ -43,10 +43,10 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
         If there is ever a problem with a delivered transaction, your dispute cases will appear here.
       </p>
       <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/dashboard")}>
+        <Button variant="outline" size="sm" className="h-11 text-xs" onClick={() => navigate("/dashboard")}>
           Back to Dashboard
         </Button>
-        <Button size="sm" className="h-8 text-xs" onClick={() => navigate("/dashboard/transactions")}>
+        <Button size="sm" className="h-11 text-xs" onClick={() => navigate("/dashboard/transactions")}>
           Go to My Purchases
         </Button>
       </div>

@@ -40,7 +40,7 @@ export function AdvancedFilters({
           value={state.role ?? ALL}
           onValueChange={(v) => onChange({ ...state, role: v === ALL ? null : (v as InternalRoleKey) })}
         >
-          <SelectTrigger className="h-9"><SelectValue placeholder="Any role" /></SelectTrigger>
+          <SelectTrigger className="h-11"><SelectValue placeholder="Any role" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Any role</SelectItem>
             {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
@@ -53,7 +53,7 @@ export function AdvancedFilters({
           value={state.department ?? ALL}
           onValueChange={(v) => onChange({ ...state, department: v === ALL ? null : v })}
         >
-          <SelectTrigger className="h-9"><SelectValue placeholder="Any department" /></SelectTrigger>
+          <SelectTrigger className="h-11"><SelectValue placeholder="Any department" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Any department</SelectItem>
             {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -66,7 +66,7 @@ export function AdvancedFilters({
           value={state.status ?? ALL}
           onValueChange={(v) => onChange({ ...state, status: v === ALL ? null : (v as InternalUserStatus) })}
         >
-          <SelectTrigger className="h-9"><SelectValue placeholder="Any status" /></SelectTrigger>
+          <SelectTrigger className="h-11"><SelectValue placeholder="Any status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Any status</SelectItem>
             {STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
@@ -79,7 +79,7 @@ export function AdvancedFilters({
           value={state.access_level ?? ALL}
           onValueChange={(v) => onChange({ ...state, access_level: v === ALL ? null : (v as AccessLevel) })}
         >
-          <SelectTrigger className="h-9"><SelectValue placeholder="Any access level" /></SelectTrigger>
+          <SelectTrigger className="h-11"><SelectValue placeholder="Any access level" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Any access level</SelectItem>
             {LEVELS.map((l) => <SelectItem key={l} value={l}>{ACCESS_LABEL[l]}</SelectItem>)}

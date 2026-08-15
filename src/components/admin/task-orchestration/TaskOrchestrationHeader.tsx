@@ -27,7 +27,7 @@ export function TaskOrchestrationHeader({
           </div>
           <Link
             to="/admin/notifications"
-            className="relative hidden h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
+            className="relative hidden h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex before:absolute before:-inset-2 before:content-['']"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />

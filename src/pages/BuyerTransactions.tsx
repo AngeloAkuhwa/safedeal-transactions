@@ -98,7 +98,7 @@ const BuyerTransactions = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => refetch()}
-                className="gap-1.5 h-8 text-xs"
+                className="gap-1.5 h-11 text-xs"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Refresh</span>

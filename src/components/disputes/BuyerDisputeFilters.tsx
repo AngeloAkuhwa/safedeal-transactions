@@ -46,12 +46,12 @@ export function BuyerDisputeFilters({
             placeholder="Search by code or description..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-8 h-11 text-xs"
           />
         </div>
 
         <Select value={status} onValueChange={onStatusChange}>
-          <SelectTrigger className="h-8 text-xs sm:w-52">
+          <SelectTrigger className="h-11 text-xs sm:w-52">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -64,7 +64,7 @@ export function BuyerDisputeFilters({
         </Select>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="h-8 text-xs text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={onClearFilters} className="h-11 text-xs text-muted-foreground">
             Reset
           </Button>
         )}

@@ -190,19 +190,19 @@ function NextActionCard({
           <div className="space-y-1.5">
             <button
               onClick={onPrint}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <Printer className="h-4 w-4" /> Print receipt
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "transaction"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <HelpCircle className="h-4 w-4" /> Contact Support
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "report_issue"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left"
+              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
             >
               <Flag className="h-4 w-4" /> Report Issue
             </button>

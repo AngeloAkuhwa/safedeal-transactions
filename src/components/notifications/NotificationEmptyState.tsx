@@ -19,7 +19,7 @@ export function NotificationEmptyState({ variant, onClearFilters }: Notification
           Try adjusting your filters or search to find what you're looking for.
         </p>
         {onClearFilters && (
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClearFilters}>
+          <Button variant="outline" size="sm" className="h-11 text-xs" onClick={onClearFilters}>
             Clear Filters
           </Button>
         )}
@@ -36,7 +36,7 @@ export function NotificationEmptyState({ variant, onClearFilters }: Notification
       <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
         Transaction updates, delivery alerts, and verification reminders will appear here.
       </p>
-      <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+      <Button asChild variant="outline" size="sm" className="h-11 text-xs">
         <Link to="/dashboard/transactions">Go to My Purchases</Link>
       </Button>
     </div>

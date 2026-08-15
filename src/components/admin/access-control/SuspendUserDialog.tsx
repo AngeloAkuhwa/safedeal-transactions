@@ -142,7 +142,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
                     variant="outline"
                     size="sm"
                     disabled={mode !== "until"}
-                    className={cn("h-8 justify-start text-left font-normal", !until && "text-muted-foreground")}
+                    className={cn("h-11 justify-start text-left font-normal", !until && "text-muted-foreground")}
                   >
                     <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                     {until ? format(until, "PPP") : "Pick a date"}

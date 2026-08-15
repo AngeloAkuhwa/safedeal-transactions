@@ -27,7 +27,7 @@ export function AgentPerformanceTabs({
             aria-selected={value === t.key}
             onClick={() => onChange(t.key)}
             className={cn(
-              "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+              "rounded-lg px-4 py-2 text-sm font-medium transition-colors min-h-11",
               value === t.key
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",

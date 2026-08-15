@@ -237,7 +237,7 @@ function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
       to={to}
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center justify-between rounded-md px-2.5 py-1.5 group transition-all",
+        "flex items-center justify-between rounded-md px-2.5 py-1.5 group transition-all min-h-11",
         "hover:brightness-95 dark:hover:brightness-110 hover:shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         bg,
@@ -402,7 +402,7 @@ const SellerAnalytics = () => {
               )}
               <div className="flex gap-2">
                 <Select value={period} onValueChange={(v) => setPeriod(v as AnalyticsPeriod)}>
-                  <SelectTrigger className="w-full sm:w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[150px] h-11 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="30d">Last 30 days</SelectItem>
                     <SelectItem value="90d">Last 90 days</SelectItem>
@@ -417,7 +417,7 @@ const SellerAnalytics = () => {
                           size="sm"
                           disabled={exportDisabled}
                           onClick={handleExport}
-                          className="shrink-0 h-8 text-xs"
+                          className="shrink-0 h-11 text-xs"
                           aria-label="Export analytics as CSV"
                         >
                           <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
@@ -614,7 +614,7 @@ const SellerAnalytics = () => {
                           Completed payouts will appear here once funds are released.
                         </p>
                       </div>
-                      <Button asChild size="sm" variant="outline" className="mt-1 h-7 text-xs">
+                      <Button asChild size="sm" variant="outline" className="mt-1 h-11 text-xs">
                         <Link to="/seller/transactions">View transactions</Link>
                       </Button>
                     </div>
@@ -719,7 +719,7 @@ const SellerAnalytics = () => {
                               to={`/seller/storefront/${p.product_id}`}
                               aria-label={`View analytics for ${p.name}`}
                               className={cn(
-                                "flex gap-2 rounded-md border bg-card p-2 group transition-all",
+                                "flex gap-2 rounded-md border bg-card p-2 group transition-all min-h-11",
                                 "hover:bg-muted/40 hover:border-primary/30 hover:shadow-sm",
                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                 animate && "animate-fade-in",

@@ -69,7 +69,7 @@ export function PendingApprovalTable({
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-card/40 p-2 backdrop-blur-sm">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, requester, reason, or request ID" className="h-8 pl-7 text-xs" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, requester, reason, or request ID" className="h-11 pl-7 text-xs" />
         </div>
         <FilterSelect value={scope} onChange={setScope} label="Type" items={[
           { v: "any", l: "All types" }, { v: "role", l: "Role" }, { v: "user", l: "User override" }, { v: "template", l: "Template" }, { v: "permission", l: "Permission" }, { v: "orchestration_rules", l: "Assignment rules" },
@@ -160,7 +160,7 @@ export function PendingApprovalTable({
 function FilterSelect({ value, onChange, label, items }: { value: string; onChange: (v: string) => void; label: string; items: Array<{ v: string; l: string }> }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder={label} /></SelectTrigger>
+      <SelectTrigger className="h-11 w-[160px] text-xs"><SelectValue placeholder={label} /></SelectTrigger>
       <SelectContent>{items.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>))}</SelectContent>
     </Select>
   );

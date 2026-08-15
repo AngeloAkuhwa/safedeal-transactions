@@ -19,7 +19,7 @@ function Select<T extends string>({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"
+        className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 min-h-11"
       >
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -91,13 +91,13 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") onApply(); }}
               placeholder="Search by transaction code, buyer, seller, or payment reference…"
-              className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+              className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 min-h-11"
             />
           </div>
           <button
             type="button"
             onClick={onApply}
-            className="px-5 py-2.5 lg:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            className="px-5 py-2.5 lg:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 min-h-11"
           >
             <Search className="h-4 w-4" />
             Search
@@ -105,7 +105,7 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
           <button
             type="button"
             onClick={onReset}
-            className="px-5 py-2.5 lg:py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold transition-all"
+            className="px-5 py-2.5 lg:py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold transition-all min-h-11"
           >
             Clear Filters
           </button>

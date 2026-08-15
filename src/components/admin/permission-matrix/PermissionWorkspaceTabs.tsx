@@ -39,7 +39,7 @@ export function PermissionWorkspaceTabs({
             type="button"
             onClick={() => onChange(t.key)}
             className={cn(
-              "relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition",
+              "relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition min-h-11",
               isActive
                 ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",

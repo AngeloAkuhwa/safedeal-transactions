@@ -66,7 +66,7 @@ export function RankingsTable({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onViewScore(a); }}
-                className="rounded-md bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-inset ring-border"
+                className="rounded-md bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-inset ring-border min-h-11"
               >
                 Insufficient Data
               </button>

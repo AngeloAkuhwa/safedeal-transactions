@@ -221,7 +221,7 @@ export function TaskDetailsDrawer({
                         <Label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Advance stage</Label>
                         <div className="flex gap-2">
                           <Select value={newStage} onValueChange={setNewStage}>
-                            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Choose stage…" /></SelectTrigger>
+                            <SelectTrigger className="h-11 text-xs"><SelectValue placeholder="Choose stage…" /></SelectTrigger>
                             <SelectContent>
                               {STAGES.map(s => <SelectItem key={s} value={s}>{humanize(s)}</SelectItem>)}
                             </SelectContent>
@@ -268,7 +268,7 @@ export function TaskDetailsDrawer({
                           value={evidenceLabel}
                           onChange={e => setEvidenceLabel(e.target.value)}
                           placeholder="What evidence is needed? (e.g. photo of item)"
-                          className="h-9 flex-1 rounded-md border border-border/60 bg-background/60 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                          className="h-9 flex-1 rounded-md border border-border/60 bg-background/60 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 relative before:absolute before:-inset-2 before:content-['']"
                         />
                         <Button size="sm" variant="outline"
                           onClick={() => invoke("evidence", { action: "request_evidence", body_text: evidenceLabel }, "Evidence request sent")}
@@ -305,7 +305,7 @@ export function TaskDetailsDrawer({
                           <button key={v}
                             onClick={() => setInfoTarget(v)}
                             className={cn(
-                              "rounded-md px-2 py-1 text-[11px] transition",
+                              "rounded-md px-2 py-1 text-[11px] transition min-h-11",
                               infoTarget === v ? "bg-primary/10 text-primary ring-1 ring-inset ring-primary/30" : "text-muted-foreground hover:text-foreground",
                             )}
                           >{humanize(v)}</button>
@@ -415,7 +415,7 @@ export function TaskDetailsDrawer({
 
   function TabTrig({ v, icon: Icon, label, count }: { v: TabKey; icon: any; label: string; count?: number }) {
     return (
-      <TabsTrigger value={v} className="gap-1 px-2.5 py-1 text-[11px] data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+      <TabsTrigger value={v} className="gap-1 px-2.5 py-1 text-[11px] data-[state=active]:bg-primary/10 data-[state=active]:text-primary min-h-11">
         <Icon className="h-3 w-3" /> {label}
         {count != null && count > 0 && <span className="ml-0.5 rounded-full bg-muted/60 px-1.5 py-0 text-[9px] tabular-nums">{count}</span>}
       </TabsTrigger>

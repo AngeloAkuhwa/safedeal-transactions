@@ -75,7 +75,7 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as NoteCategory)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground min-h-11"
             >
               {CATEGORIES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -100,7 +100,7 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
             <label className="block text-sm">
               <span className="mb-1 block">Follow-up priority</span>
               <select value={followUpPriority} onChange={(e) => setFollowUpPriority(e.target.value as typeof FOLLOW_UP_PRIORITIES[number])}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-11">
                 {FOLLOW_UP_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
@@ -108,9 +108,9 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
         </div>
         <DialogFooter>
           <button type="button" onClick={() => close(false)} disabled={submitting}
-            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60">Cancel</button>
+            className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60 min-h-11">Cancel</button>
           <button type="button" onClick={handle} disabled={!canSubmit}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 min-h-11">
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Save note
           </button>

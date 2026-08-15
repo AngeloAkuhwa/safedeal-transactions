@@ -71,7 +71,7 @@ export function AuditComplianceSignalCard({ signal }: Props) {
               <button
                 type="button"
                 onClick={r.onClick}
-                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-muted/40"
+                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-muted/40 min-h-11"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />

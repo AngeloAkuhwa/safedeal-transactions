@@ -29,9 +29,9 @@ export function FlaggedUsersMobileFeed({ rows, total, page, pageSize, onOpen, on
       )}
       {total > pageSize && (
         <div className="flex items-center justify-between pt-2">
-          <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm disabled:opacity-50">Previous</button>
+          <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm disabled:opacity-50 min-h-11">Previous</button>
           <span className="text-slate-500 text-xs">{page} / {lastPage}</span>
-          <button type="button" onClick={() => onPage(Math.min(lastPage, page + 1))} disabled={page >= lastPage} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm disabled:opacity-50">Next</button>
+          <button type="button" onClick={() => onPage(Math.min(lastPage, page + 1))} disabled={page >= lastPage} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm disabled:opacity-50 min-h-11">Next</button>
         </div>
       )}
     </div>

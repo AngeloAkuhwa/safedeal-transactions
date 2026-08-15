@@ -88,7 +88,7 @@ const SellerDashboard = () => {
               {showDrawerTrigger && (
                 <button
                   onClick={() => setDrawerOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors min-h-11"
                 >
                   View all alerts ({remaining} more)
                   <ChevronRight className="h-3 w-3" />

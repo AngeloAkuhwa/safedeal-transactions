@@ -86,22 +86,22 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
         <div className="flex items-center gap-1 text-[11px] uppercase text-muted-foreground"><Filter className="h-3 w-3" /> Filter</div>
         <input value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
           placeholder="Search user, email, key…"
-          className="h-8 min-w-[220px] flex-1 rounded-md border border-border bg-background px-2 text-xs" />
+          className="h-8 min-w-[220px] flex-1 rounded-md border border-border bg-background px-2 text-xs relative before:absolute before:-inset-2 before:content-['']" />
         <select value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value as any }))}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs relative before:absolute before:-inset-2 before:content-['']">
           <option value="all">All types</option><option value="grant">Grant</option><option value="deny">Deny</option><option value="temporary">Temporary</option>
         </select>
         <select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as any }))}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs relative before:absolute before:-inset-2 before:content-['']">
           <option value="all">All statuses</option><option value="active">Active</option><option value="expired">Expired</option><option value="expiring">Expiring ≤7d</option>
         </select>
         <select value={filters.role} onChange={(e) => setFilters((f) => ({ ...f, role: e.target.value as any }))}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs relative before:absolute before:-inset-2 before:content-['']">
           <option value="all">All roles</option>
           {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
         </select>
         <select value={filters.module} onChange={(e) => setFilters((f) => ({ ...f, module: e.target.value }))}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs relative before:absolute before:-inset-2 before:content-['']">
           <option value="all">All modules</option>
           {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.label}>{m.label}</option>)}
         </select>
@@ -110,7 +110,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
         )}
         {canEdit && onCreate && (
           <button type="button" onClick={onCreate}
-            className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
+            className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 min-h-11">
             New override
           </button>
         )}
@@ -186,30 +186,30 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
                 <td className="px-4 py-3 align-middle text-right">
                   <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => onRowClick?.(r)}
-                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11">
                       <Eye className="h-3 w-3" /> Review
                     </button>
                     {onAudit && (
                       <button type="button" onClick={() => onAudit(r)}
-                        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11">
                         <History className="h-3 w-3" /> Audit
                       </button>
                     )}
                     {canEdit && (
                       <>
                         <button type="button" onClick={() => setExtendFor(r)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11">
                           <TimerReset className="h-3 w-3" /> Extend
                         </button>
                         <button type="button" onClick={() => setRevokeFor(r)}
-                          className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20">
+                          className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20 min-h-11">
                           <ShieldOff className="h-3 w-3" /> Revoke
                         </button>
                       </>
                     )}
                     <Link
                       to={`/admin/access-control?user=${r.user_id}`}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted min-h-11"
                     >
                       Open <ArrowUpRight className="h-3 w-3" />
                     </Link>
@@ -251,7 +251,7 @@ function ExtendOverrideDialog({ row, env, onOpenChange, onDone }: { row: Overrid
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Extend by (days)</span>
             <input value={days} onChange={(e) => setDays(e.target.value)} type="number" min={1} max={365}
-              className="h-9 w-full rounded-md border border-border bg-background px-2" />
+              className="h-11 w-full rounded-md border border-border bg-background px-2" />
           </label>
         </div>
         <DialogFooter>

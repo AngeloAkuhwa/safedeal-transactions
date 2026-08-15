@@ -178,7 +178,7 @@ const BuyerNotifications = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 h-8 text-xs"
+              className="gap-1.5 h-11 text-xs"
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isPending || (data?.summary.unread_count === 0)}
             >

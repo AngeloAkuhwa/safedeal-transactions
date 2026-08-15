@@ -74,7 +74,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
                 type="button"
                 onClick={() => setWin(w)}
                 className={`rounded-sm px-2.5 py-1 transition-colors ${
-                  win === w ? "bg-blue-500/20 text-blue-300" : "text-muted-foreground hover:text-foreground"
+                  win === w ? "bg-blue-500/20 text-blue-300 min-h-11" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {w}
@@ -82,8 +82,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
             ))}
             </div>
           </div>
-        }
-      >
+        } className="min-h-11">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={txSeries.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />

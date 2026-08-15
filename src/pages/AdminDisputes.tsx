@@ -373,7 +373,7 @@ export default function AdminDisputes() {
               <button
                 type="button"
                 onClick={() => void load()}
-                className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40 min-h-11"
                 aria-live="polite"
                 title="Refresh"
               >
@@ -387,8 +387,7 @@ export default function AdminDisputes() {
             </div>
           </div>
         </header>
-      )}
-    >
+      )} className="min-h-11">
       <TooltipProvider delayDuration={200}>
         <div className="w-full min-w-0">
         <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">
@@ -472,13 +471,13 @@ export default function AdminDisputes() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search disputes, transactions, users…"
-                  className="h-10 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
+                  className="h-11 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
                 />
               </form>
               <select
                 value={params.reason ?? ""}
                 onChange={(e) => setParam("reason", e.target.value || null)}
-                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
@@ -488,7 +487,7 @@ export default function AdminDisputes() {
               <select
                 value={params.agent ?? ""}
                 onChange={(e) => setParam("agent", e.target.value || null)}
-                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Agents</option>
                 {(data?.filters?.agents ?? []).map((a) => (
@@ -498,7 +497,7 @@ export default function AdminDisputes() {
               <select
                 value={params.amount_bucket ?? ""}
                 onChange={(e) => setParam("amount_bucket", e.target.value || null)}
-                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Amount Ranges</option>
                 <option value="lt_100k">Under ₦100,000</option>
@@ -515,7 +514,7 @@ export default function AdminDisputes() {
               <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
-                <button type="button" onClick={() => void load()} className="rounded-md p-1 hover:bg-muted">
+                <button type="button" onClick={() => void load()} className="rounded-md p-1 hover:bg-muted min-h-11">
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 </button>
               </div>
@@ -733,7 +732,7 @@ export default function AdminDisputes() {
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 relative before:absolute before:-inset-2 before:content-['']"><MoreHorizontal className="h-4 w-4" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-52">
                                 <DropdownMenuItem onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>Open detail</DropdownMenuItem>
@@ -754,10 +753,10 @@ export default function AdminDisputes() {
                       Page {data.pagination.page} of {Math.max(1, Math.ceil(data.pagination.total / data.pagination.page_size))} · {data.pagination.total} disputes
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="outline" className="h-8 w-8" disabled={data.pagination.page <= 1} onClick={() => setParam("page", String(data.pagination.page - 1))}>
+                      <Button size="icon" variant="outline" className="h-8 w-8 relative before:absolute before:-inset-2 before:content-['']" disabled={data.pagination.page <= 1} onClick={() => setParam("page", String(data.pagination.page - 1))}>
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="outline" className="h-8 w-8"
+                      <Button size="icon" variant="outline" className="h-8 w-8 relative before:absolute before:-inset-2 before:content-['']"
                         disabled={data.pagination.page * data.pagination.page_size >= data.pagination.total}
                         onClick={() => setParam("page", String(data.pagination.page + 1))}>
                         <ChevronRight className="h-4 w-4" />

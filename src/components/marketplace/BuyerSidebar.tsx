@@ -78,7 +78,7 @@ export function BuyerSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden lg:flex h-7 w-7 shrink-0"
+            className="hidden lg:flex h-7 w-7 shrink-0 relative before:absolute before:-inset-2 before:content-['']"
             onClick={() => setCollapsed(true)}
           >
             <ChevronsLeft className="h-4 w-4 text-sidebar-foreground/60" />
@@ -92,7 +92,7 @@ export function BuyerSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 relative before:absolute before:-inset-2 before:content-['']"
             onClick={() => setCollapsed(false)}
           >
             <ChevronsRight className="h-4 w-4 text-sidebar-foreground/60" />
@@ -113,7 +113,7 @@ export function BuyerSidebar() {
                   setMobileOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
                   isCollapsed && "justify-center px-0",
                   active
                     ? "bg-sidebar-accent text-primary border-l-[3px] border-primary"
@@ -160,7 +160,7 @@ export function BuyerSidebar() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/dashboard/profile")}
-                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                  className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
@@ -170,7 +170,7 @@ export function BuyerSidebar() {
           ) : (
             <button
               onClick={() => navigate("/dashboard/profile")}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 min-h-11"
             >
               <Settings className="h-4 w-4" />
               Settings

@@ -102,7 +102,7 @@ export function TransactionSuccess({
             </div>
             <button
               onClick={() => navigate("/seller/offers")}
-              className="inline-flex items-center gap-2 bg-card border border-border rounded-full px-5 py-2.5 hover:bg-muted transition-colors"
+              className="inline-flex items-center gap-2 bg-card border border-border rounded-full px-5 py-2.5 hover:bg-muted transition-colors min-h-11"
             >
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-semibold text-foreground">View in Private Offers</span>

@@ -78,13 +78,13 @@ export function UserAccessFilters({
               onChange={(e) => onQuery(e.target.value)}
               placeholder="Name, email, employee ID, role…"
               aria-label="Search internal users"
-              className="w-72 rounded-lg border border-border bg-muted/60 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className="w-72 rounded-lg border border-border bg-muted/60 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none min-h-11"
             />
           </div>
           <button
             type="button"
             onClick={onAddUser}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 min-h-11"
           >
             <UserPlus className="h-4 w-4" /> Add User
           </button>

@@ -68,7 +68,7 @@ export function TaskQueueFilters({
           value={filters.search}
           onChange={e => onChange({ search: e.target.value, page: 1 })}
           placeholder="Search task code, title…"
-          className="h-8 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+          className="h-11 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
         />
       </div>
       <TinySelect label="Priority" value={filters.priority} onChange={v => onChange({ priority: v, page: 1 })}
@@ -99,18 +99,18 @@ export function TaskQueueFilters({
         options={AGE_BUCKETS.map(b => [b.value, b.label] as [string, string])} />
       <Input type="number" placeholder="Min ₦" value={filters.amountMin}
         onChange={e => onChange({ amountMin: e.target.value, page: 1 })}
-        className="h-9 w-[100px] bg-background/60 text-xs" />
+        className="h-11 w-[100px] bg-background/60 text-xs" />
       <Input type="number" placeholder="Max ₦" value={filters.amountMax}
         onChange={e => onChange({ amountMax: e.target.value, page: 1 })}
-        className="h-9 w-[100px] bg-background/60 text-xs" />
+        className="h-11 w-[100px] bg-background/60 text-xs" />
       <Input type="date" value={filters.dateFrom}
         onChange={e => onChange({ dateFrom: e.target.value, page: 1 })}
-        className="h-9 w-[140px] bg-background/60 text-xs" />
+        className="h-11 w-[140px] bg-background/60 text-xs" />
       <Input type="date" value={filters.dateTo}
         onChange={e => onChange({ dateTo: e.target.value, page: 1 })}
-        className="h-9 w-[140px] bg-background/60 text-xs" />
+        className="h-11 w-[140px] bg-background/60 text-xs" />
       {!isDefault(filters) && (
-        <Button variant="ghost" size="sm" onClick={reset} className="h-9 gap-1 text-xs">
+        <Button variant="ghost" size="sm" onClick={reset} className="h-11 gap-1 text-xs">
           <X className="h-3 w-3" /> Clear
         </Button>
       )}
@@ -123,7 +123,7 @@ function TinySelect({ label, value, onChange, options }: {
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 min-w-[130px] bg-background/60 text-xs"><SelectValue placeholder={label} /></SelectTrigger>
+      <SelectTrigger className="h-11 min-w-[130px] bg-background/60 text-xs"><SelectValue placeholder={label} /></SelectTrigger>
       <SelectContent>
         {options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
       </SelectContent>

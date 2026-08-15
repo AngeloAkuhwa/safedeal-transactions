@@ -108,7 +108,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-10 w-10 rounded-xl relative before:absolute before:-inset-2 before:content-['']"
               onClick={() => setQuantity(Math.max(0, quantity - 1))}
             >
               <Minus className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
                 min={0}
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full text-center text-lg font-semibold h-10 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 pr-12"
+                className="w-full text-center text-lg font-semibold h-11 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 pr-12"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">units</span>
             </div>
@@ -127,7 +127,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-10 w-10 rounded-xl relative before:absolute before:-inset-2 before:content-['']"
               onClick={() => setQuantity(quantity + 1)}
             >
               <Plus className="h-4 w-4" />

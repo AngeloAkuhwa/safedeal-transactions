@@ -132,13 +132,13 @@ export function RegisterPermissionDialog({
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Module</span>
-              <select disabled={!!editing} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select disabled={!!editing} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Action</span>
-              <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value as PermissionAction)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value as PermissionAction)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </label>
@@ -149,7 +149,7 @@ export function RegisterPermissionDialog({
           </div>
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Label</span>
-            <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2" placeholder="Human-readable name" />
+            <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2" placeholder="Human-readable name" />
           </label>
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Description</span>
@@ -158,13 +158,13 @@ export function RegisterPermissionDialog({
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Risk</span>
-              <select value={risk} onChange={(e) => setRisk(e.target.value as PermissionRiskLevel)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select value={risk} onChange={(e) => setRisk(e.target.value as PermissionRiskLevel)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {RISKS.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Owner role</span>
-              <select value={ownerRole} onChange={(e) => setOwnerRole(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select value={ownerRole} onChange={(e) => setOwnerRole(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 <option value="">— None —</option>
                 {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
               </select>
@@ -178,7 +178,7 @@ export function RegisterPermissionDialog({
             {editing && (
               <label className="block">
                 <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Status</span>
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                   <option value="active">Active</option>
                   <option value="suspended">Suspended</option>
                   <option value="deprecated">Deprecated</option>
@@ -196,7 +196,7 @@ export function RegisterPermissionDialog({
                     type="button"
                     key={e}
                     onClick={() => setEnvs((prev) => active ? prev.filter((x) => x !== e) : [...prev, e])}
-                    className={`rounded-md border px-2 py-1 text-xs ${active ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"}`}
+                    className={`rounded-md border px-2 py-1 text-xs ${active ? "border-primary/50 bg-primary/10 text-primary min-h-11" : "border-border bg-background text-muted-foreground"}`}
                   >{e}</button>
                 );
               })}
@@ -243,12 +243,12 @@ function MultiPermSelect({ label, value, onChange, excludeKey }: {
           ))}
         </div>
       )}
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search permission…" className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search permission…" className="h-11 w-full rounded-md border border-border bg-background px-2 text-xs" />
       <div className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border/60 bg-background/50">
         {filtered.map((p) => (
           <button
             key={p.key} type="button" onClick={() => toggle(p.key)}
-            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""}`}
+            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5 min-h-11" : ""}`}
           >
             <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none" />
             <span className="font-mono text-muted-foreground">{p.key}</span>

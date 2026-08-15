@@ -35,7 +35,7 @@ function ActionButton({ label, onClick, disabled, title }: { label: string; onCl
       disabled={disabled}
       title={title ?? label}
       className={cn(
-        "rounded-lg border border-border/70 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors",
+        "rounded-lg border border-border/70 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors min-h-11",
         disabled ? "cursor-not-allowed opacity-50" : "hover:bg-muted hover:text-foreground",
       )}
     >
@@ -122,7 +122,7 @@ export function WorkloadTable({
                   <button
                     type="button"
                     onClick={() => setExpanded((id) => (id === a.user_id ? null : a.user_id))}
-                    className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                    className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground min-h-11"
                     aria-expanded={expanded === a.user_id}
                     aria-label={`${expanded === a.user_id ? "Hide" : "Show"} details for ${agentShortName(a)}`}
                   >

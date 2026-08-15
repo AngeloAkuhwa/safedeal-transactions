@@ -143,7 +143,7 @@ export default function AdminSupport() {
                     }}
                     className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                       status === t.key
-                        ? "border-primary/40 bg-primary/15 text-primary"
+                        ? "border-primary/40 bg-primary/15 text-primary min-h-11"
                         : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
                     }`}
                   >
@@ -162,7 +162,7 @@ export default function AdminSupport() {
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      className="h-9 w-56 pl-8"
+                      className="h-11 w-56 pl-8"
                       placeholder="Email, name or reference"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}

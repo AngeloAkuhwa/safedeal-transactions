@@ -27,7 +27,7 @@ export function EscrowMobileHero({
           type="button"
           onClick={onRefresh}
           disabled={isFetching}
-          className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-60"
+          className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-60 min-h-11"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
           Refresh
