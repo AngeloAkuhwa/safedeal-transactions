@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Lock, FileCheck2, Package } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { ProductImage } from "@/components/common/ProductImage";
 
 interface PurchaseAuthModalProps {
   open: boolean;
@@ -14,6 +15,18 @@ interface PurchaseAuthModalProps {
     currency: string;
   };
   sellerName: string;
+  /**
+   * Passed in rather than fetched here. `usePublicPricing` is an uncached
+   * `useEffect` + edge-function call, and this modal is mounted by
+   * PublicProductDetail — which already holds the copy. Calling the hook here
+   * too would fire a second `public-pricing` invocation on every view of the
+   * busiest public page in the app.
+   *
+   * Optional because MarketplaceProductCard also mounts this modal, once per
+   * card in a grid — requiring it there would mean N fetches for one page of
+   * results. Those callers omit it until the hook is cached.
+   */
+  feeDisclosure?: string;
   returnPath: string;
   quantity?: number;
 }
@@ -25,6 +38,7 @@ export function PurchaseAuthModal({
   sellerName,
   returnPath,
   quantity,
+  feeDisclosure,
 }: PurchaseAuthModalProps) {
   const navigate = useNavigate();
 
@@ -50,11 +64,9 @@ export function PurchaseAuthModal({
           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
             <div className="h-16 w-16 rounded-lg bg-muted-foreground/10 flex items-center justify-center overflow-hidden shrink-0">
               {product.image ? (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
+                /* Was a bare <img>: no srcset, no Cloudinary transform, the
+                   full master download for a 64px box. */
+                <ProductImage url={product.image} alt={product.name} rendition="card" sizes="64px" />
               ) : (
                 <Package className="h-6 w-6 text-muted-foreground/40" />
               )}
@@ -71,6 +83,15 @@ export function PurchaseAuthModal({
               </p>
             </div>
           </div>
+
+          {/* The fee belongs wherever the buyer decides to commit, and this
+              modal is one of those moments — it is the gate between "I want
+              this" and signing up to buy it. The product page already
+              discloses it; this was the one commit surface still showing a
+              bare price. */}
+          {feeDisclosure && (
+            <p className="text-xs leading-relaxed text-muted-foreground">{feeDisclosure}</p>
+          )}
 
           {/* CTA text */}
           <div className="text-center space-y-1">

@@ -458,6 +458,25 @@ async function dismissDialog(page) {
  * Land on a route and hand back rows that are honest about what was on screen:
  * one for a self-opening dialog if there was one, and one for the page itself.
  */
+/**
+ * Wait for the page to stop moving before measuring it.
+ *
+ * Dismissing a dialog starts an exit animation, and a fixed sleep afterwards is
+ * a guess. Measuring during it produced a phantom sub-44px finding that moved
+ * between elements and widths on every run — "Open Release Queue" one time,
+ * "View Users" the next — and vanished when the element was measured directly.
+ * A detector that reports a different defect each run teaches people to rerun
+ * until it passes, which is worse than not running it.
+ */
+async function settle(page) {
+  await page
+    .waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"), null, { timeout: 4000 })
+    .catch(() => {});
+  // One more frame after the last animation commits its final layout.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await page.waitForTimeout(250);
+}
+
 async function measureRoute(page, width) {
   const rows = [];
   const blocker = await blockingDialog(page);
@@ -469,7 +488,7 @@ async function measureRoute(page, width) {
       rows.push({ inert: blocker.title });
       return rows;
     }
-    await page.waitForTimeout(500);
+    await settle(page);
   }
   const found = await page.evaluate(measure, { VW: width, scope: null });
   rows.push({ ...found, horizScroll: found.docW > width + 1 });

@@ -714,7 +714,7 @@ export default function BuyerPaymentSummary() {
               <div className="flex items-start gap-4 pb-4 border-b mb-4">
                 {firstMediaUrl ? (
                   <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-muted">
-                    <ProductImage url={firstMediaUrl} alt={data.item?.title || "Item"} rendition="detail" sizes="(max-width: 640px) 100vw, 480px" loading="eager" />
+                    <ProductImage url={firstMediaUrl} alt={data.item?.title || "Item"} rendition="card" sizes="80px" loading="eager" />
                   </div>
                 ) : (
                   <div className="w-20 h-20 bg-muted rounded-xl flex items-center justify-center shrink-0">
