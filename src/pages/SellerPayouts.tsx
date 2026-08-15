@@ -313,7 +313,25 @@ const SellerPayouts = () => {
                     <div className="divide-y divide-border md:hidden">
                       {payout_history.map((row: PayoutHistoryItem) => (
                         <article key={row.payout_id_full} className="space-y-3 p-4">
-                          <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs">{row.payout_id}</p><p className="text-sm font-medium">{row.transaction_code}</p><p className="text-xs text-muted-foreground">{row.buyer_name} · {formatDate(row.release_date)}</p></div><p className="text-sm font-semibold">{formatMoney(row.net_payout, row.currency_code)}</p></div>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-mono text-xs">{row.payout_id}</p>
+                              {row.transaction_id ? (
+                                <Link to={`/seller/transactions/${row.transaction_id}`} className="text-sm font-medium text-primary hover:underline">
+                                  {row.transaction_code}
+                                </Link>
+                              ) : (
+                                <p className="text-sm font-medium">{row.transaction_code}</p>
+                              )}
+                              <p className="truncate text-xs text-foreground">{row.item_title}</p>
+                              <p className="text-xs text-muted-foreground">{row.buyer_name} · {formatDate(row.release_date)}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-semibold">{formatMoney(row.net_payout, row.currency_code)}</p>
+                              <p className="text-xs text-muted-foreground">Gross {formatMoney(row.gross_amount, row.currency_code)}</p>
+                              <p className="text-xs text-muted-foreground">Fees -{formatMoney(row.fees, row.currency_code)}</p>
+                            </div>
+                          </div>
                           <div className="flex items-center justify-between gap-2"><PayoutStatusBadge status={row.status} /><RowAction row={row} onFixPayout={() => setEditModalOpen(true)} /></div>
                         </article>
                       ))}
