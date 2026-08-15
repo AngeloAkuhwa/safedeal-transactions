@@ -1,0 +1,12 @@
+-- ============================================================================
+-- Phase 0 closure. Applied 2026-08-15.
+--   1. Table-level DML lockdown + FORCE RLS on the 14 money tables.
+--   2. transaction_pricing internal-consistency CHECKs, mirrored into RLS.
+--   3. Ledger balance floor (>= 0) and products.reserved_quantity bounds.
+--   4. Narrowed EXECUTE on is_transaction_party / derive_target_user_id.
+--   5. Value validation in the checkout_sessions / release_review_queue policies.
+--
+-- FORCE ROW LEVEL SECURITY is safe for the SECURITY DEFINER path: postgres and
+-- service_role both carry BYPASSRLS, which outranks forced RLS.
+-- ============================================================================
+-- (full statements as applied; see migration history)
