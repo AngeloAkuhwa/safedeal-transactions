@@ -116,6 +116,10 @@ export default function AdminIdentity() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="divide-y divide-border md:hidden">
+              {rows.map((r) => <article key={r.id} className="space-y-3 p-4"><div><p className="font-medium">{r.submitter?.full_name ?? "Unknown user"}</p><p className="text-xs text-muted-foreground">{r.submitter?.email ?? "—"}</p></div><dl className="grid grid-cols-2 gap-2 text-xs"><div><dt className="text-muted-foreground">Legal name</dt><dd>{r.legal_name ?? "—"}</dd></div><div><dt className="text-muted-foreground">Method</dt><dd>{r.verification_method ?? "—"}</dd></div><div><dt className="text-muted-foreground">Level</dt><dd>{r.verification_level}</dd></div><div><dt className="text-muted-foreground">Submitted</dt><dd>{fmt(r.submitted_at)}</dd></div></dl>{r.status === "pending_review" && canDecide && <div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => { setReason(""); setPending({ row: r, decision: "approve" }); }}>Approve</Button><Button variant="destructive" onClick={() => { setReason(""); setPending({ row: r, decision: "reject" }); }}>Reject</Button></div>}</article>)}
+            </div>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -173,6 +177,7 @@ export default function AdminIdentity() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         )}
 

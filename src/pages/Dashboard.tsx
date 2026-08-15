@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, ShoppingBag } from "lucide-react";
+import { RefreshCw, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getBuyerDashboard } from "@/services/dashboard.service";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -9,6 +9,7 @@ import { RecentNotifications } from "@/components/dashboard/RecentNotifications"
 import { RecentPurchases } from "@/components/dashboard/RecentPurchases";
 import { QuickAccess } from "@/components/dashboard/QuickAccess";
 import { Footer } from "@/components/landing/Footer";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -23,8 +24,10 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background">
+        <Skeleton className="h-16 w-full rounded-none" />
+        <Skeleton className="h-40 w-full rounded-none" />
+        <div className="sd-page space-y-4 py-6"><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}</div><Skeleton className="h-72 rounded-lg" /><Skeleton className="h-48 rounded-lg" /></div>
       </div>
     );
   }
@@ -52,7 +55,7 @@ const Dashboard = () => {
     data.recent_purchases.length === 0;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <BuyerNav
         buyerName={data.buyer.full_name}
         avatarUrl={data.buyer.avatar_url}

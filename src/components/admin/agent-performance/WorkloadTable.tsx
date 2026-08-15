@@ -77,7 +77,16 @@ export function WorkloadTable({
       <div className="mb-2 text-xs text-muted-foreground">
         Showing {Math.min((page - 1) * pageSize + 1, sorted.length)}–{Math.min(page * pageSize, sorted.length)} of {sorted.length} agents
       </div>
-      <div className="max-h-[65vh] overflow-auto rounded-xl">
+      <div className="space-y-3 md:hidden">
+        {paged.map((a) => (
+          <article key={a.user_id} className={cn("space-y-3 rounded-lg border border-border p-4", rowRingClass(a))}>
+            <div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{agentShortName(a)}</p><p className="text-xs text-muted-foreground">{a.role_label} · {availabilityLabel(a.availability)}</p></div><span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold", rankBadgeClass(a.rank))}>{a.rank}</span></div>
+            <dl className="grid grid-cols-3 gap-2 text-center text-xs"><div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold">{a.active_cases}</dd></div><div><dt className="text-muted-foreground">Overdue</dt><dd className="font-semibold">{a.overdue}</dd></div><div><dt className="text-muted-foreground">Score</dt><dd className={cn("font-bold", scoreTone(a.score_band))}>{a.score}</dd></div></dl>
+            <div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => actions.onViewDetail(a)}>View detail</Button>{actions.canViewCases && <Button variant="outline" onClick={() => actions.onViewCases(a)}>View cases</Button>}</div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden max-h-[65vh] overflow-auto rounded-xl md:block">
         <table className="w-full min-w-[1240px]">
           <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>
           <thead className={THEAD}>
