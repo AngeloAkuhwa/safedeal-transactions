@@ -510,6 +510,23 @@ function attrValue(tagText: string, name: string): string | null {
   return m ? (m[1] ?? m[2] ?? null) : null;
 }
 
+/**
+ * Horizontal content estimate. A text button is as wide as its label, so the
+ * old `px * 2 + 20` guess flagged every `px-2` label button. Only icon-only
+ * controls and very short literal labels are narrow enough to matter; anything
+ * with dynamic content is unknown and is not guessed at.
+ */
+export function contentWidthPx(body: string): number | null {
+  const closing = body.search(/<\/[A-Za-z]/);
+  const inner = closing === -1 ? body : body.slice(0, closing);
+  if (/\{/.test(inner)) return null; // dynamic label: unknown width
+  const text = inner.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  if (text.length) return Math.round(text.length * 7);
+  const icon = /\bh-(\d+(?:\.\d+)?)\b/.exec(inner);
+  if (icon) return Number(icon[1]) * 4;
+  return null;
+}
+
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
   const bonus = insetBonus(classes);
   const h = pick(classes, "h-");
@@ -530,7 +547,10 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
   if (height === null && PRIMITIVE_SAFE.has(tag)) height = COMPONENT_DEFAULT_PX[tag] ?? 44;
 
   if (height === null && py !== null) height = py * 2 + lineBox(classes, body);
-  if (width === null && px !== null) width = px * 2 + 20;
+  if (width === null && px !== null) {
+    const content = contentWidthPx(body);
+    width = content === null ? null : px * 2 + content;
+  }
   // A full-width control spans the viewport; that dimension is not the risk.
   if (width === null && (has(classes, "w-full") || has(classes, "flex-1") || has(classes, "grow"))) width = 360;
 
