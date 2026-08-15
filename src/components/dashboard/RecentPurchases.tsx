@@ -96,12 +96,19 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
       </CardHeader>
       <CardContent className="p-0">
         {purchases.length === 0 ? (
-          <div className="text-center py-10 px-4">
-            <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">No purchases yet</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Your purchases will appear here
+          /* An empty state that only describes the emptiness ("your purchases
+             will appear here") leaves the user where they were. This is a dead
+             end on the buyer's home screen, so it carries the one action that
+             ends it. */
+          <div className="px-4 py-10 text-center">
+            <Package className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" aria-hidden />
+            <p className="text-sm font-medium text-foreground">Nothing bought yet</p>
+            <p className="mx-auto mt-1 max-w-[32ch] text-xs text-muted-foreground">
+              Every purchase here is held in escrow until you confirm the item.
             </p>
+            <Button asChild size="sm" className="mt-4">
+              <Link to="/dashboard/marketplace">Browse the marketplace</Link>
+            </Button>
           </div>
         ) : (
           <>

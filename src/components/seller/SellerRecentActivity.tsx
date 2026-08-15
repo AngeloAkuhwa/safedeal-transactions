@@ -44,12 +44,23 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   if (activity.length === 0) {
     return (
       <Card className="rounded-2xl shadow-md">
-        <CardContent className="p-12 text-center">
-          <ArrowLeftRight className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-1">No transactions yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Create your first protected transaction to get started
+        /* "Create your first protected transaction to get started" told the
+           seller what to do without giving them a way to do it. */
+        <CardContent className="p-10 text-center sm:p-12">
+          <ArrowLeftRight className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" aria-hidden />
+          <h3 className="mb-1 text-lg font-bold text-foreground">No transactions yet</h3>
+          <p className="mx-auto max-w-[38ch] text-sm text-muted-foreground">
+            Send a buyer a protected link and the payment is held until they
+            confirm delivery.
           </p>
+          <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <Button asChild>
+              <Link to="/seller/transactions/new">Create a transaction</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/seller/storefront">Or add a product first</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
