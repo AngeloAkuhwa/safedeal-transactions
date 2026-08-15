@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
+import { ProductImage } from "@/components/common/ProductImage";
 
 /** Currency is required — a cart row always carries its own `currency_code`. */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -498,7 +499,7 @@ const BuyerCart = () => {
                               >
                                 <div className={`h-20 w-20 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
                                   {item.product?.primary_image ? (
-                                    <img src={item.product.primary_image} alt="" className="h-full w-full object-cover" />
+                                    <ProductImage url={item.product.primary_image} alt="" rendition="card" sizes="(max-width: 640px) 80px, 128px" />
                                   ) : (
                                     <div className="h-full w-full flex items-center justify-center">
                                       <Package className="h-10 w-10 text-muted-foreground/20" />

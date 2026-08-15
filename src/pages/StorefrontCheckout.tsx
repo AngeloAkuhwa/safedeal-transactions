@@ -31,6 +31,7 @@ import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { REFUND_BULLET } from "@/lib/payment/fee-policy";
 import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
+import { ProductImage } from "@/components/common/ProductImage";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -207,7 +208,7 @@ const StorefrontCheckout = () => {
             <div className="flex gap-4">
               <div className="h-24 w-24 rounded-xl overflow-hidden bg-muted shrink-0">
                 {primaryImage ? (
-                  <img src={primaryImage} alt={product.title} className="h-full w-full object-cover" />
+                  <ProductImage url={primaryImage} alt={product.title} rendition="detail" sizes="(max-width: 640px) 100vw, 480px" loading="eager" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
                     <Package className="h-8 w-8 text-muted-foreground/20" />
@@ -251,7 +252,7 @@ const StorefrontCheckout = () => {
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
                 {seller.avatar_url ? (
-                  <img src={seller.avatar_url} alt={seller.full_name} className="h-full w-full object-cover" />
+                  <ProductImage url={seller.avatar_url} alt={seller.full_name} rendition="thumb" sizes="64px" />
                 ) : (
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {(seller.full_name || "S").charAt(0).toUpperCase()}

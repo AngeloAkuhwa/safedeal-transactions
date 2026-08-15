@@ -28,6 +28,7 @@ import { formatMoney } from "@/lib/format";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 import { keyActivate } from "@/lib/a11y";
+import { ProductImage } from "@/components/common/ProductImage";
 
 declare global {
   interface Window {
@@ -667,7 +668,7 @@ export default function BuyerPaymentSummary() {
               <div className="flex items-start gap-4 pb-4 border-b mb-4">
                 {firstMediaUrl ? (
                   <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-muted">
-                    <img src={firstMediaUrl} alt={data.item?.title || "Item"} className="w-full h-full object-cover" />
+                    <ProductImage url={firstMediaUrl} alt={data.item?.title || "Item"} rendition="detail" sizes="(max-width: 640px) 100vw, 480px" loading="eager" />
                   </div>
                 ) : (
                   <div className="w-20 h-20 bg-muted rounded-xl flex items-center justify-center shrink-0">
@@ -991,7 +992,7 @@ export default function BuyerPaymentSummary() {
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-xl border-2 overflow-hidden shrink-0">
                       {data.seller.avatar_url ? (
-                        <img src={data.seller.avatar_url} alt={data.seller.full_name} className="w-full h-full object-cover" />
+                        <ProductImage url={data.seller.avatar_url} alt={data.seller.full_name} rendition="thumb" sizes="64px" />
                       ) : (
                         <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                           <Store className="h-6 w-6 text-primary" />
