@@ -711,9 +711,9 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
     const content = contentWidthPx(body);
     width = content === null ? null : px * 2 + content;
   }
-  if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
   // A full-width control spans the viewport; that dimension is not the risk.
   if (width === null && (has(classes, "w-full") || has(classes, "flex-1") || has(classes, "grow"))) width = 360;
+  if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
 
   return {
     classes,
