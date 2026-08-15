@@ -229,7 +229,8 @@ export function scanSource(rawSource: string, file: string): Violation[] {
       const sole = /^\s*<([A-Z][A-Za-z0-9]*)\s+className="([^"]*)"\s*\/>\s*<\//.exec(body);
       if (!sole || COMPONENT_TAGS.has(sole[1]) || !RAW_TAGS.has(tag)) continue;
       const iconPx = Number(/\bh-([0-9.]+)/.exec(sole[2])?.[1] ?? "0") * 4;
-      if (iconPx >= MIN_TARGET_PX) continue;
+      const inset = Number(/before:-inset-([0-9.]+)/.exec(classes.join(" "))?.[1] ?? "0") * 4;
+      if (iconPx + inset * 2 >= MIN_TARGET_PX) continue;
       out.push({
         file,
         line: source.slice(0, i).split("\n").length,
