@@ -329,6 +329,12 @@ export function scanSource(rawSource: string, file: string): Violation[] {
     if (tag === "input" && /type="hidden"/.test(text)) continue;
     if (tag === "textarea" || tag === "Textarea") continue; // multi-line inputs are sized by rows
     if (tag === "a" && !/className=/.test(text) && !clickable) continue;
+    // Visually hidden proxies (file pickers, sr-only inputs): a visible control
+    // triggers them, and that control is measured on its own.
+    if (/\bclassName="(?:[^"]*\s)?(hidden|sr-only)(?:\s[^"]*)?"/.test(text)) continue;
+    // A caption <label> is not a tap target; only labels that are themselves the
+    // control surface (wrapping a checkbox, or carrying a handler) count.
+    if (tag === "label" && !clickable && !/cursor-pointer/.test(text)) continue;
     if (DELEGATING.has(tag)) continue; // the child owns the box; the child is scanned on its own
 
     const { height, width, classes } = measure(text, tag);
