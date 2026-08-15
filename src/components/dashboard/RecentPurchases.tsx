@@ -104,7 +104,35 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-border md:hidden">
+            {purchases.map((purchase) => {
+              const statusBadge = getStatusBadge(purchase.transaction_status);
+              const moneyBadge = getMoneyBadge(purchase.money_status);
+              const action = getActionButton(purchase.transaction_status);
+              const StatusIcon = statusBadge.icon;
+              const MoneyIcon = moneyBadge.icon;
+              const route = resolveRoute(purchase);
+              return (
+                <article key={purchase.transaction_id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground">#{purchase.transaction_code}</p>
+                      <p className="truncate text-sm font-semibold text-foreground">{purchase.item_title}</p>
+                      <p className="text-xs text-muted-foreground">{purchase.seller_name} · {format(new Date(purchase.created_at), "MMM d, yyyy")}</p>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-foreground">{formatAmount(purchase.amount, purchase.currency_code)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className={`${statusBadge.className} gap-1`}><StatusIcon className="h-3 w-3" />{statusBadge.label}</Badge>
+                    <Badge variant="outline" className={`${moneyBadge.className} gap-1`}><MoneyIcon className="h-3 w-3" />{moneyBadge.label}</Badge>
+                  </div>
+                  <Button className={`min-h-11 w-full ${action.className}`} onClick={() => navigate(route)}>{action.label}</Button>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -187,6 +215,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </CardContent>
     </Card>

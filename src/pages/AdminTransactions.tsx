@@ -669,7 +669,7 @@ export default function AdminTransactions() {
               type="button"
               onClick={onOpenMenu}
               aria-label="Open menu"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
+              className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -684,7 +684,7 @@ export default function AdminTransactions() {
               onClick={handleRefresh}
               disabled={isFetching}
               aria-label="Refresh"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70 disabled:opacity-60"
+              className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70 disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>

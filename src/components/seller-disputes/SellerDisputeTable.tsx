@@ -44,7 +44,32 @@ export function SellerDisputeTable({ items }: Props) {
 
   return (
     <Card className="rounded-2xl shadow-md overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-border md:hidden">
+        {items.map((d) => {
+          const impact = resolveDisputeMoneyImpact(d.money_impact);
+          return (
+            <article key={d.id} className="space-y-3 p-4" onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0"><p className="font-mono text-xs font-semibold text-primary">{d.transaction_code ?? "—"}</p><p className="truncate text-sm font-medium">{d.item_title ?? "—"}</p><p className="text-xs text-muted-foreground">{d.buyer?.name ?? "—"}</p></div>
+                <p className="shrink-0 text-sm font-semibold">{formatNaira(d.seller_net_amount)}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">{d.reason_label}</p>
+              <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
+              <Button
+                className="min-h-11 w-full"
+                variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(d.primary_action.route);
+                }}
+              >
+                {d.primary_action.label}
+              </Button>
+            </article>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -56,7 +81,7 @@ export function SellerDisputeTable({ items }: Props) {
                   Net at Risk
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" aria-label="More info" onClick={(e) => e.stopPropagation()} className="inline-flex text-muted-foreground/60 hover:text-muted-foreground">
+                      <button type="button" aria-label="More info" onClick={(e) => e.stopPropagation()} className="inline-flex h-11 w-11 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground">
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
@@ -152,7 +177,7 @@ export function SellerDisputeTable({ items }: Props) {
                     <Button
                       variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
                       size="sm"
-                      className="text-xs h-7"
+                       className="min-h-11 text-xs"
                       onClick={(e) => {
                         e.stopPropagation();
                         const sectionMap: Record<string, string> = {

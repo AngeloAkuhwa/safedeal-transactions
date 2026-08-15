@@ -71,7 +71,7 @@ function EvidenceFileCard({
   const isImage = fileUrl && mimeType?.startsWith("image/") && !imgError;
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden bg-card group relative">
+    <div className="rounded-lg border border-border overflow-hidden bg-card relative">
       {isImage ? (
         <img
           src={getCloudinaryThumbnail(fileUrl, 300, 200)}
@@ -90,7 +90,8 @@ function EvidenceFileCard({
           href={fileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute top-1 right-1 w-6 h-6 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={`Open ${fileName ?? "evidence"} in a new tab`}
+          className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 shadow-sm"
         >
           <ExternalLink className="h-3 w-3 text-foreground" />
         </a>
@@ -104,7 +105,7 @@ function EvidenceFileCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+              className="min-h-11 px-3 text-xs text-primary hover:text-primary"
               onClick={onReplace}
               disabled={replacing}
             >
@@ -355,7 +356,7 @@ export function SellerEvidenceSection({
 
         {/* Upload Additional Evidence CTA */}
         {permissions.canUploadAdditionalEvidence && (
-          <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
+            <div className="flex flex-col gap-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Upload className="h-5 w-5 text-primary" />
               <div>

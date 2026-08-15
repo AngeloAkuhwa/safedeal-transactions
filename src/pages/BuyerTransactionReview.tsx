@@ -208,24 +208,24 @@ export default function BuyerTransactionReview() {
   const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${formatMoney(totalAmount, currencyCode)}`;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       <Header />
 
       {/* Trust banner */}
       <section className="bg-success py-3">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-3 text-success-foreground">
-          <ShieldCheck className="h-5 w-5 animate-pulse" />
+        <div className="max-w-7xl mx-auto px-4 flex items-start sm:items-center justify-center gap-3 text-success-foreground">
+          <ShieldCheck className="h-5 w-5 shrink-0" />
           <p className="text-sm font-semibold">Your payment will be held securely until you confirm the item received</p>
-          <Lock className="h-4 w-4" />
+           <Lock className="h-4 w-4 shrink-0" />
         </div>
       </section>
 
       {/* Fraud warning banner */}
-      <section className="bg-destructive py-3">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-3 text-destructive-foreground">
-          <AlertTriangle className="h-5 w-5 animate-pulse" />
+       <section className="border-t border-destructive-foreground/20 bg-destructive py-3">
+         <div className="max-w-7xl mx-auto px-4 flex items-start sm:items-center justify-center gap-3 text-destructive-foreground">
+           <AlertTriangle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-bold">WARNING: Never complete payment outside SafeDeal. Paying outside removes all buyer protection.</p>
-          <ShieldAlert className="h-4 w-4" />
+           <ShieldAlert className="h-4 w-4 shrink-0" />
         </div>
       </section>
 

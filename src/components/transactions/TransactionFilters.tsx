@@ -76,12 +76,12 @@ export function TransactionFilters({
             placeholder="Search by ID, item, or seller..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-8 h-11 text-xs"
           />
         </div>
 
         <Select value={transactionStatus} onValueChange={onTransactionStatusChange}>
-          <SelectTrigger className="h-8 text-xs sm:w-44">
+          <SelectTrigger className="h-11 text-xs sm:w-44">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -94,7 +94,7 @@ export function TransactionFilters({
         </Select>
 
         <Select value={moneyStatus} onValueChange={onMoneyStatusChange}>
-          <SelectTrigger className="h-8 text-xs sm:w-48">
+          <SelectTrigger className="h-11 text-xs sm:w-48">
             <SelectValue placeholder="All Money Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -111,7 +111,7 @@ export function TransactionFilters({
             variant="ghost"
             size="sm"
             onClick={onClearFilters}
-            className="h-8 text-xs gap-1.5 text-muted-foreground"
+            className="h-11 text-xs gap-1.5 text-muted-foreground"
           >
             <X className="h-3.5 w-3.5" />
             Clear
@@ -132,7 +132,7 @@ export function TransactionFilters({
               key={tab.key}
               onClick={() => onTransactionStatusChange(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                "inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"

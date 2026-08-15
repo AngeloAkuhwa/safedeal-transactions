@@ -64,6 +64,29 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
         </div>
       </div>
 
+      <div className="divide-y divide-border md:hidden">
+        {items.map((item) => {
+          const openedDate = new Date(item.opened_at);
+          return (
+            <article key={item.id} className="space-y-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-foreground">{formatDisputeRef(item.id)}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{item.item_title ?? "Untitled Item"}</p>
+                  <p className="text-xs text-muted-foreground">{item.seller?.name ?? "Unknown seller"} · {format(openedDate, "MMM d, yyyy")}</p>
+                </div>
+                <p className="shrink-0 text-sm font-bold text-foreground">{formatAmount(item.buyer_total_amount)}</p>
+              </div>
+              <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Reason:</span> {item.reason_label}</p>
+              <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={item.status} /><DisputeMoneyStatusBadge status={item.money_status} /></div>
+              <Button variant={item.status === "resolved" ? "secondary" : "destructive"} className="min-h-11 w-full" onClick={() => navigate(item.primary_action.route)}>
+                {item.status === "resolved" ? "View Resolution" : "View Dispute"}
+              </Button>
+            </article>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
@@ -180,6 +203,7 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

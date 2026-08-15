@@ -100,7 +100,7 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
                 <button
                   onClick={() => handleDismiss(alert.type)}
                   aria-label="Dismiss alert"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5"
                 >
                   <X className="h-4 w-4" />
                 </button>

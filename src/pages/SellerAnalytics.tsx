@@ -156,7 +156,7 @@ function KpiCard({
                   {tooltip}
                 </TooltipContent>
               </UITooltip></TooltipProvider>
-              <ChevronRight className="h-3 w-3 text-muted-foreground/40 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
             </div>
           </div>
           <p className={cn("mt-1 text-base sm:text-lg lg:text-xl font-bold tracking-tight tabular-nums break-words leading-tight", valueClass)}>
@@ -251,7 +251,7 @@ function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
         <span className="text-[13px] font-semibold tabular-nums">
           {count} {count === 1 ? "tx" : "tx"}
         </span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
       </div>
     </Link>
   );

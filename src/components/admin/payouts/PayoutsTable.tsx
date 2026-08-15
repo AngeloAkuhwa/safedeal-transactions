@@ -61,7 +61,7 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
 const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed";
 const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap";
 
-const iconSquareBtn = "w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
+const iconSquareBtn = "w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
 
 function renderPrimaryActions(
   r: PayoutRow, releasingId: string | null,
@@ -560,7 +560,7 @@ export function PayoutsTable({
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all">
+                        <button className="w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all">
                           <FaEllipsisVertical className="text-xs" />
                         </button>
                       </DropdownMenuTrigger>

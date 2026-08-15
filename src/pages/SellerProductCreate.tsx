@@ -375,10 +375,7 @@ const SellerProductCreate = () => {
         />
 
         <div className="min-w-0 flex-1">
-          {/* Header */}
-          {/* pl-16 on mobile keeps the back button clear of the sidebar's fixed
-              hamburger, which used to sit directly on top of it. */}
-          <div className="sticky top-0 z-30 border-b border-border bg-background px-3 py-3 pl-16 sm:px-6 sm:py-4 lg:pl-6">
+          <div className="sticky top-0 z-30 border-b border-border bg-background px-3 py-3 sm:px-6 sm:py-4 lg:px-6">
             <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button
@@ -545,7 +542,7 @@ const SellerProductCreate = () => {
                           type="button"
                           onClick={() => removeFile(idx)}
                           aria-label={`Remove ${f.name}`}
-                          className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-opacity md:h-7 md:w-7 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                           className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                         >
                           <X className="h-4 w-4" aria-hidden />
                         </button>

@@ -20,7 +20,7 @@ export function AdminMobileHeader({ onOpenMenu, title, subtitle, rightSlot }: Ad
             type="button"
             onClick={onOpenMenu}
             aria-label="Open menu"
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
+            className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
           >
             <Menu className="h-5 w-5" />
           </button>

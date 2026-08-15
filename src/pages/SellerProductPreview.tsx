@@ -453,7 +453,7 @@ const SellerProductPreview = () => {
                         <code className="text-xs text-foreground bg-muted px-2 py-1 rounded flex-1 truncate">
                           {publicUrl}
                         </code>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopyLink}>
+                        <Button variant="ghost" size="icon" className="shrink-0" onClick={handleCopyLink} aria-label="Copy public store link">
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       </div>

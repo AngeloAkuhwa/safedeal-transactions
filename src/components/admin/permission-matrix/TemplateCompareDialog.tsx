@@ -70,7 +70,7 @@ export function TemplateCompareDialog({
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 p-2">
               <span className="text-[11px] uppercase text-muted-foreground">Compare against</span>
               <select
-                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                className="h-11 rounded-md border border-border bg-background px-2 text-xs"
                 value={target.kind === "role" ? `role:${target.role}` : `template:${target.id}`}
                 onChange={(e) => {
                   const [kind, val] = e.target.value.split(":");

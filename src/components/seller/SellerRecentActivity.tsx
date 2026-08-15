@@ -67,7 +67,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   return (
     <Card className="rounded-2xl shadow-md overflow-hidden">
       <CardHeader className="pb-0 pt-5 px-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div>
               <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
@@ -82,15 +82,15 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
               View All →
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by code, buyer, or item..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-52"
+                className="min-h-11 w-full border border-border bg-background py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 sm:w-52"
               />
             </div>
           </div>
@@ -147,7 +147,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                            <Button
                              variant="outline"
                              size="icon"
-                             className="h-8 w-8 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                              className="h-11 w-11 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
                              title="Rider confirmation link"
                              onClick={(e) => {
                                e.stopPropagation();

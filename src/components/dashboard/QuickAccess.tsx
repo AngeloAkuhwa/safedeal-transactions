@@ -30,7 +30,7 @@ export function QuickAccess({ metrics }: QuickAccessProps) {
           </div>
           <Button
             asChild
-            className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 text-xs gap-1.5"
+            className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-11 text-xs gap-1.5"
             size="sm"
           >
             <Link to="/dashboard/disputes">
@@ -60,7 +60,7 @@ export function QuickAccess({ metrics }: QuickAccessProps) {
           </div>
           <Button
             asChild
-            className="w-full h-8 text-xs gap-1.5"
+            className="w-full min-h-11 text-xs gap-1.5"
             size="sm"
           >
             <Link to="/dashboard/transactions">

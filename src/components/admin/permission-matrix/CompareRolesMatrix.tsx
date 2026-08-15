@@ -214,7 +214,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
               <select
                 value={copySource ?? ""}
                 onChange={(e) => setCopySource(e.target.value as InternalRoleKey)}
-                className="h-9 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
+                className="h-11 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
               >
                 {selected.map((r) => (
                   <option key={r} value={r}>{ROLE_LABEL[r]}</option>
@@ -227,7 +227,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
               <select
                 value={copyTarget ?? ""}
                 onChange={(e) => setCopyTarget(e.target.value as InternalRoleKey)}
-                className="h-9 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
+                className="h-11 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
               >
                 {selected.filter((r) => r !== copySource).map((r) => (
                   <option key={r} value={r} disabled={isProtectedRole(r)}>
@@ -240,7 +240,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
               type="button"
               disabled={!copySource || !copyTarget || copySource === copyTarget || isProtectedRole(copyTarget ?? "" as InternalRoleKey)}
               onClick={openCopyPreview}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               Preview & stage
             </button>

@@ -571,8 +571,10 @@ const SellerCreateTransaction = () => {
                               className="w-full h-full object-cover"
                             />
                             <button
+                              type="button"
+                              aria-label={`Remove ${p.original_name}`}
                               onClick={() => removePhoto(i)}
-                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>

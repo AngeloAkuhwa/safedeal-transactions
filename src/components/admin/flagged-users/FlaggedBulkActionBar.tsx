@@ -56,7 +56,7 @@ export function FlaggedBulkActionBar({ userIds, onClear }: Props) {
         </span>
         <button
           type="button" onClick={onClear} aria-label="Clear selection"
-          className="h-7 w-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"
+          className="h-11 w-11 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -66,7 +66,7 @@ export function FlaggedBulkActionBar({ userIds, onClear }: Props) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Required note for this bulk action…"
-        className="w-full mb-2 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500"
+        className="w-full min-h-11 mb-2 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500"
       />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {ACTIONS.map(({ key, label, icon: Icon, cls }) => (
@@ -75,7 +75,7 @@ export function FlaggedBulkActionBar({ userIds, onClear }: Props) {
             type="button"
             disabled={!!pending}
             onClick={() => run(key)}
-            className={`px-3 py-2 ${cls} disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-xs font-semibold`}
+            className={`min-h-11 px-3 py-2 ${cls} disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-xs font-semibold`}
           >
             {pending === key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
             {label}

@@ -29,6 +29,7 @@ import {
 } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "—";
@@ -215,7 +216,7 @@ const SellerProductDetail = () => {
       <div className="flex min-h-[100dvh] bg-background">
         <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} identityVerified={identityVerified} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-3 border-b border-border px-3 py-3 pl-16 sm:px-6 lg:px-8 lg:pl-8 lg:py-4">
+          <div className="flex items-center gap-3 border-b border-border px-3 py-3 sm:px-6 lg:px-8 lg:py-4">
             <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate("/seller/storefront")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -279,8 +280,7 @@ const SellerProductDetail = () => {
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Header — sticky, and padded clear of the sidebar's fixed hamburger */}
-        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 pl-16 backdrop-blur sm:px-6 lg:px-8 lg:pl-8 lg:py-4">
+        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"
@@ -480,13 +480,12 @@ const SellerProductDetail = () => {
                         Reserved: <span className="font-semibold text-amber-500">{product.reserved_quantity || 0}</span>
                         <span>·</span>
                         Available: <span className="font-semibold text-emerald-500">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
-                        <span
-                          title="Available = Stock Quantity − Reserved Quantity (clamped at 0). Reserved units are locked by in-flight checkouts that have not yet completed payment."
-                          className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground cursor-help"
-                          aria-label="What do Reserved and Available mean?"
-                        >
-                          ?
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" aria-label="Explain available stock" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs">?</span></button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">Available stock excludes units reserved by in-flight checkouts.</TooltipContent>
+                        </Tooltip>
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Use the <span className="font-semibold">Restock</span> button above to add inventory. Every change is logged below.

@@ -77,7 +77,7 @@ export function AssignmentQuickActions({
             disabled={a.disabled}
             title={a.disabled ? a.title : undefined}
             className={cn(
-              "group flex flex-col items-start gap-1 rounded-xl border px-4 py-3 text-left text-sm font-medium backdrop-blur-sm transition",
+              "group flex min-h-11 flex-col items-start gap-1 rounded-xl border px-4 py-3 text-left text-sm font-medium backdrop-blur-sm transition",
               a.primary
                 ? "border-primary/40 bg-primary/15 text-primary-foreground hover:bg-primary/25"
                 : a.tone === "warning"

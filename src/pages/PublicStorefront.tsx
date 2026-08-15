@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, Search, Shield, Store } from "lucide-react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Search, Shield, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ import { PublicStorefrontHeader } from "@/components/storefront/PublicStorefront
 import { getPublicStorefront } from "@/services/public-storefront.service";
 import { getProductCategories } from "@/services/seller-storefront.service";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PublicStorefront = () => {
   const { sellerSlug } = useParams<{ sellerSlug: string }>();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
   const { data: categories } = useQuery({
@@ -23,11 +25,17 @@ const PublicStorefront = () => {
     staleTime: 300_000,
   });
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["public-storefront", sellerSlug, search, categoryFilter],
-    queryFn: () => getPublicStorefront(sellerSlug!, { search, category: categoryFilter }),
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const { data, isLoading, isError, isFetching } = useQuery({
+    queryKey: ["public-storefront", sellerSlug, debouncedSearch, categoryFilter],
+    queryFn: () => getPublicStorefront(sellerSlug!, { search: debouncedSearch, category: categoryFilter }),
     enabled: !!sellerSlug,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
   const storeName = data?.seller?.full_name ?? "";
@@ -41,8 +49,10 @@ const PublicStorefront = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background">
+        <Skeleton className="h-14 w-full rounded-none" />
+        <Skeleton className="h-48 w-full rounded-none" />
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-8"><Skeleton className="h-11 w-full max-w-sm" /><div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[4/5] rounded-lg" />)}</div></div>
       </div>
     );
   }
@@ -61,7 +71,7 @@ const PublicStorefront = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Minimal header */}
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -82,7 +92,7 @@ const PublicStorefront = () => {
       <main className="flex-1 bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6" aria-busy={isFetching}>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -93,7 +103,7 @@ const PublicStorefront = () => {
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>

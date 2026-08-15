@@ -10,7 +10,7 @@ export function FlaggedMobileTopBar({ onOpenMenu, activeFlags }: Props) {
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 px-4 py-4 lg:hidden">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={onOpenMenu} aria-label="Open menu" className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300">
+          <button type="button" onClick={onOpenMenu} aria-label="Open menu" className="w-11 h-11 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300">
             <Menu className="h-4 w-4" />
           </button>
           <div>
