@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const PublicStorefront = () => {
   const { sellerSlug } = useParams<{ sellerSlug: string }>();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");

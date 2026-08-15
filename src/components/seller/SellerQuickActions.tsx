@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router";
+import { Link } from "react-router";
 import { Plus, FileText, BarChart3, Settings, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -7,7 +7,6 @@ interface SellerQuickActionsProps {
 }
 
 export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
-  const navigate = useNavigate();
   const actions = [
     {
       icon: Plus,
