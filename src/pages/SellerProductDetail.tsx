@@ -28,6 +28,7 @@ import {
   getProductCategories,
 } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "—";

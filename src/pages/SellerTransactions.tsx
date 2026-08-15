@@ -35,6 +35,7 @@ import {
 } from "@/services/seller-transactions.service";
 import { getSellerPayouts } from "@/services/seller-payouts.service";
 import { resolveTransactionLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const actionLabels: Record<string, { label: string; variant: "default" | "outline" }> = {
   payment_secured: { label: "Start Fulfillment", variant: "default" },
