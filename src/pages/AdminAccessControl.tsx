@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { INTERNAL_ROLES, type InternalRoleKey } from "@/services/permission-catalog";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -79,9 +79,17 @@ export default function AdminAccessControl() {
   const [deleteUser, setDeleteUser] = useState<InternalUser | null>(null);
   const [extendUser, setExtendUser] = useState<InternalUser | null>(null);
 
+  // Search is debounced before it reaches the query key so typing costs one
+  // request instead of one per keystroke.
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const query = useMemo(() => ({
     filter,
-    q: q.trim() || undefined,
+    q: debouncedQ.trim() || undefined,
     role: advanced.role ?? undefined,
     department: advanced.department ?? undefined,
     status: advanced.status ?? undefined,
@@ -89,12 +97,13 @@ export default function AdminAccessControl() {
     sort_by: sortBy,
     sort_dir: sortDir,
     page, page_size: pageSize,
-  }), [filter, q, advanced, sortBy, sortDir, page, pageSize]);
+  }), [filter, debouncedQ, advanced, sortBy, sortDir, page, pageSize]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["admin-access-control", query],
     queryFn: () => fetchAccessDirectory(query),
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 
   // Deep-link support: `?user=<id>` (or `?userId=<id>`) auto-opens the
