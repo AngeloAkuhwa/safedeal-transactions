@@ -586,8 +586,21 @@ function attrValue(tagText: string, name: string): string | null {
 export function contentWidthPx(body: string): number | null {
   const closing = body.search(/<\/[A-Za-z]/);
   const inner = closing === -1 ? body : body.slice(0, closing);
-  if (/\{/.test(inner)) return null; // dynamic label: unknown width
-  const text = inner.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  // Resolve what we can of a dynamic label: string literals and the *shortest*
+  // resolvable ternary arm. Only a bare identifier (`{label}`) is unknowable.
+  let resolved = inner;
+  let unknown = false;
+  resolved = resolved.replace(/\{([^{}]*)\}/g, (_all, expr: string) => {
+    const literals = Array.from(String(expr).matchAll(/"([^"]*)"|'([^']*)'/g)).map((m) => m[1] ?? m[2]);
+    if (!literals.length) {
+      unknown = true;
+      return "";
+    }
+    // Worst case for a hit area is the narrowest label the branch can render.
+    return literals.reduce((a, b) => (a.length <= b.length ? a : b));
+  });
+  if (unknown) return null;
+  const text = resolved.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
   if (text.length) return Math.round(text.length * 7);
   const icon = /\bh-(\d+(?:\.\d+)?)\b/.exec(inner);
   if (icon) return Number(icon[1]) * 4;
@@ -595,19 +608,33 @@ export function contentWidthPx(body: string): number | null {
 }
 
 /**
- * `after:absolute after:inset-0` stretches the control over its positioned
+ * `after:absolute after:inset-0` stretches the control over its *positioned*
  * ancestor (the card/row), so the real hit area is that box, not the text line.
+ *
+ * NOTE — honest limitation: this file scans one tag at a time, so the ancestor
+ * box is never measured. The credit below is a marker-based exemption, not a
+ * measurement: it asserts "this control is stretched over something", not
+ * "that something is >= 44px". What it *does* verify structurally is that the
+ * element is genuinely focusable/interactive (a link, a button, or an element
+ * carrying an interactive role) — an `after:inset-0` on a decorative `<div>`
+ * is not credited.
  */
-function isStretched(classes: string[]): boolean {
-  return (
+function isStretched(tagText: string, tag: string, classes: string[]): boolean {
+  const marked =
     classes.some((c) => /^(?:[\w-]+:)*after:absolute$/.test(c)) &&
-    classes.some((c) => /^(?:[\w-]+:)*after:inset-0$/.test(c))
-  );
+    classes.some((c) => /^(?:[\w-]+:)*after:inset-0$/.test(c));
+  if (!marked) return false;
+  const focusable =
+    tag === "button" || tag === "a" || LINK_TAGS.has(tag) || tag === "Button" ||
+    /\brole="(?:button|link|menuitem|tab|option)"/.test(tagText);
+  return focusable;
 }
 
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
-  if (isStretched(classes)) return { classes, height: 360, width: 360 };
   const bonus = insetBonus(classes);
+  if (isStretched(tagText, tag, classes)) {
+    return { classes, height: 360, width: 360, bonus };
+  }
   const h = pick(classes, "h-");
   const minH = pick(classes, "min-h-");
   const size = pick(classes, "size-");
@@ -619,24 +646,34 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
   let height = [h, minH, size].filter((v): v is number => v !== null).reduce((a, b) => Math.max(a, b), 0) || null;
   let width = [w, minW, size].filter((v): v is number => v !== null).reduce((a, b) => Math.max(a, b), 0) || null;
 
-  if (height === null && (tag === "Button" || tag === "Input" || tag === "SelectTrigger" || tag === "Textarea")) {
+  // `h-auto`/`h-full` overrides the primitive's own height (Tailwind merge
+  // keeps the call-site class), so no default may be substituted.
+  const heightIsContent =
+    declaresUnmeasurable(classes, "h-") || declaresUnmeasurable(classes, "size-");
+  const widthIsContent =
+    declaresUnmeasurable(classes, "w-") || declaresUnmeasurable(classes, "size-");
+
+  if (height === null && !heightIsContent && (tag === "Button" || tag === "Input" || tag === "SelectTrigger" || tag === "Textarea")) {
     const variant = attrValue(tagText, "size") ?? "default";
     height = BUTTON_SIZE_PX[variant] ?? 44;
   }
-  if (height === null && PRIMITIVE_SAFE.has(tag)) height = COMPONENT_DEFAULT_PX[tag] ?? 44;
+  if (height === null && !heightIsContent && PRIMITIVE_SAFE.has(tag)) height = primitiveHeight(tag);
 
   if (height === null && py !== null) height = py * 2 + lineBox(classes, body);
+  // `h-auto p-0` is a bare line box: no padding, no declared height.
+  if (height === null && heightIsContent && (py ?? 0) === 0) height = lineBox(classes, body);
   if (width === null && px !== null) {
     const content = contentWidthPx(body);
     width = content === null ? null : px * 2 + content;
   }
+  if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
   // A full-width control spans the viewport; that dimension is not the risk.
   if (width === null && (has(classes, "w-full") || has(classes, "flex-1") || has(classes, "grow"))) width = 360;
 
   return {
     classes,
-    height: height === null ? null : height + bonus,
-    width: width === null ? null : width + bonus,
+    height: height === null ? null : height + bonus.y,
+    width: width === null ? null : width + bonus.x,
     bonus,
   };
 }
