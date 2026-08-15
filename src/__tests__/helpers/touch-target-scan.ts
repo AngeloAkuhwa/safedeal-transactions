@@ -61,6 +61,9 @@ const COMPONENT_DEFAULT_PX: Record<string, number | null> = {
   TooltipTrigger: null,
   SheetTrigger: null,
   DialogTrigger: null,
+  // Router links: the box belongs to whatever they wrap (a Button, a card, or
+  // prose). WCAG 2.5.5 exempts links inline in a block of text, and the child
+  // control is scanned on its own, so the wrapper itself is not measured.
   Link: null,
   NavLink: null,
 };
@@ -74,6 +77,7 @@ const PRIMITIVE_SAFE = new Set(
 /** Wrappers that delegate their box to their child (asChild / render-prop style). */
 const DELEGATING = new Set([
   "DropdownMenuTrigger", "PopoverTrigger", "TooltipTrigger", "SheetTrigger", "DialogTrigger",
+  "Link", "NavLink",
 ]);
 
 /** shadcn Button size variants -> height in px. */
