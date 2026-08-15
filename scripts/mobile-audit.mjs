@@ -481,6 +481,12 @@ async function measureRoute(page, width) {
   const rows = [];
   const blocker = await blockingDialog(page);
   if (blocker) {
+    // Settle BEFORE measuring the dialog, not only after dismissing it. Radix
+    // enters with `zoom-in-95`, so a dialog caught mid-entrance measures at 95%
+    // of its real size — a 44px button reads as 41.8px and a 270px one as 257px.
+    // That produced three "sub-44px" findings that were all exactly 44px when
+    // the dialog was measured at rest.
+    await settle(page);
     const dlg = await page.evaluate(measure, { VW: width, scope: '[role="dialog"],[role="alertdialog"]' });
     rows.push({ dialog: blocker.title, ...dlg, horizScroll: false });
     const cleared = await dismissDialog(page);
