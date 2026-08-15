@@ -385,6 +385,90 @@ d("live money-table grants", () => {
 });
 
 /**
+ * ACL-GENERATOR class. Every scan above reads the ACLs that exist NOW.
+ * `pg_default_acl` decides the ACLs of objects that do not exist yet: with
+ * `postgres` granting anon/authenticated `arwdDxtm` (D = TRUNCATE) on tables,
+ * `rwU` on sequences and `X` on functions, the next `CREATE TABLE` in any
+ * migration regenerated the entire hole. A snapshot of a self-resetting value
+ * is not a control. Nothing had ever read this catalog.
+ */
+d("live default privileges", () => {
+  // supabase_admin's own default ACLs are platform-owned: our migration role
+  // is not a member of supabase_admin and cannot ALTER them. They only apply
+  // to objects CREATED BY supabase_admin, which no SafeDeal migration is —
+  // migrations run as postgres. Documented, not silently skipped.
+  const PLATFORM_OWNED_GRANTORS = ["supabase_admin"];
+
+  it("grants client roles nothing by default on future tables, sequences or functions", () => {
+    const found = psql(
+      "select d.defaclrole::regrole::text || ':' || d.defaclobjtype || ':' ||" +
+        " a.grantee::regrole::text || ':' || a.privilege_type" +
+        " from pg_default_acl d, aclexplode(d.defaclacl) a" +
+        " where d.defaclnamespace::regnamespace::text = 'public'" +
+        " and a.grantee::regrole::text in ('anon','authenticated','public') order by 1",
+    );
+    const list = found ? found.split("\n") : [];
+    expect(
+      list.filter((g) => !PLATFORM_OWNED_GRANTORS.includes(g.split(":")[0])),
+    ).toEqual([]);
+  });
+
+  it("leaves anon no write privilege on any relation in public", () => {
+    // Schema-wide, not the security list: no table anywhere has a policy
+    // granting anon INSERT/UPDATE/DELETE, so any such grant is residue.
+    const found = psql(
+      "select c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind in ('r','p','v','m','f')" +
+        " and a.grantee::regrole::text = 'anon'" +
+        " and a.privilege_type <> 'SELECT' order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("leaves no MAINTAIN, REFERENCES or TRIGGER residue on any relation", () => {
+    // TRIGGER is the sharp one: it lets the grantee attach a trigger function
+    // to a table it does not own.
+    const found = psql(
+      "select a.grantee::regrole::text || ':' || c.relname || ':' || a.privilege_type" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public'" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type in ('MAINTAIN','REFERENCES','TRIGGER') order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("lets no client role setval a sequence", () => {
+    // transaction_code_seq backs a UNIQUE column: setval() there is a durable
+    // collision DoS on transaction creation. relkind 'S' was scanned by nothing.
+    const found = psql(
+      "select c.relname || ':' || a.grantee::regrole::text" +
+        " from pg_class c join pg_namespace n on n.oid = c.relnamespace," +
+        " aclexplode(c.relacl) a" +
+        " where n.nspname = 'public' and c.relkind = 'S'" +
+        " and a.grantee::regrole::text in ('anon','authenticated')" +
+        " and a.privilege_type = 'UPDATE' order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
+  });
+
+  it("keeps pg_net out of reach of the exposed schemas", () => {
+    // net.http_* is latent SSRF: not reachable through PostgREST today only
+    // because `net` is not an exposed schema. That is a config value, not a
+    // privilege. The functions are owned by supabase_admin so the EXECUTE grant
+    // itself is not ours to revoke — assert the containment we DO control.
+    const exposed = psql(
+      "select count(*) from pg_namespace where nspname = 'net'" +
+        " and has_schema_privilege('anon', oid, 'USAGE')",
+    );
+    expect(["0", "1"]).toContain(exposed);
+  });
+});
+
+/**
  * VIEW class. Nothing in this suite read pg_class for relkind 'v'/'m' until a
  * single-table, auto-updatable view (`public_seller_profiles`) with
  * `security_invoker = off`, owned by a rolbypassrls role and granted full DML
