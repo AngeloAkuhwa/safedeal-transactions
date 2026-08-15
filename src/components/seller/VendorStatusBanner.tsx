@@ -52,7 +52,7 @@ export function VendorStatusBanner() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-tight">{title}</p>
           {row.reason && <p className="text-xs opacity-90 mt-0.5 break-words">{row.reason}</p>}
-          <p className="text-[11px] opacity-75 mt-1">
+          <p className="text-[12px] opacity-75 mt-1">
             New checkouts on your products are blocked. Contact support to resolve this.
           </p>
         </div>

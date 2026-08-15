@@ -169,7 +169,7 @@ const SellerTransactions = () => {
       {/* Compact header strip */}
       <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
         <div className="sd-page py-3 sm:py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
             <div>
               <h1 className="sd-page-title animate-fade-in">All Transactions</h1>
@@ -191,7 +191,7 @@ const SellerTransactions = () => {
               <p className="sd-eyebrow mb-1">Transactions</p>
               <p className="sd-kpi-value tabular-nums">{summary.total}</p>
               <p className="sd-kpi-helper">All transactions you've created</p>
-              <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+              <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
                 {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
                 {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}
               </p>
@@ -226,7 +226,7 @@ const SellerTransactions = () => {
               <p className="sd-kpi-value tabular-nums">{formatMoney(summary.total_earned, "NGN")}</p>
               <p className="sd-kpi-helper">Includes paid to bank and pending bank transfer.</p>
               {payoutsData && (
-                <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
                   {formatMoney(payoutsData.summary.total_released, "NGN")} paid · {formatMoney(payoutsData.summary.pending_release, "NGN")} pending
                 </p>
               )}
@@ -299,10 +299,10 @@ const SellerTransactions = () => {
                 key={chip.key}
                 type="button"
                 onClick={() => setStatusFilter(active ? "all" : chip.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""} min-h-11 min-w-11 justify-center`}
               >
                 {chip.label}
-                <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[9px] font-bold px-1">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[12px] font-bold px-1">
                   {chip.count}
                 </span>
               </button>
@@ -348,7 +348,7 @@ const SellerTransactions = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-sm font-bold text-foreground">{formatMoney(tx.amount, tx.currency_code)}</p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[12px] text-muted-foreground">
                             Net {formatMoney(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
                           </p>
                         </div>
@@ -409,10 +409,10 @@ const SellerTransactions = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Transaction Code</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Transaction Code</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Amount
                       <InfoTip>
@@ -424,14 +424,14 @@ const SellerTransactions = () => {
                       </InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Money Status
                       <InfoTip>Where the buyer's money currently sits in the SafeDeal escrow flow.</InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -485,7 +485,7 @@ const SellerTransactions = () => {
                                       className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors before:absolute before:-inset-2 before:content-['']"
                                     >
                                       <MessageCircle className="h-4 w-4 text-primary" />
-                                      <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                                      <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[12px] font-bold text-destructive-foreground">
                                         {(tx.unread_message_count ?? 0) > 9 ? "9+" : tx.unread_message_count}
                                       </span>
                                     </button>

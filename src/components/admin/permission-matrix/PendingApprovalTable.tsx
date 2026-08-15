@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
+import { keyActivate } from "@/lib/a11y";
 
 const RISK_CLR: Record<string, string> = {
   low: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
@@ -94,7 +95,7 @@ export function PendingApprovalTable({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">Request ID</th>
                   <th className="px-3 py-2 text-left font-medium">Type</th>
                   <th className="px-3 py-2 text-left font-medium">Target</th>
@@ -110,12 +111,12 @@ export function PendingApprovalTable({
                 {filtered.map((r) => {
                   const tone = changeStateTone(normalizeChangeState(r.status));
                   return (
-                    <tr
+                    <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                       key={r.id}
                       className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                       onClick={() => onRowClick?.(r)}
                     >
-                      <td className="px-3 py-3 align-middle font-mono text-[11px] text-muted-foreground">{r.id.slice(0, 8)}…</td>
+                      <td className="px-3 py-3 align-middle font-mono text-[12px] text-muted-foreground">{r.id.slice(0, 8)}…</td>
                       <td className="px-3 py-3 align-middle text-xs capitalize">
                         {r.target_scope === "orchestration_rules" ? "Assignment rules" : r.target_scope}
                       </td>
@@ -137,13 +138,13 @@ export function PendingApprovalTable({
                         <span className="text-rose-400">−{r.removed_keys.length}</span>
                       </td>
                       <td className="px-3 py-3 align-middle">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ${RISK_CLR[r.risk] ?? RISK_CLR.low}`}>{r.risk}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold uppercase ring-1 ${RISK_CLR[r.risk] ?? RISK_CLR.low}`}>{r.risk}</span>
                       </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.requested_by_name ?? "—"}</td>
                       <td className="px-3 py-3 align-middle whitespace-nowrap text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.requested_at), { addSuffix: true })}</td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.required_approver ?? <span className="italic">—</span>}</td>
                       <td className="px-3 py-3 align-middle">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
                       </td>
                     </tr>
                   );

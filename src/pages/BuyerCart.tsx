@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 /** Currency is required — a cart row always carries its own `currency_code`. */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -427,7 +428,7 @@ const BuyerCart = () => {
                 <div className="lg:col-span-2 space-y-3">
                   {/* Select all bar */}
                   <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer min-h-11">
                       <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
                       <span className="text-sm font-medium text-foreground">
                         Select All ({selectableItems.length} eligible)
@@ -472,7 +473,7 @@ const BuyerCart = () => {
                         } ${isSoldOut ? "opacity-60" : ""}`}
                       >
                         {/* Top section */}
-                        <div className="p-4 flex gap-4">
+                        <div className="p-4 flex flex-wrap gap-4">
                           <div className="flex items-start pt-1 shrink-0">
                             <Checkbox
                               checked={isSelected}
@@ -483,11 +484,11 @@ const BuyerCart = () => {
                           {(() => {
                             const canNavigate = !isSoldOut && !!item.product?.seller_slug && !!item.product?.slug;
                             const clickableContent = (
-                              <div
+                              <div role="button" tabIndex={0} onKeyDown={keyActivate}
                                 className={`flex gap-4 flex-1 min-w-0 ${canNavigate ? "cursor-pointer group/item" : ""}`}
                                 onClick={canNavigate ? () => navigate(`/store/${item.product!.seller_slug}/${item.product!.slug}/checkout?qty=${item.quantity}`) : undefined}
                               >
-                                <div className={`h-28 w-28 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
+                                <div className={`h-20 w-20 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
                                   {item.product?.primary_image ? (
                                     <img src={item.product.primary_image} alt="" className="h-full w-full object-cover" />
                                   ) : (
@@ -538,7 +539,7 @@ const BuyerCart = () => {
                                     {stock.label}
                                   </Badge>
                                   {isLocked && (
-                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                    <p className="text-[12px] text-muted-foreground mt-1">
                                       Finish or cancel this checkout to edit.
                                     </p>
                                   )}
@@ -560,7 +561,7 @@ const BuyerCart = () => {
                             ) : clickableContent;
                           })()}
                           {/* Price */}
-                          <div className="text-right shrink-0 space-y-1">
+                          <div className="w-full shrink-0 space-y-1 text-left sm:w-auto sm:text-right">
                             <p className={`text-lg font-bold ${isSoldOut ? "line-through text-muted-foreground" : "text-foreground"}`}>
                               {item.product ? formatPrice(item.product.unit_price, item.product.currency_code) : "—"}
                             </p>
@@ -576,7 +577,7 @@ const BuyerCart = () => {
                               <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                               <p className="text-xs font-semibold text-foreground">Delivery method</p>
                               {draftInvalid && (
-                                <span className="text-[11px] text-destructive">Required</span>
+                                <span className="text-[12px] text-destructive">Required</span>
                               )}
                             </div>
                             {enabledMethods.length === 1 ? (
@@ -651,8 +652,8 @@ const BuyerCart = () => {
                         )}
 
                         {/* Bottom section: qty + remove */}
-                        <div className="px-4 py-3 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                        <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <span className="text-sm text-muted-foreground">Qty:</span>
                             <div className="flex items-center gap-1">
                               <button
@@ -686,7 +687,7 @@ const BuyerCart = () => {
                               </Button>
                             )}
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             {isSoldOut ? (
                               <span className="text-sm font-semibold text-destructive">Sold Out</span>
                             ) : item.product?.active_checkout_session_id ? (

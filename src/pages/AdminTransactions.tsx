@@ -72,6 +72,7 @@ import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
 import { TransactionsEmptyState } from "@/components/admin/transactions/TransactionsEmptyState";
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
+import { keyActivate } from "@/lib/a11y";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -180,7 +181,7 @@ const QUICK_FILTERS: { key: AdminTxQuickFilter; label: string }[] = [
 
 function Badge({ label, cls, Icon }: { label: string; cls: string; Icon?: typeof Flag }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[12px] font-semibold ${cls}`}>
       {Icon ? <Icon className="h-3 w-3" /> : null}
       {label}
     </span>
@@ -635,7 +636,7 @@ export default function AdminTransactions() {
             <div className="flex items-center gap-2">
               <AdminReadingModeControl variant="desktop" />
               <ThemeToggle />
-              <span className="hidden text-[11px] text-muted-foreground xl:inline">
+              <span className="hidden text-[12px] text-muted-foreground xl:inline">
                 Updated {lastUpdatedLabel}
               </span>
               <button
@@ -721,7 +722,7 @@ export default function AdminTransactions() {
                 <div className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg ${t.iconCls}`}>
                   <Icon className="h-4 w-4" aria-hidden />
                 </div>
-                <div className="text-[11px] text-muted-foreground">{t.label}</div>
+                <div className="text-[12px] text-muted-foreground">{t.label}</div>
                 <div className="mt-1 truncate text-xl font-semibold tracking-tight text-foreground tabular-nums">
                   {initialLoad && !summary ? (
                     <span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
@@ -847,7 +848,7 @@ export default function AdminTransactions() {
               </span>
             )}
           </h3>
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
             <span>Updated {lastUpdatedLabel}</span>
             <LiveSyncPill state={liveSync} compact />
           </div>
@@ -859,7 +860,7 @@ export default function AdminTransactions() {
           <table className="w-full text-sm">
             <caption className="sr-only">Platform transactions, sortable and filterable</caption>
             <thead className="sticky top-0 z-10 bg-card">
-              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border text-[12px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left font-semibold">Transaction</th>
                 <th className="px-3 py-2 text-left font-semibold">Item</th>
                 <th className="px-3 py-2 text-left font-semibold">Parties</th>
@@ -926,7 +927,7 @@ export default function AdminTransactions() {
                       <div className="font-semibold text-foreground tabular-nums">
                         {formatMoney(t.amount, t.currency)}
                       </div>
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-[12px] text-muted-foreground">
                         Protection Fee: {formatMoney(t.protectionFee, t.currency)}
                       </div>
                     </td>
@@ -935,11 +936,11 @@ export default function AdminTransactions() {
                         label={t.transactionStatus.label}
                         cls={STATUS_BADGE_CLS[t.transactionStatus.key] ?? "bg-muted text-muted-foreground border-border"}
                       />
-                      <div className="mt-1 text-[11px] text-muted-foreground">{t.moneyStatus.label}</div>
+                      <div className="mt-1 text-[12px] text-muted-foreground">{t.moneyStatus.label}</div>
                     </td>
                     <td className="px-3 py-2.5 align-middle">
                       {t.escrowStatus.key === "pending" || t.escrowStatus.key === "released" ? (
-                        <span className="text-[11px] text-muted-foreground">{t.escrowStatus.label}</span>
+                        <span className="text-[12px] text-muted-foreground">{t.escrowStatus.label}</span>
                       ) : (
                         <Badge
                           label={t.escrowStatus.label}
@@ -963,7 +964,7 @@ export default function AdminTransactions() {
                             {overflow.length > 0 && (
                               <span
                                 title={overflow.map((b) => b.label).join(", ")}
-                                className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                                className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[12px] font-semibold text-muted-foreground"
                               >
                                 +{overflow.length}
                               </span>
@@ -986,7 +987,7 @@ export default function AdminTransactions() {
                       </span>
                     </td>
                     <td className="w-[120px] px-3 py-2.5 align-middle">
-                       <div
+                       <div role="button" tabIndex={0} onKeyDown={keyActivate}
                          className="flex items-center justify-start gap-1 text-muted-foreground"
                          onClick={(e) => e.stopPropagation()}
                        >
@@ -1027,7 +1028,7 @@ export default function AdminTransactions() {
         <div className="flex items-center justify-between px-1">
           <h3 className="text-sm font-semibold text-foreground">Recent Transactions</h3>
           {pagination ? (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[12px] text-muted-foreground">
               {pagination.totalCount.toLocaleString("en-NG")} total
             </span>
           ) : null}
@@ -1056,7 +1057,7 @@ export default function AdminTransactions() {
                   {t.isFrozen ? <Snowflake className="h-3.5 w-3.5 shrink-0 text-cyan-400" aria-hidden /> : null}
                   <div>
                     <div className="text-sm font-semibold text-foreground">#{t.transactionCode}</div>
-                    <div className="text-[11px] text-muted-foreground">{formatDate(t.createdAt)}</div>
+                    <div className="text-[12px] text-muted-foreground">{formatDate(t.createdAt)}</div>
                   </div>
                 </div>
                 <Badge
@@ -1068,7 +1069,7 @@ export default function AdminTransactions() {
               <div className="mt-2 flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="line-clamp-1 text-sm font-medium text-foreground" title={t.itemTitle}>{t.itemTitle}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
                     {t.buyerName} <span aria-hidden>•</span> {t.sellerName}
                   </div>
                 </div>
@@ -1076,7 +1077,7 @@ export default function AdminTransactions() {
                   <div className="text-base font-semibold text-foreground tabular-nums">
                     {formatMoney(t.amount, t.currency)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-[12px] text-muted-foreground">
                     Protection {formatMoney(t.protectionFee, t.currency)}
                   </div>
                 </div>
@@ -1102,7 +1103,7 @@ export default function AdminTransactions() {
                     {overflow.length > 0 && (
                       <span
                         title={overflow.map((b) => b.label).join(", ")}
-                        className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[12px] font-semibold text-muted-foreground"
                       >
                         +{overflow.length}
                       </span>
@@ -1113,7 +1114,7 @@ export default function AdminTransactions() {
 
               {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
                 <div
-                  className={`mt-2 text-[11px] ${
+                  className={`mt-2 text-[12px] ${
                     t.lastActivityTone === "danger" ? "text-red-400" : "text-orange-300"
                   }`}
                 >
@@ -1121,7 +1122,7 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div
+              <div role="button" tabIndex={0} onKeyDown={keyActivate}
                 className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1303,14 +1304,14 @@ function BottomNav({
       onClick={onClick}
       aria-label={label}
       aria-current={active ? "page" : undefined}
-      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
         active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
       } min-h-11`}
     >
       <Icon className="h-5 w-5" aria-hidden />
       {label}
       {badge && badge > 0 ? (
-        <span className="absolute right-[28%] top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white">
+        <span className="absolute right-[28%] top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-[12px] font-bold text-white">
           {badge}
         </span>
       ) : null}
@@ -1385,7 +1386,7 @@ function FilterSelect({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-[12px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -1451,7 +1452,7 @@ function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live"
       : { dot: "bg-muted-foreground", border: "border-border", bg: "bg-muted/40", text: "text-muted-foreground", label: "Offline", pulse: false };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border ${conf.border} ${conf.bg} ${compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-0.5 text-[11px]"} font-medium ${conf.text}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border ${conf.border} ${conf.bg} ${compact ? "px-2 py-0.5 text-[12px]" : "px-2.5 py-0.5 text-[12px]"} font-medium ${conf.text}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.pulse ? "animate-pulse" : ""}`} />
       {conf.label}
@@ -1469,7 +1470,7 @@ function FilterInput({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-[12px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <input
         type={type}
         value={value}

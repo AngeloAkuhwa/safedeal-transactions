@@ -18,7 +18,7 @@ export function FlaggedMobileTopBar({ onOpenMenu, activeFlags }: Props) {
               <Flag className="h-4 w-4 text-red-400" /> Flagged Users
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="flex items-center gap-1 text-[10px] text-red-400 font-bold uppercase">
+              <span className="flex items-center gap-1 text-[12px] text-red-400 font-bold uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 {activeFlags.toLocaleString()} Active
               </span>

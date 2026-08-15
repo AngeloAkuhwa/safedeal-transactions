@@ -98,7 +98,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2 text-left font-medium">Template</th>
                   <th className="px-4 py-2 text-left font-medium">Modules</th>
                   <th className="px-4 py-2 text-right font-medium">Perms</th>
@@ -119,10 +119,10 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                         <div className="flex items-center gap-2 text-sm font-medium">
                           {t.is_system && <Lock className="h-3 w-3 text-primary" />}{t.name}
                         </div>
-                        {t.description && <div className="line-clamp-1 text-[11px] text-muted-foreground">{t.description}</div>}
-                        {t.role_source && <div className="text-[10px] text-muted-foreground">Source: {ROLE_LABEL[t.role_source]}</div>}
+                        {t.description && <div className="line-clamp-1 text-[12px] text-muted-foreground">{t.description}</div>}
+                        {t.role_source && <div className="text-[12px] text-muted-foreground">Source: {ROLE_LABEL[t.role_source]}</div>}
                       </td>
-                      <td className="px-4 py-3 align-top text-[11px] text-muted-foreground">
+                      <td className="px-4 py-3 align-top text-[12px] text-muted-foreground">
                         {mods.slice(0, 3).join(", ")}{mods.length > 3 ? ` +${mods.length - 3}` : ""}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs">{t.permission_keys.length}</td>
@@ -130,10 +130,10 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                         {priv > 0 ? <span className="text-amber-300">{priv}</span> : <span className="text-muted-foreground">0</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${t.status === "active" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-border bg-muted/40 text-muted-foreground"}`}>{t.status}</span>
-                        {t.is_system && <span className="ml-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase text-primary">System</span>}
+                        <span className={`rounded-full border px-2 py-0.5 text-[12px] uppercase ${t.status === "active" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-border bg-muted/40 text-muted-foreground"}`}>{t.status}</span>
+                        {t.is_system && <span className="ml-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[12px] uppercase text-primary">System</span>}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-muted-foreground">
+                      <td className="px-4 py-3 text-[12px] text-muted-foreground">
                         {(() => {
                           const roles = usage.get(t.id) ?? [];
                           if (!roles.length) return <span className="italic text-muted-foreground/60">None</span>;
@@ -145,7 +145,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-muted-foreground">{new Date(t.updated_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-[12px] text-muted-foreground">{new Date(t.updated_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-1">
                           <IconBtn onClick={() => setView(t)} icon={<Eye className="h-3 w-3" />} label="View" />
@@ -175,7 +175,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
 
 function IconBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted min-h-11">
+    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] hover:bg-muted min-h-11">
       {icon}{label}
     </button>
   );
@@ -198,13 +198,13 @@ function ViewTemplateSheet({ template, onOpenChange }: { template: PermissionTem
         {template && (
           <div className="mt-3 space-y-4 text-sm">
             {template.description && <p className="text-muted-foreground">{template.description}</p>}
-            <div className="text-[11px] text-muted-foreground">{template.permission_keys.length} permissions across {grouped.length} modules</div>
+            <div className="text-[12px] text-muted-foreground">{template.permission_keys.length} permissions across {grouped.length} modules</div>
             {grouped.map((g) => (
               <div key={g.module}>
                 <div className="mb-1 text-xs font-semibold">{g.module}</div>
                 <ul className="grid gap-1 sm:grid-cols-2">
                   {g.keys.map((k) => (
-                    <li key={k} className="flex items-center gap-2 rounded-md border border-border/50 bg-background/40 px-2 py-1 font-mono text-[10px]">
+                    <li key={k} className="flex items-center gap-2 rounded-md border border-border/50 bg-background/40 px-2 py-1 font-mono text-[12px]">
                       {isPrivilegedPermission(k) && <ShieldAlert className="h-3 w-3 text-amber-300" />}{k}
                     </li>
                   ))}
@@ -252,7 +252,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
         <DialogHeader><DialogTitle>Apply "{template?.name}" to role</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Target role</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Target role</span>
             <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-11 w-full rounded-md border border-border bg-background px-2">
               {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
             </select>
@@ -273,15 +273,15 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
               </div>
               {diff.dependencies_added.length > 0 && (
                 <details className="rounded-md border border-border/40 bg-background/40 p-2">
-                  <summary className="cursor-pointer text-[10px] uppercase text-muted-foreground">Show dependencies</summary>
+                  <summary className="cursor-pointer text-[12px] uppercase text-muted-foreground min-h-11 inline-flex items-center">Show dependencies</summary>
                   <ul className="mt-1 space-y-1">
                     {diff.dependencies_added.slice(0, 10).map((d) => (
-                      <li key={d.key} className="font-mono text-[10px]">
+                      <li key={d.key} className="font-mono text-[12px]">
                         <span className="text-emerald-400">+ {d.key}</span>
                         <span className="text-muted-foreground"> · required by {d.from.join(", ")}</span>
                       </li>
                     ))}
-                    {diff.dependencies_added.length > 10 && <li className="text-[10px] text-muted-foreground">…{diff.dependencies_added.length - 10} more</li>}
+                    {diff.dependencies_added.length > 10 && <li className="text-[12px] text-muted-foreground">…{diff.dependencies_added.length - 10} more</li>}
                   </ul>
                 </details>
               )}
@@ -295,10 +295,10 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
             </div>
           )}
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Reason</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Reason</span>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Why this change?" />
           </label>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             This will stage a change set. Nothing is applied to {String(env)} until it is reviewed and approved.
           </p>
         </div>
@@ -344,14 +344,14 @@ function CloneTemplateDialog({ request, onOpenChange, onDone }: {
         <div className="space-y-3 text-sm">
           {isNew && (
             <label className="block">
-              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Source role</span>
+              <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Source role</span>
               <select value={role} onChange={(e) => setRole(e.target.value as InternalRoleKey)} className="h-11 w-full rounded-md border border-border bg-background px-2">
                 {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
               </select>
             </label>
           )}
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Template name</span>
+            <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Template name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-md border border-border bg-background px-2" placeholder="Template name" />
           </label>
         </div>

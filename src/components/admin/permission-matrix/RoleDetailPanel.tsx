@@ -23,7 +23,7 @@ import { PermissionToggleRow } from "./PermissionToggleRow";
 function KpiCard({ icon: Icon, label, value, tone = "text-foreground" }: any) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/60 p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-[11px] uppercase text-muted-foreground">
+      <div className="mb-1 flex items-center gap-1.5 text-[12px] uppercase text-muted-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </div>
       <div className={`text-xl font-semibold ${tone}`}>{value}</div>
@@ -45,7 +45,7 @@ function Section({ id, title, count, defaultOpen = true, children }: {
         <ChevronRight className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} />
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
         {count !== undefined && (
-          <span className="ml-auto rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+          <span className="ml-auto rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[12px] text-muted-foreground">
             {count}
           </span>
         )}
@@ -143,7 +143,7 @@ export function RoleDetailPanel({
       <div className="rounded-2xl border border-border/60 bg-card/60 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</label>
+            <label className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">Role</label>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <select
                 value={role}
@@ -159,11 +159,11 @@ export function RoleDetailPanel({
                 ))}
               </select>
               {protectedRole && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[12px] font-semibold text-amber-300">
                   <ShieldAlert className="h-3 w-3" /> Protected role
                 </span>
               )}
-              <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[12px] text-muted-foreground">
                 {derivedLevel}
               </span>
             </div>
@@ -263,7 +263,7 @@ export function RoleDetailPanel({
                 <li key={k} className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
                   <span className="truncate">{label}</span>
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">{k.split(".")[0]}</span>
+                  <span className="ml-auto font-mono text-[12px] text-muted-foreground">{k.split(".")[0]}</span>
                   {isPrivilegedPermission(k) && <PermissionRiskBadge privileged size="xs" />}
                 </li>
               );
@@ -288,7 +288,7 @@ export function RoleDetailPanel({
               <li key={k} className="flex items-center gap-2 rounded-md border border-border bg-background/30 px-2 py-1.5 text-xs text-muted-foreground">
                 <Minus className="h-3.5 w-3.5" />
                 <span className="truncate">{k.split(".")[1]}</span>
-                <span className="ml-auto font-mono text-[10px]">{k.split(".")[0]}</span>
+                <span className="ml-auto font-mono text-[12px]">{k.split(".")[0]}</span>
               </li>
             ))}
           </ul>
@@ -332,14 +332,14 @@ export function RoleDetailPanel({
                   <div className="truncate font-medium">{u.name}</div>
                   <div className="truncate text-xs text-muted-foreground">{u.email}</div>
                 </div>
-                {u.is_primary && <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">Primary</span>}
+                {u.is_primary && <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[12px] text-primary">Primary</span>}
                 {u.status && u.status !== "active" && (
-                  <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">{u.status}</span>
+                  <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[12px] text-muted-foreground">{u.status}</span>
                 )}
                 <button
                   type="button"
                   onClick={() => navigate(`/admin/users/${u.id}/profile`)}
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs text-primary hover:underline min-h-11 inline-flex items-center"
                 >
                   Open
                 </button>
@@ -355,7 +355,7 @@ export function RoleDetailPanel({
         <ul className="space-y-2">
           {(pendingQuery.data ?? []).map((r) => (
             <li key={r.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                 <span>{new Date(r.created_at).toLocaleString()}</span>
                 <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Pending</span>
               </div>
@@ -376,7 +376,7 @@ export function RoleDetailPanel({
         <ul className="space-y-2">
           {(historyQuery.data ?? []).map((h) => (
             <li key={h.id} className="rounded-md border border-border/60 bg-background/40 p-3 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                 <span>{new Date(h.created_at).toLocaleString()}</span>
                 <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5">{h.action_type}</span>
               </div>

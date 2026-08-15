@@ -179,13 +179,13 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
             <div className="min-w-0 space-y-5">
               {/* Current */}
               <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-2">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Current role</div>
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Current role</div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">{ROLE_LABEL[user.primary_role]}</span>
                   {user.roles.filter((r) => r !== user.primary_role).map((r) => (
-                    <Badge key={r} variant="outline" className="text-[11px]">{ROLE_LABEL[r]}</Badge>
+                    <Badge key={r} variant="outline" className="text-[12px]">{ROLE_LABEL[r]}</Badge>
                   ))}
-                  <Badge variant="outline" className={cn("ml-auto text-[11px]", LEVEL_BADGE[user.access_level])}>
+                  <Badge variant="outline" className={cn("ml-auto text-[12px]", LEVEL_BADGE[user.access_level])}>
                     {ACCESS_LABEL[user.access_level]}
                   </Badge>
                 </div>
@@ -194,9 +194,9 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
               {/* New roles */}
               <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">New role</div>
+                  <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">New role</div>
                   {diff && (
-                    <div className="flex items-center gap-1.5 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-[12px]">
                       <Badge variant="outline" className={LEVEL_BADGE[user.access_level]}>{ACCESS_LABEL[user.access_level]}</Badge>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <Badge variant="outline" className={LEVEL_BADGE[diff.newAccessLevel]}>{ACCESS_LABEL[diff.newAccessLevel]}</Badge>
@@ -212,7 +212,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
 
               {/* Dates */}
               <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Effective window</div>
+                <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">Effective window</div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label>Effective date<span className="text-rose-400"> *</span></Label>
@@ -222,12 +222,12 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                     <Label>Expiry (optional)</Label>
                     <DatePickerField value={expires} onChange={setExpires} min={effective ?? today} placeholder="No expiry" />
                     {expires && effective && expires <= effective && (
-                      <div className="text-[11px] text-rose-400">Expiry must be after the effective date.</div>
+                      <div className="text-[12px] text-rose-400">Expiry must be after the effective date.</div>
                     )}
                   </div>
                 </div>
                 {expires && (
-                  <div className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[11px] text-sky-200">
+                  <div className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[12px] text-sky-200">
                     An expiry auto-reverts this role change on the selected date.
                   </div>
                 )}
@@ -242,7 +242,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Recorded on the audit trail and access change request (min 12 characters)."
                 />
-                <div className="text-[11px] text-muted-foreground">{reason.trim().length}/12 minimum</div>
+                <div className="text-[12px] text-muted-foreground">{reason.trim().length}/12 minimum</div>
               </section>
 
               {!hasRoleChange && (
@@ -253,15 +253,15 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
 
               {hasImpact && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-amber-300">
+                  <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     This will affect {impact?.open_items ?? 0} open item{(impact?.open_items ?? 0) === 1 ? "" : "s"}
                   </div>
-                  <div className="text-[11px] text-foreground/80">
+                  <div className="text-[12px] text-foreground/80">
                     Removing these permissions may prevent this user from finishing work already assigned to them
                     ({(impact?.affected_modules ?? []).join(", ") || "open tasks in affected modules"}). Consider reassigning first.
                   </div>
-                  <label className="flex items-start gap-2 text-[11px] text-foreground/90">
+                  <label className="flex items-start gap-2 text-[12px] text-foreground/90">
                     <Checkbox checked={ackImpact} onCheckedChange={(v) => setAckImpact(!!v)} className="mt-0.5" />
                     <span>I understand this impacts open work and want to proceed.</span>
                   </label>
@@ -275,7 +275,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold text-foreground">Permission difference</div>
                   {requiresApproval && (
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-[10px]">
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-[12px]">
                       Approval required
                     </Badge>
                   )}
@@ -306,18 +306,18 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                     <div className="space-y-1">
                       <SectionCap tone="rose" icon={<EyeOff className="h-3.5 w-3.5" />}>Modules lost</SectionCap>
                       {diff.unavailableModules.length === 0
-                        ? <div className="pl-5 text-[11px] text-muted-foreground">None</div>
+                        ? <div className="pl-5 text-[12px] text-muted-foreground">None</div>
                         : (
                           <div className="flex flex-wrap gap-1.5 pl-5">
                             {diff.unavailableModules.map((m) => (
-                              <span key={m.key} className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[11px] text-rose-200">
+                              <span key={m.key} className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[12px] text-rose-200">
                                 {m.label}
                               </span>
                             ))}
                           </div>
                         )}
                     </div>
-                    <div className="flex items-center gap-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 border-t border-border/60 pt-3 text-[12px] text-muted-foreground">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/70" />
                       All changes are logged to the audit trail.
                     </div>
@@ -331,7 +331,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
         {/* Sticky footer */}
         <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-[11px] text-muted-foreground">
+            <div className="text-[12px] text-muted-foreground">
               {requiresApproval ? (
                 <span className="inline-flex items-center gap-1.5 text-amber-300">
                   <AlertTriangle className="h-3.5 w-3.5" />
@@ -362,7 +362,7 @@ function SectionCap({ children, icon, tone }: { children: React.ReactNode; icon:
     sky:     "text-sky-300",
   }[tone];
   return (
-    <div className={cn("flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]", toneClass)}>
+    <div className={cn("flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.14em]", toneClass)}>
       {icon}
       {children}
     </div>
@@ -377,13 +377,13 @@ function DiffBlock({ icon, tone, title, items }: { icon: React.ReactNode; tone: 
     <div className="space-y-1">
       <SectionCap tone={tone} icon={icon}>{title} ({items.length})</SectionCap>
       {items.length === 0
-        ? <div className="pl-5 text-[11px] text-muted-foreground">None</div>
+        ? <div className="pl-5 text-[12px] text-muted-foreground">None</div>
         : (
           <div className="space-y-0.5 pl-5">
             {shown.map((k) => (
-              <div key={k} className="font-mono text-[11px] text-foreground/80">{k}</div>
+              <div key={k} className="font-mono text-[12px] text-foreground/80">{k}</div>
             ))}
-            {more > 0 && <div className="text-[11px] text-muted-foreground">+{more} more</div>}
+            {more > 0 && <div className="text-[12px] text-muted-foreground">+{more} more</div>}
           </div>
         )}
     </div>

@@ -26,7 +26,7 @@ export function AssignmentControlPanel(props: {
           <h2 className="text-base font-semibold text-foreground">Assignment Control Panel</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Senior admin workforce control · Direct task distribution</p>
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[12px] font-medium text-amber-300">
           <Lock className="h-3 w-3" /> Senior Admin Only
         </div>
       </div>

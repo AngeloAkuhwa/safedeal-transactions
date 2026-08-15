@@ -11,7 +11,7 @@ export function UserAvatar({
   ringClass?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const sz = size === "sm" ? "w-6 h-6 text-[10px]" : size === "lg" ? "w-12 h-12 text-sm" : "w-10 h-10 text-xs";
+  const sz = size === "sm" ? "w-6 h-6 text-[12px]" : size === "lg" ? "w-12 h-12 text-sm" : "w-10 h-10 text-xs";
   if (avatarUrl) {
     return (
       <img

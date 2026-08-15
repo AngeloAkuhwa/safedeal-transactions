@@ -27,6 +27,7 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { formatMoney } from "@/lib/format";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 declare global {
   interface Window {
@@ -695,18 +696,18 @@ export default function BuyerPaymentSummary() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm text-muted-foreground">{FEE_NAME}</span>
                     {isFeeCapped && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
+                      <Badge variant="outline" className="text-[12px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
                     )}
                   </div>
                   <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground -mt-1 pl-0.5">{FEE_CAPTION}</p>
                 <Collapsible>
-                  <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors pl-0.5">
+                  <CollapsibleTrigger className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors pl-0.5">
                     <ChevronDown className="h-3 w-3" />
                     How this fee is calculated
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="text-[11px] text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
+                  <CollapsibleContent className="text-[12px] text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
                     {/* Narrated from the buyer's own snapshot — never from a
                         live config rate that may differ from what was charged. */}
                     {describeChargedFee({
@@ -764,7 +765,7 @@ export default function BuyerPaymentSummary() {
 
               <div className="space-y-4">
                 {/* Card method */}
-                <div
+                <div role="button" tabIndex={0} onKeyDown={keyActivate}
                   onClick={() => setSelectedMethod("card")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
                     selectedMethod === "card"
@@ -806,7 +807,7 @@ export default function BuyerPaymentSummary() {
                 </div>
 
                 {/* Bank transfer method */}
-                <div
+                <div role="button" tabIndex={0} onKeyDown={keyActivate}
                   onClick={() => setSelectedMethod("bank")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
                     selectedMethod === "bank"
@@ -1038,7 +1039,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Processing Overlay */}
       {isProcessing && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card rounded-3xl shadow-2xl p-12 max-w-md w-full text-center animate-in slide-in-from-bottom-4">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-foreground mb-3">Processing Payment</h2>
@@ -1055,7 +1056,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Success Modal */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card rounded-3xl shadow-2xl p-8 sm:p-12 max-w-lg w-full animate-in slide-in-from-bottom-4">
             <div className="text-center">
               <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1118,7 +1119,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Failed Full-Page Screen */}
       {showFailed && (
-        <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-modal bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-sm mx-auto my-8">
             {/* Card */}
             <div className="bg-card rounded-2xl shadow-xl border overflow-hidden animate-in slide-in-from-bottom-4">
@@ -1133,7 +1134,7 @@ export default function BuyerPaymentSummary() {
                       <XCircle className="h-7 w-7 text-destructive" />
                     </div>
                     <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
-                      <span className="text-destructive-foreground text-[10px] font-bold">!</span>
+                      <span className="text-destructive-foreground text-[12px] font-bold">!</span>
                     </div>
                   </div>
                 </div>
@@ -1155,19 +1156,19 @@ export default function BuyerPaymentSummary() {
                 {/* Money Status Summary */}
                 <div className="rounded-xl overflow-hidden border border-amber-200 dark:border-amber-800 mb-4">
                   <div className="bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
+                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-amber-200 dark:divide-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
                     <div className="flex flex-col items-center gap-1.5 py-3 px-2">
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30">
+                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-warning/15 text-warning border border-warning/30">
                         <Clock className="h-2.5 w-2.5" />
                         Awaiting Payment
                       </span>
                     </div>
                     <div className="flex flex-col items-center gap-1.5 py-3 px-2">
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Money Status</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
+                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Money Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
                         <XCircle className="h-2.5 w-2.5" />
                         Payment Failed
                       </span>
@@ -1178,16 +1179,16 @@ export default function BuyerPaymentSummary() {
                 {/* Transaction Info */}
                 <div className="rounded-xl overflow-hidden border border-border mb-4">
                   <div className="bg-muted/50 px-3 py-2">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Transaction Info</p>
+                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Transaction Info</p>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border bg-muted/30">
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
+                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
                       <span className="text-sm font-bold text-foreground">{formatMoney(totalAmount, currencyCode)}</span>
                     </div>
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
-                      <span className="text-[11px] font-mono font-semibold text-foreground bg-muted px-2 py-0.5 rounded">#{data.transaction.transaction_code}</span>
+                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
+                      <span className="text-[12px] font-mono font-semibold text-foreground bg-muted px-2 py-0.5 rounded">#{data.transaction.transaction_code}</span>
                     </div>
                   </div>
                 </div>
@@ -1269,8 +1270,8 @@ export default function BuyerPaymentSummary() {
                     <div className="flex items-start gap-2">
                       <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                        <p className="text-[12px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
+                        <p className="text-[12px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
                       </div>
                     </div>
                   </div>
@@ -1278,7 +1279,7 @@ export default function BuyerPaymentSummary() {
 
                 {/* Help footer */}
                 <div className="text-center pt-2 border-t">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[12px] text-muted-foreground">
                     Need help?{" "}
                     <button
                       onClick={() =>
@@ -1286,7 +1287,7 @@ export default function BuyerPaymentSummary() {
                           `/contact?topic=payment&ref=${encodeURIComponent(data.transaction.transaction_code)}`,
                         )
                       }
-                      className="text-primary font-semibold hover:text-primary/80"
+                      className="text-primary font-semibold hover:text-primary/80 min-h-11 inline-flex items-center"
                     >
                       Contact support
                     </button>

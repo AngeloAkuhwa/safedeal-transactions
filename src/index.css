@@ -236,9 +236,9 @@
   .sd-metric      { min-height: 96px; }
   .sd-action      { min-height: 110px; }
   .sd-alert       { min-height: 64px; }
-  .sd-eyebrow     { @apply text-[10px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight; }
+  .sd-eyebrow     { @apply text-[12px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight; }
   .sd-kpi-value   { @apply text-base sm:text-lg lg:text-xl font-bold text-foreground leading-tight tracking-tight; }
-  .sd-kpi-helper  { @apply text-[10px] text-muted-foreground leading-snug; }
+  .sd-kpi-helper  { @apply text-[12px] text-muted-foreground leading-snug; }
   .sd-row-hover   { @apply hover:bg-muted/40 transition-colors; }
 
   .sd-fade-in-stagger {

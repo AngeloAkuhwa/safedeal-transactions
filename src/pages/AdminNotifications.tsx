@@ -178,8 +178,8 @@ function KpiCards({ kpis }: { kpis: any }) {
                 <Icon className="h-4 w-4" />
               </div>
               <div className="text-right">
-                <div className={`text-[10px] font-semibold ${c.trendColor}`}>{c.trend}</div>
-                <div className="text-muted-foreground text-[10px]">{c.trendSub}</div>
+                <div className={`text-[12px] font-semibold ${c.trendColor}`}>{c.trend}</div>
+                <div className="text-muted-foreground text-[12px]">{c.trendSub}</div>
               </div>
             </div>
             <h3 className="sd-eyebrow mb-1">{c.label}</h3>
@@ -300,7 +300,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
             <AlertTriangle className="h-4 w-4 text-red-400" />
             Failed Deliveries & Retry Queue
             {rows.length > 0 && (
-              <span className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[10px] text-red-400">{rows.length}</span>
+              <span className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[12px] text-red-400">{rows.length}</span>
             )}
           </h3>
           <p className="text-muted-foreground text-xs mt-0.5">Notifications requiring attention or manual retry</p>
@@ -329,13 +329,13 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
           <table className="w-full sd-stack">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+                <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -359,7 +359,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                             {r.user ? (
                               <button
                                 onClick={() => navigate(`/admin/users/${r.user!.id}`)}
-                                className="text-purple-400 hover:text-purple-300 font-mono"
+                                className="text-purple-400 hover:text-purple-300 font-mono min-h-11 inline-flex items-center"
                               >
                                 {shortUsrId(r.user.public_user_id)}
                               </button>
@@ -397,7 +397,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/users/${r.user!.id}`)}
                             title="View User Profile"
-                            className="px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className="px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-[12px] font-semibold transition-all flex items-center gap-1 min-h-11"
                           >
                             <User className="h-3 w-3" /> User
                           </button>
@@ -406,7 +406,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}
                             title={`View Dispute ${shortDisId(r.dispute_id)}`}
-                            className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-[12px] font-semibold transition-all flex items-center gap-1 min-h-11"
                           >
                             <Scale className="h-3 w-3" /> {shortDisId(r.dispute_id)}
                           </button>
@@ -415,7 +415,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}
                             title={`View Transaction ${shortTxnCode(r.transaction)}`}
-                            className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-[12px] font-semibold transition-all flex items-center gap-1 min-h-11"
                           >
                             <Receipt className="h-3 w-3" /> {shortTxnCode(r.transaction)}
                           </button>
@@ -424,14 +424,14 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           onClick={() => onRetry(r.delivery_id)}
                           disabled={retrying === r.delivery_id}
                           title="Retry Delivery"
-                          className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed min-h-11"
+                          className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[12px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed min-h-11"
                         >
                           <RotateCw className={`h-3 w-3 ${retrying === r.delivery_id ? "animate-spin" : ""}`} /> Retry
                         </button>
                         <button
                           onClick={() => onDetails(r)}
                           title="View Details"
-                          className="px-2 py-1 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-[11px] font-semibold transition-all flex items-center gap-1 min-h-11"
+                          className="px-2 py-1 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-[12px] font-semibold transition-all flex items-center gap-1 min-h-11"
                         >
                           <Info className="h-3 w-3" /> Details
                         </button>
@@ -477,12 +477,12 @@ function DeliveryPerf({ perf }: { perf: any[] }) {
                     </div>
                     <div>
                       <h4 className="text-foreground text-xs font-semibold">{m.name}</h4>
-                      <p className="text-muted-foreground text-[11px]">{m.sub}</p>
+                      <p className="text-muted-foreground text-[12px]">{m.sub}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`text-lg font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
-                    <div className={`text-[11px] font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
+                    <div className={`text-[12px] font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
                   </div>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5 mt-2">
@@ -532,7 +532,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
           <div>
             <h4 className="text-amber-400 font-semibold text-xs mb-0.5">Broadcast Caution</h4>
-            <p className="text-amber-300/80 text-[11px] leading-relaxed">
+            <p className="text-amber-300/80 text-[12px] leading-relaxed">
               Messages will be sent to all selected users immediately. Review content carefully before sending. This action cannot be undone.
             </p>
           </div>
@@ -550,7 +550,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             placeholder="e.g. Scheduled Maintenance Notice"
             className="h-11 text-xs"
           />
-          <p className="text-muted-foreground/70 text-[10px] mt-1">Keep it clear and actionable (max 60 characters)</p>
+          <p className="text-muted-foreground/70 text-[12px] mt-1">Keep it clear and actionable (max 60 characters)</p>
         </div>
 
         <div>
@@ -588,8 +588,8 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
               <SelectItem value="verified">Verified Users (identity approved)</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground/70 text-[10px] mt-1">Respects opt-out preferences · Audit logged</p>
-          <p className="text-emerald-400/90 text-[10px] mt-1 flex items-center gap-1.5">
+          <p className="text-muted-foreground/70 text-[12px] mt-1">Respects opt-out preferences · Audit logged</p>
+          <p className="text-emerald-400/90 text-[12px] mt-1 flex items-center gap-1.5">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             ≈ {onlineCount} recipient{onlineCount === 1 ? "" : "s"} online right now
           </p>
@@ -599,7 +599,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Delivery Channels</Label>
           <div className="space-y-1.5">
             {(["in_app", "email", "sms"] as const).map((c) => (
-              <label key={c} className="flex items-center gap-2 cursor-pointer">
+              <label key={c} className="flex items-center gap-2 cursor-pointer min-h-11">
                 <Checkbox checked={channels.includes(c)} onCheckedChange={() => toggleCh(c)} />
                 <span className="text-foreground text-xs">
                   {c === "in_app" ? "In-App Notification" : channelLabel(c)}
@@ -646,12 +646,12 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         <table className="w-full sd-stack">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-3 py-2 text-left text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -660,7 +660,7 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
                   {formatRelative(r.last_seen_at ?? r.created_at)}
                   {(r.occurrence_count ?? 1) > 1 && (
-                    <div className="text-[10px] text-muted-foreground/80">
+                    <div className="text-[12px] text-muted-foreground/80">
                       first seen {formatRelative(r.first_seen_at ?? r.created_at)}
                     </div>
                   )}
@@ -686,10 +686,10 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                 <td className="px-3 py-2 text-xs text-foreground max-w-xs truncate">
                   {r.title}
                   {(r.occurrence_count ?? 1) > 1 && (
-                    <span className="ml-1.5 text-[10px] text-muted-foreground">×{r.occurrence_count} occurrences</span>
+                    <span className="ml-1.5 text-[12px] text-muted-foreground">×{r.occurrence_count} occurrences</span>
                   )}
                   {r.resolved_at && (
-                    <span className="ml-1.5 text-[10px] text-emerald-400">resolved</span>
+                    <span className="ml-1.5 text-[12px] text-emerald-400">resolved</span>
                   )}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
@@ -841,7 +841,7 @@ export default function AdminNotifications() {
         {data && (
           <>
             <KpiCards kpis={data.kpis} />
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-300 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-300 flex flex-wrap items-center gap-x-4 gap-y-1">
               <span><strong>Email sender:</strong> onboarding@resend.dev (Resend restricts this to the account owner until a custom domain is verified)</span>
               <span><strong>SMS:</strong> No provider configured — SMS rows are queued and not sent.</span>
             </div>

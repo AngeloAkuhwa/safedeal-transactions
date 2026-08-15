@@ -91,13 +91,13 @@ export function AutoAssignPreviewDrawer({
                   <Checkbox checked={!off} onCheckedChange={() => toggle(p.task_id)} />
                   <div>
                     <div className="font-medium text-foreground">#{p.task_code}</div>
-                    <div className="text-[11px] text-muted-foreground">{humanize(p.reason)}</div>
+                    <div className="text-[12px] text-muted-foreground">{humanize(p.reason)}</div>
                   </div>
                 </div>
                 <div className="text-right text-xs">
                   <div className="text-muted-foreground">→</div>
                   <div className="font-medium text-foreground">{agent ? shortNameOf(agent) : p.agent_id.slice(0,8)}</div>
-                  {agent && <div className="text-[10px] text-muted-foreground">{agent.active}/{agent.max_active} active</div>}
+                  {agent && <div className="text-[12px] text-muted-foreground">{agent.active}/{agent.max_active} active</div>}
                 </div>
               </label>
             );
@@ -171,7 +171,7 @@ export function AutoAssignPreviewDrawer({
 function Kpi({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`mt-0.5 text-xl font-bold tabular-nums ${tone}`}>{value}</div>
     </div>
   );
@@ -179,10 +179,10 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone: strin
 
 function SectionHeader({ label, count, icon }: { label: string; count: number; icon?: React.ReactNode }) {
   return (
-    <div className="mt-5 mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="mt-5 mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
       {icon}
       {label}
-      <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] tabular-nums">{count}</span>
+      <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[12px] tabular-nums">{count}</span>
     </div>
   );
 }

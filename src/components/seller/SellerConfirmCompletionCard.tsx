@@ -88,7 +88,7 @@ export function SellerConfirmCompletionCard({
             <h3 className="text-base sm:text-lg font-bold text-foreground">
               Confirm this deal is complete on your end
             </h3>
-            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border border-primary/30 bg-primary/15 text-primary">
+            <span className="text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border border-primary/30 bg-primary/15 text-primary">
               Action required
             </span>
           </div>
@@ -105,7 +105,7 @@ export function SellerConfirmCompletionCard({
             />
           </div>
 
-          <label className="flex items-start gap-3 mt-4 cursor-pointer select-none">
+          <label className="flex items-start gap-3 mt-4 cursor-pointer select-none min-h-11">
             <Checkbox
               checked={agreed}
               onCheckedChange={(v) => setAgreed(!!v)}

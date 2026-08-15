@@ -261,7 +261,7 @@ export default function AdminPayouts() {
           >
             <Play className="h-4 w-4" /> Process Batch
             {eligibleSelectedCount > 0 && (
-              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{eligibleSelectedCount}</span>
+              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[12px]">{eligibleSelectedCount}</span>
             )}
           </Button>
         </div>
@@ -400,7 +400,7 @@ export default function AdminPayouts() {
             <button
               type="button"
               onClick={() => { loadList(); loadSummary(); }}
-              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white"
+              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white min-h-11"
             >
               Refresh
             </button>

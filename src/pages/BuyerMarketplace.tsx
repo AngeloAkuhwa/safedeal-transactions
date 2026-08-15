@@ -133,7 +133,7 @@ export default function BuyerMarketplace() {
             </div>
             <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1">
               <Shield className="h-3.5 w-3.5 text-success" />
-              <span className="text-[11px] font-medium text-success">Checkout records payment and release terms</span>
+              <span className="text-[12px] font-medium text-success">Checkout records payment and release terms</span>
             </div>
           </div>
 
@@ -317,12 +317,12 @@ export default function BuyerMarketplace() {
                 <div className="text-center">
                   <Lock className="mx-auto h-4 w-4 text-primary mb-1" />
                   <p className="text-xs font-semibold text-foreground">Item terms</p>
-                  <p className="text-[10px] text-muted-foreground">Recorded</p>
+                  <p className="text-[12px] text-muted-foreground">Recorded</p>
                 </div>
                 <div className="text-center">
                   <Clock className="mx-auto h-4 w-4 text-primary mb-1" />
                   <p className="text-xs font-semibold text-foreground">Delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Selected</p>
+                  <p className="text-[12px] text-muted-foreground">Selected</p>
                 </div>
               </div>
             </div>

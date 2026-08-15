@@ -10,6 +10,7 @@ import {
 import { ArrowLeftRight, Shield, Search, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
+import { keyActivate } from "@/lib/a11y";
 
 interface SellerRecentActivityProps {
   activity: SellerActivity[];
@@ -102,12 +103,12 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Transaction</TableHead>
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Buyer</TableHead>
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Status</TableHead>
-                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Transaction</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Buyer</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -188,7 +189,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             const statusInfo = statusLabelFor(row.transaction_status);
             const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={keyActivate}
                 key={row.transaction_id}
                 className="px-4 py-3 sd-row-hover cursor-pointer"
                 onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
@@ -198,12 +199,12 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                     <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="font-mono text-xs font-medium truncate">{row.transaction_code}</span>
                   </div>
-                  <Badge variant={statusInfo.variant} className="text-[10px]">{statusInfo.label}</Badge>
+                  <Badge variant={statusInfo.variant} className="text-[12px]">{statusInfo.label}</Badge>
                 </div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{row.buyer_name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{row.item_title}</p>
+                    <p className="text-[12px] text-muted-foreground truncate">{row.item_title}</p>
                   </div>
                   <p className="text-sm font-bold text-foreground tabular-nums shrink-0">
                     {formatMoney(row.amount, row.currency_code)}

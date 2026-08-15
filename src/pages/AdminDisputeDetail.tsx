@@ -119,7 +119,7 @@ function Avatar({ name, src, size = 40 }: { name?: string | null; src?: string |
 function KV({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-[12px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="text-sm text-foreground mt-1 truncate">{value}</div>
     </div>
   );
@@ -530,7 +530,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <div className="text-xs text-muted-foreground mb-1">Transaction</div>
                   <button
                     onClick={() => navigate(`/admin/transactions/${txId}`)}
-                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all"
+                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all min-h-11"
                   >
                     {txCode}
                   </button>
@@ -1047,7 +1047,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
             {isBuyer ? "Buyer Information" : "Seller Information"}
           </h2>
           <span className={cn(
-            "inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider",
+            "inline-flex items-center rounded px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wider",
             roleChipCls,
           )}>
             {isBuyer ? "Buyer" : "Seller"}
@@ -1135,7 +1135,7 @@ function Tag({ children, tone }: { children: React.ReactNode; tone: "emerald" | 
     orange: "bg-orange-500/15 text-orange-300 border-orange-500/30",
     slate: "bg-slate-500/15 text-slate-300 border-slate-500/30",
   };
-  return <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold", map[tone])}>{children}</span>;
+  return <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-[12px] font-semibold", map[tone])}>{children}</span>;
 }
 
 // ---------- financial helpers ----------
@@ -1266,7 +1266,7 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
             key={ev.id}
             type="button"
             onClick={() => onPreview(ev)}
-            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0"
+            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0 min-h-11"
           >
             <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
               {isImage && ev.secureUrl ? (
@@ -1863,7 +1863,7 @@ function MessageItem({ m }: { m: CommMessage }) {
           {m.avatarUrl ? (
             <img src={m.avatarUrl} alt="" className="w-9 h-9 rounded-full ring-2 ring-slate-700 object-cover" />
           ) : (
-            <div className="w-9 h-9 rounded-full ring-2 ring-slate-700 bg-slate-700 flex items-center justify-center text-[11px] font-semibold text-slate-200">
+            <div className="w-9 h-9 rounded-full ring-2 ring-slate-700 bg-slate-700 flex items-center justify-center text-[12px] font-semibold text-slate-200">
               {initials(m.senderName)}
             </div>
           )}
@@ -1933,18 +1933,18 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
         return (
           <div key={n.id} className="rounded-lg border border-border bg-background p-4">
             <div className="flex items-start gap-3">
-              <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-[11px] font-semibold">
+              <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-[12px] font-semibold">
                 {initials(author)}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-foreground">{author}</div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-[12px] text-muted-foreground">
                   {typeLabel}{typeLabel ? " • " : ""}{fmtDate(n.at)}
                 </div>
               </div>
               {pill && (
                 <span className={cn(
-                  "shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                  "shrink-0 rounded-md px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide",
                   pill.cls,
                 )}>
                   {pill.label}
@@ -2166,7 +2166,7 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
           {r.description && (
             <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
           )}
-          <div className="text-[11px] text-muted-foreground mt-1.5">
+          <div className="text-[12px] text-muted-foreground mt-1.5">
             {fmtDate(r.raw.at)}
             {r.raw.type === "admin_action" && (
               <> · by {r.actor ?? "SafeDeal Admin"}</>
@@ -2270,18 +2270,18 @@ function ResolutionSidebar({
                 Resolved
               </span>
               {resolvedAt && (
-                <span className="text-[11px] text-muted-foreground">{fmtDate(resolvedAt)}</span>
+                <span className="text-[12px] text-muted-foreground">{fmtDate(resolvedAt)}</span>
               )}
             </div>
             {outcomeMeta && (
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Outcome</div>
+                <div className="text-[12px] uppercase tracking-wider text-muted-foreground">Outcome</div>
                 <div className={cn("mt-0.5 text-sm font-semibold", outcomeMeta.tone)}>{outcomeMeta.label}</div>
               </div>
             )}
             {outcome?.summary && (
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Decision summary</div>
+                <div className="text-[12px] uppercase tracking-wider text-muted-foreground">Decision summary</div>
                 <p className="mt-0.5 text-sm text-foreground/90 whitespace-pre-wrap">{outcome.summary}</p>
               </div>
             )}
@@ -2296,7 +2296,7 @@ function ResolutionSidebar({
               </div>
             )}
             <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Next action</div>
+              <div className="text-[12px] uppercase tracking-wider text-muted-foreground">Next action</div>
               <div className="mt-0.5 text-sm text-foreground">{nextActionText}</div>
             </div>
           </div>
@@ -2464,7 +2464,7 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
             {role === "buyer" ? <UserIcon className="h-4 w-4" /> : <Store className="h-4 w-4" />}
           </span>
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{role}</div>
+            <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{role}</div>
             <div className="text-sm font-medium text-foreground truncate">{name}</div>
           </div>
         </div>
@@ -2481,7 +2481,7 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
 function SidebarGroup({ title, children, gapClass = "space-y-1.5" }: { title: string; children: React.ReactNode; gapClass?: string }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 px-1">{title}</div>
+      <div className="text-[12px] uppercase tracking-wider text-muted-foreground mb-2 px-1">{title}</div>
       <div className={gapClass}>{children}</div>
     </div>
   );
@@ -2511,7 +2511,7 @@ function SidebarBtn({
       className={cn(
         base,
         isSolid ? solidCls : outlineCls,
-        (disabled || !onClick) && "opacity-60 cursor-not-allowed",
+        (disabled || !onClick) && "opacity-60 cursor-not-allowed min-h-11 inline-flex items-center",
       )}
     >
       <span className={cn(

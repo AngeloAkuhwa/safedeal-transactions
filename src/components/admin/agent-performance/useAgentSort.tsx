@@ -75,7 +75,7 @@ export function SortableTh({
         type="button"
         onClick={() => onToggle(sortKey)}
         className={cn(
-          "inline-flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-11",
           active && "text-foreground",
         )}
         aria-label={`Sort by ${label}`}

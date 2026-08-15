@@ -114,7 +114,7 @@ export function AgentPerformanceSummary({
   return (
    <TooltipProvider delayDuration={200}>
     <section className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] lg:p-6">
-      <div className="mb-3 text-[11px] text-muted-foreground">
+      <div className="mb-3 text-[12px] text-muted-foreground">
         Range: <span className="text-foreground">{rangeLabel}</span> · Live now:{" "}
         <span className="text-foreground">{summary.live_agents}</span>
       </div>
@@ -130,7 +130,7 @@ export function AgentPerformanceSummary({
             aria-pressed={selected === c.key}
             className={cn(
               INNER_CARD_CLASS,
-              "text-left transition",
+              "text-left transition min-h-11 inline-flex items-center",
               c.accent && "border-l-4 border-l-rose-500",
               c.onClick && "hover:-translate-y-0.5 hover:border-primary/40",
               selected === c.key && "border-primary/60 ring-1 ring-inset ring-primary/40",

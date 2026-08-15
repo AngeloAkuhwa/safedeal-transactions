@@ -11,6 +11,7 @@ import {
   type InternalRoleKey,
 } from "@/services/permission-catalog";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
+import { keyActivate } from "@/lib/a11y";
 
 const RISK_LEVELS: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];
 const STATES: PermissionRowState[] = ["granted", "denied", "override_granted", "override_denied", "pending", "restricted"];
@@ -31,7 +32,7 @@ function Chip({ active, onClick, children }: { active?: boolean; onClick: () => 
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition min-h-11",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition min-h-11",
         active
           ? "border-primary/50 bg-primary/15 text-primary-foreground"
           : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border",
@@ -61,7 +62,7 @@ function MultiPopover<T extends string>({
       >
         {label}
         {selected.length > 0 && (
-          <span className="rounded bg-primary/20 px-1.5 text-[10px] font-semibold text-primary-foreground">
+          <span className="rounded bg-primary/20 px-1.5 text-[12px] font-semibold text-primary-foreground">
             {selected.length}
           </span>
         )}
@@ -69,7 +70,7 @@ function MultiPopover<T extends string>({
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div className="absolute left-0 z-40 mt-1 max-h-72 w-64 overflow-auto rounded-lg border border-border bg-card p-2 shadow-xl">
             <div className="flex flex-col gap-1">
               {values.map((v) => {
@@ -196,14 +197,14 @@ export function RoleMatrixToolbar({
           <button
             type="button"
             onClick={expandAll}
-            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] hover:border-border min-h-11"
+            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] hover:border-border min-h-11"
           >
             Expand all
           </button>
           <button
             type="button"
             onClick={collapseAll}
-            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] hover:border-border min-h-11"
+            className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] hover:border-border min-h-11"
           >
             Collapse all
           </button>

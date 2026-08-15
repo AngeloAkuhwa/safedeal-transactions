@@ -18,6 +18,7 @@ import {
 } from "@/services/seller-notifications.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const SellerNotifications = () => {
   const queryClient = useQueryClient();
@@ -191,8 +192,8 @@ const SellerNotifications = () => {
           />
 
           {isLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="space-y-3 py-4">
+              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
             </div>
           )}
 

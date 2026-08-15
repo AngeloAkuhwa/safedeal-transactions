@@ -59,7 +59,7 @@ export function BuyerDisputeSummaryCards({ summary }: BuyerDisputeSummaryCardsPr
               <div className={`w-8 h-8 ${card.iconBg} rounded-lg flex items-center justify-center`}>
                 <Icon className={`h-4 w-4 ${card.iconColor}`} />
               </div>
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${card.badgeBg}`}>
+              <span className={`text-[12px] font-semibold px-1.5 py-0.5 rounded-full ${card.badgeBg}`}>
                 {card.badge}
               </span>
             </div>

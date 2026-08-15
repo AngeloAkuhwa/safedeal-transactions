@@ -303,7 +303,7 @@ const PublicProductDetail = () => {
                 <button
                   key={img.id}
                   onClick={() => { setSelectedImage(idx); setImgError(false); }}
-                  className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${
+                  className={` aspect-square rounded-xl border-2 overflow-hidden transition-all min-h-11 inline-flex items-center ${
                     idx === selectedImage ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
                   }`}
                 >

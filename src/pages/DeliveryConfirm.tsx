@@ -212,7 +212,7 @@ export default function DeliveryConfirm() {
           </div>
         )}
 
-        <p className="text-[11px] text-muted-foreground text-center pt-2 border-t">
+        <p className="text-[12px] text-muted-foreground text-center pt-2 border-t">
           Powered by SafeDeal · Buyer-authorized handoff confirmation
         </p>
       </Card>

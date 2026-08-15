@@ -39,6 +39,7 @@ import {
   type DisputeQueueRow,
 } from "@/services/admin-disputes.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
+import { keyActivate } from "@/lib/a11y";
 
 /* ---------- visual helpers ---------- */
 
@@ -203,7 +204,7 @@ function KpiStrip({
               <div className="text-2xl font-bold text-foreground leading-none">{c.count}</div>
             </div>
             <div className="mt-3 text-sm font-medium text-foreground/90">{c.label}</div>
-            {c.sub && <div className={`mt-0.5 truncate text-[11px] ${c.subTone ?? "text-muted-foreground"}`}>{c.sub}</div>}
+            {c.sub && <div className={`mt-0.5 truncate text-[12px] ${c.subTone ?? "text-muted-foreground"}`}>{c.sub}</div>}
           </button>
         );
       })}
@@ -566,7 +567,7 @@ export default function AdminDisputes() {
                         const sla = humanizeSla(row.sla);
                         const isResolved = row.dispute_status === "resolved";
                         return (
-                          <tr
+                          <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
                             className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
@@ -584,7 +585,7 @@ export default function AdminDisputes() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes/${row.dispute_id}`); }}
-                                className="block max-w-full truncate text-sm font-semibold text-blue-300 hover:underline"
+                                className="block max-w-full truncate text-sm font-semibold text-blue-300 hover:underline min-h-11"
                               >
                                 #{row.dispute_code}
                               </button>
@@ -592,7 +593,7 @@ export default function AdminDisputes() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions/${row.transaction_id}`); }}
-                                className="block max-w-full truncate text-[11px] text-muted-foreground hover:text-foreground"
+                                className="block max-w-full truncate text-[12px] text-muted-foreground hover:text-foreground min-h-11"
                               >
                                 {row.transaction_code}
                               </button>
@@ -602,34 +603,34 @@ export default function AdminDisputes() {
                                 <Avatar name={row.parties.buyer.name} url={row.parties.buyer.avatar_url} />
                                 <div className="min-w-0">
                                   <div className="truncate text-xs text-foreground">{row.parties.buyer.name}</div>
-                                  <div className="text-[10px] text-muted-foreground">Buyer</div>
+                                  <div className="text-[12px] text-muted-foreground">Buyer</div>
                                 </div>
                               </div>
                               <div className="mt-1 flex items-center gap-2">
                                 <Avatar name={row.parties.seller.store_name || row.parties.seller.name} url={row.parties.seller.avatar_url} />
                                 <div className="min-w-0">
                                   <div className="truncate text-xs text-foreground">{row.parties.seller.store_name || row.parties.seller.name}</div>
-                                  <div className="text-[10px] text-muted-foreground">Seller</div>
+                                  <div className="text-[12px] text-muted-foreground">Seller</div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="whitespace-nowrap font-semibold text-foreground">{formatMoney(row.amount, row.currency)}</div>
-                              <div className="text-[11px] text-muted-foreground">{row.reason_label}</div>
+                              <div className="text-[12px] text-muted-foreground">{row.reason_label}</div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${sd.tone}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[12px] font-semibold ${sd.tone}`}>
                                 {sd.label}
                               </span>
                               {row.money_status && (
-                                <div className="mt-1 text-[11px] text-muted-foreground">
+                                <div className="mt-1 text-[12px] text-muted-foreground">
                                   {formatMoneyStatus(row.money_status)}
                                 </div>
                               )}
                             </td>
                             <td className="px-6 py-4">
                               <div className={`whitespace-nowrap text-xs font-medium ${sla.tone}`}>{sla.label}</div>
-                              {sla.sub && <div className="text-[10px] text-muted-foreground">{sla.sub}</div>}
+                              {sla.sub && <div className="text-[12px] text-muted-foreground">{sla.sub}</div>}
                             </td>
                             <td className="px-4 py-4">
                               {row.agent ? (
@@ -638,10 +639,10 @@ export default function AdminDisputes() {
                                   <span className="truncate text-xs">{row.agent.name}</span>
                                 </div>
                               ) : (
-                                <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
+                                <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[12px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <td role="button" tabIndex={0} onKeyDown={keyActivate} className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-2">
                                 <Button
                                   size="sm"
@@ -691,41 +692,41 @@ export default function AdminDisputes() {
                           <div className="min-w-0 pl-2">
                             <div className="flex items-center gap-2">
                               <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]}`} />
-                              <span className={`text-[10px] font-bold uppercase ${PRIORITY_TEXT[row.priority]}`}>{row.priority}</span>
+                              <span className={`text-[12px] font-bold uppercase ${PRIORITY_TEXT[row.priority]}`}>{row.priority}</span>
                             </div>
-                            <button onClick={() => navigate(`/admin/disputes/${row.dispute_id}`)} className="mt-1 text-sm font-semibold text-blue-300 hover:underline">
+                            <button onClick={() => navigate(`/admin/disputes/${row.dispute_id}`)} className="mt-1 text-sm font-semibold text-blue-300 hover:underline min-h-11 inline-flex items-center">
                               #{row.dispute_code}
                             </button>
                             <div className="truncate text-xs text-foreground">{row.item_title}</div>
-                            <button onClick={() => navigate(`/admin/transactions/${row.transaction_id}`)} className="text-[11px] text-muted-foreground hover:text-foreground">{row.transaction_code}</button>
+                            <button onClick={() => navigate(`/admin/transactions/${row.transaction_id}`)} className="text-[12px] text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">{row.transaction_code}</button>
                           </div>
-                          <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${sd.tone}`}>{sd.label}</span>
+                          <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[12px] font-semibold ${sd.tone}`}>{sd.label}</span>
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs pl-2">
                           <div>
-                            <div className="text-muted-foreground text-[10px]">Buyer</div>
+                            <div className="text-muted-foreground text-[12px]">Buyer</div>
                             <div className="truncate">{row.parties.buyer.name}</div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground text-[10px]">Seller</div>
+                            <div className="text-muted-foreground text-[12px]">Seller</div>
                             <div className="truncate">{row.parties.seller.store_name || row.parties.seller.name}</div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground text-[10px]">Amount</div>
+                            <div className="text-muted-foreground text-[12px]">Amount</div>
                             <div className="font-semibold">{formatMoney(row.amount, row.currency)}</div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground text-[10px]">Reason</div>
+                            <div className="text-muted-foreground text-[12px]">Reason</div>
                             <div className="truncate">{row.reason_label}</div>
                           </div>
                           <div className="col-span-2">
-                            <div className="text-muted-foreground text-[10px]">SLA</div>
+                            <div className="text-muted-foreground text-[12px]">SLA</div>
                             <div className={sla.tone}>{sla.label}</div>
-                            {sla.sub && <div className="text-[10px] text-muted-foreground">{sla.sub}</div>}
+                            {sla.sub && <div className="text-[12px] text-muted-foreground">{sla.sub}</div>}
                           </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between pl-2">
-                          <span className="text-[10px] text-muted-foreground">{row.agent?.name ?? "Unassigned"}</span>
+                          <span className="text-[12px] text-muted-foreground">{row.agent?.name ?? "Unassigned"}</span>
                           <div className="flex items-center gap-1">
                             <Button size="sm" className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
                               {isResolved ? "View Resolution" : "Review"}
@@ -795,7 +796,7 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
     return <img src={url} alt={name} className="h-6 w-6 rounded-full object-cover" />;
   }
   return (
-    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-[10px] font-semibold text-white">
+    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-[12px] font-semibold text-white">
       {initials(name)}
     </div>
   );

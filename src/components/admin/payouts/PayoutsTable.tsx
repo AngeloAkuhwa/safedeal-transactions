@@ -19,6 +19,7 @@ import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 import { getPayoutCaptionFromRow, getAccountPresentation } from "@/lib/payout-presentation";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   rows: PayoutRow[];
@@ -431,8 +432,8 @@ export function PayoutsTable({
             const e = eligibleForRelease(r);
             const caption = payoutCaption(r);
             return (
-              <tr key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+              <tr role="button" tabIndex={0} onKeyDown={keyActivate} key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
+                <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>
@@ -468,7 +469,7 @@ export function PayoutsTable({
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-8 w-8 shrink-0 rounded-full">
                       {r.seller.avatar_url ? <AvatarImage src={r.seller.avatar_url} alt={r.seller.name} /> : null}
-                      <AvatarFallback className="text-[10px] bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
+                      <AvatarFallback className="text-[12px] bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="text-white font-medium text-sm whitespace-nowrap">{r.seller.name}</div>
@@ -481,7 +482,7 @@ export function PayoutsTable({
                     <button
                       type="button"
                       onClick={(ev) => { ev.stopPropagation(); onOpenTransaction(r); }}
-                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm whitespace-nowrap"
+                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm whitespace-nowrap min-h-11 inline-flex items-center"
                     >
                       {r.transaction.code}
                     </button>
@@ -504,7 +505,7 @@ export function PayoutsTable({
                         return <p className="text-slate-400 text-xs">—</p>;
                       }
                       return (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-[10px] font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-[12px] font-medium">
                           Seller bank not set up
                         </span>
                       );
@@ -514,8 +515,8 @@ export function PayoutsTable({
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account!.bank_name ?? "—"}</p>
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold shrink-0">
-                              <FaCheck className="text-[8px]" /> VERIFIED
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[12px] font-bold shrink-0">
+                              <FaCheck className="text-[12px]" /> VERIFIED
                             </span>
                           </div>
                           <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account!.masked_account ?? "—"}</p>
@@ -540,8 +541,8 @@ export function PayoutsTable({
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-[10px] font-bold shrink-0`}>
-                            <FaXmark className="text-[8px]" /> {badgeText}
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-[12px] font-bold shrink-0`}>
+                            <FaXmark className="text-[12px]" /> {badgeText}
                           </span>
                         </div>
                         <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? ap.tableLabel}</p>
@@ -554,7 +555,7 @@ export function PayoutsTable({
                   <p className="text-slate-300 text-sm">{formatAbsolute(r.entered_queue_at)}</p>
                   <p className="text-slate-400 text-xs">{formatRelative(r.entered_queue_at)}</p>
                 </td>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+                <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     {renderPrimaryActions(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}

@@ -124,7 +124,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
                 )}
 
                 {(agreement.hash || agreement.version) && (
-                  <div className="text-[11px] text-muted-foreground border-t border-border pt-3 font-mono">
+                  <div className="text-[12px] text-muted-foreground border-t border-border pt-3 font-mono">
                     {agreement.version && <>v{agreement.version} · </>}
                     {agreement.hash && <>hash: {agreement.hash}</>}
                   </div>

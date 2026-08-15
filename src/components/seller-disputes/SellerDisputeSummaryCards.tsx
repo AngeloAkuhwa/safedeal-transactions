@@ -82,7 +82,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
               <div className={`h-7 w-7 rounded-md ${card.iconBg} flex items-center justify-center`}>
                 <card.icon className={`h-[14px] w-[14px] ${card.iconColor}`} />
               </div>
-              <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[9px] font-semibold ${card.badgeBg}`}>
+              <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[12px] font-semibold ${card.badgeBg}`}>
                 {card.badgeLabel}
               </span>
             </div>

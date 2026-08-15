@@ -19,6 +19,7 @@ import {
 } from "@/services/admin-audit-logs.service";
 import { runExport } from "@/services/admin-escrow.service";
 import { useAdminRealtimeChannel, createBurstThrottle } from "@/hooks/useAdminRealtimeChannel";
+import { keyActivate } from "@/lib/a11y";
 
 /* ---------------- helpers ---------------- */
 function fmtRelative(iso: string): string {
@@ -182,7 +183,7 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
   };
   return (
     <>
-      {open && <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
+      {open && <div role="button" tabIndex={0} onKeyDown={keyActivate} className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
       <aside
         className={`fixed top-0 right-0 h-full w-full max-w-xl bg-card border-l border-border z-50 transform transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
       >
@@ -627,7 +628,7 @@ export default function AdminAuditLogs() {
                             </div>
                             <div>
                               <p className="text-foreground text-sm font-medium">{r.action_label}</p>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[10px] font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded text-[12px] font-semibold mt-1 ${sev.cls} ${sev.pulse ? "animate-pulse" : ""}`}>
                                 <sev.Icon className="h-3 w-3" />
                                 {sev.label}
                               </span>

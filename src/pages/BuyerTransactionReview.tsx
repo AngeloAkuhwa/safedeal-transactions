@@ -339,7 +339,7 @@ export default function BuyerTransactionReview() {
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-foreground mb-3">Agreement Locked &amp; Funds Held Securely</h3>
                   <details open={!isMobile} className="mb-4 group">
-                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden">
+                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden min-h-11 inline-flex items-center">
                       What is locked
                     </summary>
                   <div className="space-y-2">
@@ -386,7 +386,7 @@ export default function BuyerTransactionReview() {
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-foreground mb-3">Critical: Agreement Becomes Permanently Locked After Payment</h3>
                   <details open={!isMobile} className="mb-4">
-                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden">
+                    <summary className="mb-2 cursor-pointer list-none text-sm font-semibold text-primary md:hidden min-h-11 inline-flex items-center">
                       What gets locked after payment
                     </summary>
                   <div className="space-y-2">

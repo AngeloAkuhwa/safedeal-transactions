@@ -21,7 +21,7 @@ function RuleToggle({ label, desc, value, onChange, disabled }: { label: string;
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-sm font-medium text-foreground">{label}</div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">{desc}</div>
+          <div className="mt-0.5 text-[12px] text-muted-foreground">{desc}</div>
         </div>
         <Switch checked={value} onCheckedChange={onChange} disabled={disabled} />
       </div>
@@ -34,9 +34,9 @@ function RuleNumber({ label, hint, value, unit, onChange, disabled }: { label: s
       <Label className="mb-2 block text-sm font-medium text-foreground">{label}</Label>
       <div className="flex items-center gap-3">
         <Input type="number" value={value} onChange={e => onChange(Number(e.target.value) || 0)} className="h-11 flex-1 bg-background/60" disabled={disabled} />
-        <span className="text-[11px] text-muted-foreground">{unit}</span>
+        <span className="text-[12px] text-muted-foreground">{unit}</span>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
+      <p className="mt-2 text-[12px] text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function AssignmentRulesPanel({
           <h2 className="text-base font-semibold text-foreground">Assignment Rules &amp; Automation Controls</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Configure automated task distribution and assignment logic</p>
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[12px] text-amber-300">
           <Gauge className="h-3 w-3" /> Advanced Configuration
         </div>
       </div>
@@ -90,7 +90,7 @@ export function AssignmentRulesPanel({
             <Input value={(draft as any).queue_scope ?? "global"}
               onChange={e => set("queue_scope" as any, e.target.value as any)}
               placeholder="global" disabled={!canManage} className="h-11 max-w-[240px] bg-background/60" />
-            <span className="text-[11px] text-muted-foreground">Applies these rules to a specific queue key. Defaults to <code>global</code>.</span>
+            <span className="text-[12px] text-muted-foreground">Applies these rules to a specific queue key. Defaults to <code>global</code>.</span>
           </div>
         </div>
         <div className="space-y-3">
@@ -120,7 +120,7 @@ export function AssignmentRulesPanel({
                 <Input value={draft.stale_escalation_queue ?? ""}
                   onChange={e => set("stale_escalation_queue", e.target.value)}
                   placeholder="senior_pool" disabled={!canManage} className="h-11 bg-background/60" />
-                <p className="mt-2 text-[11px] text-muted-foreground">Target queue for stale-task escalation</p>
+                <p className="mt-2 text-[12px] text-muted-foreground">Target queue for stale-task escalation</p>
               </div>
             </div>
           )}
@@ -138,14 +138,14 @@ export function AssignmentRulesPanel({
                 {FALLBACK_TARGETS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="mt-2 text-[11px] text-muted-foreground">Where to assign when no eligible agents are available</p>
+            <p className="mt-2 text-[12px] text-muted-foreground">Where to assign when no eligible agents are available</p>
           </div>
           <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
             <Label className="mb-2 block text-sm font-medium text-foreground">Senior pool queue</Label>
             <Input value={draft.senior_pool_queue ?? ""}
               onChange={e => set("senior_pool_queue", e.target.value)}
               placeholder="senior_pool" disabled={!canManage} className="h-11 bg-background/60" />
-            <p className="mt-2 text-[11px] text-muted-foreground">Queue key used by Priority Cases &amp; escalation routing</p>
+            <p className="mt-2 text-[12px] text-muted-foreground">Queue key used by Priority Cases &amp; escalation routing</p>
           </div>
           <RuleToggle label="Super Admin Self-Assignment" desc="Allow super admin to override and assign to self"
             value={!!draft.super_admin_self_assign} onChange={v => set("super_admin_self_assign", v)} disabled={!canManage} />
@@ -178,7 +178,7 @@ export function AssignmentRulesPanel({
             </Button>
           )}
         </div>
-        <div className="text-[11px] text-muted-foreground">
+        <div className="text-[12px] text-muted-foreground">
           {dirty ? "Unsaved changes" : lastSavedAt ? `Last saved: ${relative(lastSavedAt)}` : "Not saved yet"}
         </div>
       </div>

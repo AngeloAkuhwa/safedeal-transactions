@@ -42,7 +42,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                 <button
                   type="button"
                   onClick={() => toggle(r.key)}
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                  className={` mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border relative before:absolute before:-inset-4 before:content-[''] ${
                     selected ? "border-blue-500 bg-blue-600 text-white relative before:absolute before:-inset-4 before:content-['']" : "border-border bg-background"
                   }`}
                   aria-pressed={selected}
@@ -53,7 +53,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium text-foreground">{ROLE_LABEL[r.key]}</span>
                     {r.protected && (
-                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[12px] font-semibold text-amber-300">
                         Protected
                       </span>
                     )}
@@ -68,7 +68,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                       </button>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{r.description}</p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{r.description}</p>
                 </div>
               </div>
             </div>

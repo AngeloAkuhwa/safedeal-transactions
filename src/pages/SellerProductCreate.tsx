@@ -547,7 +547,7 @@ const SellerProductCreate = () => {
                           <X className="h-4 w-4" aria-hidden />
                         </button>
                         {idx === 0 && f.status === "done" && (
-                          <span className="absolute bottom-1 left-1 bg-success text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">Primary</span>
+                          <span className="absolute bottom-1 left-1 bg-success text-primary-foreground text-[12px] px-1.5 py-0.5 rounded-full font-medium">Primary</span>
                         )}
                       </div>
                     ))}
@@ -556,7 +556,7 @@ const SellerProductCreate = () => {
                       const vidCount = files.filter((f) => f.media_type === "video").length;
                        if (imgCount >= effectiveMaxImages && vidCount >= mediaConfig.productMaxVideos) return null;
                       return (
-                        <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
+                        <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors min-h-11">
                           <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Add More</span>
                           <input type="file" className="hidden" accept={acceptAttr} multiple onChange={handleFileUpload} disabled={uploading} />

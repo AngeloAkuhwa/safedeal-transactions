@@ -29,7 +29,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className={cn("relative h-8 w-8 flex-shrink-0 rounded-full ring-2", availabilityRing(agent.availability))}>
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-foreground">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[12px] font-semibold text-foreground">
               {agent.avatar_url
                 ? <img src={agent.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
                 : initialsOf(agent)}
@@ -38,18 +38,18 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-medium text-foreground">{nameOf(agent)}</div>
-            <div className="flex items-center gap-1.5 text-[11px]">
+            <div className="flex items-center gap-1.5 text-[12px]">
               <span className={cn("font-medium", availabilityTextColor(agent.availability))}>
                 {availabilityLabel(agent.availability)}
               </span>
               {!eligible && !offline && (
-                <span className="rounded-full bg-muted/60 px-1.5 py-0 text-[9px] uppercase tracking-wider text-muted-foreground">
+                <span className="rounded-full bg-muted/60 px-1.5 py-0 text-[12px] uppercase tracking-wider text-muted-foreground">
                   Ineligible
                 </span>
               )}
             </div>
             {(roleText || teamText) && (
-              <div className="truncate text-[10px] text-muted-foreground">
+              <div className="truncate text-[12px] text-muted-foreground">
                 {[roleText, teamText].filter(Boolean).join(" · ")}
               </div>
             )}
@@ -59,7 +59,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           {(agent.critical_active ?? 0) > 0 && (
             <span
               title={`${agent.critical_active} critical task${agent.critical_active === 1 ? "" : "s"}`}
-              className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300 ring-1 ring-inset ring-rose-500/30"
+              className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[12px] font-semibold text-rose-300 ring-1 ring-inset ring-rose-500/30"
             >
               <Flame className="h-2.5 w-2.5" /> {agent.critical_active}
             </span>
@@ -67,7 +67,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           {agent.sla_risk && agent.sla_risk !== "low" && (
             <span
               title={`${humanize(agent.sla_risk)} SLA risk`}
-              className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset", slaTone)}
+              className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[12px] font-semibold ring-1 ring-inset", slaTone)}
             >
               <AlertCircle className="h-2.5 w-2.5" />
             </span>
@@ -85,7 +85,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
         </div>
       </div>
 
-      <div className={cn("grid grid-cols-3 gap-2 text-[11px]", offline && "opacity-70")}>
+      <div className={cn("grid grid-cols-3 gap-2 text-[12px]", offline && "opacity-70")}>
         <div>
           <div className="text-muted-foreground">Active</div>
           <div className={cn("text-sm font-semibold tabular-nums", atCap ? "text-amber-300" : "text-foreground")}>{agent.active}</div>
@@ -115,7 +115,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
       </div>
 
       {lastActivity && (
-        <div className="mt-2 text-right text-[10px] text-muted-foreground">
+        <div className="mt-2 text-right text-[12px] text-muted-foreground">
           Last active {relativeShort(lastActivity)}
         </div>
       )}

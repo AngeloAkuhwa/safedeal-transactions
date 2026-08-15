@@ -85,7 +85,7 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
           </h3>
         </div>
         {lockedAt && (
-          <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[10px] font-bold gap-1 px-2 py-0.5">
+          <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[12px] font-bold gap-1 px-2 py-0.5">
             <ShieldCheck className="h-3 w-3" />
             IMMUTABLE
           </Badge>
@@ -156,7 +156,7 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
       {/* Footer */}
       {lockedAt && (
         <div className="bg-muted/30 px-4 sm:px-5 py-2.5 border-t border-border">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+          <p className="text-[12px] text-muted-foreground flex items-center gap-1.5">
             <Lock className="h-3 w-3" />
             Locked on {format(new Date(lockedAt), "MMM d, yyyy 'at' h:mm a")} — terms cannot be changed.
           </p>

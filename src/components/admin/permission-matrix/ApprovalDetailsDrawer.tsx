@@ -108,7 +108,7 @@ export function ApprovalDetailsDrawer({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             Approval details
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
           </SheetTitle>
         </SheetHeader>
 
@@ -134,11 +134,11 @@ export function ApprovalDetailsDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-md border border-border/60 bg-background/40 p-3">
-              <div className="mb-1 text-[10px] uppercase text-muted-foreground">Impacted role</div>
+              <div className="mb-1 text-[12px] uppercase text-muted-foreground">Impacted role</div>
               <div className="text-xs">{impactedRoleLabel ?? <span className="italic text-muted-foreground">n/a</span>}</div>
             </div>
             <div className="rounded-md border border-border/60 bg-background/40 p-3">
-              <div className="mb-1 text-[10px] uppercase text-muted-foreground">Impacted users (est.)</div>
+              <div className="mb-1 text-[12px] uppercase text-muted-foreground">Impacted users (est.)</div>
               <div className="text-xs">{(item as any).impacted_users ?? "—"}</div>
             </div>
           </div>
@@ -167,8 +167,8 @@ export function ApprovalDetailsDrawer({
                 {projected.conflicts.map((c, i) => (
                   <li key={i} className="rounded border border-rose-500/40 bg-rose-500/10 p-2 text-rose-200">
                     <span className="font-mono">{c.a}</span> ⚠ <span className="font-mono">{c.b}</span>
-                    <span className="ml-2 uppercase text-[10px]">{c.severity}</span>
-                    {c.rationale && <div className="mt-1 text-[11px] opacity-80">{c.rationale}</div>}
+                    <span className="ml-2 uppercase text-[12px]">{c.severity}</span>
+                    {c.rationale && <div className="mt-1 text-[12px] opacity-80">{c.rationale}</div>}
                   </li>
                 ))}
               </ul>
@@ -205,7 +205,7 @@ export function ApprovalDetailsDrawer({
               <div className="text-xs uppercase text-muted-foreground">Approver comment</div>
               <Textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} placeholder="Required for Reject / Request changes (≥ 20 chars)" />
               {!guard.allowed && (
-                <div className="flex items-start gap-2 rounded-md bg-amber-500/10 p-2 text-[11px] text-amber-300">
+                <div className="flex items-start gap-2 rounded-md bg-amber-500/10 p-2 text-[12px] text-amber-300">
                   <ShieldAlert className="mt-0.5 h-3.5 w-3.5" /> {guard.reason}
                 </div>
               )}
@@ -231,7 +231,7 @@ export function ApprovalDetailsDrawer({
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className="text-[12px] uppercase text-muted-foreground">{label}</div>
       <div className={`text-xs ${mono ? "font-mono" : ""}`}>{value}</div>
     </div>
   );
@@ -242,9 +242,9 @@ function TimelineRow({ label, when, who, comment }: { label: string; when: strin
     <li className="flex items-start gap-2 rounded border border-border/40 bg-background/40 p-2">
       <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-sky-400" />
       <div className="flex-1">
-        <div className="text-[11px] font-medium capitalize">{label}{who ? <span className="ml-1 text-muted-foreground">· {who}</span> : null}</div>
-        {when && <div className="text-[10px] text-muted-foreground">{format(new Date(when), "PPpp")}</div>}
-        {comment && <div className="mt-1 text-[11px] text-muted-foreground">{comment}</div>}
+        <div className="text-[12px] font-medium capitalize">{label}{who ? <span className="ml-1 text-muted-foreground">· {who}</span> : null}</div>
+        {when && <div className="text-[12px] text-muted-foreground">{format(new Date(when), "PPpp")}</div>}
+        {comment && <div className="mt-1 text-[12px] text-muted-foreground">{comment}</div>}
       </div>
     </li>
   );

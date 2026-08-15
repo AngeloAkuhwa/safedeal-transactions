@@ -35,7 +35,7 @@ export function PermissionStateCell({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 min-w-[110px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[11px] font-semibold tracking-wide transition",
+        "inline-flex h-11 min-w-[110px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[12px] font-semibold tracking-wide transition",
         STYLES[state],
         onClick && "hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
       )}
@@ -45,7 +45,7 @@ export function PermissionStateCell({
       {state === "partial" && total != null && (
         <span
           className={cn(
-            "ml-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] leading-none",
+            "ml-1 rounded-md px-1.5 py-0.5 font-mono text-[12px] leading-none",
             BADGE_STYLES[state],
           )}
         >

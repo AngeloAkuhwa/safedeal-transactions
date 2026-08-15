@@ -195,7 +195,7 @@ export function ExportDisputesDialog({
                       <td className="py-2.5 pr-3 hidden lg:table-cell text-xs truncate max-w-[140px]">{d.item_title}</td>
                       <td className="py-2.5 pr-3 text-xs">{d.reason_label}</td>
                       <td className="py-2.5 pr-3">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-[12px]">
                           {resolveDisputeLabel(d.status, "seller").label}
                         </Badge>
                       </td>

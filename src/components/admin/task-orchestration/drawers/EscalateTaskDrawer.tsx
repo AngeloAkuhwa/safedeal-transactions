@@ -80,16 +80,16 @@ export function EscalateTaskDrawer({
           <div className="rounded-xl border border-border/60 bg-background/40 p-3">
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Current owner</div>
+                <div className="text-[12px] uppercase tracking-wider text-muted-foreground">Current owner</div>
                 <div className="mt-0.5 text-foreground">{ownerNames}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">New target</div>
+                <div className="text-[12px] uppercase tracking-wider text-muted-foreground">New target</div>
                 <div className="mt-0.5 text-foreground">{TARGET_QUEUES.find((q) => q.value === targetQueue)?.label ?? targetQueue}</div>
               </div>
             </div>
             {financial && (
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[12px] text-amber-200">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
                 Financial / compliance target — only routable when the batch's task type matches the queue's authority.
               </div>
@@ -139,7 +139,7 @@ export function EscalateTaskDrawer({
             <Label className="text-xs">Escalation reason (required, min 20)</Label>
             <Textarea className="mt-1 min-h-[100px]" value={reason}
               onChange={(e) => setReason(e.target.value)} placeholder="Why is this being escalated?" />
-            <div className="mt-1 text-[11px] text-muted-foreground">{reason.trim().length}/20</div>
+            <div className="mt-1 text-[12px] text-muted-foreground">{reason.trim().length}/20</div>
           </div>
 
           <div>
@@ -148,7 +148,7 @@ export function EscalateTaskDrawer({
               onChange={(e) => setInternalNote(e.target.value)} placeholder="Context for the receiving reviewer" />
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
             <Badge variant="secondary">SLA impact</Badge>
             <span>Escalation resets first-action clock; due date recomputed against new priority.</span>
           </div>

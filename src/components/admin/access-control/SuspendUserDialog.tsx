@@ -121,7 +121,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
             onChange={(e) => setReason(e.target.value)}
             placeholder="Explain why this user is being suspended (min 12 characters)."
           />
-          <div className="text-[11px] text-muted-foreground">{reason.trim().length}/12 minimum</div>
+          <div className="text-[12px] text-muted-foreground">{reason.trim().length}/12 minimum</div>
         </div>
 
         {/* Duration */}
@@ -168,7 +168,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
           <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
             <div>
               <div className="text-sm font-medium">Revoke active sessions</div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-[12px] text-muted-foreground">
                 {sessionsQ.isLoading ? "Checking…" : `${activeSessions} active session${activeSessions === 1 ? "" : "s"} right now.`}
               </div>
             </div>
@@ -177,7 +177,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
           <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
             <div>
               <div className="text-sm font-medium">Reassign active tasks</div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-[12px] text-muted-foreground">
                 {activeTasks === 0
                   ? "No active dispute assignments detected."
                   : `${activeTasks} active dispute${activeTasks === 1 ? "" : "s"} will move to the queue.`}

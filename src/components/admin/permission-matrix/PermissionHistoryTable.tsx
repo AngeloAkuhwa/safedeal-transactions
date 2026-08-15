@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, RotateCcw } from "lucide-react";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 import { findPermissionEntry } from "@/services/permission-catalog";
+import { keyActivate } from "@/lib/a11y";
 
 export function PermissionHistoryTable({
   rows,
@@ -127,7 +128,7 @@ export function PermissionHistoryTable({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] border-separate border-spacing-y-1 text-sm sd-stack">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2 text-left font-medium">When</th>
                   <th className="px-3 py-2 text-left font-medium">Actor</th>
                   <th className="px-3 py-2 text-left font-medium">Action</th>
@@ -145,7 +146,7 @@ export function PermissionHistoryTable({
                 {filtered.map((r) => {
                   const tone = changeStateTone(normalizeChangeState(r.result));
                   return (
-                    <tr
+                    <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                       key={r.id}
                       className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                       onClick={() => onRowClick?.(r)}
@@ -159,17 +160,17 @@ export function PermissionHistoryTable({
                         <span className="text-emerald-400">+{r.added_keys.length}</span>{" / "}<span className="text-rose-400">−{r.removed_keys.length}</span>
                       </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground max-w-[220px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</td>
-                      <td className="px-3 py-3 align-middle font-mono text-[11px] text-muted-foreground">{r.approval_ref.slice(0, 8)}…</td>
+                      <td className="px-3 py-3 align-middle font-mono text-[12px] text-muted-foreground">{r.approval_ref.slice(0, 8)}…</td>
                       <td className="px-3 py-3 align-middle">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
                       </td>
-                      <td className="px-3 py-3 align-middle text-[11px] uppercase text-muted-foreground">{r.environment}</td>
+                      <td className="px-3 py-3 align-middle text-[12px] uppercase text-muted-foreground">{r.environment}</td>
                       <td className="px-3 py-3 align-middle text-right">
                         {onRecreate && r.target_scope === "role" ? (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onRecreate(r); }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted min-h-11"
+                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] hover:bg-muted min-h-11"
                             title="Stage the inverse of this change as a draft for review"
                           >
                             <RotateCcw className="h-3 w-3" /> Recreate

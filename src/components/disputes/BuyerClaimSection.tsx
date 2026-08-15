@@ -38,7 +38,7 @@ function EvidenceThumbnail({
     <button
       type="button"
       onClick={onClick}
-      className="group relative aspect-square rounded-lg border border-border bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative aspect-square rounded-lg border border-border bg-muted overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-11 inline-flex items-center"
     >
       {isImage && evidence.file_url && !imgError ? (
         <img
@@ -72,7 +72,7 @@ function EvidenceThumbnail({
         </a>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[10px] px-2 py-1 truncate">
+      <div className="absolute bottom-0 inset-x-0 bg-foreground/60 text-background text-[12px] px-2 py-1 truncate">
         {format(new Date(evidence.created_at), "MMM d, h:mm a")}
       </div>
     </button>

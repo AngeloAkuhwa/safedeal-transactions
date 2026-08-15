@@ -89,17 +89,17 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {rows.map((r) => (
               <div key={r.key} className="p-2.5 bg-muted/30 border border-border rounded-lg">
-                <p className="text-[11px] text-muted-foreground">{r.label}</p>
+                <p className="text-[12px] text-muted-foreground">{r.label}</p>
                 <p className="text-sm font-medium text-foreground mt-0.5">{r.value}</p>
               </div>
             ))}
             <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-muted-foreground">Checkout enabled</p>
+                <p className="text-[12px] text-muted-foreground">Checkout enabled</p>
                 {gate.sources["commerce.checkout_enabled"] === "vendor" ? (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
                 ) : (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
                 )}
               </div>
               <p className="text-sm font-medium text-foreground mt-0.5">
@@ -108,11 +108,11 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
             </div>
             <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-muted-foreground">Add-to-cart enabled</p>
+                <p className="text-[12px] text-muted-foreground">Add-to-cart enabled</p>
                 {gate.sources["commerce.add_to_cart_enabled"] === "vendor" ? (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
                 ) : (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
                 )}
               </div>
               <p className="text-sm font-medium text-foreground mt-0.5">
@@ -121,7 +121,7 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
             </div>
           </div>
         )}
-        <div className="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+        <div className="mt-3 flex items-start gap-1.5 text-[12px] text-muted-foreground">
           <Info className="h-3 w-3 mt-0.5 shrink-0" />
           <span>
             These values combine platform defaults with any per-vendor overrides set by an admin.

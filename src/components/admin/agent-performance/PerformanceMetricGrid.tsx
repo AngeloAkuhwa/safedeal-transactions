@@ -112,7 +112,7 @@ export function PerformanceMetricGrid({
         {tiles.map((t) => (
           <div key={t.label} className={cn(INNER_CARD_CLASS, "p-3")}>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{t.label}</span>
+              <span className="text-[12px] uppercase tracking-wide text-muted-foreground">{t.label}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" aria-label={`About ${t.label}`} className="text-muted-foreground/70 hover:text-foreground relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-['']">
@@ -133,7 +133,7 @@ export function PerformanceMetricGrid({
             )}>
               {t.value}
             </div>
-            {t.note && <div className="mt-0.5 text-[11px] text-muted-foreground">{t.note}</div>}
+            {t.note && <div className="mt-0.5 text-[12px] text-muted-foreground">{t.note}</div>}
           </div>
         ))}
       </div>

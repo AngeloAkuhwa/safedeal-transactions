@@ -21,7 +21,7 @@ function ChartCard({
     <div className={INNER_CARD_CLASS}>
       <div className="mb-3">
         <div className="text-sm font-medium text-foreground">{title}</div>
-        <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+        <div className="text-[12px] text-muted-foreground">{subtitle}</div>
       </div>
       {empty ? (
         <div className="flex h-48 items-center justify-center text-xs text-muted-foreground">

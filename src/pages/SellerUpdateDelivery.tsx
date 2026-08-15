@@ -27,6 +27,7 @@ import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDi
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 /** Renders `—` when the amount or its currency is unknown. */
 const fmt = (amount: number | undefined | null, currency: string | null) =>
@@ -271,7 +272,7 @@ export default function SellerUpdateDelivery() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors">
+          <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">
             Transactions
           </button>
           <span>/</span>
@@ -321,7 +322,7 @@ export default function SellerUpdateDelivery() {
             <div className="flex items-center gap-2 mb-1">
               <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">MONEY STATUS</span>
-              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full text-[10px] px-2 py-0.5 ml-auto">
+              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full text-[12px] px-2 py-0.5 ml-auto">
                 Funds Held in Escrow
               </Badge>
             </div>
@@ -399,7 +400,7 @@ export default function SellerUpdateDelivery() {
                     {step.label}
                   </p>
                   {step.sub && (
-                    <p className="text-[10px] text-muted-foreground text-center">{step.sub}</p>
+                    <p className="text-[12px] text-muted-foreground text-center">{step.sub}</p>
                   )}
                 </div>
               );
@@ -459,7 +460,7 @@ export default function SellerUpdateDelivery() {
                         <p className="text-sm font-semibold">{meta.label}</p>
                         <p className="text-xs text-muted-foreground">{meta.subLabel}</p>
                         {!enabled && (
-                          <p className="text-[10px] text-muted-foreground italic mt-1">Not available from current status</p>
+                          <p className="text-[12px] text-muted-foreground italic mt-1">Not available from current status</p>
                         )}
                       </div>
                     </div>
@@ -597,7 +598,7 @@ export default function SellerUpdateDelivery() {
                   ))}
 
                   {deliveredEvidence.length < MAX_FILES && (
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={keyActivate}
                       className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                     >

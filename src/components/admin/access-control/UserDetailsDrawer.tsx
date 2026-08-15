@@ -97,11 +97,11 @@ export function UserDetailsDrawer({
               <StatusBadge status={user.status} />
               <AccessLevelPill level={user.access_level} />
               {user.two_factor_enabled ? (
-                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[12px] text-emerald-300">
                   <ShieldCheck className="h-3 w-3" /> 2FA on
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[12px] text-amber-300">
                   <ShieldCheck className="h-3 w-3" /> 2FA off
                 </span>
               )}
@@ -149,7 +149,7 @@ export function UserDetailsDrawer({
                   <span className="text-xs text-muted-foreground">No roles assigned</span>
                 )}
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
+              <div className="mt-1 text-[12px] text-muted-foreground">
                 Primary: {ROLE_LABEL[user.primary_role] ?? user.primary_role}
               </div>
             </div>
@@ -160,7 +160,7 @@ export function UserDetailsDrawer({
                   <span className="text-xs text-muted-foreground">No permissions assigned.</span>
                 )}
                 {user.permissions.map((p) => (
-                  <span key={p} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-mono text-foreground/80">
+                  <span key={p} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[12px] font-mono text-foreground/80">
                     {p}
                   </span>
                 ))}
@@ -178,7 +178,7 @@ export function UserDetailsDrawer({
               />
             </div>
             {!work?.task_orchestration_available && (
-              <div className="rounded-md border border-dashed border-border p-2 text-[11px] text-muted-foreground">
+              <div className="rounded-md border border-dashed border-border p-2 text-[12px] text-muted-foreground">
                 Task orchestration surface isn't wired to this workspace yet — dispute assignment is used as a proxy.
               </div>
             )}
@@ -260,7 +260,7 @@ export function UserDetailsDrawer({
             )
           )}
           {!canManageRoles && !canManagePerms && !canSuspend && (
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
               <Lock className="h-3 w-3" /> Read-only view — you don't have permission to make changes.
             </div>
           )}

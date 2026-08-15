@@ -9,6 +9,7 @@ import {
 import type { InternalUser } from "@/services/admin-access-control.service";
 import { relativeTime } from "@/services/admin-access-control.service";
 import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
+import { keyActivate } from "@/lib/a11y";
 
 interface Props {
   rows: InternalUser[];
@@ -50,8 +51,8 @@ export function InternalUsersTable({
 
       <div className="divide-y divide-border lg:hidden">
         {rows.map((u) => (
-          <article key={u.id} className="space-y-3 p-4" onClick={() => onOpen(u)}>
-            <div className="flex items-start gap-3"><InitialsAvatar name={u.full_name} ring={ringFor(u)} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name}</p><p className="truncate text-xs text-muted-foreground">{u.email}</p><p className="text-xs text-muted-foreground">#{u.display_id} · {u.department ?? "No team"} · Last active {relativeTime(u.last_active_at)}</p></div><div className="flex shrink-0 items-center gap-1"><StatusBadge status={u.status} /><span onClick={(e) => e.stopPropagation()}><RowActionsMenu u={u} actions={{ onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend, onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess }} /></span></div></div>
+          <article role="button" tabIndex={0} onKeyDown={keyActivate} key={u.id} className="space-y-3 p-4" onClick={() => onOpen(u)}>
+            <div className="flex items-start gap-3"><InitialsAvatar name={u.full_name} ring={ringFor(u)} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name}</p><p className="truncate text-xs text-muted-foreground">{u.email}</p><p className="text-xs text-muted-foreground">#{u.display_id} · {u.department ?? "No team"} · Last active {relativeTime(u.last_active_at)}</p></div><div className="flex shrink-0 items-center gap-1"><StatusBadge status={u.status} /><span role="button" tabIndex={0} onKeyDown={keyActivate} onClick={(e) => e.stopPropagation()}><RowActionsMenu u={u} actions={{ onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend, onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess }} /></span></div></div>
             <div className="flex flex-wrap gap-2"><RoleBadge role={u.primary_role} /><AccessLevelPill level={u.access_level} /></div>
             <button type="button" className="min-h-11 w-full rounded-md border border-border px-3 text-sm font-medium" onClick={(e) => { e.stopPropagation(); onOpen(u); }}>View access details</button>
           </article>
@@ -81,7 +82,7 @@ export function InternalUsersTable({
               const suspended = u.status === "suspended" || u.status === "locked";
               const deactivated = u.status === "deactivated";
               return (
-                <tr
+                <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                   key={u.id}
                   onClick={() => onOpen(u)}
                   className={`cursor-pointer transition-colors hover:bg-muted/40 ${
@@ -104,7 +105,7 @@ export function InternalUsersTable({
                     <div className="flex flex-wrap gap-1">
                       <RoleBadge role={u.primary_role} />
                       {u.roles.length > 1 && (
-                        <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[12px] font-semibold text-muted-foreground">
                           +{u.roles.length - 1}
                         </span>
                       )}
@@ -113,7 +114,7 @@ export function InternalUsersTable({
                   <td className="px-5 py-4"><AccessLevelPill level={u.access_level} /></td>
                   <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                   <td className="px-5 py-4 text-xs text-muted-foreground">{relativeTime(u.last_active_at)}</td>
-                  <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td role="button" tabIndex={0} onKeyDown={keyActivate} className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <RowActionsMenu u={u} actions={{ onOpen, onChangeRole, onReviewPermissions, onViewHistory, onSuspend, onReactivate, onDeactivate, onResendInvite, onDeleteInvited, onExtendAccess }} />
                   </td>
                 </tr>

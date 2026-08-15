@@ -49,7 +49,7 @@ export function TemplateCompareDialog({
   }, [template, otherKeys]);
 
   const renderKey = (k: string) => (
-    <li key={k} className="flex items-center gap-1.5 rounded border border-border/50 bg-background/50 px-2 py-1 font-mono text-[10px]">
+    <li key={k} className="flex items-center gap-1.5 rounded border border-border/50 bg-background/50 px-2 py-1 font-mono text-[12px]">
       {isPrivilegedPermission(k) && <ShieldAlert className="h-3 w-3 text-amber-300" />}
       <span className="truncate">{k}</span>
     </li>
@@ -68,7 +68,7 @@ export function TemplateCompareDialog({
         {template && (
           <div className="space-y-3 text-sm">
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 p-2">
-              <span className="text-[11px] uppercase text-muted-foreground">Compare against</span>
+              <span className="text-[12px] uppercase text-muted-foreground">Compare against</span>
               <select
                 className="h-11 rounded-md border border-border bg-background px-2 text-xs"
                 value={target.kind === "role" ? `role:${target.role}` : `template:${target.id}`}
@@ -85,8 +85,8 @@ export function TemplateCompareDialog({
                   {others.map((t) => <option key={t.id} value={`template:${t.id}`}>{t.name}</option>)}
                 </optgroup>
               </select>
-              <span className="text-[11px] text-muted-foreground">A · Template · {template.name}</span>
-              <span className="text-[11px] text-muted-foreground">B · {otherLabel}</span>
+              <span className="text-[12px] text-muted-foreground">A · Template · {template.name}</span>
+              <span className="text-[12px] text-muted-foreground">B · {otherLabel}</span>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -105,7 +105,7 @@ function Column({ label, count, tone, children }: { label: string; count: number
   const toneCls = tone === "emerald" ? "border-emerald-500/30 bg-emerald-500/5" : tone === "sky" ? "border-sky-500/30 bg-sky-500/5" : "border-border/60 bg-background/30";
   return (
     <div className={`rounded-lg border ${toneCls} p-2`}>
-      <div className="mb-2 flex items-center justify-between text-[11px] uppercase text-muted-foreground">
+      <div className="mb-2 flex items-center justify-between text-[12px] uppercase text-muted-foreground">
         <span>{label}</span><span className="font-mono">{count}</span>
       </div>
       <ul className="max-h-72 space-y-1 overflow-y-auto">{children}</ul>

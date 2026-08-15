@@ -15,10 +15,10 @@ export function EscrowMobileHero({
         <div className="min-w-0">
           <h2 className="text-white text-base font-semibold">Escrow Overview</h2>
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[12px] font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
             </span>
-            <span className="inline-flex items-center gap-1 text-slate-400 text-[11px]">
+            <span className="inline-flex items-center gap-1 text-slate-400 text-[12px]">
               <Clock className="h-3 w-3" /> {lastUpdated}
             </span>
           </div>
@@ -36,11 +36,11 @@ export function EscrowMobileHero({
       {(critical > 0 || warnings > 0) && (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-            <p className="text-[10px] uppercase text-red-300/80">Critical</p>
+            <p className="text-[12px] uppercase text-red-300/80">Critical</p>
             <p className="text-red-300 text-lg font-bold leading-tight">{critical}</p>
           </div>
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
-            <p className="text-[10px] uppercase text-orange-300/80">Warnings</p>
+            <p className="text-[12px] uppercase text-orange-300/80">Warnings</p>
             <p className="text-orange-300 text-lg font-bold leading-tight">{warnings}</p>
           </div>
         </div>

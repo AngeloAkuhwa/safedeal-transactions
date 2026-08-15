@@ -220,7 +220,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-11"
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -230,20 +230,19 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}
-          />
+            )} />
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Checkbox id="remember" />
-              <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+              <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer min-h-11 inline-flex items-center">
                 Remember me
               </label>
             </div>
             <button
               type="button"
               onClick={() => setForgotOpen(true)}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-primary hover:underline min-h-11 inline-flex items-center"
             >
               Forgot password?
             </button>

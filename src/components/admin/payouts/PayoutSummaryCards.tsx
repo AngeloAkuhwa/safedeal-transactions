@@ -32,7 +32,7 @@ function Tile({
           <Icon className={t.icon} size={16} />
         </div>
         {badge ? (
-          <span className={`text-[10px] lg:text-xs font-semibold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded ${t.chip}`}>{badge}</span>
+          <span className={`text-[12px] lg:text-xs font-semibold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded ${t.chip}`}>{badge}</span>
         ) : null}
       </div>
       {hint ? (

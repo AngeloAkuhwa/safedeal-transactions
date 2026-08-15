@@ -91,7 +91,7 @@ export function InventoryLogTable({ productId }: InventoryLogTableProps) {
                   {log.notes && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.notes}</p>
                   )}
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
                     Available after: <span className="font-semibold text-foreground">{log.balance_after}</span>
                   </p>
                 </div>

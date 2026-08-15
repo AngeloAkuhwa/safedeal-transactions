@@ -61,7 +61,7 @@ export function ReactivateUserDialog({ user, open, onOpenChange, onConfirm }: Pr
             placeholder="Recorded to the audit trail (min 8 characters)."
           />
         </div>
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-200">
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-200">
           Sign-in and task assignment resume immediately. Existing overrides and audit history are preserved.
         </div>
         <DialogFooter>

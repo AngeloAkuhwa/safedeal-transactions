@@ -131,7 +131,7 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-label="Add SafeDeal to your home screen"
-      className="sd-sheet-up fixed inset-x-3 z-[70] mx-auto max-w-md rounded-2xl border border-border/70 bg-card/90 p-4 shadow-xl backdrop-blur-xl md:left-auto md:right-4 md:mx-0"
+      className="sd-sheet-up fixed inset-x-3 z-modal mx-auto max-w-md rounded-2xl border border-border/70 bg-card/90 p-4 shadow-xl backdrop-blur-xl md:left-auto md:right-4 md:mx-0"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
     >
       <div className="flex items-start gap-3">

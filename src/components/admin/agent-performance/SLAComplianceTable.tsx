@@ -118,19 +118,19 @@ export function SLAComplianceTable({
           ["Not configured", String(summary.not_configured)],
         ].map(([label, value, hint]) => (
           <div key={label} title={hint ?? undefined} className={cn(INNER_CARD_CLASS, "p-3")}>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className="text-[12px] uppercase tracking-wide text-muted-foreground">{label}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">{value}</div>
-            {hint && <div className="mt-1 text-[10px] text-muted-foreground">n = {String(hint).match(/\d+/)?.[0] ?? 0}</div>}
+            {hint && <div className="mt-1 text-[12px] text-muted-foreground">n = {String(hint).match(/\d+/)?.[0] ?? 0}</div>}
           </div>
         ))}
       </div>
       <div className={cn(INNER_CARD_CLASS, "flex flex-wrap items-end justify-between gap-4")}>
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">SLA compliance · {rangeLabel}</div>
+          <div className="text-[12px] uppercase tracking-wide text-muted-foreground">SLA compliance · {rangeLabel}</div>
           <div className={cn("text-3xl font-semibold tabular-nums", compliance == null ? "text-muted-foreground" : slaTone(compliance))}>
             {compliance == null ? "—" : `${compliance}%`}
           </div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">
+          <div className="mt-0.5 text-[12px] text-muted-foreground">
             {completed} completed case{completed === 1 ? "" : "s"} measured · unconfigured and cancelled cases excluded
           </div>
         </div>
@@ -203,7 +203,7 @@ export function SLAComplianceTable({
             <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur">
               <tr className="border-b border-border/70">
                 {["Case", "Agent", "Priority", "Stage", "Assigned", "First action", "Due", "Remaining", "SLA state", "Updated", ""].map((h) => (
-                  <th key={h} scope="col" className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th key={h} scope="col" className="whitespace-nowrap px-3 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {h}
                   </th>
                 ))}
@@ -215,10 +215,10 @@ export function SLAComplianceTable({
                 return (
                   <tr key={`${c.source ?? "task"}-${c.id}`} className="border-b border-border/60 transition-colors hover:bg-card/50">
                     <td className="px-3 py-2.5 text-sm">
-                      <button type="button" onClick={() => onOpenCase(c)} className="font-mono text-xs text-primary hover:underline">
+                      <button type="button" onClick={() => onOpenCase(c)} className="font-mono text-xs text-primary hover:underline min-h-11 inline-flex items-center">
                         {c.task_code ?? c.id.slice(0, 8)}
                       </button>
-                      <div className="max-w-[220px] truncate text-[11px] text-muted-foreground">{c.title ?? c.type}</div>
+                      <div className="max-w-[220px] truncate text-[12px] text-muted-foreground">{c.title ?? c.type}</div>
                     </td>
                     <td className="px-3 py-2.5 text-sm text-foreground">{c.agent_name ?? "—"}</td>
                     <td className="px-3 py-2.5 text-xs capitalize text-muted-foreground">{c.priority ?? "—"}</td>
@@ -231,11 +231,11 @@ export function SLAComplianceTable({
                       {remainingLabel(c.remaining_minutes)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={cn("rounded-full px-2 py-0.5 text-[11px]", STATE_META[c.sla_state].className)}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[12px]", STATE_META[c.sla_state].className)}>
                         {STATE_META[c.sla_state].label}
                       </span>
                       {c.source === "dispute" && (
-                        <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Dispute only</span>
+                        <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[12px] text-muted-foreground">Dispute only</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.updated_at)}</td>
@@ -245,7 +245,7 @@ export function SLAComplianceTable({
                         <button
                           type="button"
                           onClick={() => onEscalate(c)}
-                          className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
+                          className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
                         >
                           Escalate
                         </button>
@@ -254,7 +254,7 @@ export function SLAComplianceTable({
                           <button
                             type="button"
                             onClick={() => onRebalance(agent)}
-                            className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
+                            className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-h-11"
                           >
                             Rebalance
                           </button>

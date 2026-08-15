@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionStatusBadge } from "./TransactionStatusBadge";
 import type { BuyerTransactionRow } from "@/services/transactions.service";
 import type { Audience } from "@/lib/status-labels";
+import { keyActivate } from "@/lib/a11y";
 
 interface TransactionTableProps {
   transactions: BuyerTransactionRow[];
@@ -138,7 +139,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {transactions.map((tx) => (
-          <div
+          <div role="button" tabIndex={0} onKeyDown={keyActivate}
             key={tx.transaction_id}
             className="rounded-xl border bg-card p-4 space-y-3 cursor-pointer active:bg-accent/50 transition-colors"
             onClick={() => navigate(

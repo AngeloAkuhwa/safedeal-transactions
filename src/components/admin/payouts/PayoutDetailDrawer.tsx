@@ -59,7 +59,7 @@ function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-white text-sm font-medium leading-snug">{gate.label}</p>
-          <span className={`text-[10px] uppercase tracking-wide font-semibold shrink-0 ${
+          <span className={`text-[12px] uppercase tracking-wide font-semibold shrink-0 ${
             gate.pass ? "text-emerald-400" : "text-red-400"}`}>
             {gate.pass ? "Pass" : "Action needed"}
           </span>
@@ -267,7 +267,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   {detail.pricing.release_amount_mismatch && (
                     <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
                       <p className="text-amber-300 text-xs font-semibold">Release amount mismatch</p>
-                      <p className="text-amber-200/80 text-[11px] mt-1">
+                      <p className="text-amber-200/80 text-[12px] mt-1">
                         Agreement snapshot says{" "}
                         {detail.pricing.seller_payout != null
                           ? formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)
@@ -379,7 +379,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     className={
                       releaseEnabled
                         ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-11"
-                        : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed"
+                        : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed min-h-11"
                     }
                     disabled={!releaseEnabled || busy === "release"}
                     onClick={() => setConfirm("release")}
@@ -391,7 +391,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     className={
                       retryEnabled
                         ? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all justify-center min-h-11"
-                        : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center"
+                        : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center min-h-11"
                     }
                     disabled={!retryEnabled || busy === "retry"}
                     onClick={handleRetry}

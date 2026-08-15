@@ -83,7 +83,7 @@ export function PermissionDetailsDrawer({
                 <span>{override.permission_label}</span>
                 {override.privileged && <PermissionRiskBadge privileged size="xs" />}
               </div>
-              <div className="font-mono text-[11px] text-muted-foreground">{override.permission_key}</div>
+              <div className="font-mono text-[12px] text-muted-foreground">{override.permission_key}</div>
             </div>
             <div>
               <div className="text-xs uppercase text-muted-foreground">Type</div>
@@ -98,7 +98,7 @@ export function PermissionDetailsDrawer({
               <div className="flex flex-wrap items-center gap-2">
                 <PermissionSourceBadge source={override.source} />
                 {override.expires_at && (
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     Expires {new Date(override.expires_at).toLocaleString()}
                   </span>
                 )}
@@ -119,15 +119,15 @@ export function PermissionDetailsDrawer({
               <div className="text-muted-foreground">{override.reason ?? "—"}</div>
             </div>
             {!guard.ok && (guard as any).message && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">{(guard as any).message}</div>
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[12px] text-amber-200">{(guard as any).message}</div>
             )}
 
             {canEdit && environment && (
               <div className="space-y-3 rounded-md border border-border/60 bg-background/40 p-3">
-                <div className="text-[11px] font-semibold uppercase text-muted-foreground">Manage</div>
+                <div className="text-[12px] font-semibold uppercase text-muted-foreground">Manage</div>
                 <div className="flex items-end gap-2">
                   <label className="flex-1">
-                    <span className="mb-1 block text-[10px] uppercase text-muted-foreground">Extend by (days)</span>
+                    <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Extend by (days)</span>
                     <input value={extendDays} onChange={(e) => setExtendDays(e.target.value)} type="number" min={1} max={365}
                       className="h-11 w-full rounded-md border border-border bg-background px-2 text-xs" />
                   </label>
@@ -136,7 +136,7 @@ export function PermissionDetailsDrawer({
                   </Button>
                 </div>
                 <div>
-                  <span className="mb-1 block text-[10px] uppercase text-muted-foreground">Revoke reason</span>
+                  <span className="mb-1 block text-[12px] uppercase text-muted-foreground">Revoke reason</span>
                   <textarea value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} rows={2}
                     className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Required to revoke" />
                   <Button size="sm" variant="destructive" disabled={busy || !revokeReason.trim()} onClick={doRevoke} className="mt-2">

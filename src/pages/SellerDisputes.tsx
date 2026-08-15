@@ -16,6 +16,7 @@ import { ExportDisputesDialog } from "@/components/seller-disputes/ExportDispute
 import { TransactionPagination } from "@/components/transactions/TransactionPagination";
 import { getSellerDisputes, type SellerDisputeFilters as FiltersType } from "@/services/seller-disputes.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const SellerDisputes = () => {
   const [searchParams] = useSearchParams();
@@ -83,8 +84,16 @@ const SellerDisputes = () => {
 
   if (isLoading && !data) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-[100dvh] bg-background">
+        <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6">
+          <Skeleton className="h-8 w-52" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
+        </div>
       </div>
     );
   }
@@ -114,7 +123,7 @@ const SellerDisputes = () => {
       {/* Compact header */}
       <div className="bg-gradient-to-br from-sky-50/60 via-background to-amber-50/60 dark:from-sky-950/15 dark:via-background dark:to-amber-950/15 border-b border-border/60">
         <div className="sd-page py-3 sm:py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
           <h1 className="sd-page-title animate-fade-in">Disputes</h1>
           <p className="sd-page-sub max-w-2xl">
             Track buyer claims, submit your evidence, and follow dispute outcomes tied to your transactions and payouts.

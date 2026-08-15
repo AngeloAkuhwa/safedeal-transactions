@@ -42,6 +42,7 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { cn } from "@/lib/utils";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
+import { keyActivate } from "@/lib/a11y";
 
 /* ─── Helpers ─── */
 /* ─── 8-step progress tracker ─── */
@@ -89,8 +90,13 @@ function getStepState(stepKey: string, currentStatus: string): "completed" | "cu
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt || "Image preview"}
+      tabIndex={-1}
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
       <button
         className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition-colors min-h-11"
@@ -103,7 +109,6 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
         src={src}
         alt={alt}
         className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       />
     </div>
   );
@@ -257,7 +262,7 @@ const BuyerTransactionTracking = () => {
                         )} />
                       </div>
                       <span className={cn(
-                        "text-[10px] font-semibold text-center leading-tight max-w-[64px]",
+                        "text-[12px] font-semibold text-center leading-tight max-w-[64px]",
                         state === "completed" && "text-success",
                         state === "current" && "text-primary",
                         state === "upcoming" && "text-muted-foreground/50",
@@ -558,7 +563,7 @@ const BuyerTransactionTracking = () => {
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
                       <span>{FEE_NAME}{typeof pricing.service_fee_rate === "number" ? ` (${(pricing.service_fee_rate * 100).toFixed(1)}%)` : ""}</span>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>

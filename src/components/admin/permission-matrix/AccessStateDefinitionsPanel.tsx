@@ -27,7 +27,7 @@ export function AccessStateDefinitionsPanel() {
               <s.Icon className="h-5 w-5" />
             </span>
             <div className="text-sm font-semibold text-foreground">{s.title}</div>
-            <div className="text-[11px] leading-snug text-muted-foreground">{s.desc}</div>
+            <div className="text-[12px] leading-snug text-muted-foreground">{s.desc}</div>
           </div>
         ))}
       </div>

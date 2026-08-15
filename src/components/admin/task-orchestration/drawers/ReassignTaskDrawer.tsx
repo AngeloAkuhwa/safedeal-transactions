@@ -119,11 +119,11 @@ function ImpactBox({ title, agent, delta }: { title: string; agent: AgentRosterE
   const next = agent ? Math.max(0, agent.active + delta) : 0;
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{title}</div>
       <div className="mt-1 text-sm font-medium text-foreground">
         {agent ? shortNameOf(agent) : <span className="text-muted-foreground">—</span>}
       </div>
-      <div className="mt-1 text-[11px] text-muted-foreground">
+      <div className="mt-1 text-[12px] text-muted-foreground">
         {agent ? `${agent.active} → ${next} / ${agent.max_active}` : "no target selected"}
       </div>
     </div>
