@@ -198,18 +198,23 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           </h3>
 
           {/* Price + cart */}
-          {/* Signed in at 360px the grid gives a 128px card and ~100px of content
-              box. A seven-figure naira price is ~104px on its own, so it used to
-              run past the card and get cut off by `overflow-hidden` — silently,
-              because the app hides horizontal scrollbars globally. Price is the
-              one field every user looks for, so it never truncates: the row
-              wraps and the cart button drops below it instead. */}
+          {/* Price has to FIT, not just have a box that fits.
+              Signed in at 360px the grid gives a 128px card and ~98px of content
+              box, but `₦1,250,000.00` is 114px of glyphs at 16px and
+              `₦12,500,000.00` is 124px — so the text was cut off by the card's
+              `overflow-hidden` even after the box was allowed to shrink. Nothing
+              showed it: the app hides horizontal scrollbars globally.
+              Price is the one field every user looks for, so it neither
+              truncates nor wraps mid-number. Instead the figure is fluid, with a
+              12px floor (the legibility minimum this repo enforces) and a 16px
+              ceiling, so it scales down to fit the card rather than overflowing
+              it. `whitespace-nowrap` keeps a naira figure on one line. */}
           <div className="mt-auto flex flex-wrap items-end justify-between gap-2">
             <div className="min-w-0">
               <span className="text-xs text-muted-foreground">
                 {outOfStock ? "Last price" : "Price"}
               </span>
-              <p className="text-base font-bold text-foreground leading-tight tabular-nums">
+              <p className="whitespace-nowrap text-[clamp(0.75rem,3.6vw,1rem)] font-bold leading-tight tabular-nums text-foreground">
                 {formatPrice(product.unit_price, product.currency_code)}
               </p>
             </div>
