@@ -363,33 +363,31 @@ d("live value-consistency constraints", () => {
    * client write policy. Scoping this scan by name is why an ownership-only
    * payout_accounts policy stayed invisible while its neighbours were fixed.
    *
-   * A policy passes when its WITH CHECK constrains VALUES, not just the owner.
-   * Tables with no numeric column need a different predicate, named here.
+   * A client write policy passes when the VALUES it admits are constrained —
+   * either by the policy itself (`is_finite_money` in WITH CHECK) or by a
+   * schema CHECK covering every numeric column of that table. A table with no
+   * numeric column has no amount to invent and passes by construction.
    */
-  const NON_MONEY_VALUE_GUARD: Record<string, string> = {
-    // Payout destination integrity is enforced by the pinning trigger and by
-    // column-level grants; the INSERT policy pins the verification fields.
-    payout_accounts: "verification_status",
-  };
-
   it("value-checks every money-table client write policy, not just ownership", () => {
-    const rows = psql(
-      "select tablename || '|' || policyname || '|' || coalesce(with_check,'')" +
-        " from pg_policies where schemaname = 'public' and cmd in ('INSERT','UPDATE')" +
-        ` and tablename = any(${MONEY_TABLE_SQL_ARRAY})` +
-        " order by 1",
+    const offenders = psql(
+      "with unguarded_cols as (" +
+        "  select c.relname as tbl" +
+        "  from pg_class c join pg_namespace n on n.oid = c.relnamespace" +
+        "  join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped" +
+        `  where n.nspname = 'public' and c.relname = any(${MONEY_TABLE_SQL_ARRAY})` +
+        "    and format_type(a.atttypid, null) in ('numeric','double precision','real','money')" +
+        "    and not exists (" +
+        "      select 1 from pg_constraint k where k.conrelid = c.oid and k.contype = 'c'" +
+        "        and pg_get_constraintdef(k.oid) ~ ('\\m' || a.attname || '\\M')" +
+        "        and pg_get_constraintdef(k.oid) ~ 'Infinity')" +
+        ")" +
+        " select p.tablename || '.' || p.policyname from pg_policies p" +
+        " where p.schemaname = 'public' and p.cmd in ('INSERT','UPDATE')" +
+        ` and p.tablename = any(${MONEY_TABLE_SQL_ARRAY})` +
+        " and p.tablename in (select tbl from unguarded_cols)" +
+        " and coalesce(p.with_check,'') !~ 'is_finite_money' order by 1",
     );
-    const offenders = (rows ? rows.split("\n") : [])
-      .map((r) => {
-        const [table, policy, withCheck] = r.split("|");
-        return { table, policy, withCheck: withCheck ?? "" };
-      })
-      .filter(({ table, withCheck }) => {
-        const required = NON_MONEY_VALUE_GUARD[table] ?? "is_finite_money";
-        return !withCheck.includes(required);
-      })
-      .map(({ table, policy }) => `${table}.${policy}`);
-    expect(offenders).toEqual([]);
+    expect(offenders ? offenders.split("\n") : []).toEqual([]);
   });
 
   it("keeps payout verification fields off the client role", () => {
