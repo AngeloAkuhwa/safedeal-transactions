@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { ListSkeleton } from "@/components/common/PageSkeleton";
 
 interface ThreadMessage {
   id: string;
@@ -150,9 +151,7 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
 
       <div className="max-h-[420px] overflow-y-auto p-4 sm:p-6 space-y-4 bg-background">
         {isLoading && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
+          <ListSkeleton label="Loading messages" rows={3} />
         )}
         {isError && (
           <div className="text-center text-sm text-destructive py-8">

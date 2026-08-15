@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft, Loader2, Eye, ExternalLink, Pencil,
-  Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive,
-  ImageIcon, AlignLeft, FileText, UserCheck, EyeOff,
-  Clock, Bookmark, BarChart3, Package, CheckCircle2, Star,
-} from "lucide-react";
+import { ArrowLeft, Eye, ExternalLink, Pencil, Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive, ImageIcon, AlignLeft, FileText, UserCheck, EyeOff, Clock, Bookmark, BarChart3, Package, CheckCircle2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
@@ -20,6 +15,7 @@ import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { formatMoney } from "@/lib/format";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const formatPrice = (amount: number) => formatMoney(amount, "NGN");
 
@@ -122,9 +118,7 @@ const SellerProductPreview = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading the product preview" />
     );
   }
 

@@ -37,6 +37,7 @@ import {
   resolveItemCondition,
   TONE_CLASSNAMES,
 } from "@/lib/status-labels";
+import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
 
 const fmt = (amount: number | undefined | null, currency: string) =>
   formatMoney(amount ?? 0, currency);
@@ -87,9 +88,7 @@ const SellerTransactionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <SummaryPageSkeleton label="Loading this transaction" />
     );
   }
 

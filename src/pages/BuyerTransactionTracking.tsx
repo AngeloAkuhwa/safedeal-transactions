@@ -3,28 +3,7 @@ import { formatMoney } from "@/lib/format";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Shield,
-  Clock,
-  CheckCircle,
-  Package,
-  Truck,
-  MapPin,
-  AlertTriangle,
-  FileText,
-  HelpCircle,
-  ExternalLink,
-  X,
-  BadgeCheck,
-  Star,
-  Lock,
-  Loader2,
-  RefreshCw,
-  Scale,
-  Image as ImageIcon,
-  ChevronRight,
-} from "lucide-react";
+import { ArrowLeft, Shield, Clock, CheckCircle, Package, Truck, MapPin, AlertTriangle, FileText, HelpCircle, ExternalLink, X, BadgeCheck, Star, Lock, RefreshCw, Scale, Image as ImageIcon, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -43,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
 import { keyActivate } from "@/lib/a11y";
+import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
 
 /* ─── Helpers ─── */
 /* ─── 8-step progress tracker ─── */
@@ -131,9 +111,7 @@ const BuyerTransactionTracking = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <SummaryPageSkeleton label="Loading delivery tracking" />
     );
   }
 

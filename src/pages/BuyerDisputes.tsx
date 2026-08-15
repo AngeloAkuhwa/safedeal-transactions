@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Loader2, RefreshCw, Shield, Check, HelpCircle } from "lucide-react";
+import { RefreshCw, Shield, Check, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import { supportLink } from "@/lib/support/support-copy";
@@ -16,6 +16,7 @@ import {
   type BuyerDisputeFilters as DisputeFiltersType,
 } from "@/services/disputes.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { ListSkeleton } from "@/components/common/PageSkeleton";
 
 const BuyerDisputes = () => {
   const { buyerName, avatarUrl } = useBuyerIdentity();
@@ -153,9 +154,7 @@ const BuyerDisputes = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-            </div>
+            <ListSkeleton label="Loading your disputes" rows={3} />
           )}
 
           {/* Error */}

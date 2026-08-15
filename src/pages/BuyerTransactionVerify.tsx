@@ -2,15 +2,7 @@ import { useState, useEffect } from "react";
 import { formatMoney } from "@/lib/format";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Loader2,
-  ShieldAlert,
-  Clock,
-  AlertTriangle,
-  X,
-  Lock,
-  FileText,
-} from "lucide-react";
+import { ShieldAlert, Clock, AlertTriangle, X, Lock, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -23,6 +15,7 @@ import { SafeDealReviewNotice } from "@/components/verification/SafeDealReviewNo
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
 import { resolveTransactionLabel, resolveMoneyLabel } from "@/lib/status-labels";
+import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
 
 const BuyerTransactionVerify = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -66,9 +59,7 @@ const BuyerTransactionVerify = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <SummaryPageSkeleton label="Loading the item to verify" />
     );
   }
 
@@ -77,9 +68,7 @@ const BuyerTransactionVerify = () => {
     // If we're about to redirect, show a loading state instead of error
     if ((error as any)?.redirect) {
       return (
-        <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <SummaryPageSkeleton label="Loading the item to verify" />
       );
     }
     return (

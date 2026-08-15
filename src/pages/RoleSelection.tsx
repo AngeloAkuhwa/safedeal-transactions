@@ -13,6 +13,7 @@ import { getSession, signOut } from "@/services/auth.service";
 import { getUserRoles, assignRole, checkRoleExists } from "@/services/role.service";
 import type { SelectableRole } from "@/services/role.service";
 import { isInternalUser } from "@/lib/internal-role";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const buyerFeatures = [
   { icon: Shield, title: "Payment Protection", description: "Funds held until you verify receipt" },
@@ -127,9 +128,7 @@ const RoleSelection = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading your account" />
     );
   }
 

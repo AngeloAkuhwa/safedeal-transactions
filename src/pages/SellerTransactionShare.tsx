@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -8,6 +8,7 @@ import { TransactionSuccess } from "@/components/seller/TransactionSuccess";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const SellerTransactionShare = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -28,9 +29,7 @@ const SellerTransactionShare = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading the share link" />
     );
   }
 

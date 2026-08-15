@@ -2,7 +2,7 @@
 // Renders only loading + error states — the happy path always navigates away.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Loader2, Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
+import { Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import { viewOffer, claimOffer } from "@/services/buyer-offers.service";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 type Item = {
   id: string;
@@ -93,10 +95,12 @@ export default function OfferClaimLanding() {
   // Loading
   if (loading || authed === null || claiming) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground">
+      <div className="min-h-[100dvh] bg-background">
+        <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-10">
+          <BlockSkeleton label={claiming ? "Claiming your offer" : "Loading the offer"} lines={2} />
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <p className="text-center text-sm text-muted-foreground">
             {claiming ? "Claiming your offer…" : "Loading offer…"}
           </p>
         </div>
@@ -173,12 +177,20 @@ export default function OfferClaimLanding() {
   // ready_to_claim fallback (anon → just signed in but auto-claim didn't fire)
   if (data.scenario === "ready_to_claim") {
     return (
+      /* Nothing is loading here — the buyer has just signed in and auto-claim
+         did not fire, so this is a prompt, not a wait. The old spinner said
+         "hold on" while the button said "act", which is a contradiction the
+         user has to resolve. State the situation and give one clear action. */
       <div className="min-h-[100dvh] bg-background flex items-center justify-center p-6">
         <Card className="max-w-md w-full">
-          <CardContent className="p-6 text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <Button onClick={runClaim} disabled={claiming}>
-              Continue to offer <ArrowRight className="h-4 w-4 ml-1.5" />
+          <CardContent className="space-y-4 p-6 text-center">
+            <h1 className="text-xl font-semibold text-foreground">You're signed in</h1>
+            <p className="text-sm text-muted-foreground">
+              One more tap to add this offer to your account.
+            </p>
+            <Button onClick={runClaim} disabled={claiming} className="w-full">
+              {claiming ? "Claiming…" : "Continue to offer"}
+              {!claiming && <ArrowRight className="ml-1.5 h-4 w-4" />}
             </Button>
           </CardContent>
         </Card>

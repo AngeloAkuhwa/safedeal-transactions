@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, ChevronRight } from "lucide-react";
+import { RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { SellerNav } from "@/components/seller/SellerNav";
@@ -15,6 +15,7 @@ import { SellerQuickActions } from "@/components/seller/SellerQuickActions";
 import { SellerTrustBanner } from "@/components/seller/SellerTrustBanner";
 import { Footer } from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const SellerDashboard = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -38,9 +39,7 @@ const SellerDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-success" />
-      </div>
+      <PageSkeleton label="Loading your dashboard" />
     );
   }
 

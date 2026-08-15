@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, ChevronRight, ArrowLeft } from "lucide-react";
+import { RefreshCw, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -18,6 +18,7 @@ import { AgreementSnapshotSection } from "@/components/disputes/AgreementSnapsho
 import { DeliveryProofSection } from "@/components/disputes/DeliveryProofSection";
 import { getDisputeById } from "@/services/disputes.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { ListSkeleton } from "@/components/common/PageSkeleton";
 
 function formatDisputeRef(id: string): string {
   return `DSP-${id.substring(0, 8).toUpperCase()}`;
@@ -58,9 +59,7 @@ const BuyerDisputeDetail = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <ListSkeleton label="Loading this dispute" rows={3} />
           )}
 
           {/* Error */}

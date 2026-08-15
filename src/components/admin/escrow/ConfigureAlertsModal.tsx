@@ -12,6 +12,7 @@ import {
   getEscrowAlertThresholds, updateEscrowAlertThresholds,
 } from "@/services/admin-escrow-alerts.service";
 import type { EscrowAlertThresholds } from "@/services/admin-escrow.service";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 interface Props {
   open: boolean;
@@ -77,9 +78,7 @@ export function ConfigureAlertsModal({ open, onOpenChange, initial, onSaved }: P
         </DialogHeader>
 
         {loading || !values ? (
-          <div className="flex items-center justify-center py-10 text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading…
-          </div>
+          <BlockSkeleton label="Loading alert settings" lines={4} className="py-4" />
         ) : (
           <div className="space-y-4 py-2">
             {FIELDS.map((f) => (
