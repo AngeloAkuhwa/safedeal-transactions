@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { MIN_TARGET_PX, scanRepo, scanSource, measure, classNamesOf, readOpeningTag } from "./helpers/touch-target-scan";
+import {
+  MIN_TARGET_PX,
+  MIN_FONT_PX,
+  scanRepo,
+  scanSource,
+  scanKeyboardRepo,
+  scanFontRepo,
+  measure,
+  classNamesOf,
+  readOpeningTag,
+} from "./helpers/touch-target-scan";
 
 const ROOT = join(process.cwd(), "src");
 
@@ -70,6 +80,24 @@ describe("mobile touch targets", () => {
         }
       });
     }
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+});
+
+describe("keyboard operability", () => {
+  it("every clickable non-interactive element is focusable and key-activatable", () => {
+    const violations = scanKeyboardRepo("src")
+      .filter((v) => !v.file.includes("__tests__"))
+      .map((v) => `${v.file}:${v.line} <${v.tag}> ${v.reason}`);
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+});
+
+describe("legibility floor", () => {
+  it(`ships no arbitrary font size below ${MIN_FONT_PX}px`, () => {
+    const violations = scanFontRepo("src")
+      .filter((v) => !v.file.includes("__tests__"))
+      .map((v) => `${v.file}:${v.line} ${v.reason}`);
     expect(violations, violations.join("\n")).toEqual([]);
   });
 });
