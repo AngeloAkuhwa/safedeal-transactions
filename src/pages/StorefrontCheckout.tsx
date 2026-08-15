@@ -209,7 +209,7 @@ const StorefrontCheckout = () => {
             <div className="flex gap-4">
               <div className="h-24 w-24 rounded-xl overflow-hidden bg-muted shrink-0">
                 {primaryImage ? (
-                  <ProductImage url={primaryImage} alt={product.title} rendition="detail" sizes="(max-width: 640px) 100vw, 480px" loading="eager" />
+                  <ProductImage url={primaryImage} alt={product.title} rendition="card" sizes="96px" loading="eager" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
                     <Package className="h-8 w-8 text-muted-foreground/20" />

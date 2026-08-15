@@ -371,7 +371,7 @@ const CartCheckoutReview = () => {
                           <div key={item.id} className="flex gap-3 py-3">
                             <div className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0">
                               {image ? (
-                                <ProductImage url={image} alt={title} rendition="card" sizes="(max-width: 640px) 96px, 128px" />
+                                <ProductImage url={image} alt={title} rendition="card" sizes="64px" />
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center">
                                   <Package className="h-6 w-6 text-muted-foreground/30" />

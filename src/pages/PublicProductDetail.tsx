@@ -685,6 +685,7 @@ const PublicProductDetail = () => {
         currency: product.currency_code,
       }}
       sellerName={seller.full_name}
+      feeDisclosure={pricingCopy.feeDisclosure}
       returnPath={location.pathname}
       quantity={quantity}
     />
