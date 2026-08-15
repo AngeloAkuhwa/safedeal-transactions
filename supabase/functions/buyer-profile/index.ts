@@ -58,7 +58,13 @@ async function computePermissions(
   const level = (verification.verification_level as string) || "unverified";
   const phoneVerified = !!verification.phone_verified;
   const hasLocation = !!(profile.state_name && profile.city_name);
-  const isRegionEligible = !!profile.is_region_eligible;
+  // Derived, not read. `profiles.is_region_eligible` is a display cache that
+  // this function itself writes on profile update; reading it here gave the
+  // UI's pay-button gate a different source of truth from the database's
+  // `is_user_region_allowed`, so the two could disagree — and the UI would be
+  // the one telling the buyer they may pay.
+  const { data: regionAllowed } = await adminClient.rpc("is_user_region_allowed", { _user_id: userId });
+  const isRegionEligible = !!regionAllowed;
 
   // Count active transactions
   let activeTransactionCount = 0;
