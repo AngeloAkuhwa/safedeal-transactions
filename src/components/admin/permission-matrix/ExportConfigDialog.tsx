@@ -149,7 +149,7 @@ export function ExportConfigDialog({
                 <div className="flex items-center gap-2"><RadioGroupItem value="json" id="f-j" /><Label htmlFor="f-j" className="text-sm">JSON</Label></div>
               </RadioGroup>
             </div>
-            <div className="rounded-md border border-border/60 bg-background/40 p-2 text-[12px] text-muted-foreground">
+            <div className="rounded-md border border-border/60 bg-background/40 p-2 text-xs text-muted-foreground">
               {rows.length} rows will be exported.
             </div>
           </div>

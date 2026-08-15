@@ -62,7 +62,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
               <div className={`h-8 w-8 rounded-lg ${card.iconBg} flex items-center justify-center`}>
                 <card.icon className={`h-4 w-4 ${card.iconColor}`} />
               </div>
-              <span className={`text-[12px] font-semibold ${card.badgeColor} ${card.badgeBg} px-1.5 py-0.5 rounded-full`}>
+              <span className={`text-xs font-semibold ${card.badgeColor} ${card.badgeBg} px-1.5 py-0.5 rounded-full`}>
                 {card.badge}
               </span>
             </div>

@@ -67,7 +67,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
         right={
           <div className="inline-flex items-center gap-2">
             {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
-            <div className="inline-flex rounded-md border border-border bg-muted/60 p-0.5 text-[12px]">
+            <div className="inline-flex rounded-md border border-border bg-muted/60 p-0.5 text-xs">
             {(["7D", "30D", "90D"] as Win[]).map((w) => (
               <button
                 key={w}
@@ -97,7 +97,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
 
       <ChartCard
         title="Escrow, Releases & Refunds"
-        right={<span className="text-[12px] text-muted-foreground">Last 30 days</span>}
+        right={<span className="text-xs text-muted-foreground">Last 30 days</span>}
       >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={escrow.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>

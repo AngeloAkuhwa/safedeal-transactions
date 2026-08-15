@@ -31,7 +31,7 @@ export function AssignmentHistoryDrawer({
           )}
           {entries.map(e => (
             <div key={e.id} className="rounded-xl border border-border/60 bg-card/40 p-3">
-              <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">{e.action}</span>
                 <span>{e.when}</span>
               </div>

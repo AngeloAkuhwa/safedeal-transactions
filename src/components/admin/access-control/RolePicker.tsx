@@ -53,7 +53,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium text-foreground">{ROLE_LABEL[r.key]}</span>
                     {r.protected && (
-                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[12px] font-semibold text-amber-300">
+                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
                         Protected
                       </span>
                     )}
@@ -68,7 +68,7 @@ export function RolePicker({ roles, primaryRole, onChange }: Props) {
                       </button>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{r.description}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{r.description}</p>
                 </div>
               </div>
             </div>

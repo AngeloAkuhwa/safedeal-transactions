@@ -111,7 +111,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Featured placement (paid) */}
           {product.is_featured && (
-            <Badge className="absolute left-2.5 top-2.5 border-none bg-primary/90 text-[12px] text-primary-foreground backdrop-blur-sm">
+            <Badge className="absolute left-2.5 top-2.5 border-none bg-primary/90 text-xs text-primary-foreground backdrop-blur-sm">
               <Star className="h-3 w-3 fill-current" />
               Featured
             </Badge>
@@ -119,7 +119,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Category badge */}
           {categoryName && !product.is_featured && (
-            <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none text-[12px]">
+            <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none text-xs">
               {categoryName}
             </Badge>
           )}
@@ -153,7 +153,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             >
               <div
                 className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-bold text-white",
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white",
                   getAvatarColor(seller.full_name)
                 )}
               >
@@ -162,22 +162,22 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               <span className="truncate text-xs text-muted-foreground hover:text-foreground transition-colors">{seller.full_name}</span>
             </button>
             {sellerTrustClaim && (
-              <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-primary">
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {sellerTrustClaim}
               </span>
             )}
             <div className="ml-auto">
               {outOfStock ? (
-                <Badge variant="destructive" className="text-[12px] px-1.5 py-0">
+                <Badge variant="destructive" className="text-xs px-1.5 py-0">
                   Unavailable
                 </Badge>
               ) : lowStock ? (
-                <Badge className="bg-warning/15 text-warning border-warning/30 text-[12px] px-1.5 py-0">
+                <Badge className="bg-warning/15 text-warning border-warning/30 text-xs px-1.5 py-0">
                   Low Stock
                 </Badge>
               ) : (
-                <Badge className="bg-success/15 text-success border-success/30 text-[12px] px-1.5 py-0">
+                <Badge className="bg-success/15 text-success border-success/30 text-xs px-1.5 py-0">
                   In Stock
                 </Badge>
               )}
@@ -192,7 +192,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           {/* Price + cart */}
           <div className="mt-auto flex items-end justify-between">
             <div>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {outOfStock ? "Last price" : "Price"}
               </span>
               <p className="text-base font-bold text-foreground leading-tight">

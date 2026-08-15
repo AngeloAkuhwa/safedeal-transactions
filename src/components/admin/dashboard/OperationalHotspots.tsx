@@ -35,7 +35,7 @@ export function OperationalHotspots({ items }: Props) {
             <button
               type="button"
               onClick={() => go(item.action_href, item.label)}
-              className={`mt-2 inline-flex w-full items-center justify-center rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${SEVERITY_BTN[item.severity]} min-h-11`}
+              className={`mt-2 inline-flex w-full items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${SEVERITY_BTN[item.severity]} min-h-11`}
             >
               {item.action_label}
             </button>

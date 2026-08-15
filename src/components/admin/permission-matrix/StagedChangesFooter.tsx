@@ -48,9 +48,9 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
           <div className="flex-1 min-w-[200px]">
             <div className="flex items-center gap-2 text-sm font-semibold">
               {changes.length} change{changes.length === 1 ? "" : "s"} staged across {byRole.size} role{byRole.size === 1 ? "" : "s"}
-              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12px] text-muted-foreground">{environment}</span>
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{environment}</span>
               {requiresApproval && (
-                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[12px] font-medium text-amber-300">Approval required</span>
+                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-300">Approval required</span>
               )}
             </div>
             <button type="button" onClick={() => setExpanded((e) => !e)} className="mt-0.5 inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-foreground">
@@ -78,7 +78,7 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
           <div className="mt-3 max-h-56 overflow-auto rounded-md border border-border/60 bg-background/30 p-2">
             {[...byRole.entries()].map(([role, list]) => (
               <div key={role} className="mb-2 last:mb-0">
-                <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {ROLE_LABEL[role]} · {list.length}
                 </div>
                 <ul className="mt-1 space-y-0.5">
@@ -86,7 +86,7 @@ export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT
                     <li key={`${c.role}:${c.permissionKey}`} className="flex items-center gap-2 text-xs">
                       <span
                         className={cn(
-                          "inline-flex h-5 min-w-[52px] items-center justify-center rounded-full px-2 text-[12px] font-semibold",
+                          "inline-flex h-5 min-w-[52px] items-center justify-center rounded-full px-2 text-xs font-semibold",
                           c.op === "grant" ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300",
                         )}
                       >

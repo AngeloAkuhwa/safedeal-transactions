@@ -170,14 +170,14 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
             const muted = b.grantedCount === 0;
             return (
               <div key={b.key} className="grid grid-cols-[6.25rem_1fr_auto] items-center gap-2">
-                <div className={`flex items-center gap-1.5 text-[12px] ${muted ? "text-muted-foreground" : b.text}`}>
+                <div className={`flex items-center gap-1.5 text-xs ${muted ? "text-muted-foreground" : b.text}`}>
                   <Icon className="h-3 w-3" />
                   {b.label}
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted/40">
                   <div className={`h-full ${b.fill} transition-all`} style={{ width: `${pct}%` }} />
                 </div>
-                <div className="text-[12px] tabular-nums text-muted-foreground">
+                <div className="text-xs tabular-nums text-muted-foreground">
                   <span className={muted ? "" : "text-foreground/80"}>{b.grantedCount}</span>
                   <span>/{b.total}</span>
                   <span className="ml-1.5">· {word}</span>
@@ -196,13 +196,13 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
           {shownModules.map((m) => (
             <span
               key={m.key}
-              className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[12px] text-foreground/80 transition-colors hover:bg-muted"
+              className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs text-foreground/80 transition-colors hover:bg-muted"
             >
               {m.label}
             </span>
           ))}
           {extraModules > 0 && (
-            <span className="rounded-md border border-dashed border-border px-2 py-0.5 text-[12px] text-muted-foreground">
+            <span className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground">
               +{extraModules} more
             </span>
           )}
@@ -217,7 +217,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
             const modulesGranted = Array.from(b.byModule.entries());
             return (
               <div key={b.key} className="grid grid-cols-[5.5rem_1fr] items-start gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className={`h-1.5 w-1.5 rounded-full ${b.dot}`} />
                   <span>{b.label}</span>
                 </div>
@@ -255,20 +255,20 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
               <div
                 key={p.key}
                 title={p.label}
-                className="flex items-center gap-1.5 text-[12px] text-muted-foreground"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
               >
                 <Ban className="h-3 w-3 text-rose-400/80" />
                 <span className="font-mono">{p.key}</span>
               </div>
             ))}
             {extraRestricted > 0 && (
-              <div className="pl-4 text-[12px] text-muted-foreground">+{extraRestricted} more restricted</div>
+              <div className="pl-4 text-xs text-muted-foreground">+{extraRestricted} more restricted</div>
             )}
           </div>
         </section>
       )}
 
-      <div className="flex items-center gap-1.5 border-t border-border/60 pt-3 text-[12px] text-muted-foreground">
+      <div className="flex items-center gap-1.5 border-t border-border/60 pt-3 text-xs text-muted-foreground">
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/70" />
         Access changes are logged to the audit trail.
       </div>
@@ -278,7 +278,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
       {children}
     </div>
   );

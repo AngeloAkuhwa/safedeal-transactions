@@ -93,9 +93,9 @@ export function AlertSettingsDrawer({ open, onOpenChange }: { open: boolean; onO
               <div key={a.key} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 bg-card/50 p-3">
                 <div className="flex-1">
                   <Label className="text-sm font-medium">{a.label}</Label>
-                  <p className="mt-0.5 text-[12px] text-muted-foreground">{a.desc}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{a.desc}</p>
                   {disabled && (
-                    <p className="mt-1 text-[12px] text-amber-400">You need permissions.view to receive this alert.</p>
+                    <p className="mt-1 text-xs text-amber-400">You need permissions.view to receive this alert.</p>
                   )}
                 </div>
                 <Switch

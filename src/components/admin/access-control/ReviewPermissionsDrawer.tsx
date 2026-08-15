@@ -73,11 +73,11 @@ function SectionCard({
           </div>
           <div>
             <div className="text-sm font-semibold text-foreground">{title}</div>
-            {subtitle && <div className="text-[12px] text-muted-foreground">{subtitle}</div>}
+            {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
           </div>
         </div>
         {typeof count === "number" && (
-          <Badge variant="outline" className="text-[12px]">{count}</Badge>
+          <Badge variant="outline" className="text-xs">{count}</Badge>
         )}
       </div>
       {children}
@@ -153,10 +153,10 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
                 <div className="space-y-2">
                   {inheritedGroups.map((g) => (
                     <div key={g.module}>
-                      <div className="mb-1 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{g.label}</div>
+                      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{g.label}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {g.keys.map((k) => (
-                          <span key={k} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 font-mono text-[12px] text-foreground/80">
+                          <span key={k} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 font-mono text-xs text-foreground/80">
                             {k.split(".")[1]}
                           </span>
                         ))}
@@ -228,13 +228,13 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
                     <span
                       key={k}
                       title={k}
-                      className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-mono text-[12px] text-rose-200"
+                      className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-mono text-xs text-rose-200"
                     >
                       <Ban className="h-3 w-3" /> {k}
                     </span>
                   ))}
                   {restrictedAll.length > RESTRICTED_CAP && (
-                    <span className="rounded-md border border-dashed border-border px-2 py-0.5 text-[12px] text-muted-foreground">
+                    <span className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground">
                       +{restrictedAll.length - RESTRICTED_CAP} more
                     </span>
                   )}
@@ -269,7 +269,7 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
               )}
             </SectionCard>
 
-            <div className="flex items-center gap-1.5 pt-1 text-[12px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/70" />
               This view is read-only. All requests are audited.
             </div>
@@ -278,7 +278,7 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
           {/* Sticky footer */}
           <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2 text-[12px]">
+              <div className="flex flex-wrap gap-2 text-xs">
                 <Button variant="ghost" size="sm" onClick={() => navigate("/admin/permission-matrix")}>
                   <ExternalLink className="mr-1 h-3.5 w-3.5" /> Open Permission Matrix
                 </Button>
@@ -331,16 +331,16 @@ function OverrideList({
   const chip = tone === "emerald" ? "text-emerald-300" : "text-rose-300";
   return (
     <div className={`rounded-lg border ${toneClass} p-2.5 space-y-1.5`}>
-      <div className={`flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wider ${chip}`}>
+      <div className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider ${chip}`}>
         {icon} {title} ({items.length})
       </div>
       {items.length === 0 ? (
-        <div className="text-[12px] text-muted-foreground">None.</div>
+        <div className="text-xs text-muted-foreground">None.</div>
       ) : items.map((o) => (
         <div key={o.permission_key} className="flex items-start justify-between gap-2 rounded-md bg-background/40 px-2 py-1.5">
           <div className="min-w-0">
-            <div className="truncate font-mono text-[12px] text-foreground/90">{o.permission_key}</div>
-            <div className="truncate text-[12px] text-muted-foreground">
+            <div className="truncate font-mono text-xs text-foreground/90">{o.permission_key}</div>
+            <div className="truncate text-xs text-muted-foreground">
               by {o.granted_by_name ?? "Admin"} · {relativeTime(o.granted_at)}
             </div>
           </div>
@@ -368,10 +368,10 @@ function PendingRow({ req, onView }: { req: AccessChangeRequest; onView: () => v
     <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5">
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 text-xs">
-          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-[12px]">{kindLabel}</Badge>
+          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs">{kindLabel}</Badge>
           <span className="truncate text-foreground/80">{summary}</span>
         </div>
-        <div className="truncate text-[12px] text-muted-foreground">
+        <div className="truncate text-xs text-muted-foreground">
           by {req.requested_by_name ?? "Admin"} · {relativeTime(req.created_at)}
         </div>
       </div>

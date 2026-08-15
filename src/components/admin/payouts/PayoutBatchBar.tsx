@@ -22,7 +22,7 @@ export function PayoutBatchBar({ selected, onClear, onProcess, processing }: Pro
           </div>
           <div className="min-w-0">
             <p className="text-xs sm:text-sm font-semibold truncate">{selected.length} selected</p>
-            <p className="text-[12px] sm:text-xs text-muted-foreground truncate">Total: {formatMoney(total, "NGN")}</p>
+            <p className="text-xs sm:text-xs text-muted-foreground truncate">Total: {formatMoney(total, "NGN")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

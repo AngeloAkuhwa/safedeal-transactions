@@ -121,7 +121,7 @@ export default function AdminAccessApprovals() {
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="w-full text-sm sd-stack">
-            <thead className="bg-muted/40 text-[12px] uppercase tracking-wider text-muted-foreground">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 text-left">Type</th>
                 <th className="px-4 py-2 text-left">Target user</th>
@@ -135,7 +135,7 @@ export default function AdminAccessApprovals() {
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-border/60 hover:bg-muted/20">
                   <td className="px-4 py-2">
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-[12px]">
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs">
                       {typeLabel(r.change_type)}
                     </Badge>
                   </td>
@@ -274,7 +274,7 @@ function ReviewDrawer({
                   <ul className="space-y-0.5 text-red-100">
                     {safeguardsQ.data.map((s) => (
                       <li key={s.code}>
-                        <span className="font-mono text-[12px] uppercase tracking-wider text-red-300">Rule {s.rule}</span>
+                        <span className="font-mono text-xs uppercase tracking-wider text-red-300">Rule {s.rule}</span>
                         {" — "}
                         {s.message}
                       </li>
@@ -285,7 +285,7 @@ function ReviewDrawer({
 
               <div>
                 <Label className="text-xs text-muted-foreground">Raw payload</Label>
-                <pre className="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/20 p-3 text-[12px]">
+                <pre className="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/20 p-3 text-xs">
 {JSON.stringify(request.payload, null, 2)}
                 </pre>
               </div>
@@ -338,7 +338,7 @@ function ReviewDrawer({
 function Meta({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm text-foreground/90">{value}</div>
     </div>
   );
@@ -350,7 +350,7 @@ function DiffPanel({ diff }: { diff: RequestDiff }) {
       <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">
         {diff.label} <ArrowRight className="h-3 w-3 text-muted-foreground" />
       </div>
-      <div className="grid grid-cols-2 gap-3 text-[12px]">
+      <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
           <div className="mb-1 uppercase tracking-wider text-muted-foreground">Before</div>
           <ul className="space-y-0.5 text-foreground/80">
@@ -365,7 +365,7 @@ function DiffPanel({ diff }: { diff: RequestDiff }) {
         </div>
       </div>
       {(diff.added.length > 0 || diff.removed.length > 0) && (
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
           {diff.added.map((v) => (
             <span key={`add-${v}`} className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">
               + {v}

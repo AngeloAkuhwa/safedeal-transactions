@@ -93,7 +93,7 @@ export function ActionConfirmDialog({
               rows={4}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
             />
-            <span className="mt-1 block text-[12px] text-muted-foreground">
+            <span className="mt-1 block text-xs text-muted-foreground">
               {trimmed.length}/{reasonMax} (min {reasonMin})
             </span>
           </label>

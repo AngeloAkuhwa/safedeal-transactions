@@ -30,7 +30,7 @@ export function AdminMobileHeader({ onOpenMenu, title, subtitle, rightSlot }: Ad
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold leading-tight text-foreground">SafeDeal</div>
-              <div className="text-[12px] uppercase tracking-wide text-muted-foreground">Admin Portal</div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Admin Portal</div>
             </div>
           </div>
         </div>

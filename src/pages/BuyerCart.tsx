@@ -539,7 +539,7 @@ const BuyerCart = () => {
                                     {stock.label}
                                   </Badge>
                                   {isLocked && (
-                                    <p className="text-[12px] text-muted-foreground mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                       Finish or cancel this checkout to edit.
                                     </p>
                                   )}
@@ -577,7 +577,7 @@ const BuyerCart = () => {
                               <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                               <p className="text-xs font-semibold text-foreground">Delivery method</p>
                               {draftInvalid && (
-                                <span className="text-[12px] text-destructive">Required</span>
+                                <span className="text-xs text-destructive">Required</span>
                               )}
                             </div>
                             {enabledMethods.length === 1 ? (

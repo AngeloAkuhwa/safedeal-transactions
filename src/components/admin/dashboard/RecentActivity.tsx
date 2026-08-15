@@ -62,7 +62,7 @@ export function RecentActivity({ items }: Props) {
                     <div className="truncate text-xs text-muted-foreground">{it.subtitle}</div>
                   </div>
                 </div>
-                <span className="shrink-0 text-[12px] text-muted-foreground">{formatRelative(it.at_iso)}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(it.at_iso)}</span>
               </li>
             );
           })}

@@ -53,7 +53,7 @@ export function QuickActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel className="text-[12px] uppercase tracking-wide text-muted-foreground">Actions</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">Actions</DropdownMenuLabel>
           <DropdownMenuItem disabled={!canManage} onSelect={openResetPicker}>
             <RotateCcw className="mr-2 h-4 w-4" /> Reset role to default…
           </DropdownMenuItem>
@@ -64,7 +64,7 @@ export function QuickActionsMenu({
             <History className="mr-2 h-4 w-4" /> View change history
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="text-[12px] uppercase tracking-wide text-muted-foreground">Governance</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">Governance</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => setAlertsOpen(true)}>
             <BellRing className="mr-2 h-4 w-4" /> Alert settings…
           </DropdownMenuItem>

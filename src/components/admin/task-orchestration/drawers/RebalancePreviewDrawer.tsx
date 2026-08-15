@@ -56,7 +56,7 @@ export function RebalancePreviewDrawer({
           <Kpi label="Skipped (safe)" value={skipped.length} tone="text-amber-300" />
         </div>
 
-        <div className="mt-5 mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mt-5 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <ArrowLeftRight className="h-3 w-3" /> Movements
         </div>
         <div className="space-y-1.5">
@@ -81,22 +81,22 @@ export function RebalancePreviewDrawer({
                 <div className="flex-1 min-w-0">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     <span className="font-medium text-foreground">#{m.task_code}</span>
-                    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold", priorityBadgeClass(m.priority as any))}>
+                    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-semibold", priorityBadgeClass(m.priority as any))}>
                       {humanize(m.priority)}
                     </span>
                     {m.sla_delta && (
-                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[12px] font-semibold", slaBadgeClass(m.sla_delta))}>
+                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-semibold", slaBadgeClass(m.sla_delta))}>
                         SLA {slaLabel(m.sla_delta)}
                       </span>
                     )}
-                    <span className="text-[12px] text-muted-foreground">· {humanize(m.reason)}</span>
+                    <span className="text-xs text-muted-foreground">· {humanize(m.reason)}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="truncate">{from ? shortNameOf(from) : m.from.slice(0,8)}</span>
                     <ArrowRight className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate font-medium text-foreground">{to ? shortNameOf(to) : m.to.slice(0,8)}</span>
                     {to && (
-                      <span className="ml-1 text-[12px]">({to.active} → {to.active + 1} / {to.max_active})</span>
+                      <span className="ml-1 text-xs">({to.active} → {to.active + 1} / {to.max_active})</span>
                     )}
                   </div>
                 </div>
@@ -107,9 +107,9 @@ export function RebalancePreviewDrawer({
 
         {skipped.length > 0 && (
           <>
-            <div className="mt-5 mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="mt-5 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <AlertTriangle className="h-3 w-3 text-amber-400" /> Protected — cannot move
-              <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[12px] tabular-nums">{skipped.length}</span>
+              <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-xs tabular-nums">{skipped.length}</span>
             </div>
             <div className="space-y-1">
               {skipped.map(s => (
@@ -150,7 +150,7 @@ export function RebalancePreviewDrawer({
 function Kpi({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-      <div className="text-[12px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`mt-0.5 text-xl font-bold tabular-nums ${tone}`}>{value}</div>
     </div>
   );

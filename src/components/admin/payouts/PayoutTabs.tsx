@@ -39,7 +39,7 @@ export function PayoutTabs({ active, onChange, summary }: Props) {
             {t.label}
             {typeof c === "number" && c > 0 && (
               <span className={cn(
-                "text-[12px] font-semibold px-1.5 py-0.5 rounded",
+                "text-xs font-semibold px-1.5 py-0.5 rounded",
                 isActive ? "bg-white/20 text-white" : "bg-slate-700 text-slate-300"
               )}>{c}</span>
             )}

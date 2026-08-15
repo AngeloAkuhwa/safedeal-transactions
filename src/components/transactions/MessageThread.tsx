@@ -170,7 +170,7 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
             <div key={m.id} className={cn("flex gap-3", m.is_mine ? "flex-row-reverse" : "flex-row")}>
               <Avatar className="h-8 w-8 shrink-0">
                 <AvatarImage src={m.sender_avatar_url ?? undefined} alt={m.sender_name} />
-                <AvatarFallback className="text-[12px]">{initials}</AvatarFallback>
+                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
               </Avatar>
               <div className={cn("max-w-[75%]", m.is_mine ? "items-end" : "items-start", "flex flex-col gap-1")}>
                 <div className={cn(
@@ -181,7 +181,7 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
                 )}>
                   {m.message_text}
                 </div>
-                <div className="text-[12px] text-muted-foreground px-1">
+                <div className="text-xs text-muted-foreground px-1">
                   {m.is_mine ? "You" : m.sender_name} · {format(new Date(m.created_at), "MMM d, h:mm a")}
                 </div>
               </div>

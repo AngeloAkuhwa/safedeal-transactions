@@ -62,12 +62,12 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><Mail className="h-3 w-3" /> Email</p>
                 <p className="text-slate-200 text-sm truncate">{data.user.email || "—"}</p>
-                {data.user.verification.email && <span className="text-emerald-400 text-[12px]">verified</span>}
+                {data.user.verification.email && <span className="text-emerald-400 text-xs">verified</span>}
               </div>
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><Phone className="h-3 w-3" /> Phone</p>
                 <p className="text-slate-200 text-sm">{data.user.phone ?? "—"}</p>
-                {data.user.verification.phone && <span className="text-emerald-400 text-[12px]">verified</span>}
+                {data.user.verification.phone && <span className="text-emerald-400 text-xs">verified</span>}
               </div>
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><IdCard className="h-3 w-3" /> Identity</p>

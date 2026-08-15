@@ -69,17 +69,17 @@ export function ProductivityInsights({
                     <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", TONE[it.tone])}>
                       <it.icon className="h-3.5 w-3.5" />
                     </div>
-                    <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{it.label}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{it.label}</div>
                   </div>
                   <div className="mb-1 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-[12px] font-semibold text-foreground">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
                       {it.agent?.avatar_url
                         ? <img src={it.agent.avatar_url} className="h-full w-full rounded-full object-cover" alt="" />
                         : initialsOf(it.agent)}
                     </div>
                     <div className="min-w-0 truncate text-sm font-medium text-foreground">{nameOf(it.agent)}</div>
                   </div>
-                  <div className={cn("text-[12px] font-medium", it.valueTone)}>
+                  <div className={cn("text-xs font-medium", it.valueTone)}>
                     {it.agent ? it.value(it.agent) : "—"}
                   </div>
                 </button>

@@ -29,8 +29,8 @@ interface Props {
 
 function riskBadge(key: string) {
   const r = getPermissionRisk(key);
-  if (r === "critical") return <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 py-0.5 text-[12px] font-bold uppercase text-rose-300">Critical</span>;
-  if (r === "high") return <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[12px] font-bold uppercase text-amber-300">High</span>;
+  if (r === "critical") return <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 py-0.5 text-xs font-bold uppercase text-rose-300">Critical</span>;
+  if (r === "high") return <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-xs font-bold uppercase text-amber-300">High</span>;
   return null;
 }
 
@@ -75,13 +75,13 @@ export function AllRolesMatrix({
       <div className="relative overflow-x-auto">
         <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm sd-stack">
           <thead>
-            <tr className="text-[12px] uppercase tracking-wider text-muted-foreground">
+            <tr className="text-xs uppercase tracking-wider text-muted-foreground">
               <th className="sticky left-0 top-0 z-20 min-w-[300px] bg-card/95 px-4 py-2.5 text-left font-semibold backdrop-blur">
                 Permission
               </th>
               {roles.map((r) => (
                 <th key={r.key} className="sticky top-0 z-10 bg-card/95 px-2 py-2.5 text-center font-semibold backdrop-blur">
-                  <div className="mx-auto max-w-[120px] text-balance text-[12px] leading-tight">{ROLE_LABEL[r.key]}</div>
+                  <div className="mx-auto max-w-[120px] text-balance text-xs leading-tight">{ROLE_LABEL[r.key]}</div>
                 </th>
               ))}
             </tr>
@@ -166,7 +166,7 @@ function ModuleGroup({
               {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               {mod.label}
             </button>
-            <span className="text-[12px] text-muted-foreground">{mod.permissions.length} permissions</span>
+            <span className="text-xs text-muted-foreground">{mod.permissions.length} permissions</span>
             <div className="ml-auto flex items-center gap-1">
               {roles.map((r) => {
                 const bag = roleMap.map.get(r.key) ?? new Set<string>();
@@ -178,7 +178,7 @@ function ModuleGroup({
                 const isProtected = isProtectedRole(r.key);
                 return (
                   <div key={r.key} className="relative">
-                    <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-[12px] font-semibold", cls)}
+                    <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-xs font-semibold", cls)}
                       title={`${ROLE_LABEL[r.key]}: ${granted}/${total}`}
                     >
                       {granted}/{total}
@@ -223,7 +223,7 @@ function ModuleGroup({
                   {p.label}
                   {riskBadge(p.key)}
                 </div>
-                <code className="mt-0.5 block truncate text-[12px] text-muted-foreground">{p.key}</code>
+                <code className="mt-0.5 block truncate text-xs text-muted-foreground">{p.key}</code>
               </div>
             </div>
           </td>

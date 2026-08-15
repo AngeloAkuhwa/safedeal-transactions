@@ -397,11 +397,7 @@ function ownAttrIndex(tagText: string, attr: string): number {
 
 /** Every class-set the tag can render; `[]` when it declares no className at all. */
 export function classNameVariants(tagText: string, consts: Consts = new Map()): string[][] {
-  const idx = ownAttrIndex(tagText, "className=");
-  if (idx === -1) return [];
-  const after = idx + "className=".length;
-  const ch = tagText[after];
-  if (ch === '"') {
+  const idx = ownAttrIndex(tagText, "className="); if (idx === -1) return []; const after = idx +"className=".length; const ch = tagText[after]; if (ch === '"') {
     const end = tagText.indexOf('"', after + 1);
     return [tagText.slice(after + 1, end).split(/\s+/).filter(Boolean)];
   }
@@ -769,7 +765,7 @@ export function scanFontSource(rawSource: string, file: string): Violation[] {
     for (const m of line.matchAll(/text-\[(\d+(?:\.\d+)?)(px|rem|pt|em)\]/g)) {
       const px = toPx(Number(m[1]), m[2]);
       if (px < MIN_FONT_PX) push(i + 1, `font ${px}px below the ${MIN_FONT_PX}px floor`, line);
-      else if (m[0] === "text-[12px]" || px === MIN_FONT_PX) push(i + 1, `${m[0]} duplicates the \`text-xs\` token — use \`text-xs\``, line);
+      else if (m[0] === "text-xs" || px === MIN_FONT_PX) push(i + 1, `${m[0]} duplicates the \`text-xs\` token — use \`text-xs\``, line);
     }
     for (const m of line.matchAll(/fontSize:\s*(?:"|')?(\d+(?:\.\d+)?)(px|rem|pt|em)?(?:"|')?/g)) {
       const px = toPx(Number(m[1]), m[2] ?? "px");

@@ -85,7 +85,7 @@ export function AdminReadingModeControl({ variant }: Props) {
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 rounded-full border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
-          <span className="ml-2 mr-1 flex items-center gap-1.5 text-[12px] font-medium text-emerald-300">
+          <span className="ml-2 mr-1 flex items-center gap-1.5 text-xs font-medium text-emerald-300">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
             Reading
           </span>
@@ -108,7 +108,7 @@ export function AdminReadingModeControl({ variant }: Props) {
           <Select value={speed} onValueChange={(v) => setSpeed(v as ScrollSpeed)}>
             <SelectTrigger
               aria-label="Change scroll speed"
-              className="h-11 w-[96px] border-border bg-card/60 px-2 text-[12px] text-foreground"
+              className="h-11 w-[96px] border-border bg-card/60 px-2 text-xs text-foreground"
             >
               <SelectValue />
             </SelectTrigger>
@@ -149,7 +149,7 @@ export function AdminReadingModeControl({ variant }: Props) {
           </button>
         ) : (
           <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
-            <span className="ml-2 mr-1 flex items-center gap-1.5 text-[12px] font-medium text-emerald-300">
+            <span className="ml-2 mr-1 flex items-center gap-1.5 text-xs font-medium text-emerald-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               Reading
             </span>
@@ -218,7 +218,7 @@ export function AdminReadingModeControl({ variant }: Props) {
           </Tooltip>
         ) : (
           <div className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1">
-            <span className="ml-1 mr-1 flex items-center gap-1.5 text-[12px] font-medium text-emerald-300">
+            <span className="ml-1 mr-1 flex items-center gap-1.5 text-xs font-medium text-emerald-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               Reading Mode active
             </span>

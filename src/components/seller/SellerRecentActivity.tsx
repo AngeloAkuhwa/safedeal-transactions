@@ -103,12 +103,12 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Transaction</TableHead>
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Buyer</TableHead>
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider">Status</TableHead>
-                <TableHead className="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Transaction</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Buyer</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider w-32">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,12 +199,12 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                     <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="font-mono text-xs font-medium truncate">{row.transaction_code}</span>
                   </div>
-                  <Badge variant={statusInfo.variant} className="text-[12px]">{statusInfo.label}</Badge>
+                  <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
                 </div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{row.buyer_name}</p>
-                    <p className="text-[12px] text-muted-foreground truncate">{row.item_title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{row.item_title}</p>
                   </div>
                   <p className="text-sm font-bold text-foreground tabular-nums shrink-0">
                     {formatMoney(row.amount, row.currency_code)}

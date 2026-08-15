@@ -162,7 +162,7 @@ export function ExportPreviewDialog({
                     <td className="py-2.5 pr-3 font-mono text-xs">{tx.transaction_code}</td>
                     <td className="py-2.5 pr-3">
                       <p className="font-medium text-foreground text-xs">{tx.buyer_name}</p>
-                      <p className="text-[12px] text-muted-foreground">{tx.buyer_email}</p>
+                      <p className="text-xs text-muted-foreground">{tx.buyer_email}</p>
                     </td>
                     <td className="py-2.5 pr-3 hidden md:table-cell text-xs text-foreground truncate max-w-[160px]">
                       {tx.item_title}
@@ -171,7 +171,7 @@ export function ExportPreviewDialog({
                       {fmtCurrency(tx.amount, tx.currency_code)}
                     </td>
                     <td className="py-2.5 pr-3">
-                      <Badge variant="outline" className="text-[12px]">
+                      <Badge variant="outline" className="text-xs">
                         {statusLabel(tx.transaction_status)}
                       </Badge>
                     </td>

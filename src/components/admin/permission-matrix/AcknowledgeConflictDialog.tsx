@@ -50,7 +50,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
             </span>
             <div>
               <div className="text-sm font-semibold">Acknowledge conflict</div>
-              <div className="text-[12px] text-muted-foreground">Mute this segregation-of-duties finding with a reason.</div>
+              <div className="text-xs text-muted-foreground">Mute this segregation-of-duties finding with a reason.</div>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted min-h-11" aria-label="Close">
@@ -59,16 +59,16 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
         </header>
 
         <div className="rounded-lg bg-background/40 p-3 text-xs">
-          <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Role</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</div>
           <div className="mb-2 font-medium">{ROLE_LABEL[role]}</div>
-          <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Conflict</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conflict</div>
           <div className="font-medium">{label(aKey)} <span className="text-muted-foreground">↔</span> {label(bKey)}</div>
-          <div className="mt-1 flex gap-2 text-[12px] text-muted-foreground">
+          <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
             <code>{aKey}</code><code>{bKey}</code>
           </div>
         </div>
 
-        <label className="mt-3 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Reason <span className="text-rose-400">*</span>
         </label>
         <textarea
@@ -79,7 +79,7 @@ export function AcknowledgeConflictDialog({ open, role, aKey, bKey, submitting, 
           className="mt-1 w-full rounded-md border border-border bg-background/60 p-2 text-xs outline-none focus:border-primary"
         />
 
-        <label className="mt-3 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Expires</label>
+        <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Expires</label>
         <select
           value={expiresIn}
           onChange={(e) => setExpiresIn(e.target.value as typeof expiresIn)}

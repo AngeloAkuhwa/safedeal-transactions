@@ -696,18 +696,18 @@ export default function BuyerPaymentSummary() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm text-muted-foreground">{FEE_NAME}</span>
                     {isFeeCapped && (
-                      <Badge variant="outline" className="text-[12px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
+                      <Badge variant="outline" className="text-xs px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
                     )}
                   </div>
                   <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground -mt-1 pl-0.5">{FEE_CAPTION}</p>
                 <Collapsible>
-                  <CollapsibleTrigger className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors pl-0.5">
+                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors pl-0.5">
                     <ChevronDown className="h-3 w-3" />
                     How this fee is calculated
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="text-[12px] text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
+                  <CollapsibleContent className="text-xs text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
                     {/* Narrated from the buyer's own snapshot — never from a
                         live config rate that may differ from what was charged. */}
                     {describeChargedFee({
@@ -1134,7 +1134,7 @@ export default function BuyerPaymentSummary() {
                       <XCircle className="h-7 w-7 text-destructive" />
                     </div>
                     <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
-                      <span className="text-destructive-foreground text-[12px] font-bold">!</span>
+                      <span className="text-destructive-foreground text-xs font-bold">!</span>
                     </div>
                   </div>
                 </div>
@@ -1156,19 +1156,19 @@ export default function BuyerPaymentSummary() {
                 {/* Money Status Summary */}
                 <div className="rounded-xl overflow-hidden border border-amber-200 dark:border-amber-800 mb-4">
                   <div className="bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
-                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-amber-200 dark:divide-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
                     <div className="flex flex-col items-center gap-1.5 py-3 px-2">
-                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-warning/15 text-warning border border-warning/30">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-warning/15 text-warning border border-warning/30">
                         <Clock className="h-2.5 w-2.5" />
                         Awaiting Payment
                       </span>
                     </div>
                     <div className="flex flex-col items-center gap-1.5 py-3 px-2">
-                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Money Status</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Money Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-destructive/15 text-destructive border border-destructive/30">
                         <XCircle className="h-2.5 w-2.5" />
                         Payment Failed
                       </span>
@@ -1179,16 +1179,16 @@ export default function BuyerPaymentSummary() {
                 {/* Transaction Info */}
                 <div className="rounded-xl overflow-hidden border border-border mb-4">
                   <div className="bg-muted/50 px-3 py-2">
-                    <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Transaction Info</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Transaction Info</p>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border bg-muted/30">
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
-                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
                       <span className="text-sm font-bold text-foreground">{formatMoney(totalAmount, currencyCode)}</span>
                     </div>
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
-                      <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
-                      <span className="text-[12px] font-mono font-semibold text-foreground bg-muted px-2 py-0.5 rounded">#{data.transaction.transaction_code}</span>
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
+                      <span className="text-xs font-mono font-semibold text-foreground bg-muted px-2 py-0.5 rounded">#{data.transaction.transaction_code}</span>
                     </div>
                   </div>
                 </div>
@@ -1270,8 +1270,8 @@ export default function BuyerPaymentSummary() {
                     <div className="flex items-start gap-2">
                       <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[12px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
-                        <p className="text-[12px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                        <p className="text-xs font-semibold text-foreground mb-0.5">No funds were deducted</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
                       </div>
                     </div>
                   </div>
@@ -1279,7 +1279,7 @@ export default function BuyerPaymentSummary() {
 
                 {/* Help footer */}
                 <div className="text-center pt-2 border-t">
-                  <p className="text-[12px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Need help?{" "}
                     <button
                       onClick={() =>

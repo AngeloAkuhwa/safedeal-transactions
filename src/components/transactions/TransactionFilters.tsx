@@ -141,7 +141,7 @@ export function TransactionFilters({
               {tab.label}
               <span
                 className={cn(
-                  "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[12px]",
+                  "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs",
                   isActive
                     ? "bg-primary-foreground/20 text-primary-foreground"
                     : "bg-background text-muted-foreground"

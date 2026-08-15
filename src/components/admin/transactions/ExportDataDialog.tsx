@@ -101,7 +101,7 @@ export function ExportDataDialog({ open, onOpenChange, transactionCode, onSubmit
               placeholder="Why are you generating this export?"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
-            <span className="mt-1 block text-[12px] text-muted-foreground">{trimmed.length}/500</span>
+            <span className="mt-1 block text-xs text-muted-foreground">{trimmed.length}/500</span>
           </label>
         </div>
         <DialogFooter>

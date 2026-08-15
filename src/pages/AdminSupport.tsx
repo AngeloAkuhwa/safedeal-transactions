@@ -190,11 +190,11 @@ export default function AdminSupport() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-medium text-foreground">{m.full_name}</span>
                             <span className="text-xs text-muted-foreground">{m.email}</span>
-                            <Badge variant="outline" className="text-[12px]">
+                            <Badge variant="outline" className="text-xs">
                               {m.topic.replace(/_/g, " ")}
                             </Badge>
                             {m.transaction_reference && (
-                              <Badge variant="outline" className="text-[12px]">
+                              <Badge variant="outline" className="text-xs">
                                 {m.transaction_reference}
                               </Badge>
                             )}

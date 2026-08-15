@@ -27,7 +27,7 @@ function Card({ icon, iconBg, iconBorder, iconColor, label, value, currency, sub
       >
         {formatMoneyCompactOrDash(value, currency)}
       </p>
-      <p className="text-slate-500 text-[12px] lg:text-xs mt-1 truncate">{sub}</p>
+      <p className="text-slate-500 text-xs lg:text-xs mt-1 truncate">{sub}</p>
     </div>
   );
 }

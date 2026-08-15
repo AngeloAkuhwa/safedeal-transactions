@@ -262,7 +262,7 @@ const BuyerTransactionTracking = () => {
                         )} />
                       </div>
                       <span className={cn(
-                        "text-[12px] font-semibold text-center leading-tight max-w-[64px]",
+                        "text-xs font-semibold text-center leading-tight max-w-[64px]",
                         state === "completed" && "text-success",
                         state === "current" && "text-primary",
                         state === "upcoming" && "text-muted-foreground/50",
@@ -563,7 +563,7 @@ const BuyerTransactionTracking = () => {
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
                       <span>{FEE_NAME}{typeof pricing.service_fee_rate === "number" ? ` (${(pricing.service_fee_rate * 100).toFixed(1)}%)` : ""}</span>
-                      <p className="text-[12px] text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>

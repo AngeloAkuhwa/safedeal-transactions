@@ -50,7 +50,7 @@ export function PerformanceMetrics({ metrics }: Props) {
                     <div className="text-lg font-semibold text-foreground tabular-nums">{m.value}</div>
                   </div>
                 </div>
-                <div className={`flex items-center gap-1 text-[12px] font-medium ${tone}`}>
+                <div className={`flex items-center gap-1 text-xs font-medium ${tone}`}>
                   <Arrow className="h-3 w-3" />
                   {m.delta_label}
                 </div>

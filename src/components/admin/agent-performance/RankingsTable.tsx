@@ -50,7 +50,7 @@ export function RankingsTable({
             <div className="text-xs text-muted-foreground">
               {a.role_label} · {a.resolved} resolved · {hoursLabel(a.avg_resolution_hours)} avg
             </div>
-            <div className="mt-0.5 text-[12px] text-muted-foreground">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               Sample: {a.resolved} completed
               {a.score_excluded_cases ? ` · ${a.score_excluded_cases} excluded` : ""}
             </div>
@@ -66,7 +66,7 @@ export function RankingsTable({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onViewScore(a); }}
-                className="rounded-md bg-muted/60 px-2 py-1 text-[12px] font-medium text-muted-foreground ring-1 ring-inset ring-border min-h-11"
+                className="rounded-md bg-muted/60 px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border min-h-11"
               >
                 Insufficient Data
               </button>
@@ -80,7 +80,7 @@ export function RankingsTable({
                 {a.score}
               </button>
             )}
-            <div className="text-[12px] text-muted-foreground">{a.score_band}</div>
+            <div className="text-xs text-muted-foreground">{a.score_band}</div>
             <Movement delta={a.resolved - a.resolved_prev} />
           </div>
         </div>

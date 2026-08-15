@@ -117,10 +117,10 @@ export function PublishSuccessModal({
                 </span>
               </div>
               <div className="flex items-center gap-1.5 mt-2">
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[12px]">
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
                   Published
                 </Badge>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[12px]">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
                   Public
                 </Badge>
               </div>
@@ -132,7 +132,7 @@ export function PublishSuccessModal({
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-foreground">Now Available to Customers</p>
-              <p className="text-[12px] text-muted-foreground">Checkout uses SafeDeal's recorded payment and release flow</p>
+              <p className="text-xs text-muted-foreground">Checkout uses SafeDeal's recorded payment and release flow</p>
             </div>
           </div>
 

@@ -59,7 +59,7 @@ function LegacyReview({ approval, history, open, onOpenChange }: LegacyProps) {
           </>)}
           <div>
             <div className="mb-1 text-xs uppercase text-muted-foreground">Payload</div>
-            <pre className="max-h-[400px] overflow-auto rounded-md border border-border bg-background/70 p-3 text-[12px] leading-relaxed text-muted-foreground">
+            <pre className="max-h-[400px] overflow-auto rounded-md border border-border bg-background/70 p-3 text-xs leading-relaxed text-muted-foreground">
               {payload ? JSON.stringify(payload, null, 2) : "—"}
             </pre>
           </div>
@@ -140,7 +140,7 @@ function StagedReview({ open, onOpenChange, changes, roleMap, environment = DEFA
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             Review changes
-            <span className={`ml-2 rounded px-2 py-0.5 text-[12px] uppercase ${changeStateTone("draft").bg} ${changeStateTone("draft").text}`}>Draft</span>
+            <span className={`ml-2 rounded px-2 py-0.5 text-xs uppercase ${changeStateTone("draft").bg} ${changeStateTone("draft").text}`}>Draft</span>
           </SheetTitle>
           <div className="text-xs text-muted-foreground">
             {changes.length} change{changes.length === 1 ? "" : "s"} across {byRole.size} role{byRole.size === 1 ? "" : "s"} · env <span className="font-mono">{environment}</span>
@@ -157,17 +157,17 @@ function StagedReview({ open, onOpenChange, changes, roleMap, environment = DEFA
               <div key={role} className="rounded-xl border border-border/60 bg-background/40 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <div className="text-sm font-semibold">Role · {ROLE_LABEL[role]}</div>
-                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[12px] font-medium text-emerald-300">+{adds.length}</span>
-                  <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[12px] font-medium text-rose-300">−{removes.length}</span>
+                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-300">+{adds.length}</span>
+                  <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-xs font-medium text-rose-300">−{removes.length}</span>
                   {(userImpactByRole?.get(role) ?? 0) > 0 && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[12px] text-muted-foreground">
+                    <span className="ml-auto inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       <Users className="h-3 w-3" /> {userImpactByRole?.get(role)} users
                     </span>
                   )}
                 </div>
                 <PermissionDiffTable rows={rows} />
                 {requires ? (
-                  <div className="mt-2 flex items-start gap-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[12px] text-amber-200">
+                  <div className="mt-2 flex items-start gap-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
                     <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <div>
                       <div className="font-medium">Approval required</div>
@@ -175,7 +175,7 @@ function StagedReview({ open, onOpenChange, changes, roleMap, environment = DEFA
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-2 flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/5 p-2 text-[12px] text-emerald-200">
+                  <div className="mt-2 flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/5 p-2 text-xs text-emerald-200">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Non-privileged change — you can apply directly.
                   </div>
                 )}
@@ -194,13 +194,13 @@ function StagedReview({ open, onOpenChange, changes, roleMap, environment = DEFA
               rows={3}
               className="text-sm"
             />
-            <div className={`mt-1 text-[12px] ${reasonOk ? "text-emerald-300" : "text-muted-foreground"}`}>
+            <div className={`mt-1 text-xs ${reasonOk ? "text-emerald-300" : "text-muted-foreground"}`}>
               {reason.trim().length}/20 characters
             </div>
           </div>
 
           {anyRequires && (
-            <div className="flex items-start gap-2 rounded border border-sky-500/30 bg-sky-500/5 p-2 text-[12px] text-sky-200">
+            <div className="flex items-start gap-2 rounded border border-sky-500/30 bg-sky-500/5 p-2 text-xs text-sky-200">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               Submission goes to a separate approver. You cannot approve your own request.
             </div>

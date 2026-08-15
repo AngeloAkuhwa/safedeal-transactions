@@ -49,7 +49,7 @@ export function AccessHistoryTimeline({ entries }: Props) {
               <div className="font-semibold text-foreground">{humanize(a.action)}</div>
               <Link
                 to={`/admin/audit-logs?event=${a.id}&action=${encodeURIComponent(a.action)}`}
-                className="text-[12px] text-muted-foreground underline-offset-2 hover:underline"
+                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
               >
                 View in audit logs
               </Link>
@@ -59,25 +59,25 @@ export function AccessHistoryTimeline({ entries }: Props) {
             {(prev !== undefined || next !== undefined) && (
               <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-md border border-border/50 bg-background/40 p-2">
                 <div>
-                  <div className="text-[12px] uppercase tracking-wide text-muted-foreground">Previous</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Previous</div>
                   <div className="text-foreground/80">{formatValue(prev)}</div>
                 </div>
                 <div>
-                  <div className="text-[12px] uppercase tracking-wide text-muted-foreground">New</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">New</div>
                   <div className="text-foreground/80">{formatValue(next)}</div>
                 </div>
               </div>
             )}
 
             {(reason || approval || approver) && (
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-muted-foreground">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 {reason && <span><span className="text-foreground/60">Reason:</span> {reason}</span>}
                 {approval && <span><span className="text-foreground/60">Approval:</span> {approval}</span>}
                 {approver && <span><span className="text-foreground/60">Approver:</span> {approver}</span>}
               </div>
             )}
 
-            <div className="mt-1 text-[12px] text-muted-foreground">
+            <div className="mt-1 text-xs text-muted-foreground">
               {a.actor_name} · {relativeTime(a.created_at)}
             </div>
           </div>

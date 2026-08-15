@@ -124,11 +124,11 @@ function HeaderBar({
           <div className="flex items-center gap-1.5">
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
               <AlertTriangle className="h-3 w-3 text-amber-400" />
-              <span className="text-amber-400 font-medium text-[12px]">Production</span>
+              <span className="text-amber-400 font-medium text-xs">Production</span>
             </div>
             <div className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-muted border border-border rounded-full">
               <ShieldCheck className="h-3 w-3 text-emerald-400" />
-              <span className="text-muted-foreground text-[12px]">All changes audited</span>
+              <span className="text-muted-foreground text-xs">All changes audited</span>
             </div>
           </div>
         </div>
@@ -206,7 +206,7 @@ function HeaderBar({
             <p className="text-red-300 text-sm font-semibold">
               Production Environment — Changes Affect Live Transactions
             </p>
-            <p className="text-red-300/80 text-[12px] mt-1">
+            <p className="text-red-300/80 text-xs mt-1">
               All configuration changes are permanently logged and require admin approval.
               Changes to fees and timeouts apply immediately to new transactions.
             </p>
@@ -541,7 +541,7 @@ export default function AdminSettings() {
                 </div>
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
                   <Layers className="h-3 w-3 text-blue-400" />
-                  <span className="text-blue-300 text-[12px] font-medium">4 Business Rules</span>
+                  <span className="text-blue-300 text-xs font-medium">4 Business Rules</span>
                 </div>
               </div>
             </div>
@@ -566,7 +566,7 @@ export default function AdminSettings() {
                     <ShieldAlert className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-amber-200 font-semibold text-sm">Production Change Impact</p>
-                      <p className="text-amber-300/80 text-[12px] mt-1">
+                      <p className="text-amber-300/80 text-xs mt-1">
                         Changes apply to new transactions only. Active transactions retain original timeout values.
                         This action will be permanently logged in audit history.
                       </p>
@@ -574,7 +574,7 @@ export default function AdminSettings() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-[12px]">
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span>
                       Last modified: <span className="text-foreground font-medium">2 days ago</span> by{" "}
@@ -610,12 +610,12 @@ export default function AdminSettings() {
                   {!canConfigureFinancial && (
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
                       <ShieldAlert className="h-3 w-3 text-amber-400" />
-                      <span className="text-amber-300 text-[12px] font-medium">Read-only — needs financial access</span>
+                      <span className="text-amber-300 text-xs font-medium">Read-only — needs financial access</span>
                     </div>
                   )}
                   <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
                     <Coins className="h-3 w-3 text-emerald-400" />
-                    <span className="text-emerald-300 text-[12px] font-medium">Active Rules</span>
+                    <span className="text-emerald-300 text-xs font-medium">Active Rules</span>
                   </div>
                 </div>
               </div>
@@ -644,12 +644,12 @@ export default function AdminSettings() {
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-medium text-foreground">Refund Policy</label>
                       {isLocked("fees.refund_policy") ? (
-                        <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
                       ) : isOverridden("fees.refund_policy") ? (
-                        <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
                       ) : null}
                     </div>
-                    <p className="text-[12px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
                       value={refundPolicy}
                       disabled={isLocked("fees.refund_policy") || !canConfigureFinancial}
@@ -670,7 +670,7 @@ export default function AdminSettings() {
                     <TriangleAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-red-200 font-semibold text-sm">Critical: Fee Structure Update</p>
-                      <p className="text-red-300/80 text-[12px] mt-1">
+                      <p className="text-red-300/80 text-xs mt-1">
                         Fee changes affect all new transactions immediately and impact revenue calculations.
                         Admin approval required. This action is permanently logged.
                       </p>
@@ -708,7 +708,7 @@ export default function AdminSettings() {
                   <div className="space-y-2">
                     <ToggleRow title="Auto-Release Payments" desc="Release funds automatically when conditions are met" on={autoReleaseOn} onChange={setBool(setAutoReleaseOn)} overridden={isOverridden("escrow.auto_release_enabled")} />
                     {autoReleaseOn && (autoReleaseMeta?.enabled_by || autoReleaseMeta?.enabled_at) && (
-                      <p className="text-[12px] text-muted-foreground pl-2.5">
+                      <p className="text-xs text-muted-foreground pl-2.5">
                         Enabled
                         {autoReleaseMeta?.enabled_by ? <> by <span className="text-foreground/80 font-mono">{autoReleaseMeta.enabled_by.slice(0, 8)}…</span></> : null}
                         {autoReleaseMeta?.enabled_at ? <> on <span className="text-foreground/80">{format(new Date(autoReleaseMeta.enabled_at), "MMM d, yyyy · p")}</span></> : null}
@@ -856,7 +856,7 @@ export default function AdminSettings() {
                   className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
                   placeholder="e.g. Checkout is temporarily paused for maintenance."
                 />
-                <p className="text-[12px] text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Global override. While this is filled in it replaces both messages below.
                 </p>
               </div>
@@ -1012,7 +1012,7 @@ export default function AdminSettings() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                       {Object.entries(overrideCounts).slice(0, 4).map(([k, n]) => (
                         <div key={k} className="p-2 bg-muted/30 border border-border rounded-lg">
-                          <p className="text-[12px] text-muted-foreground truncate">{k}</p>
+                          <p className="text-xs text-muted-foreground truncate">{k}</p>
                           <p className="text-sm font-semibold text-foreground">{n} vendor{n === 1 ? "" : "s"}</p>
                         </div>
                       ))}
@@ -1022,7 +1022,7 @@ export default function AdminSettings() {
                         <div key={`${o.setting_key}-${o.vendor_id}`} className="p-2 bg-muted/20 border border-border rounded flex items-center justify-between gap-2 text-xs">
                           <div className="min-w-0 flex-1">
                             <p className="text-foreground truncate font-mono">{o.setting_key}</p>
-                            <p className="text-muted-foreground text-[12px] truncate">vendor: {o.vendor_id.slice(0, 8)}…</p>
+                            <p className="text-muted-foreground text-xs truncate">vendor: {o.vendor_id.slice(0, 8)}…</p>
                           </div>
                           <span className="text-foreground font-medium shrink-0">{JSON.stringify(o.setting_value).slice(0, 40)}</span>
                         </div>
@@ -1078,7 +1078,7 @@ function TimeoutRow({
         <label className="text-xs font-medium text-foreground">{label}</label>
         {overridden && <OverrideBadge />}
       </div>
-      <p className="text-[12px] text-muted-foreground mt-0.5 mb-2">{disabled && disabledHint ? disabledHint : desc}</p>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-2">{disabled && disabledHint ? disabledHint : desc}</p>
       <div className="flex items-center gap-1.5">
         <input
           type="number"
@@ -1101,12 +1101,12 @@ function FeeField({
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-foreground">{label}</label>
         {locked ? (
-          <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
         ) : overridden ? (
-          <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
         ) : null}
       </div>
-      {help && <p className="text-[12px] text-muted-foreground mt-0.5 mb-2">{help}</p>}
+      {help && <p className="text-xs text-muted-foreground mt-0.5 mb-2">{help}</p>}
       <div className="flex items-center gap-1.5">
         {prefix && <span className="text-muted-foreground text-xs">{prefix}</span>}
         <input
@@ -1129,7 +1129,7 @@ function NumField({
 }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="text-[12px] text-muted-foreground block mb-1">{label}</label>
+      <label className="text-xs text-muted-foreground block mb-1">{label}</label>
       <input
         type="number"
         value={value}
@@ -1150,7 +1150,7 @@ function ToggleRow({
           {title}
           {overridden && <OverrideBadge />}
         </p>
-        <p className="text-[12px] text-muted-foreground">{desc}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
       <Toggle on={on} onChange={onChange} />
     </div>
@@ -1160,7 +1160,7 @@ function ToggleRow({
 /** Small "Overridden" pill shown when a vendor row exists for a setting key. */
 function OverrideBadge() {
   return (
-    <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">
+    <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">
       Overridden
     </span>
   );
@@ -1181,30 +1181,30 @@ function AuditRow({
         <div className="flex items-start justify-between gap-3 mb-1.5">
           <div>
             <p className="text-foreground font-medium text-sm">{title}</p>
-            <p className="text-muted-foreground text-[12px] mt-0.5">{subtitle}</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{subtitle}</p>
           </div>
-          <span className="text-muted-foreground text-[12px] whitespace-nowrap">{when}</span>
+          <span className="text-muted-foreground text-xs whitespace-nowrap">{when}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div className="bg-background/60 border border-border rounded-md px-2 py-1">
-            <p className="text-muted-foreground text-[12px] mb-0.5">Previous Value</p>
-            <p className="text-foreground/80 font-mono text-[12px]">{prev}</p>
+            <p className="text-muted-foreground text-xs mb-0.5">Previous Value</p>
+            <p className="text-foreground/80 font-mono text-xs">{prev}</p>
           </div>
           <div className={`bg-background/60 border ${accent} rounded-md px-2 py-1`}>
-            <p className={`${accentText} text-[12px] mb-0.5`}>New Value</p>
-            <p className="text-foreground font-mono text-[12px] font-semibold">{next}</p>
+            <p className={`${accentText} text-xs mb-0.5`}>New Value</p>
+            <p className="text-foreground font-mono text-xs font-semibold">{next}</p>
           </div>
         </div>
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[12px] text-foreground font-semibold">
+            <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs text-foreground font-semibold">
               {by.split(" ").map((w) => w[0]).join("").slice(0, 2)}
             </div>
-            <span className="text-muted-foreground text-[12px]">{by}</span>
+            <span className="text-muted-foreground text-xs">{by}</span>
           </div>
           <button
             onClick={() => toast.info("Change detail view coming with wiring pass")}
-            className="text-blue-400 hover:text-blue-300 text-[12px] font-medium flex items-center gap-1 min-h-11"
+            className="text-blue-400 hover:text-blue-300 text-xs font-medium flex items-center gap-1 min-h-11"
           >
             View Details
             <ArrowRight className="h-3 w-3" />
@@ -1238,18 +1238,18 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium text-foreground truncate">{summary}</p>
           {scope === "vendor" ? (
-            <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
           ) : (
-            <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
           )}
           {applyAll && (
-            <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
           )}
           {isToggle && (
-            <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Auto-release</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Auto-release</span>
           )}
         </div>
-        <p className="text-[12px] text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           {row.admin_name ?? "Admin"}
           {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
           {" · "}
@@ -1257,15 +1257,15 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
           {row.ip ? <> · <span className="font-mono">{row.ip}</span></> : null}
         </p>
         {row.reason && (
-          <p className="text-[12px] text-muted-foreground mt-0.5 italic">"{row.reason}"</p>
+          <p className="text-xs text-muted-foreground mt-0.5 italic">"{row.reason}"</p>
         )}
         {keys.length > 0 && (
           <div className="mt-2 border border-border rounded-md overflow-hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[12px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 border-b border-border">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-xs uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 border-b border-border">
               <span>Key</span><span>Previous</span><span>New</span>
             </div>
             {shownKeys.map((k) => (
-              <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[12px] px-2 py-1 border-b border-border last:border-b-0">
+              <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-xs px-2 py-1 border-b border-border last:border-b-0">
                 <span className="font-mono text-foreground/90 truncate">{k}</span>
                 <span className="font-mono text-muted-foreground truncate">{formatSettingValue(row.before[k])}</span>
                 <span className="font-mono text-foreground font-semibold truncate">{formatSettingValue(row.after[k])}</span>
@@ -1275,7 +1275,7 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="w-full text-[12px] text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left min-h-11"
+                className="w-full text-xs text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left min-h-11"
               >
                 +{overflow} more
               </button>
@@ -1284,7 +1284,7 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="w-full text-[12px] text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left min-h-11"
+                className="w-full text-xs text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left min-h-11"
               >
                 Show less
               </button>

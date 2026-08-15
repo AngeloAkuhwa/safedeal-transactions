@@ -201,7 +201,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="mb-2 px-3 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.label}
               </div>
               <ul className="space-y-0.5">
@@ -225,7 +225,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                       <span className="flex-1 truncate text-left">{item.label}</span>
                       {item.badge && item.badge.count > 0 && (
                         <span
-                          className={`rounded-md px-1.5 py-0.5 text-[12px] font-semibold ${BADGE_TONE[item.badge.tone]}`}
+                          className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${BADGE_TONE[item.badge.tone]}`}
                         >
                           {item.badge.count}
                         </span>
