@@ -757,9 +757,12 @@ d("live pg_proc invented-defaults scan", () => {
   });
 
   // Zero is NOT carved out of the scan any more: "money coerced to zero by
-  // column default" is the same class as any other invented default. Each
-  // remaining entry is a running accumulator that legitimately starts empty
-  // and is only ever moved by a guarded ledger write.
+  // column default" is the same class as any other invented default. Nor is
+  // the column NAME a filter any more — `escrow_reconciliation_results
+  // .ledger_balance DEFAULT 0` was invisible because it matches none of
+  // (fee|rate|amount|price|cap). Every numeric-typed column in the schema is
+  // scanned. Each remaining entry is a running accumulator that legitimately
+  // starts empty and is only ever moved by a guarded write.
   const ZERO_DEFAULT_BASELINE = [
     "checkout_sessions.subtotal_amount = 0",
     "checkout_sessions.total_amount = 0",
@@ -778,7 +781,8 @@ d("live pg_proc invented-defaults scan", () => {
         " from pg_attrdef d join pg_class c on c.oid = d.adrelid" +
         " join pg_namespace n on n.oid = c.relnamespace" +
         " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
-        " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
+        " where n.nspname = 'public' and c.relkind = 'r'" +
+        " and format_type(a.atttypid, null) in ('numeric','double precision','real','money')" +
         " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|false|true|now\\(\\))$'" +
         " order by 1",
     );
