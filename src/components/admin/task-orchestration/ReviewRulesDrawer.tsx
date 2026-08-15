@@ -89,7 +89,7 @@ export function ReviewRulesDrawer({
           <section>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Changes</div>
             <div className="overflow-hidden rounded-xl border border-border/60">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm sd-stack">
                 <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <tr><th className="p-2 text-left">Rule</th><th className="p-2 text-left">Previous</th><th className="p-2 text-left">New</th></tr>
                 </thead>

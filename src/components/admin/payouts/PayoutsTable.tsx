@@ -412,7 +412,7 @@ export function PayoutsTable({
       ) : (
       <>
       <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-      <table className="w-full min-w-[1200px]">
+      <table className="w-full min-w-[1200px] sd-stack">
         <thead>
           <tr className="bg-slate-800 border-b border-slate-700">
             <th className="text-left p-4"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>

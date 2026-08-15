@@ -72,7 +72,7 @@ export function AllRolesMatrix({
   return (
     <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm md:p-3">
       <div className="relative overflow-x-auto">
-        <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[800px] border-separate border-spacing-0 text-sm sd-stack">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="sticky left-0 top-0 z-20 min-w-[300px] bg-card/95 px-4 py-2.5 text-left font-semibold backdrop-blur">

@@ -326,7 +326,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full sd-stack">
             <thead className="bg-muted/40">
               <tr>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
@@ -643,7 +643,7 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full sd-stack">
           <thead className="bg-muted/40">
             <tr>
               <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>

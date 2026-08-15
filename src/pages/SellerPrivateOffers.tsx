@@ -147,7 +147,7 @@ export default function SellerPrivateOffers() {
         {filtered.length > 0 && (
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full min-w-[820px]">
+              <table className="w-full min-w-[820px] sd-stack">
                 <thead className="bg-muted/40 border-b border-border">
                   <tr className="text-xs uppercase text-muted-foreground">
                     <th className="text-left p-3">Items</th>

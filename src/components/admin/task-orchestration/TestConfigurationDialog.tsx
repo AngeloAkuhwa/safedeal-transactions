@@ -60,7 +60,7 @@ export function TestConfigurationDialog({
             </TabsContent>
             <TabsContent value="sample" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm sd-stack">
                   <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="p-2 text-left">Task</th>
@@ -87,7 +87,7 @@ export function TestConfigurationDialog({
             </TabsContent>
             <TabsContent value="unassigned" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm sd-stack">
                   <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <tr><th className="p-2 text-left">Task</th><th className="p-2 text-left">Reason</th></tr>
                   </thead>
@@ -107,7 +107,7 @@ export function TestConfigurationDialog({
             </TabsContent>
             <TabsContent value="capacity" className="pt-4">
               <div className="overflow-hidden rounded-lg border border-border/60">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm sd-stack">
                   <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="p-2 text-left">Agent</th>

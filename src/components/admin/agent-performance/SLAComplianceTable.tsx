@@ -198,7 +198,7 @@ export function SLAComplianceTable({
         <EmptyState icon={Timer} title="No cases match this SLA filter" hint="Clear the state or agent filter to see more." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px]">
+          <table className="w-full min-w-[1080px] sd-stack">
             <caption className="sr-only">Case-level SLA tracking</caption>
             <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur">
               <tr className="border-b border-border/70">
@@ -290,7 +290,7 @@ export function SLAComplianceTable({
 
       <div className="overflow-x-auto">
       <div className="mb-2 text-sm font-medium text-foreground">By agent</div>
-      <table className="w-full min-w-[880px]">
+      <table className="w-full min-w-[880px] sd-stack">
         <caption className="sr-only">SLA compliance per agent, sortable by on time, overdue, breached and compliance</caption>
         <thead>
           <tr className="border-b border-border/70">

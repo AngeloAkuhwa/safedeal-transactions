@@ -99,7 +99,7 @@ export function LiveTaskProgression({
         </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/40">
-        <table className="w-full border-collapse text-left text-sm">
+        <table className="w-full border-collapse text-left text-sm sd-stack">
           <thead className="sticky top-0 bg-background/80 backdrop-blur">
             <tr className="border-b border-border/60 text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3 font-semibold">Task ID</th>

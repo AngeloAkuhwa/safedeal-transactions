@@ -31,7 +31,7 @@ function CaseTable({ rows, empty }: { rows: AgentCaseRow[]; empty: string }) {
   if (rows.length === 0) return <p className="text-xs text-muted-foreground">{empty}</p>;
   return (
     <div className="overflow-x-auto rounded-xl border border-border/60">
-      <table className="w-full text-left text-[11px]">
+      <table className="w-full text-left text-[11px] sd-stack">
         <thead className="bg-muted/40 text-muted-foreground">
           <tr>
             <th className="px-2 py-2 font-medium">Reference</th>

@@ -61,7 +61,7 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
             <div className="space-y-2">
               {(((data as any).escrow?.ledger ?? data.ledger) ?? []).length === 0 && (<div className="text-muted-foreground">No ledger entries.</div>)}
               <div className="rounded-md border border-border">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs sd-stack">
                   <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Date</th><th className="p-2 text-left">Type</th><th className="p-2 text-right">Amount</th><th className="p-2 text-left">Notes</th></tr></thead>
                   <tbody>
                     {(((data as any).escrow?.ledger ?? data.ledger) ?? []).map((r: any) => (

@@ -121,7 +121,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
         : (
     <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-separate border-spacing-y-1 text-sm">
+        <table className="w-full min-w-[960px] border-separate border-spacing-y-1 text-sm sd-stack">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">User</th>

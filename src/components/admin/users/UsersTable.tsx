@@ -69,7 +69,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full sd-stack">
           <thead className="bg-slate-800 border-b border-slate-700">
             <tr>
               <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">User</th>

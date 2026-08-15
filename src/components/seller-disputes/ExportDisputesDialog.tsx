@@ -173,7 +173,7 @@ export function ExportDisputesDialog({
             </div>
           ) : (
             <>
-              <table className="w-full text-sm">
+              <table className="w-full text-sm sd-stack">
                 <thead>
                   <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
                     <th className="text-left py-2 pr-3 font-semibold">ID</th>
