@@ -36,7 +36,7 @@ export function FlaggedExportButton({ query, className, label = "Export Report" 
     }
   };
   return (
-    <button type="button" onClick={onClick} disabled={loading} className={className}>
+    <button type="button" onClick={onClick} disabled={loading} className={`inline-flex min-h-11 items-center ${className ?? ""}`}>
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       <span className="hidden sm:inline">{label}</span>
     </button>

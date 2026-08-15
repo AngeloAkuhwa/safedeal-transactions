@@ -379,7 +379,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     className={
                       releaseEnabled
                         ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-11"
-                        : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed"
+                        : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed min-h-11"
                     }
                     disabled={!releaseEnabled || busy === "release"}
                     onClick={() => setConfirm("release")}
@@ -391,7 +391,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     className={
                       retryEnabled
                         ? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all justify-center min-h-11"
-                        : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center"
+                        : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center min-h-11"
                     }
                     disabled={!retryEnabled || busy === "retry"}
                     onClick={handleRetry}
