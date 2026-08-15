@@ -292,7 +292,7 @@
    by src/lib/stacked-tables.ts, so no column is dropped on small screens.
 --------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-  table.sd-stack { display: block; width: 100%; }
+  table.sd-stack { display: block; width: 100%; min-width: 0 !important; }
   table.sd-stack thead { display: none; }
   table.sd-stack tbody,
   table.sd-stack tfoot { display: block; width: 100%; }
