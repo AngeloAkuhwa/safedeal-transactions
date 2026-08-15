@@ -198,12 +198,18 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           </h3>
 
           {/* Price + cart */}
-          <div className="mt-auto flex items-end justify-between">
-            <div>
+          {/* Signed in at 360px the grid gives a 128px card and ~100px of content
+              box. A seven-figure naira price is ~104px on its own, so it used to
+              run past the card and get cut off by `overflow-hidden` — silently,
+              because the app hides horizontal scrollbars globally. Price is the
+              one field every user looks for, so it never truncates: the row
+              wraps and the cart button drops below it instead. */}
+          <div className="mt-auto flex flex-wrap items-end justify-between gap-2">
+            <div className="min-w-0">
               <span className="text-xs text-muted-foreground">
                 {outOfStock ? "Last price" : "Price"}
               </span>
-              <p className="text-base font-bold text-foreground leading-tight">
+              <p className="text-base font-bold text-foreground leading-tight tabular-nums">
                 {formatPrice(product.unit_price, product.currency_code)}
               </p>
             </div>
