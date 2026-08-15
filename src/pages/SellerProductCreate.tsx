@@ -419,14 +419,14 @@ const SellerProductCreate = () => {
           <div className="mx-auto max-w-[1200px] space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-8">
             {/* Product Details */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <Info className="h-5 w-5 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Product Details</h2>
                   <p className="text-sm text-muted-foreground">Basic information about your product</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="title">Product Title *</Label>
@@ -480,14 +480,14 @@ const SellerProductCreate = () => {
 
             {/* Product Media */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <ImageIcon className="h-5 w-5 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Product Media</h2>
                   <p className="text-sm text-muted-foreground">Upload high-quality images and videos</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                 <MediaRequirementsPanel config={mediaConfig} />
                 <label className="flex flex-col items-center justify-center gap-3 py-12 rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer transition-colors bg-muted/30">
                   <CloudUpload className="h-10 w-10 text-muted-foreground" />
@@ -558,14 +558,14 @@ const SellerProductCreate = () => {
 
             {/* Pricing & Stock */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <Banknote className="h-5 w-5 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Pricing & Stock</h2>
                   <p className="text-sm text-muted-foreground">Set your price and manage inventory</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="price">Unit Price (₦) *</Label>
@@ -595,14 +595,14 @@ const SellerProductCreate = () => {
 
             {/* Agreement & Delivery */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <Handshake className="h-5 w-5 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Agreement & Delivery</h2>
                   <p className="text-sm text-muted-foreground">Transaction terms and delivery options</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
                 <div>
                   <Label htmlFor="notes">Seller Notes (private)</Label>
                   <Textarea id="notes" value={sellerNotes} onChange={(e) => setSellerNotes(e.target.value)} placeholder="Internal notes, not visible to buyers" rows={3} className="mt-1.5" />
@@ -707,7 +707,7 @@ const SellerProductCreate = () => {
 
             {/* Visibility & Status */}
             <div className="rounded-2xl border border-border shadow-sm bg-card">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="flex items-center gap-3 border-b border-border p-4 sm:p-6">
                 <Eye className="h-5 w-5 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Visibility & Status</h2>
