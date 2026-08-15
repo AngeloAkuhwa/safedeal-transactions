@@ -243,7 +243,10 @@ export function BuyerSidebar() {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div role="button" tabIndex={0} onKeyDown={keyActivate}
+        {/* Decorative scrim: Escape and the toggle button close the sheet, so
+            the overlay must not be a focus stop for keyboard/AT users. */}
+        <div
+          aria-hidden
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
