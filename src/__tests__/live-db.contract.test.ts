@@ -463,6 +463,40 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
   // executable by authenticated or every transaction policy fails closed.
   // anon is revoked: an unauthenticated caller has no policy to satisfy.
   "is_transaction_party",
+  // ---- Surfaced by widening MONEY_TABLES beyond amount-bearing tables. ----
+  // Read-only counter over flagged users; revoked from anon, page-gated.
+  "admin_flagged_users_count",
+  // Read-only counter of approvals awaiting a given actor; revoked from anon.
+  "count_pending_approvals_for_actor",
+  // Read-only role/access predicates evaluated INSIDE RLS policies. Revoking
+  // authenticated fails every policy closed; they return booleans only.
+  "has_role",
+  "has_any_internal_role",
+  "has_internal_role",
+  "is_internal_admin",
+  "internal_access_active",
+  "internal_actor_rank",
+  "internal_effective_access_level",
+  "internal_effective_permissions",
+  "internal_users_mfa_status",
+  // Read-only settings resolvers. Public pricing and the storefront read fee
+  // configuration before sign-in, so anon EXECUTE is deliberate.
+  "get_effective_setting",
+  "get_effective_settings",
+  "get_pricing_settings_at",
+  // Read-only plan/slot resolvers backing the public pricing page.
+  "effective_vendor_plan_code",
+  "vendor_photo_slot_limit",
+];
+
+// SECURITY DEFINER WRITERS a signed-in client may reach. Each must carry its
+// own authorization check in the body — the grant is not the control.
+const CLIENT_REACHABLE_DEFINER_WRITERS: string[] = [
+  // super_admin check + self-approval guard in the body; revoked from anon.
+  "apply_permission_change_set",
+  // Writes only `internal_users.last_active_at WHERE id = auth.uid()`:
+  // self-scoped by construction, revoked from anon.
+  "touch_internal_user_last_active",
 ];
 
 d("live SECURITY DEFINER EXECUTE grants", () => {
@@ -493,7 +527,8 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
         ` $re$(insert\\s+into|update|delete\\s+from)\\s+(public\\.)?(${MONEY_TABLES})\\M$re$` +
         " order by 1",
     );
-    expect(writers ? writers.split("\n") : []).toEqual([]);
+    const list = writers ? writers.split("\n") : [];
+    expect(list.filter((f) => !CLIENT_REACHABLE_DEFINER_WRITERS.includes(f))).toEqual([]);
   });
 
   it("keeps the refund self-test harness off the client roles", () => {
