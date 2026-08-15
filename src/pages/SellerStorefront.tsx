@@ -142,7 +142,7 @@ const SellerStorefront = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}

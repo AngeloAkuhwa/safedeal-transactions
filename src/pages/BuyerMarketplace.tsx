@@ -111,10 +111,10 @@ export default function BuyerMarketplace() {
   }, [categories]);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex min-h-[100dvh] bg-background lg:h-[100dvh] lg:overflow-hidden">
       {isAuthenticated && <BuyerSidebar />}
 
-      <main className="flex-1 overflow-y-auto relative">
+      <main className="flex-1 relative lg:overflow-y-auto">
         {/* Background glows */}
         <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
@@ -122,7 +122,7 @@ export default function BuyerMarketplace() {
         <div className="sd-page sd-page-y space-y-4 relative z-10">
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
-            <div className="pl-10 lg:pl-0">
+            <div>
               <h1 className="sd-page-title flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-primary" />
                 Marketplace
