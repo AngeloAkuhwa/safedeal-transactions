@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router";
+import { StickyPayBar } from "@/components/payment/StickyPayBar";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -442,6 +443,11 @@ export default function BuyerTransactionReview() {
             <div className="lg:sticky lg:top-24 space-y-6">
               <EscrowProtectionCard data={data} currencyCode={currencyCode} />
               <FraudWarningCard />
+              {/* The summary comes BEFORE the pay button. It used to follow it,
+                  which the sidebar disguised on desktop and did not on a phone:
+                  the buyer pressed "Pay ₦x" with the breakdown of that number
+                  still below the fold. */}
+              <PaymentSummaryCard data={data} currencyCode={currencyCode} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <NextActionCard
                 payLabel={payButtonLabel}
                 onPay={handlePayClick}
@@ -452,9 +458,17 @@ export default function BuyerTransactionReview() {
                 onGoToProfile={() => navigate("/dashboard/profile#location")}
                 onGoToTransactions={() => navigate("/dashboard/transactions")}
               />
-              <PaymentSummaryCard data={data} currencyCode={currencyCode} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
               <TrustIndicatorsCard />
+              {/* The in-flow button repeats the amount because it stands alone;
+                  here the total is already beside it, so the label stays short. */}
+              <StickyPayBar
+                total={formatMoney(totalAmount, currencyCode)}
+                actionLabel={authState === "anonymous" ? "Sign up to pay" : "Pay"}
+                onAction={handlePayClick}
+                disabled={!canPay}
+                note={canPay ? undefined : "Action needed before payment"}
+              />
             </div>
           </div>
         </div>

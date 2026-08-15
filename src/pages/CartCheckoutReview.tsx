@@ -1,4 +1,5 @@
 import { useSearchParams, useNavigate, Link } from "react-router";
+import { StickyPayBar } from "@/components/payment/StickyPayBar";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -496,6 +497,15 @@ const CartCheckoutReview = () => {
                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Lock className="h-5 w-5" />}
                   {isSubmitting ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Confirm & Pay ${formatPrice(Number(session.total_amount), currency)}`}
                 </Button>
+                {/* This route also renders MobileTabBar, so the bar sits above it. */}
+                <StickyPayBar
+                  total={formatPrice(Number(session.total_amount), currency)}
+                  actionLabel={isSubmitting ? "Processing…" : "Pay"}
+                  onAction={handleConfirmPay}
+                  disabled={isSubmitting || gateBlocked}
+                  note={gateBlocked ? gate.disabledReason : undefined}
+                  aboveTabBar
+                />
                 {gateBlocked && (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
                     <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />

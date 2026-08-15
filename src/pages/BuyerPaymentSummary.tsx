@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router";
+import { StickyPayBar } from "@/components/payment/StickyPayBar";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -959,6 +960,14 @@ export default function BuyerPaymentSummary() {
                     )}
                   </button>
                 )}
+                <StickyPayBar
+                  total={formatMoney(totalAmount, currencyCode)}
+                  totalLabel="Total you pay"
+                  actionLabel={isProcessing ? "Processing…" : "Pay"}
+                  onAction={handlePay}
+                  disabled={!agreedToTerms || isProcessing}
+                  note={!agreedToTerms ? "Accept the terms above to pay" : undefined}
+                />
 
                 <button
                   onClick={() => navigate(`/t/${shareToken}`)}
