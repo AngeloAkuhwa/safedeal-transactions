@@ -590,7 +590,8 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           </Select>
           <p className="text-muted-foreground/70 text-xs mt-1">Respects opt-out preferences · Audit logged</p>
           <p className="text-emerald-400/90 text-xs mt-1 flex items-center gap-1.5">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
+            {/* Static: the header "Live" chip owns this screen's live dot. */}
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
             ≈ {onlineCount} recipient{onlineCount === 1 ? "" : "s"} online right now
           </p>
         </div>

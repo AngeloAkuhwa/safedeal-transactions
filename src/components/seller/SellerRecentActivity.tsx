@@ -10,7 +10,6 @@ import {
 import { ArrowLeftRight, Shield, Search, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
-import { keyActivate } from "@/lib/a11y";
 
 interface SellerRecentActivityProps {
   activity: SellerActivity[];
@@ -195,15 +194,21 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             const statusInfo = statusLabelFor(row.transaction_status);
             const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
             return (
-              <div role="button" tabIndex={0} onKeyDown={keyActivate}
+              <div
                 key={row.transaction_id}
-                className="px-4 py-3 sd-row-hover cursor-pointer min-h-11"
-                onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
+                className="relative px-4 py-3 sd-row-hover cursor-pointer min-h-11"
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="font-mono text-xs font-medium truncate">{row.transaction_code}</span>
+                    {/* Stretched link: the row's real, focusable control. */}
+                    <Link
+                      to={`/seller/transactions/${row.transaction_id}`}
+                      aria-label={`Open transaction ${row.transaction_code}`}
+                      className="font-mono text-xs font-medium truncate after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {row.transaction_code}
+                    </Link>
                   </div>
                   <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
                 </div>
@@ -217,7 +222,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                     {formatMoney(row.amount, row.currency_code)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="relative z-rail flex items-center gap-2">
                   {row.has_active_rider_token && (
                     <Button
                       variant="outline"

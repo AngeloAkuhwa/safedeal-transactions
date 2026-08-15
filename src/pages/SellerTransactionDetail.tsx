@@ -588,7 +588,8 @@ const SellerTransactionDetail = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">Next Action Required</span>
-                <span className="w-2 h-2 bg-primary rounded-full sd-live-dot" />
+                {/* Static: the timeline already carries the page's one live dot. */}
+                <span className="w-2 h-2 bg-primary rounded-full" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">{next_action.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">{next_action.description}</p>

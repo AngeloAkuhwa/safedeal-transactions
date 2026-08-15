@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerNav } from "@/components/seller/SellerNav";
@@ -55,6 +55,7 @@ const SellerNotifications = () => {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["seller-notifications", filters],
+    placeholderData: keepPreviousData,
     queryFn: () => getSellerNotifications(filters),
     retry: 1,
     staleTime: 30_000,

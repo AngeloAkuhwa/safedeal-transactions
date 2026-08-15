@@ -28,6 +28,18 @@ function tsxFiles(dir: string): string[] {
  */
 const ALLOWLIST: Array<{ file: string; contains: string; reason: string }> = [];
 
+/**
+ * Visible font-floor exemptions, with reasons. Kept here rather than hidden in
+ * the scanner helper so the cost of each exemption stays reviewable.
+ */
+const FONT_ALLOWLIST: Array<{ file: string; reason: string }> = [
+  {
+    file: "src/components/transactions/TransactionReceipt.tsx",
+    reason:
+      "Print-only receipt: its root is display:none outside @media print, so the 11px labels are laid out at paper width and never rendered on a phone screen. NOTE: this is a whole-file exemption — future on-screen text in this file is not covered.",
+  },
+];
+
 describe("touch-target scanner behaves", () => {
   it("parses past arrow functions inside the opening tag", () => {
     const src = `<button onClick={() => go()} className="h-8 w-8" />`;
@@ -95,9 +107,13 @@ describe("keyboard operability", () => {
 
 describe("legibility floor", () => {
   it(`ships no arbitrary font size below ${MIN_FONT_PX}px`, () => {
-    const violations = scanFontRepo("src")
+    const violations = scanFontRepo("src", new Set(FONT_ALLOWLIST.map((a) => a.file)))
       .filter((v) => !v.file.includes("__tests__"))
       .map((v) => `${v.file}:${v.line} ${v.reason}`);
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("has a documented reason for every font exemption", () => {
+    for (const item of FONT_ALLOWLIST) expect(item.reason.trim().length).toBeGreaterThan(20);
   });
 });

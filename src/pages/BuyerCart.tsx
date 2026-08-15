@@ -35,7 +35,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
-import { keyActivate } from "@/lib/a11y";
 
 /** Currency is required — a cart row always carries its own `currency_code`. */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -493,9 +492,8 @@ const BuyerCart = () => {
                           {(() => {
                             const canNavigate = !isSoldOut && !!item.product?.seller_slug && !!item.product?.slug;
                             const clickableContent = (
-                              <div role="button" tabIndex={0} onKeyDown={keyActivate}
-                                className={`flex gap-4 flex-1 min-w-0 ${canNavigate ? "cursor-pointer group/item" : ""}`}
-                                onClick={canNavigate ? () => navigate(`/store/${item.product!.seller_slug}/${item.product!.slug}/checkout?qty=${item.quantity}`) : undefined}
+                              <div
+                                className={`relative flex gap-4 flex-1 min-w-0 ${canNavigate ? "cursor-pointer group/item" : ""}`}
                               >
                                 <div className={`h-20 w-20 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
                                   {item.product?.primary_image ? (
@@ -509,7 +507,18 @@ const BuyerCart = () => {
                                 <div className="flex-1 min-w-0 space-y-1.5">
                                   <div className="flex items-center gap-2">
                                     <h3 className={`font-semibold text-foreground leading-tight line-clamp-2 text-base ${canNavigate ? "group-hover/item:text-primary transition-colors" : ""}`}>
-                                      {item.product?.title || "Unknown Product"}
+                                      {canNavigate ? (
+                                        // Stretched link: a real control instead of a
+                                        // `role="button"` div wrapping another link.
+                                        <Link
+                                          to={`/store/${item.product!.seller_slug}/${item.product!.slug}/checkout?qty=${item.quantity}`}
+                                          className="after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                          {item.product?.title || "Unknown Product"}
+                                        </Link>
+                                      ) : (
+                                        item.product?.title || "Unknown Product"
+                                      )}
                                     </h3>
                                     {canNavigate && (
                                       <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -524,7 +533,7 @@ const BuyerCart = () => {
                                       <Link
                                         to={`/store/${item.product.seller_slug}`}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="font-medium text-foreground hover:text-primary transition-colors"
+                                        className="relative z-rail font-medium text-foreground hover:text-primary transition-colors"
                                       >
                                         {item.product?.seller_name || "Seller"}
                                       </Link>

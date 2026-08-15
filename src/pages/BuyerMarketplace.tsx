@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,7 @@ export default function BuyerMarketplace() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["marketplace", debouncedSearch, category, sort, page, appliedPriceMin, appliedPriceMax],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       getMarketplaceProducts({
         search: debouncedSearch || undefined,

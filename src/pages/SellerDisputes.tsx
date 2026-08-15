@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerNav } from "@/components/seller/SellerNav";
@@ -59,6 +59,7 @@ const SellerDisputes = () => {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["seller-disputes", filters],
+    placeholderData: keepPreviousData,
     queryFn: () => getSellerDisputes(filters),
     retry: 1,
     staleTime: 30_000,

@@ -470,8 +470,14 @@ function unit(token: string): number | null {
   return Number.isFinite(n) ? n * 4 : null;
 }
 
-/** Variants that still apply at a 360px viewport. */
-const MOBILE_VARIANTS = new Set(["max-sm", "max-md", "max-lg", "max-xl", "max-2xl", "dark", "hover", "focus", "focus-visible", "active", "disabled", "group-hover"]);
+/**
+ * Variants that still apply at a 360px viewport *in the resting state*.
+ * State variants (`hover:`, `focus:`, `active:`, `disabled:`, `dark:`,
+ * `group-hover:`) are deliberately NOT here: `h-6 hover:h-11` is a 24px target
+ * until you are already touching it, so crediting the hover size would hide
+ * the defect.
+ */
+const MOBILE_VARIANTS = new Set(["max-sm", "max-md", "max-lg", "max-xl", "max-2xl"]);
 
 /**
  * Resolve a utility for the mobile viewport. Unprefixed classes apply; the
@@ -499,6 +505,25 @@ function pick(classes: string[], prefix: string): number | null {
   return override ?? base;
 }
 
+/**
+ * True when the tag declares a utility for `prefix` whose value is not a
+ * measurement (`h-auto`, `h-full`, `w-fit`, …). The box then depends on
+ * content, so a primitive/variant default must NOT be substituted — that is
+ * what let `h-auto p-0` on a `size="sm"` Button score 44px.
+ */
+function declaresUnmeasurable(classes: string[], prefix: string): boolean {
+  return classes.some((c) => {
+    const parts = c.split(":");
+    const token = parts[parts.length - 1];
+    if (parts.length > 1 && !parts.slice(0, -1).every((v) => MOBILE_VARIANTS.has(v))) return false;
+    if (!token.startsWith(prefix)) return false;
+    const value = token.slice(prefix.length);
+    // `full`/`screen` are ancestor-sized (unknown here); only `auto`/`fit`/`min`
+    // are genuinely content-sized and therefore measurable from the content.
+    return value === "auto" || value === "fit" || value === "min";
+  });
+}
+
 function has(classes: string[], token: string): boolean {
   return classes.some((c) => c === token || (c.includes(":") && c.split(":").pop() === token));
 }
@@ -507,21 +532,27 @@ function has(classes: string[], token: string): boolean {
  * A `before:-inset-*` hit-area expansion only renders when the pseudo-element
  * actually exists and is positioned against a positioned parent.
  */
-function insetBonus(classes: string[]): number {
+function insetBonus(classes: string[]): { x: number; y: number } {
   const wired =
     classes.some((c) => /^(?:[\w-]+:)*before:absolute$/.test(c)) &&
     classes.some((c) => /^(?:[\w-]+:)*before:content-\[/.test(c)) &&
     classes.some((c) => /^(?:[\w-]+:)*(relative|absolute|fixed|sticky)$/.test(c));
-  if (!wired) return 0;
-  let bonus = 0;
+  if (!wired) return { x: 0, y: 0 };
+  let x = 0;
+  let y = 0;
   for (const c of classes) {
-    const m = c.match(/before:-inset-(\S+)$/);
-    if (m) {
-      const v = unit(m[1]);
-      if (v && Number.isFinite(v)) bonus = Math.max(bonus, v * 2);
+    const m = c.match(/before:-inset-(x-|y-)?(\S+)$/);
+    if (!m) continue;
+    const v = unit(m[2]);
+    if (!v || !Number.isFinite(v)) continue;
+    if (m[1] === "x-") x = Math.max(x, v * 2);
+    else if (m[1] === "y-") y = Math.max(y, v * 2);
+    else {
+      x = Math.max(x, v * 2);
+      y = Math.max(y, v * 2);
     }
   }
-  return bonus;
+  return { x, y };
 }
 
 const TEXT_LINE_PX: Record<string, number> = {
@@ -559,8 +590,21 @@ function attrValue(tagText: string, name: string): string | null {
 export function contentWidthPx(body: string): number | null {
   const closing = body.search(/<\/[A-Za-z]/);
   const inner = closing === -1 ? body : body.slice(0, closing);
-  if (/\{/.test(inner)) return null; // dynamic label: unknown width
-  const text = inner.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  // Resolve what we can of a dynamic label: string literals and the *shortest*
+  // resolvable ternary arm. Only a bare identifier (`{label}`) is unknowable.
+  let resolved = inner;
+  let unknown = false;
+  resolved = resolved.replace(/\{([^{}]*)\}/g, (_all, expr: string) => {
+    const literals = Array.from(String(expr).matchAll(/"([^"]*)"|'([^']*)'/g)).map((m) => m[1] ?? m[2]);
+    if (!literals.length) {
+      unknown = true;
+      return "";
+    }
+    // Worst case for a hit area is the narrowest label the branch can render.
+    return literals.reduce((a, b) => (a.length <= b.length ? a : b));
+  });
+  if (unknown) return null;
+  const text = resolved.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
   if (text.length) return Math.round(text.length * 7);
   const icon = /\bh-(\d+(?:\.\d+)?)\b/.exec(inner);
   if (icon) return Number(icon[1]) * 4;
@@ -568,19 +612,74 @@ export function contentWidthPx(body: string): number | null {
 }
 
 /**
- * `after:absolute after:inset-0` stretches the control over its positioned
+ * `after:absolute after:inset-0` stretches the control over its *positioned*
  * ancestor (the card/row), so the real hit area is that box, not the text line.
+ *
+ * NOTE — honest limitation: this file scans one tag at a time, so the ancestor
+ * box is never measured. The credit below is a marker-based exemption, not a
+ * measurement: it asserts "this control is stretched over something", not
+ * "that something is >= 44px". What it *does* verify structurally is that the
+ * element is genuinely focusable/interactive (a link, a button, or an element
+ * carrying an interactive role) — an `after:inset-0` on a decorative `<div>`
+ * is not credited.
  */
-function isStretched(classes: string[]): boolean {
-  return (
+function isStretched(tagText: string, tag: string, classes: string[]): boolean {
+  const marked =
     classes.some((c) => /^(?:[\w-]+:)*after:absolute$/.test(c)) &&
-    classes.some((c) => /^(?:[\w-]+:)*after:inset-0$/.test(c))
-  );
+    classes.some((c) => /^(?:[\w-]+:)*after:inset-0$/.test(c));
+  if (!marked) return false;
+  const focusable =
+    tag === "button" || tag === "a" || LINK_TAGS.has(tag) || tag === "Button" ||
+    /\brole="(?:button|link|menuitem|tab|option)"/.test(tagText);
+  return focusable;
+}
+
+/**
+ * Height a primitive guarantees, derived from the primitive's own source
+ * rather than from a hand-maintained table (the table credited `Switch` with
+ * 44px while `ui/switch.tsx` shipped `h-6`). Falls back to the table for
+ * components whose box is not a single base class string.
+ */
+const primitiveHeightCache = new Map<string, number>();
+const PRIMITIVE_FILES: Record<string, string> = {
+  Switch: "src/components/ui/switch.tsx",
+  Checkbox: "src/components/ui/checkbox.tsx",
+  Input: "src/components/ui/input.tsx",
+  RadioGroupItem: "src/components/ui/radio-group.tsx",
+};
+
+function primitiveHeight(tag: string): number {
+  const cached = primitiveHeightCache.get(tag);
+  if (cached !== undefined) return cached;
+  const fallback = COMPONENT_DEFAULT_PX[tag] ?? 44;
+  let result = fallback;
+  const file = PRIMITIVE_FILES[tag];
+  if (file) {
+    try {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      const literal = Array.from(source.matchAll(/"([^"]{40,})"/g))
+        .map((m) => m[1])
+        .find((s) => /\b(h-|min-h-|size-)/.test(s));
+      if (literal) {
+        const classes = literal.split(/\s+/).filter(Boolean);
+        const own = [pick(classes, "h-"), pick(classes, "min-h-"), pick(classes, "size-")]
+          .filter((v): v is number => v !== null)
+          .reduce((a, b) => Math.max(a, b), 0);
+        if (own) result = own + insetBonus(classes).y;
+      }
+    } catch {
+      result = fallback;
+    }
+  }
+  primitiveHeightCache.set(tag, result);
+  return result;
 }
 
 function measureClasses(tagText: string, tag: string, classes: string[], body: string) {
-  if (isStretched(classes)) return { classes, height: 360, width: 360 };
   const bonus = insetBonus(classes);
+  if (isStretched(tagText, tag, classes)) {
+    return { classes, height: 360, width: 360, bonus };
+  }
   const h = pick(classes, "h-");
   const minH = pick(classes, "min-h-");
   const size = pick(classes, "size-");
@@ -592,24 +691,39 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
   let height = [h, minH, size].filter((v): v is number => v !== null).reduce((a, b) => Math.max(a, b), 0) || null;
   let width = [w, minW, size].filter((v): v is number => v !== null).reduce((a, b) => Math.max(a, b), 0) || null;
 
-  if (height === null && (tag === "Button" || tag === "Input" || tag === "SelectTrigger" || tag === "Textarea")) {
+  // `h-auto`/`h-full` overrides the primitive's own height (Tailwind merge
+  // keeps the call-site class), so no default may be substituted.
+  const heightIsContent =
+    declaresUnmeasurable(classes, "h-") || declaresUnmeasurable(classes, "size-");
+  const widthIsContent =
+    declaresUnmeasurable(classes, "w-") || declaresUnmeasurable(classes, "size-");
+
+  if (height === null && !heightIsContent && (tag === "Button" || tag === "Input" || tag === "SelectTrigger" || tag === "Textarea")) {
     const variant = attrValue(tagText, "size") ?? "default";
     height = BUTTON_SIZE_PX[variant] ?? 44;
   }
-  if (height === null && PRIMITIVE_SAFE.has(tag)) height = COMPONENT_DEFAULT_PX[tag] ?? 44;
+  if (height === null && !heightIsContent && PRIMITIVE_SAFE.has(tag)) height = primitiveHeight(tag);
 
   if (height === null && py !== null) height = py * 2 + lineBox(classes, body);
+  // `h-auto p-0` is a bare line box: no padding, no declared height.
+  if (height === null && heightIsContent && (py ?? 0) === 0) height = lineBox(classes, body);
   if (width === null && px !== null) {
     const content = contentWidthPx(body);
     width = content === null ? null : px * 2 + content;
   }
   // A full-width control spans the viewport; that dimension is not the risk.
   if (width === null && (has(classes, "w-full") || has(classes, "flex-1") || has(classes, "grow"))) width = 360;
+  // `fixed inset-0` / `absolute inset-0` is a full-viewport/full-parent scrim.
+  if (has(classes, "inset-0") && (has(classes, "fixed") || has(classes, "absolute"))) {
+    height = height ?? 360;
+    width = width ?? 360;
+  }
+  if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
 
   return {
     classes,
-    height: height === null ? null : height + bonus,
-    width: width === null ? null : width + bonus,
+    height: height === null ? null : height + bonus.y,
+    width: width === null ? null : width + bonus.x,
     bonus,
   };
 }
@@ -652,6 +766,9 @@ const lineOf = (source: string, index: number) => source.slice(0, index).split("
 function isInlineTextLink(tagText: string, classes: string[]): boolean {
   if (/\basChild\b/.test(tagText)) return true; // the child is the control and is scanned on its own
   if (!/className=/.test(tagText)) return true; // bare inline link
+  // A className expression the evaluator could not resolve (e.g.
+  // `cn(buttonVariants({…}), className)`) is *unknown*, not inline prose.
+  if (classes.length === 0) return false;
   const blockish = ["flex", "inline-flex", "grid", "block", "inline-block", "absolute", "fixed", "sticky"];
   if (blockish.some((c) => has(classes, c))) return false;
   if (classes.some((c) => /^(h|w|min-h|min-w|size|p|px|py)-/.test(c.split(":").pop() as string))) return false;
@@ -778,7 +895,25 @@ const INTERACTIVE_ROLES = new Set([
  * container `onClick` is then only a redundant mouse affordance, and nested
  * action buttons stay reachable. Recognised by the marker class.
  */
-const STRETCHED = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
+const STRETCHED_MARKER = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
+
+/**
+ * True when the subtree contains a *focusable* element carrying the stretched
+ * marker. A bare `<div className="after:absolute after:inset-0" />` is a scrim,
+ * not a control, and must not satisfy keyboard operability.
+ */
+function hasStretchedControl(subtreeText: string): boolean {
+  for (const { tag, text } of eachTag(subtreeText)) {
+    if (!STRETCHED_MARKER.test(text)) continue;
+    if (
+      tag === "a" || tag === "button" || tag === "Link" || tag === "NavLink" || tag === "Button" ||
+      /\brole="(?:button|link|menuitem|tab|option)"/.test(text)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /** Text of the element starting at `index`, up to its matching close tag. */
 function subtree(source: string, tag: string, index: number): string {
@@ -810,9 +945,10 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
     if (NATIVE_INTERACTIVE.has(tag) || DELEGATING.has(tag)) continue;
     if (!KEYBOARD_DOM_TAGS.has(tag)) continue;
     if (ownAttrIndex(text, "onClick=") === -1) continue;
-    // A scrim is decoration, not a control: Escape and a real button close it.
-    if (ownAttrIndex(text, "aria-hidden") !== -1) continue;
-    if (STRETCHED.test(subtree(rawSource, tag, index))) continue;
+    // NOTE: `aria-hidden` is deliberately NOT an exemption here. A *clickable*
+    // aria-hidden element is a worse defect than a clickable div, not an
+    // exempt one — the earlier presence-only skip let real controls hide.
+    if (hasStretchedControl(subtree(rawSource, tag, index))) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
     // A dialog/menu container is dismissed with Escape, not activated: it needs
@@ -864,12 +1000,11 @@ function toPx(value: number, unitName: string): number {
   }
 }
 
-/** Print/PDF surfaces laid out at a fixed paper width, never on a phone. */
-const FONT_EXEMPT = new Set(["src/components/transactions/TransactionReceipt.tsx"]);
-
-export function scanFontSource(rawSource: string, file: string): Violation[] {
+export function scanFontSource(rawSource: string, file: string, exempt: Set<string> = new Set()): Violation[] {
   const out: Violation[] = [];
-  if (FONT_EXEMPT.has(file)) return out;
+  // Exemptions live in the test's visible allowlist (with a written reason),
+  // never hidden in the helper.
+  if (exempt.has(file)) return out;
   const push = (line: number, reason: string, snippet: string) =>
     out.push({ file, line, tag: "text", reason, snippet: snippet.trim().slice(0, 150) });
 
@@ -901,4 +1036,5 @@ function scanAll(root: string, fn: (source: string, file: string) => Violation[]
 
 export const scanRepo = (root: string) => scanAll(root, scanSource);
 export const scanKeyboardRepo = (root: string) => scanAll(root, scanKeyboardSource);
-export const scanFontRepo = (root: string) => scanAll(root, scanFontSource, [".tsx", ".ts", ".css"]);
+export const scanFontRepo = (root: string, exempt: Set<string> = new Set()) =>
+  scanAll(root, (s, f) => scanFontSource(s, f, exempt), [".tsx", ".ts", ".css"]);

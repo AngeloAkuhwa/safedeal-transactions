@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { CheckCheck, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -53,6 +53,7 @@ const BuyerNotifications = () => {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["buyer-notifications", filters],
+    placeholderData: keepPreviousData,
     queryFn: () => getBuyerNotifications(filters),
     retry: 1,
     staleTime: 30_000,

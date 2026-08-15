@@ -67,10 +67,34 @@ describe("motion budget", () => {
     expect(violations).toEqual([]);
   });
 
-  it("BuyerTransactionReview stays within one pulsing element", () => {
-    const s = fs.readFileSync(path.join(SRC, "pages/BuyerTransactionReview.tsx"), "utf-8");
-    const pulses = (s.match(/sd-live-dot|animate-pulse/g) ?? []).length;
-    expect(pulses).toBe(1);
-    expect(s).toContain('className="w-2 h-2 shrink-0 bg-primary-foreground rounded-full sd-live-dot"');
+  /**
+   * The budget is repo-wide, not one hand-picked page: a screen may show at
+   * most ONE unconditional live dot. Dots gated on state (`overdue &&`,
+   * `live ? … : …`, `step.status === "current"`) are exempt — they are the
+   * signal, and they are mutually exclusive per row.
+   */
+  const UNCONDITIONAL_ALLOWLIST: Record<string, string> = {
+    // Three renders of the SAME pill in mutually exclusive early-return
+    // branches (collapsed / expanded / mobile) — never simultaneous.
+    "src/components/admin/AdminReadingModeControl.tsx": "mutually exclusive render branches",
+  };
+
+  it("no screen renders more than one unconditional live dot", () => {
+    const violations: string[] = [];
+    for (const f of FILES) {
+      const rel = path.relative(process.cwd(), f);
+      if (UNCONDITIONAL_ALLOWLIST[rel]) continue;
+      const unconditional = fs
+        .readFileSync(f, "utf-8")
+        .split("\n")
+        // Only live dots: bulk `animate-pulse` skeletons are governed by the
+        // two tests above.
+        .filter((line) => line.includes("sd-live-dot"))
+        // A conditional expression on the same line means the dot is gated.
+        .filter((line) => !/[?&]{1,2}|\bcn\(/.test(line))
+        .filter((line) => !/Skeleton|skeleton/.test(line));
+      if (unconditional.length > 1) violations.push(`${rel} → ${unconditional.length}`);
+    }
+    expect(violations).toEqual([]);
   });
 });

@@ -1094,7 +1094,7 @@ export default function AdminTransactionDetail() {
               )}
               {filteredTimeline.length > 8 && (
                 <div className="mt-4">
-                  <Button size="sm" variant="link" className="text-muted-foreground hover:text-foreground p-0 h-auto" onClick={() => setShowFullTimeline((v) => !v)}>
+                  <Button size="sm" variant="link" className="text-muted-foreground hover:text-foreground p-0 min-h-11" onClick={() => setShowFullTimeline((v) => !v)}>
                     {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length} events)`}
                   </Button>
                 </div>

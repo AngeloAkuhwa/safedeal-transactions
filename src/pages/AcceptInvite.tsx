@@ -187,7 +187,7 @@ const AcceptInvite = () => {
                           />
                           <button
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-11"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground min-h-11 min-w-11"
                             onClick={() => setShowPw(!showPw)}
                             aria-label={showPw ? "Hide password" : "Show password"}
                           >
@@ -218,7 +218,7 @@ const AcceptInvite = () => {
                           />
                           <button
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-11"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground min-h-11 min-w-11"
                             onClick={() => setShowConfirm(!showConfirm)}
                             aria-label={showConfirm ? "Hide password" : "Show password"}
                           >

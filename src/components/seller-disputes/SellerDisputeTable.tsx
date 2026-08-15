@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import type { SellerDisputeItem } from "@/services/seller-disputes.service";
 import { formatMoney } from "@/lib/format";
 import { resolveDisputeMoneyImpact, TONE_CLASSNAMES } from "@/lib/status-labels";
-import { keyActivate } from "@/lib/a11y";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -64,8 +63,10 @@ export function SellerDisputeTable({ items }: Props) {
         {items.map((d) => {
           const impact = resolveDisputeMoneyImpact(d.money_impact);
           const urgent = isDeadlineUrgent(d);
+          // Plain container + stretched link: a role="button" wrapper around a
+          // real action element is invalid ARIA; the nested action stays reachable.
           return (
-            <article role="button" tabIndex={0} onKeyDown={keyActivate} key={d.id} className="space-y-3 p-4" onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}>
+            <article key={d.id} className="relative space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-2">
                   <Avatar className="h-7 w-7 shrink-0">
@@ -73,7 +74,15 @@ export function SellerDisputeTable({ items }: Props) {
                     <AvatarFallback className="text-xs">{initialsOf(d.buyer?.name)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="font-mono text-xs font-semibold text-primary">{d.transaction_code ?? "—"}</p>
+                    <p className="font-mono text-xs font-semibold text-primary">
+                      <Link
+                        to={`/seller/disputes/${d.id}?section=overview`}
+                        aria-label={`Open dispute ${d.transaction_code ?? d.id}`}
+                        className="after:absolute after:inset-0 after:content-[''] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {d.transaction_code ?? "—"}
+                      </Link>
+                    </p>
                     <p className="truncate text-sm font-medium">{d.item_title ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">{d.buyer?.name ?? "—"}</p>
                   </div>
@@ -92,7 +101,7 @@ export function SellerDisputeTable({ items }: Props) {
               </p>
               <div className="flex flex-wrap gap-2"><DisputeStatusBadge status={d.status} /><Badge variant="outline" className={cn("text-xs", TONE_CLASSNAMES[impact.tone])}>{impact.label}</Badge></div>
               <Button
-                className="min-h-11 w-full"
+                className="relative z-rail min-h-11 w-full"
                 variant={d.primary_action.label === "Respond Now" ? "default" : "outline"}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -150,11 +159,11 @@ export function SellerDisputeTable({ items }: Props) {
                 <TableRow
                   key={d.id}
                   className="relative hover:bg-muted/30 cursor-pointer"
-                  onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}
                 >
                   <TableCell className="px-4 py-3">
                     <Link
-                      to={d.secondary_action.route}
+                      to={`/seller/disputes/${d.id}?section=overview`}
+                      aria-label={`Open dispute ${d.transaction_code ?? d.id}`}
                       className="font-mono text-xs text-primary hover:underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={(e) => e.stopPropagation()}
                     >
