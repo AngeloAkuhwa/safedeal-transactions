@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Loader2, RefreshCw, Shield, Check, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
@@ -48,6 +48,7 @@ const BuyerDisputes = () => {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["buyer-disputes", filters],
+    placeholderData: keepPreviousData,
     queryFn: () => getBuyerDisputes(filters),
     retry: 1,
     staleTime: 30_000,
