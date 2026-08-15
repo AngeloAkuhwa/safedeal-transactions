@@ -588,6 +588,9 @@ const SellerProductCreate = () => {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₦</span>
                       <Input id="price" type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} placeholder="0.00" className="pl-8" />
                     </div>
+                    <FieldError field="price" />
+                    <div className="hidden">
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="original-price">Original Price (₦) <span className="text-muted-foreground font-normal">— optional</span></Label>
