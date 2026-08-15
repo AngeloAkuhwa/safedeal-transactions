@@ -344,8 +344,23 @@ const SellerTransactions = () => {
                       </div>
                       <p className="truncate text-sm font-medium text-foreground">{tx.item_title}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {tx.buyer_name} · Qty {tx.item_quantity}
+                        {tx.item_category ? `${tx.item_category} · ` : ""}Qty {tx.item_quantity}
                       </p>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6 shrink-0">
+                          <AvatarImage src={tx.buyer_avatar ?? undefined} alt="" />
+                          <AvatarFallback className="text-xs">
+                            {tx.buyer_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs text-foreground">{tx.buyer_name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{tx.buyer_email}</span>
+                        </span>
+                      </div>
+                      {tx.last_message_preview && (
+                        <p className="truncate text-xs italic text-muted-foreground">“{tx.last_message_preview}”</p>
+                      )}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-sm font-bold text-foreground">{formatMoney(tx.amount, tx.currency_code)}</p>
