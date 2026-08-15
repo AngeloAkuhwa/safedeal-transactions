@@ -30,6 +30,7 @@ import { LAUNCH_REGION_COUNTRY_CODE } from "@/lib/launch-region";
 import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { REFUND_BULLET } from "@/lib/payment/fee-policy";
+import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -83,9 +84,7 @@ const StorefrontCheckout = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <SummaryPageSkeleton label="Loading checkout" />
     );
   }
 

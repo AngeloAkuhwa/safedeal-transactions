@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RefreshCw, UserCog, X, Save } from "lucide-react";
+import { RefreshCw, UserCog, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -23,6 +23,7 @@ import {
 } from "@/services/seller-profile.service";
 import { toast } from "@/components/ui/sonner";
 import { useSearchParams } from "react-router";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const SellerProfileSettings = () => {
   const queryClient = useQueryClient();
@@ -100,9 +101,7 @@ const SellerProfileSettings = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading your profile settings" />
     );
   }
 

@@ -1,10 +1,11 @@
-import { Loader2 } from "lucide-react";
+import {  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { TestConfigResult, AgentRosterEntry } from "@/services/task-orchestration.service";
 import { nameOf } from "./helpers";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 export function TestConfigurationDialog({
   open, onOpenChange, result, running, roster, onBackToEdit, onSave,
@@ -31,8 +32,10 @@ export function TestConfigurationDialog({
         </DialogHeader>
 
         {running && (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Simulating…
+          <div className="space-y-3 py-4">
+            <BlockSkeleton label="Simulating the configuration" lines={4} />
+            {/* The wait is explained: a bare skeleton would not say what is happening. */}
+            <p className="text-sm text-muted-foreground">Simulating…</p>
           </div>
         )}
         {!running && result && (

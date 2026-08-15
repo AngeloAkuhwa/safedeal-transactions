@@ -24,6 +24,7 @@ import {
 } from "@/services/identity.service";
 import { toast } from "@/components/ui/sonner";
 import { resolveVerificationStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const BuyerVerification = () => {
   const queryClient = useQueryClient();
@@ -44,9 +45,7 @@ const BuyerVerification = () => {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading your verification status" />
     );
   }
 

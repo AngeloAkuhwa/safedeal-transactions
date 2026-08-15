@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { ExternalLink, FileText, X, AlertCircle, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, X, AlertCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatMoney } from "@/lib/format";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { fetchEscrowDetail, type EscrowDetail } from "@/services/admin-escrow.service";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
@@ -166,9 +167,7 @@ export function EscrowRecordDrawer({
           </SheetTitle>
         </SheetHeader>
         {isLoading || !txId ? (
-          <div className="h-64 flex items-center justify-center text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading…
-          </div>
+          <BlockSkeleton label="Loading the escrow record" lines={6} className="py-2" />
         ) : isError ? (
           <div className="text-red-400 text-sm">{(error as Error).message}</div>
         ) : data ? (

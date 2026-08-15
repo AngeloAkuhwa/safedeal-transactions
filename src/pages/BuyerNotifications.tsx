@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { CheckCheck, Loader2, RefreshCw } from "lucide-react";
+import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -18,6 +18,7 @@ import {
 } from "@/services/notifications.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { toast } from "@/components/ui/sonner";
+import { ListSkeleton } from "@/components/common/PageSkeleton";
 
 const BuyerNotifications = () => {
   const queryClient = useQueryClient();
@@ -221,9 +222,7 @@ const BuyerNotifications = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-            </div>
+            <ListSkeleton label="Loading your notifications" rows={3} />
           )}
 
           {/* Error */}

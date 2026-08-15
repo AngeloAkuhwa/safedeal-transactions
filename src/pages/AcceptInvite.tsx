@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { updatePassword } from "@/services/auth.service";
 import { isInternalUser } from "@/lib/internal-role";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 const schema = z
   .object({
@@ -128,9 +129,9 @@ const AcceptInvite = () => {
         </div>
 
         {status === "checking" && (
-          <div className="flex flex-col items-center py-8 text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
-            <p className="text-sm text-muted-foreground">Verifying your invitation…</p>
+          <div className="space-y-3 py-6">
+            <BlockSkeleton label="Checking your invitation" lines={3} />
+            <p className="text-center text-sm text-muted-foreground">Verifying your invitation…</p>
           </div>
         )}
 

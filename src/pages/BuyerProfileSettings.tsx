@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RefreshCw, UserCog, X, Save } from "lucide-react";
+import { RefreshCw, UserCog, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -20,6 +20,7 @@ import {
   type NotificationPreferences,
 } from "@/services/profile.service";
 import { toast } from "@/components/ui/sonner";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const BuyerProfileSettings = () => {
   const queryClient = useQueryClient();
@@ -102,9 +103,7 @@ const BuyerProfileSettings = () => {
   // ── Loading state ──
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading your profile settings" />
     );
   }
 

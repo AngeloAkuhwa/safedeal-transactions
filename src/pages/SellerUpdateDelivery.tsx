@@ -28,6 +28,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 import { keyActivate } from "@/lib/a11y";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 /** Renders `—` when the amount or its currency is unknown. */
 const fmt = (amount: number | undefined | null, currency: string | null) =>
@@ -226,9 +227,7 @@ export default function SellerUpdateDelivery() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageSkeleton label="Loading the delivery update" />
     );
   }
 

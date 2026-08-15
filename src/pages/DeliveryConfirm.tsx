@@ -11,6 +11,7 @@ import {
   confirmDeliveryOtp,
   type DeliveryTokenInfo,
 } from "@/services/delivery-token.service";
+import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 type Stage = "loading" | "ready" | "otp_sent" | "confirmed" | "error";
 
@@ -93,9 +94,9 @@ export default function DeliveryConfirm() {
         </div>
 
         {stage === "loading" && (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Looking up delivery…</p>
+          <div className="space-y-3 py-6">
+            <BlockSkeleton label="Looking up the delivery" lines={3} />
+            <p className="text-center text-sm text-muted-foreground">Looking up delivery…</p>
           </div>
         )}
 
