@@ -345,6 +345,9 @@ const HARDCODED_WINDOW_BASELINE = [
 ];
 
 const HARDCODED_FEE_BASELINE = [
+  // Reads the cap from system_settings; the match is the setting KEY, not a
+  // literal amount.
+  "admin_correct_pricing",
   "get_pricing_settings_at",
   "selftest_refund_rail",
   "track_pricing_setting_version",
@@ -389,7 +392,25 @@ d("live pg_proc invented-defaults scan", () => {
   });
 
   it("adds no new hardcoded fee rate, cap, or fee-setting key to a database function", () => {
-    const found = scanProcs(String.raw`(0\.0?2|\m400(?:\.0+)?\M|max_total_service_fee)`);
+    // 2500 is the RETIRED cap; it must never reappear anywhere.
+    const found = scanProcs(
+      String.raw`(0\.0?2|\m400(?:\.0+)?\M|\m2500\M|max_total_service_fee)`,
+    );
     expect(found.filter((f) => !HARDCODED_FEE_BASELINE.includes(f))).toEqual([]);
+  });
+
+  it("adds no fee rate, cap, or price literal to a column default", () => {
+    // The proc scan reads pg_proc only, so `vendor_plans.escrow_fee_rate
+    // DEFAULT 0.0200` — a fabricated 2% — was invisible to it.
+    const found = psql(
+      "select c.relname || '.' || a.attname || ' = ' || pg_get_expr(d.adbin, d.adrelid)" +
+        " from pg_attrdef d join pg_class c on c.oid = d.adrelid" +
+        " join pg_namespace n on n.oid = c.relnamespace" +
+        " join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum" +
+        " where n.nspname = 'public' and a.attname ~ '(fee|rate|amount|price|cap)'" +
+        " and pg_get_expr(d.adbin, d.adrelid) !~ '^(NULL|0|0\\.0+|false|true|now\\(\\))$'" +
+        " order by 1",
+    );
+    expect(found ? found.split("\n") : []).toEqual([]);
   });
 });
