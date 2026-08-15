@@ -886,7 +886,25 @@ const INTERACTIVE_ROLES = new Set([
  * container `onClick` is then only a redundant mouse affordance, and nested
  * action buttons stay reachable. Recognised by the marker class.
  */
-const STRETCHED = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
+const STRETCHED_MARKER = /after:absolute[\s"'`][^]{0,200}?after:inset-0|after:inset-0[\s"'`][^]{0,200}?after:absolute/;
+
+/**
+ * True when the subtree contains a *focusable* element carrying the stretched
+ * marker. A bare `<div className="after:absolute after:inset-0" />` is a scrim,
+ * not a control, and must not satisfy keyboard operability.
+ */
+function hasStretchedControl(subtreeText: string): boolean {
+  for (const { tag, text } of eachTag(subtreeText)) {
+    if (!STRETCHED_MARKER.test(text)) continue;
+    if (
+      tag === "a" || tag === "button" || tag === "Link" || tag === "NavLink" || tag === "Button" ||
+      /\brole="(?:button|link|menuitem|tab|option)"/.test(text)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /** Text of the element starting at `index`, up to its matching close tag. */
 function subtree(source: string, tag: string, index: number): string {
@@ -918,9 +936,10 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
     if (NATIVE_INTERACTIVE.has(tag) || DELEGATING.has(tag)) continue;
     if (!KEYBOARD_DOM_TAGS.has(tag)) continue;
     if (ownAttrIndex(text, "onClick=") === -1) continue;
-    // A scrim is decoration, not a control: Escape and a real button close it.
-    if (ownAttrIndex(text, "aria-hidden") !== -1) continue;
-    if (STRETCHED.test(subtree(rawSource, tag, index))) continue;
+    // NOTE: `aria-hidden` is deliberately NOT an exemption here. A *clickable*
+    // aria-hidden element is a worse defect than a clickable div, not an
+    // exempt one — the earlier presence-only skip let real controls hide.
+    if (hasStretchedControl(subtree(rawSource, tag, index))) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
     // A dialog/menu container is dismissed with Escape, not activated: it needs
