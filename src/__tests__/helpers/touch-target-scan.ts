@@ -713,6 +713,11 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
   }
   // A full-width control spans the viewport; that dimension is not the risk.
   if (width === null && (has(classes, "w-full") || has(classes, "flex-1") || has(classes, "grow"))) width = 360;
+  // `fixed inset-0` / `absolute inset-0` is a full-viewport/full-parent scrim.
+  if (has(classes, "inset-0") && (has(classes, "fixed") || has(classes, "absolute"))) {
+    height = height ?? 360;
+    width = width ?? 360;
+  }
   if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
 
   return {
