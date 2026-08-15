@@ -55,7 +55,9 @@ function readOpeningTag(source: string, start: number): string {
 function tableTagHasFallback(tagText: string, source: string, tableStart: number): boolean {
   if (/\bsd-stack\b/.test(tagText)) return true;
   const ownTagHidden = /hidden\s+(?:md|sm):table\b/.test(tagText);
-  const ancestorWindow = source.slice(Math.max(0, tableStart - 400), tableStart);
+  // 1400 chars: admin tables put a card header, a live-sync pill and a scroll
+  // container between the `hidden lg:block` wrapper and the `<Table>` itself.
+  const ancestorWindow = source.slice(Math.max(0, tableStart - 1400), tableStart);
   const ancestorHidden = /className="[^"]*\bhidden\b[^"]*\b(?:md|sm|lg|xl):block\b[^"]*"/.test(ancestorWindow)
     || /className="[^"]*\b(?:md|sm|lg|xl):block\b[^"]*\bhidden\b[^"]*"/.test(ancestorWindow);
   if (!ownTagHidden && !ancestorHidden) return false;
