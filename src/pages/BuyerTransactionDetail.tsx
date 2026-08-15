@@ -913,7 +913,7 @@ function TransactionTimeline({
                 isReached
                   ? "bg-success/10"
                   : isCurrent
-                    ? "bg-warning animate-pulse"
+                    ? "bg-warning sd-live-dot"
                     : "bg-muted"
               }`}>
                 {isReached ? (

@@ -456,7 +456,7 @@ export default function BuyerPaymentSummary() {
       <section className="bg-gradient-to-r from-success to-success/90 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center gap-3 text-success-foreground">
-            <ShieldCheck className="h-5 w-5 animate-pulse" />
+            <ShieldCheck className="h-5 w-5" />
             <p className="text-sm font-semibold">Your payment will be held securely until you confirm the item received</p>
             <Lock className="h-4 w-4" />
           </div>
