@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
@@ -52,6 +52,7 @@ export default function AdminFlaggedUsers() {
     queryKey: ["admin-flagged-users", query],
     queryFn: () => fetchFlaggedUsers(query),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });

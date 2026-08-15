@@ -34,6 +34,9 @@ export default function AdminPayouts() {
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all"
   );
   const [search, setSearch] = useState("");
+  // Debounced mirror of `search` — the loader depends on this so typing costs
+  // one request instead of one per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<PayoutFilterState>(() => ({
     ...DEFAULT_PAYOUT_FILTERS,
@@ -87,13 +90,13 @@ export default function AdminPayouts() {
     setListLoading(true);
     try {
       const q = filtersToQuery(filters);
-      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50, ...q });
+      const res = await payoutsApi.listPayouts({ tab, search: debouncedSearch || undefined, page, limit: 50, ...q });
       setRows(res.rows);
       setPagination(res.pagination);
     } catch (e) {
       toast({ title: "Failed to load payouts", description: (e as Error).message, variant: "destructive" });
     } finally { setListLoading(false); }
-  }, [tab, search, page, filters]);
+  }, [tab, debouncedSearch, page, filters]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -101,6 +104,11 @@ export default function AdminPayouts() {
     catch (e) { toast({ title: "Failed to load payout detail", description: (e as Error).message, variant: "destructive" }); }
     finally { setDetailLoading(false); }
   }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
   useEffect(() => { loadList(); }, [loadList]);

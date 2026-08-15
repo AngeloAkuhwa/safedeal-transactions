@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { RefreshCw, Clock } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
 import { EscrowKpiCards } from "@/components/admin/escrow/EscrowKpiCards";
@@ -51,6 +51,7 @@ export default function AdminEscrow() {
     queryKey: ["admin-escrow-overview", query],
     queryFn: () => fetchEscrowOverview(query),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
