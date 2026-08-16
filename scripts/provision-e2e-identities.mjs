@@ -63,8 +63,15 @@ if (AS_SQL) {
       console.error(`-- MISSING ${a.env}: ${a.email} skipped`);
       continue;
     }
-    if (pw.length < 16) {
-      console.error(`-- ${a.env} is under 16 characters; refusing`);
+    // A floor, not a policy. 16 was arbitrary and it silently skipped a
+    // 15-character secret, which is the worst failure this script can have:
+    // it prints no UPDATE for that account, the operator pastes what it did
+    // print, and the account they thought they provisioned still cannot sign
+    // in — with nothing in the output to say so unless they read stderr.
+    // 12 keeps out the obviously guessable and stops the skip. The refusal is
+    // now loud either way.
+    if (pw.length < 12) {
+      console.error(`-- REFUSED ${a.env}: under 12 characters. ${a.email} NOT provisioned.`);
       continue;
     }
     lines.push(

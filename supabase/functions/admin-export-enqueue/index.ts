@@ -50,7 +50,28 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // Parse body first so we know which export_type we're gating.
+  // Identity first, export_type second.
+  //
+  // This used to parse and validate before authenticating, on the reasoning
+  // that the required permission depends on which export is being asked for.
+  // That is true of the *fine-grained* check and not of the coarse one: an
+  // anonymous caller could send `{"export_type":"x"}` repeatedly and read off
+  // the supported set from which values came back `unsupported_export_type`
+  // versus which came back 401 — the list of things the back office can
+  // extract, disclosed to someone who never signed in.
+  //
+  // Prove the caller is an admin, then parse, then gate on the export type
+  // with the context already in hand (no second round of role lookups).
+  let ctx;
+  try {
+    ctx = await requireAdmin(req);
+  } catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    console.error("[admin-export-enqueue] auth failed", err);
+    return json({ error: "auth_failed" }, 500);
+  }
+
   let body: { export_type?: string; params?: Record<string, unknown> } = {};
   try {
     body = await req.json();
@@ -63,15 +84,15 @@ Deno.serve(async (req) => {
   }
 
   const requiredPerm = EXPORT_PERMS[exportType];
-  let ctx;
-  try {
-    ctx = requiredPerm
-      ? await requirePermission(req, requiredPerm)
-      : await requireAdmin(req);
-  } catch (err) {
-    const r = authErrorResponse(err, corsHeaders);
-    if (r) return r;
-    return json({ error: "auth_failed" }, 500);
+  if (requiredPerm) {
+    try {
+      ctx = await requirePermission(req, requiredPerm, ctx);
+    } catch (err) {
+      const r = authErrorResponse(err, corsHeaders);
+      if (r) return r;
+      console.error("[admin-export-enqueue] permission check failed", err);
+      return json({ error: "auth_failed" }, 500);
+    }
   }
 
   const rl = await enforceAdminRateLimit(ctx, "export_enqueue", 20, corsHeaders);

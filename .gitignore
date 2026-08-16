@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Render audit output — screenshots and report.json, regenerated on every run.
+audit-out/
