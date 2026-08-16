@@ -135,7 +135,13 @@ Deno.serve(async (req) => {
   } catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
     if (resp) return resp;
-    throw err;
+    // Not an AuthError. Rethrowing would escape Deno.serve and produce a bare
+    // runtime 500 with no CORS headers, so the admin UI would show a CORS
+    // failure instead of the actual problem — and this now runs on every
+    // request rather than only after the body parsed, so it is a hotter path
+    // than it was.
+    console.error("[admin-transaction-actions] auth failed", err);
+    return json({ error: "auth_failed" }, 500);
   }
 
   let body: Body;

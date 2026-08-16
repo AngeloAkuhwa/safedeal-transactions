@@ -117,26 +117,56 @@ export const ADMIN_FUNCTIONS: string[] = [
  * the probe follows the function: change `req.method !== "GET"` to `"POST"` and
  * the contract test retargets itself on the next run instead of quietly going
  * hollow again.
+ *
+ * Three deliberate choices about failure:
+ *
+ *   - Unreadable source THROWS. Swallowing it would silently restore the exact
+ *     hollow probe this function exists to remove — every method derives POST,
+ *     every GET-only handler answers 405, every assertion passes. A test helper
+ *     that degrades into passing is the failure mode with no symptom.
+ *   - No `!==` guard means the handler dispatches on method some other way
+ *     (`admin-system-settings` takes GET and PUT via a switch). Falling back to
+ *     POST there would probe a method it does not serve, so the CORS
+ *     `Access-Control-Allow-Methods` header — which those handlers do declare —
+ *     is read instead, and its first non-OPTIONS entry used.
+ *   - The method comes from repo source; the request goes to the deployed
+ *     function. On Lovable Cloud those can drift between merge and deploy. A
+ *     405 in a passing run is the signature of that drift, which is why the
+ *     assertions below never accept 405 as a pass.
  */
 const METHOD_CACHE = new Map<string, string>();
 
 export function methodFor(fn: string): string {
   const cached = METHOD_CACHE.get(fn);
   if (cached) return cached;
-  let method = "POST";
+
+  const file = path.resolve(__dirname, "../../..", "supabase/functions", fn, "index.ts");
+  let src: string;
   try {
-    const src = fs.readFileSync(
-      path.resolve(__dirname, "../../..", "supabase/functions", fn, "index.ts"),
-      "utf8",
+    src = fs.readFileSync(file, "utf8");
+  } catch (err) {
+    throw new Error(
+      `methodFor(${fn}): cannot read ${file}. Refusing to guess a method — ` +
+        `guessing POST would make every GET-only probe pass on a 405. (${(err as Error).message})`,
     );
-    // `if (req.method !== "GET") return ... 405` — the guard names the one
-    // method the handler serves. No guard means it serves anything; POST is
-    // then the strongest probe because it can carry the role-hint body.
-    const m = src.match(/req\.method\s*!==\s*["'“”]?([A-Z]+)/);
-    if (m) method = m[1];
-  } catch {
-    /* function source not on disk — fall back to POST */
   }
+
+  // `if (req.method !== "GET") return ... 405` — the guard names the one
+  // method the handler serves.
+  const guard = src.match(/req\.method\s*!==\s*["'`]([A-Z]+)["'`]/);
+  if (guard) {
+    METHOD_CACHE.set(fn, guard[1]);
+    return guard[1];
+  }
+
+  // No single-method guard. Use what the handler tells browsers it accepts.
+  const cors = src.match(/Access-Control-Allow-Methods["']?\s*:\s*["']([^"']+)["']/);
+  const declared = (cors?.[1] ?? "")
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s && s !== "OPTIONS");
+
+  const method = declared[0] ?? "POST";
   METHOD_CACHE.set(fn, method);
   return method;
 }
@@ -145,26 +175,29 @@ export async function rawInvoke(
   fn: string,
   opts: { token?: string; body?: unknown; extraHeaders?: Record<string, string> } = {},
 ): Promise<Response> {
+  const method = methodFor(fn);
+  const bodiless = method === "GET" || method === "HEAD";
+
+  // `extraHeaders` goes last: a probe that wants to send a deliberately wrong
+  // `Content-Type` is testing something, and this helper should not overrule it.
   const headers: Record<string, string> = {
     apikey: anon,
+    ...(bodiless ? {} : { "Content-Type": "application/json" }),
     ...(opts.extraHeaders ?? {}),
   };
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
 
-  const method = methodFor(fn);
-  const bodiless = method === "GET" || method === "HEAD";
-
   // A GET cannot carry a body, so the role hints move to the query string.
   // They still have to be ignored — the point of the assertion is that role
   // comes from the JWT, and a caller who can put it in a body can put it in a
-  // URL just as easily.
+  // URL just as easily. Objects are JSON-encoded rather than stringified,
+  // because `[object Object]` is not a role hint anyone would send.
   const target = new URL(`${url}/functions/v1/${fn}`);
   if (bodiless && opts.body && typeof opts.body === "object") {
     for (const [k, v] of Object.entries(opts.body as Record<string, unknown>)) {
-      target.searchParams.set(k, String(v));
+      target.searchParams.set(k, typeof v === "object" && v !== null ? JSON.stringify(v) : String(v));
     }
   }
-  if (!bodiless) headers["Content-Type"] = "application/json";
 
   return fetch(target.toString(), {
     method,

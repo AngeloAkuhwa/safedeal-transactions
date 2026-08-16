@@ -45,12 +45,23 @@ const ACCOUNTS_FOR_SQL = () => ACCOUNTS;
 const DISABLE = process.argv.includes("--disable");
 const AS_SQL = process.argv.includes("--sql");
 
+// The minimum length for an audit credential, applied identically by both
+// paths below. It used to be 16 in both, which quietly refused a 15-character
+// secret — and "quietly" was the whole problem, not the number: the --sql path
+// printed no UPDATE for that account, exited 0, and the operator pasted an
+// output that provisioned two of three users with nothing to say so. 12 keeps
+// out the obviously guessable. The refusal is now visible in the pasted SQL
+// itself and the exit code is non-zero, so a partial run cannot read as a
+// complete one.
+const MIN_PASSWORD_LENGTH = 12;
+
 if (AS_SQL) {
   // No service role key needed — this is the Lovable Cloud path.
   const lines = [
     "-- Provision the disposable audit identities.",
     "-- Passwords come from the environment; nothing here is committed.",
   ];
+  let refused = false;
   for (const a of ACCOUNTS_FOR_SQL()) {
     if (DISABLE) {
       lines.push(
@@ -60,26 +71,29 @@ if (AS_SQL) {
     }
     const pw = process.env[a.env];
     if (!pw) {
-      console.error(`-- MISSING ${a.env}: ${a.email} skipped`);
+      // Into `lines`, not just stderr: this has to survive being copied.
+      lines.push(`-- !! MISSING ${a.env} — ${a.email} NOT provisioned.`);
+      console.error(`MISSING ${a.env}: ${a.email} not provisioned`);
+      refused = true;
       continue;
     }
-    // A floor, not a policy. 16 was arbitrary and it silently skipped a
-    // 15-character secret, which is the worst failure this script can have:
-    // it prints no UPDATE for that account, the operator pastes what it did
-    // print, and the account they thought they provisioned still cannot sign
-    // in — with nothing in the output to say so unless they read stderr.
-    // 12 keeps out the obviously guessable and stops the skip. The refusal is
-    // now loud either way.
-    if (pw.length < 12) {
-      console.error(`-- REFUSED ${a.env}: under 12 characters. ${a.email} NOT provisioned.`);
+    if (pw.length < MIN_PASSWORD_LENGTH) {
+      lines.push(
+        `-- !! ${a.env} is under ${MIN_PASSWORD_LENGTH} characters — ${a.email} NOT provisioned.`,
+      );
+      console.error(`REFUSED ${a.env}: under ${MIN_PASSWORD_LENGTH} characters`);
+      refused = true;
       continue;
     }
     lines.push(
       `UPDATE auth.users SET encrypted_password = crypt('${pw.replace(/'/g, "''")}', gen_salt('bf')), banned_until = NULL, email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE email = '${a.email}';`,
     );
   }
+  if (refused) {
+    lines.push("-- !! INCOMPLETE: at least one account above was not provisioned.");
+  }
   console.log(lines.join("\n"));
-  process.exit(0);
+  process.exit(refused ? 1 : 0);
 }
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -124,8 +138,8 @@ for (const account of ACCOUNTS) {
       failed = true;
       continue;
     }
-    if (password.length < 16) {
-      console.error(`${account.env} is shorter than 16 characters; refusing to set a weak audit credential`);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      console.error(`${account.env} is shorter than ${MIN_PASSWORD_LENGTH} characters; refusing to set a weak audit credential`);
       failed = true;
       continue;
     }

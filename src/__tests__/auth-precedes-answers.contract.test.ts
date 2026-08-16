@@ -49,20 +49,40 @@ const SERVICE_ROLE_ONLY = new Set(["admin-export-worker"]);
  * Ways a handler identifies its caller other than through `_shared/auth.ts`.
  *
  * `admin-agent-heartbeat` resolves the JWT itself with `auth.getUser` and
- * checks `is_internal_admin`. `admin-task-orchestration-action` has a
- * scheduler path that presents a shared secret in a header instead of a
- * session — a caller holding `CRON_SECRET` is identified, just not as a
- * person, so responses inside that branch are not responses to a stranger.
+ * checks `is_internal_admin`. `admin-task-orchestration-action` has a scheduler
+ * path that presents a shared secret in a header instead of a session — a
+ * caller holding `CRON_SECRET` is identified, just not as a person.
  *
- * The secret pattern is deliberately narrow: a header whose *name* contains
- * "secret". `SUPABASE_SERVICE_ROLE_KEY` appears in most of these files as the
- * credential the function uses to reach the database, which says nothing about
- * who called it, and must not be mistaken for a caller check.
+ * The secret clause requires a COMPARISON, not a read. Matching
+ * `headers.get("x-anything-secret")` alone would mean one unused line —
+ * `const _ = req.headers.get("x-secret")` at the top of a handler — exempts
+ * that handler from this entire file, which is the shape anyone silencing a
+ * failing test lands on first. `SUPABASE_SERVICE_ROLE_KEY` is likewise the
+ * credential these functions use to reach the database, and says nothing about
+ * who called them.
  */
 const INLINE_AUTH =
-  /auth\.getUser\(|is_internal_admin|has_any_internal_role|headers\.get\(\s*["'][\w-]*secret[\w-]*["']\s*\)/i;
+  /auth\.getUser\(|is_internal_admin|has_any_internal_role|[\w.]*[Ss]ecret\w*\s*===\s*[\w.]+|[\w.]+\s*===\s*[\w.]*[Ss]ecret\w*/;
 
 const AUTH_CALL = /\brequire(Admin|User|Permission|AnyPermission)\s*\(/;
+
+/**
+ * Comments are not code. A `// TODO: call requireAdmin here` above a pre-auth
+ * 400 would otherwise close the window and exempt everything below it.
+ */
+const stripComments = (s: string) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+
+/**
+ * The OPTIONS preflight answers before auth by design and carries no data.
+ * Both the one-line and braced forms are in use here, and a correct preflight
+ * may legitimately carry a 204 — so the block is removed rather than its
+ * status allowed, which would let a 204 through anywhere else too.
+ */
+const stripPreflight = (s: string) =>
+  s
+    .replace(/if\s*\(\s*req\.method\s*===\s*["']OPTIONS["']\s*\)\s*\{[\s\S]*?\n\s*\}/g, "\n")
+    .replace(/if\s*\(\s*req\.method\s*===\s*["']OPTIONS["']\s*\)[^\n]*\n/g, "\n");
 
 function adminFunctions(): string[] {
   if (!fs.existsSync(FUNCTIONS)) return [];
@@ -76,47 +96,79 @@ function adminFunctions(): string[] {
 
 /**
  * The handler body, from `Deno.serve(` to the point where the caller is first
- * identified. Everything in this window runs for an anonymous caller.
+ * identified. Everything in this window runs for someone unknown.
+ *
+ * A `require*` that appears inside an arrow function is a definition, not a
+ * call — `const gate = async () => requireAdmin(req)` at the top of a handler
+ * would otherwise close the window while the real check happens much later.
+ * Lines where `=>` precedes the match are skipped for that reason.
  */
 function preAuthWindow(src: string): string | null {
   const serve = src.indexOf("Deno.serve(");
   if (serve === -1) return null;
-  const auth = src.slice(serve).search(AUTH_CALL);
-  const inline = src.slice(serve).search(INLINE_AUTH);
-  const candidates = [auth, inline].filter((i) => i >= 0);
+  const body = src.slice(serve);
+
+  const firstRealAuth = (re: RegExp): number => {
+    for (const m of body.matchAll(new RegExp(re.source, re.flags + "g"))) {
+      const i = m.index ?? -1;
+      if (i < 0) continue;
+      const lineStart = body.lastIndexOf("\n", i) + 1;
+      if (body.slice(lineStart, i).includes("=>")) continue; // a definition
+      return i;
+    }
+    return -1;
+  };
+
+  const candidates = [firstRealAuth(AUTH_CALL), firstRealAuth(INLINE_AUTH)].filter((i) => i >= 0);
   // No identification anywhere in the handler is itself the failure — return
   // the whole body so the assertion below reports on it.
-  if (!candidates.length) return src.slice(serve);
-  return src.slice(serve, serve + Math.min(...candidates));
+  if (!candidates.length) return body;
+  return body.slice(0, Math.min(...candidates));
 }
 
 /**
- * Statuses a handler may hand to someone it has not identified.
+ * Every `return` in the window, classified.
  *
- * 405 is here because refusing a method is a property of the URL, not of the
- * caller, and every one of these handlers checks it in its first two lines.
- * 200 is deliberately absent: the CORS preflight is stripped from the window
- * before scanning, so a 200 reaching this list means a real answer escaped.
+ * The first version of this looked for `return json(..., 400)` and missed the
+ * idiom used by the very function it was written for: `admin-transaction-actions`
+ * emits all ~25 of its 400s through a local `badRequest()` helper, so moving
+ * `return badRequest("missing_fields")` back above the auth check left the test
+ * green. Helpers with a defaulted status (`json(body, status = 200)`) and
+ * statuses held in constants slipped through the same gap.
+ *
+ * So the rule is inverted. Instead of hunting for statuses that are forbidden,
+ * every `return <something>` in the window must be recognisably one of the
+ * permitted refusals. Anything else — any helper, any indirection, any status
+ * this parser cannot read — is reported. That converts "I could not tell" from
+ * a silent pass into a failure, which is the correct default for a file whose
+ * entire job is to notice something absent.
  */
-const ALLOWED = new Set([401, 403, 405]);
-
-/** The OPTIONS preflight answers before auth by design; it carries no data. */
-const stripPreflight = (s: string) =>
-  s.replace(/if\s*\(\s*req\.method\s*===\s*["']OPTIONS["']\s*\)[^\n]*\n/g, "\n");
-
-/**
- * Numeric statuses in returned responses. Both argument orders are in use in
- * this codebase — `json(body, status)` and `json(status, body)` — so match the
- * literal integers in the call and judge all of them.
- */
-function returnedStatuses(window: string): number[] {
-  const out: number[] = [];
-  const re = /return\s+(?:json|new\s+Response)\s*\(([\s\S]*?)\);/g;
+function unexplainedReturns(window: string): string[] {
+  const out: string[] = [];
+  const re = /\breturn\b([^;]*);/g;
   for (const m of window.matchAll(re)) {
-    for (const n of m[1].matchAll(/\b([1-5]\d\d)\b/g)) out.push(Number(n[1]));
+    const expr = m[1].trim();
+
+    // Bare `return;` and returns of an already-built auth refusal.
+    if (!expr) continue;
+    if (/^(resp|r|authResp|response)$/.test(expr)) continue;
+    if (/authErrorResponse|corsPreflight/.test(expr)) continue;
+
+    // An explicit refusal status is the only literal permitted here.
+    const statuses = [...expr.matchAll(/\b([1-5]\d\d)\b/g)].map((s) => Number(s[1]));
+    if (statuses.length && statuses.every((s) => ALLOWED.has(s))) continue;
+
+    out.push(expr.replace(/\s+/g, " ").slice(0, 90));
   }
   return out;
 }
+
+/**
+ * Statuses a handler may hand to someone it has not identified. Refusing a
+ * method is a property of the URL rather than of the caller, and every one of
+ * these handlers checks it in its first two lines, so 405 belongs here.
+ */
+const ALLOWED = new Set([401, 403, 405]);
 
 describe("admin functions authenticate before they answer", () => {
   const fns = adminFunctions();
@@ -128,8 +180,10 @@ describe("admin functions authenticate before they answer", () => {
   describe.each(fns)("%s", (fn) => {
     const src = fs.readFileSync(path.join(FUNCTIONS, fn, "index.ts"), "utf8");
 
+    const code = stripComments(src);
+
     it("identifies the caller somewhere in the handler", () => {
-      const body = src.slice(src.indexOf("Deno.serve("));
+      const body = code.slice(code.indexOf("Deno.serve("));
       expect(
         AUTH_CALL.test(body) || INLINE_AUTH.test(body),
         `${fn} never resolves who is calling — every other guarantee here rests on this one`,
@@ -137,17 +191,17 @@ describe("admin functions authenticate before they answer", () => {
     });
 
     it("returns nothing but 401/403/405 before the caller is known", () => {
-      const window = preAuthWindow(src);
+      const window = preAuthWindow(code);
       expect(window, `${fn} has no Deno.serve handler`).not.toBeNull();
-      const offenders = returnedStatuses(stripPreflight(window!)).filter(
-        (s) => !ALLOWED.has(s),
-      );
+      const offenders = unexplainedReturns(stripPreflight(window!));
       expect(
         offenders,
-        `${fn} answers ${offenders.join(", ")} to an unauthenticated caller. ` +
+        `${fn} replies to an unauthenticated caller:\n  ${offenders.join("\n  ")}\n` +
           "Move the check above the reply: prove who is calling with requireAdmin, " +
           "then parse and validate. A body-dependent permission can still be " +
-          "resolved afterwards by passing the context into requirePermission.",
+          "resolved afterwards by passing that context into requirePermission.\n" +
+          "If this return really is a refusal, give it a literal 401/403/405 — " +
+          "a status this parser cannot read is reported rather than assumed safe.",
       ).toEqual([]);
     });
   });

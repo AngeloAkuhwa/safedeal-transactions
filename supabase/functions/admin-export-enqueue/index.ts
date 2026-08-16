@@ -60,6 +60,14 @@ Deno.serve(async (req) => {
   // versus which came back 401 — the list of things the back office can
   // extract, disclosed to someone who never signed in.
   //
+  // "Never signed in" is literal, not shorthand. `config.toml` does not list
+  // this function, so `verify_jwt` should default to true and the platform
+  // should reject a caller with no token before this handler runs. It does
+  // not: a POST with no Authorization header, no apikey header, no headers at
+  // all reached this code and was answered `unsupported_export_type`. Checked,
+  // not assumed — and worth remembering the next time a control is presumed to
+  // be applied upstream.
+  //
   // Prove the caller is an admin, then parse, then gate on the export type
   // with the context already in hand (no second round of role lookups).
   let ctx;
