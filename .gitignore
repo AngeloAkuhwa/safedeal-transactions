@@ -23,7 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Secrets — never commit. Use .env.example for shape.
-.env
+# Local-only overrides only.
 .env.local
 .env.*.local
