@@ -7,11 +7,11 @@
 #
 # Two things are deliberate:
 #
-#   - `admin-auth.contract.test.ts` is 102 tests that assert server-side role
-#     enforcement on every admin edge function. They skip themselves when their
-#     credentials are absent, which means they have never run. The `verify-no-
-#     skips` step fails the build if they skip again, so a missing secret is
-#     loud instead of green.
+#   - `admin-auth.contract.test.ts` asserts server-side role enforcement on
+#     every admin edge function. Those tests skip themselves when their
+#     credentials are absent, and a skip prints in grey next to a green tick.
+#     The step below fails the build if they skip again, so a missing secret is
+#     loud instead of invisible.
 #
 #   - The render audit needs signed-in identities. They are provisioned
 #     out-of-band (see the note below) with passwords that live only in these
@@ -75,6 +75,29 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+
+      # A missing secret does not announce itself. GitHub substitutes an empty
+      # string, `hasTestCreds` goes false, and 102 role-enforcement tests skip
+      # — which the summary prints in grey next to a green tick. That is how
+      # the first run of this workflow reported success on a job that verified
+      # nothing. Name the empty one here, before anything else can absorb it.
+      - name: Every secret this job needs is present
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+        run: |
+          missing=""
+          for k in SUPABASE_URL SUPABASE_ANON_KEY E2E_ADMIN_PASSWORD E2E_BUYER_PASSWORD; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing — set them in Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "all required secrets present"
+
       - name: Run the suite
         env:
           ALLOW_SKIP_LIVE_DB: "1"
@@ -85,13 +108,41 @@ jobs:
           VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
           VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
         run: bun run test 2>&1 | tee /tmp/test.log
-      - name: The 102 role-enforcement tests must actually run
+
+      # Grepping the human-readable log for the word "skipped" is a guess about
+      # a reporter's formatting. Count the results instead — a skip and a
+      # failure are both stopping conditions, and the reason is printed.
+      - name: The role-enforcement contract must actually run
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_TEST_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
+          VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
+          VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
         run: |
-          if grep -qE "admin-auth\.contract\.test\.ts.*skipped" /tmp/test.log; then
-            echo "::error::admin-auth.contract.test.ts skipped — role enforcement went unverified"
-            exit 1
-          fi
-          echo "admin authorization contract ran"
+          npx vitest run src/__tests__/admin-auth.contract.test.ts \
+            --reporter=json --outputFile=/tmp/contract.json || true
+          node -e '
+            const r = require("/tmp/contract.json");
+            const tests = r.testResults.flatMap(f => f.assertionResults);
+            const by = s => tests.filter(t => t.status === s).length;
+            const expected = require("fs")
+              .readdirSync("supabase/functions")
+              .filter(n => n.startsWith("admin-")).length;
+            console.log(`ran ${by("passed")} passed, ${by("failed")} failed, ${by("pending")} skipped`);
+            if (by("pending") > 0 || tests.length === 0) {
+              console.log("::error::role enforcement went unverified — the probes did not run");
+              process.exit(1);
+            }
+            if (by("failed") > 0) {
+              for (const t of tests.filter(t => t.status === "failed")) {
+                console.log(`::error::${t.fullName}: ${(t.failureMessages||[]).join(" ").split("\n")[0]}`);
+              }
+              process.exit(1);
+            }
+            console.log(`admin authorization contract verified across ${expected} admin functions`);
+          '
 
   audit:
     name: mobile render audit
@@ -102,7 +153,38 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: npx playwright install --with-deps chromium
+
+      # `npx playwright install` fetches the CLI into a temporary npx cache and
+      # downloads browsers. It does not leave the `playwright` PACKAGE anywhere
+      # `scripts/mobile-audit.mjs` can import from, which is why the first run
+      # of this job reported "This audit needs Playwright" after apparently
+      # installing it. Install the package globally — the script's loader
+      # already falls back to `npm root -g` — then fetch the browser with the
+      # binary that package provides, so the two cannot disagree about which
+      # build is expected.
+      - name: Install Playwright and Chromium
+        run: |
+          npm i -g playwright
+          npx --yes playwright install --with-deps chromium
+          node -e 'require(require("child_process").execSync("npm root -g",{encoding:"utf8"}).trim()+"/playwright"); console.log("playwright resolvable")'
+
+      - name: Every secret this job needs is present
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+          E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          missing=""
+          for k in SUPABASE_URL SUPABASE_ANON_KEY E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            exit 1
+          fi
+          echo "all required secrets present"
 
       - name: Start the app
         env:
