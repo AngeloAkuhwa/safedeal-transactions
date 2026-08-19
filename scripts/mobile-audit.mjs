@@ -554,7 +554,7 @@ async function signIn(page, email, password) {
       console.error(
         `  400 on the password grant means ${tokenHost} rejected this credential.\n` +
           `  Check, in this order: (a) is ${tokenHost} the project that holds the seeded\n` +
-          `  accounts, (b) does the password in E2E_${""}*_PASSWORD match the one set on the\n` +
+          `  accounts, (b) does the password in E2E_<ROLE>_PASSWORD match the one set on the\n` +
           `  account, (c) is the account email-confirmed.`,
       );
     }
