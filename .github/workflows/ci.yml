@@ -196,14 +196,12 @@ jobs:
 
       - name: Every secret this job needs is present
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
           E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
           missing=""
-          for k in SUPABASE_URL SUPABASE_ANON_KEY E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
+          for k in E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
             [ -n "${!k}" ] || missing="$missing $k"
           done
           if [ -n "$missing" ]; then
@@ -211,6 +209,16 @@ jobs:
             exit 1
           fi
           echo "all required secrets present"
+
+      # Chromium's 400 arrives 20 minutes into a render sweep and reads as a
+      # layout failure. Ask the same question in one round trip first, before a
+      # browser is launched, and name the account and the reason.
+      - name: The E2E credentials actually authenticate
+        env:
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+          E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: node scripts/verify-e2e-credentials.mjs buyer seller admin
 
       # GitHub secrets are write-only: once saved, no token or API can read the
       # value back. So when a login is rejected there is no way to tell WHICH
@@ -241,9 +249,6 @@ jobs:
           done
 
       - name: Start the app
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           bun run dev -- --host 127.0.0.1 --port 5199 &
           npx wait-on http://127.0.0.1:5199 --timeout 90000
