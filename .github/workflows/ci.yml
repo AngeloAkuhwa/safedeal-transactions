@@ -127,23 +127,32 @@ jobs:
             --reporter=json --outputFile=/tmp/contract.json || true
           node -e '
             const r = require("/tmp/contract.json");
-            const tests = r.testResults.flatMap(f => f.assertionResults);
-            const by = s => tests.filter(t => t.status === s).length;
-            const expected = require("fs")
-              .readdirSync("supabase/functions")
-              .filter(n => n.startsWith("admin-")).length;
-            console.log(`ran ${by("passed")} passed, ${by("failed")} failed, ${by("pending")} skipped`);
-            if (by("pending") > 0 || tests.length === 0) {
-              console.log("::error::role enforcement went unverified — the probes did not run");
+            const total = r.numTotalTests ?? 0;
+            const passed = r.numPassedTests ?? 0;
+            const failed = r.numFailedTests ?? 0;
+            const notRun = total - passed - failed; // skipped + pending + todo
+            console.log(`passed ${passed}/${total}, failed ${failed}, not-run ${notRun}`);
+            if (total === 0) {
+              console.log("::error::role enforcement produced no tests — it did not run");
               process.exit(1);
             }
-            if (by("failed") > 0) {
-              for (const t of tests.filter(t => t.status === "failed")) {
-                console.log(`::error::${t.fullName}: ${(t.failureMessages||[]).join(" ").split("\n")[0]}`);
+            if (notRun > 0) {
+              console.log(`::error::${notRun} role-enforcement tests were skipped — a bad or missing E2E credential makes the suite skip in beforeAll, which is not a pass`);
+              process.exit(1);
+            }
+            if (failed > 0 || r.success !== true) {
+              for (const f of r.testResults || []) {
+                for (const t of f.assertionResults || []) {
+                  if (t.status === "failed") {
+                    console.log(`::error::${t.fullName}: ${((t.failureMessages||[]).join(" ").split("\n")[0])}`);
+                  }
+                }
               }
               process.exit(1);
             }
-            console.log(`admin authorization contract verified across ${expected} admin functions`);
+            const fs = require("fs");
+            const expected = fs.readdirSync("supabase/functions").filter(n => n.startsWith("admin-")).length;
+            console.log(`admin authorization contract verified: ${passed}/${total} across ${expected} admin functions`);
           '
 
   audit:
