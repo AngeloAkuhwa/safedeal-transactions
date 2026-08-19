@@ -107,7 +107,9 @@ jobs:
           VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
           VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
-        run: bun run test 2>&1 | tee /tmp/test.log
+        run: |
+          set -o pipefail
+          bun run test 2>&1 | tee /tmp/test.log
 
       # Grepping the human-readable log for the word "skipped" is a guess about
       # a reporter's formatting. Count the results instead — a skip and a
