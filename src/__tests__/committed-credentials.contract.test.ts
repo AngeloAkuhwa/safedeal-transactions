@@ -100,12 +100,38 @@ describe("committed credentials", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("keeps .env out of version control", () => {
-    const ignore = fs.existsSync(path.join(ROOT, ".gitignore"))
-      ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8")
-      : "";
-    // The file may legitimately exist locally; it must never be tracked, and
-    // the ignore rule is what guarantees the next secret added is not committed.
-    expect(/^\.env$/m.test(ignore) || /^\.env\*?$/m.test(ignore), ".gitignore must ignore .env").toBe(true);
+  it("the tracked .env holds only values that are meant to ship in the bundle", () => {
+    // `.env` is deliberately tracked: Vite inlines VITE_* at build time, and the
+    // hosted build has no other source for them — removing it broke the
+    // published app with "supabaseUrl is required". What must stay true is that
+    // nothing in it authenticates. The project URL, project id and anon
+    // (publishable) key already ship inside the client bundle and are gated by
+    // RLS; anything else in this file would be a real leak.
+    const envPath = path.join(ROOT, ".env");
+    if (!fs.existsSync(envPath)) return;
+
+    const ALLOWED = new Set([
+      "VITE_SUPABASE_URL",
+      "VITE_SUPABASE_PUBLISHABLE_KEY",
+      "VITE_SUPABASE_PROJECT_ID",
+    ]);
+
+    const offenders: string[] = [];
+    for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const key = trimmed.split("=")[0].trim();
+      if (!ALLOWED.has(key)) {
+        offenders.push(`.env — ${key} is not a publishable value; move it to the secret store`);
+      }
+    }
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  it("no service-role key is committed anywhere in .env", () => {
+    const envPath = path.join(ROOT, ".env");
+    if (!fs.existsSync(envPath)) return;
+    const src = fs.readFileSync(envPath, "utf8");
+    expect(/service_role/i.test(src), ".env must never contain a service_role key").toBe(false);
   });
 });
