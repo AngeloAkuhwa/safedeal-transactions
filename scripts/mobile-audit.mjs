@@ -519,55 +519,45 @@ async function measureRoute(page, width) {
 }
 
 async function signIn(page, email, password) {
-  await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
-
-  // The old version filled after a flat 2s wait. That held on a warm dev server
-  // and failed every time on a cold CI runner: Vite compiles the /auth chunk on
-  // first hit, so the input can be in the DOM before react-hook-form has
-  // attached to it. Fill then reaches an unregistered field, the form submits
-  // empty, no token request is ever made, and the route reads as LOGIN FAILED.
-  // Wait for the field, fill, and confirm the value actually stuck before
-  // trusting it — re-fill until it does or we give up.
-  const em = page.locator('input[type="email"]');
-  const pw = page.locator('input[type="password"]');
-  await em.waitFor({ state: "visible", timeout: 25000 });
-
-  let registered = false;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    await em.fill(email);
-    await pw.fill(password);
-    await page.waitForTimeout(400);
-    if ((await em.inputValue()) === email && (await pw.inputValue()) === password) {
-      registered = true;
-      break;
+  // A sign-in that fails must say WHY. Without this, every failure looks the
+  // same — "LOGIN FAILED" — whether the password is wrong, the account is
+  // unconfirmed, or the app is pointed at a Supabase project where the
+  // account does not exist. Capture the token response itself: its status and
+  // its error body are the only things that distinguish those three.
+  let tokenStatus = null;
+  let tokenBody = "";
+  let tokenHost = "";
+  const onResponse = async (res) => {
+    if (!/\/auth\/v1\/token\b/.test(res.url())) return;
+    tokenStatus = res.status();
+    tokenHost = new URL(res.url()).host;
+    if (tokenStatus >= 400) {
+      try { tokenBody = (await res.text()).slice(0, 300); } catch { /* body already consumed */ }
     }
-    await page.waitForTimeout(1000); // hydration still catching up — try again
-  }
-  if (!registered) {
-    console.error(`  signIn[${email}] fields never accepted input — form not interactive`);
-    return false;
-  }
-
-  // Wait for the actual auth call and for the app to leave /auth, on real
-  // signals rather than a fixed sleep. A cold runner can take well over 6s to
-  // walk signIn → session → AAL → roles → navigate.
-  const tokenResp = page
-    .waitForResponse(
-      (r) => r.url().includes("/auth/v1/token") && r.request().method() === "POST",
-      { timeout: 25000 },
-    )
-    .catch(() => null);
+  };
+  page.on("response", onResponse);
+  await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
+  await page.waitForTimeout(2000);
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
-  const resp = await tokenResp;
-  await page
-    .waitForURL((u) => !/\/auth\b/.test(u.toString()), { timeout: 25000 })
-    .catch(() => {});
-
+  await page.waitForTimeout(6000);
+  page.off("response", onResponse);
   const ok = !/\/auth\b/.test(page.url());
   if (!ok) {
-    // Say why, so a red CI run is a diagnosis and not a guess.
-    const status = resp ? resp.status() : "no-token-request";
-    console.error(`  signIn[${email}] failed: token=${status} url=${page.url()}`);
+    const why =
+      tokenStatus === null
+        ? "the browser never reached /auth/v1/token — the form did not submit, or Supabase is unreachable from this browser"
+        : `POST /auth/v1/token -> ${tokenStatus} from ${tokenHost}${tokenBody ? ` :: ${tokenBody}` : ""}`;
+    console.error(`signIn[${email}] failed: ${why}`);
+    if (tokenStatus === 400) {
+      console.error(
+        `  400 on the password grant means ${tokenHost} rejected this credential.\n` +
+          `  Check, in this order: (a) is ${tokenHost} the project that holds the seeded\n` +
+          `  accounts, (b) does the password in E2E_<ROLE>_PASSWORD match the one set on the\n` +
+          `  account, (c) is the account email-confirmed.`,
+      );
+    }
   }
   return ok;
 }
