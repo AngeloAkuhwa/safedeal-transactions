@@ -519,13 +519,47 @@ async function measureRoute(page, width) {
 }
 
 async function signIn(page, email, password) {
+  // A sign-in that fails must say WHY. Without this, every failure looks the
+  // same — "LOGIN FAILED" — whether the password is wrong, the account is
+  // unconfirmed, or the app is pointed at a Supabase project where the
+  // account does not exist. Capture the token response itself: its status and
+  // its error body are the only things that distinguish those three.
+  let tokenStatus = null;
+  let tokenBody = "";
+  let tokenHost = "";
+  const onResponse = async (res) => {
+    if (!/\/auth\/v1\/token\b/.test(res.url())) return;
+    tokenStatus = res.status();
+    tokenHost = new URL(res.url()).host;
+    if (tokenStatus >= 400) {
+      try { tokenBody = (await res.text()).slice(0, 300); } catch { /* body already consumed */ }
+    }
+  };
+  page.on("response", onResponse);
   await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
   await page.waitForTimeout(2000);
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
   await page.waitForTimeout(6000);
-  return !/\/auth\b/.test(page.url());
+  page.off("response", onResponse);
+  const ok = !/\/auth\b/.test(page.url());
+  if (!ok) {
+    const why =
+      tokenStatus === null
+        ? "the browser never reached /auth/v1/token — the form did not submit, or Supabase is unreachable from this browser"
+        : `POST /auth/v1/token -> ${tokenStatus} from ${tokenHost}${tokenBody ? ` :: ${tokenBody}` : ""}`;
+    console.error(`signIn[${email}] failed: ${why}`);
+    if (tokenStatus === 400) {
+      console.error(
+        `  400 on the password grant means ${tokenHost} rejected this credential.\n` +
+          `  Check, in this order: (a) is ${tokenHost} the project that holds the seeded\n` +
+          `  accounts, (b) does the password in E2E_<ROLE>_PASSWORD match the one set on the\n` +
+          `  account, (c) is the account email-confirmed.`,
+      );
+    }
+  }
+  return ok;
 }
 
 async function main() {

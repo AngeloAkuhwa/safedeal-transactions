@@ -18,8 +18,17 @@
 #     secrets, so no credential that authenticates ever exists in the repo.
 #
 # Required repository secrets:
-#   SUPABASE_URL, SUPABASE_ANON_KEY
 #   E2E_BUYER_PASSWORD, E2E_SELLER_PASSWORD, E2E_ADMIN_PASSWORD
+#
+# NOTE — the project URL and anon key are deliberately NOT secrets. They are
+# public values that ship inside the client bundle, and they already live in
+# the repo's tracked `.env`. Duplicating them into repository secrets meant CI
+# could be pointed at a DIFFERENT Supabase project than the one every local
+# run and every seeded account uses — and because `process.env` wins over
+# `.env` in Vite, the secret silently overrode the correct value. Public
+# routes still rendered, so the app "booted fine", while every password grant
+# came back 400 from a project that had never heard of these accounts. CI now
+# reads the same `.env` the developer does, so there is one source of truth.
 #
 # NOTE — no SUPABASE_SERVICE_ROLE_KEY. This project runs on Lovable Cloud,
 # where the Supabase instance is owned and managed by Lovable: there is no
@@ -83,13 +92,11 @@ jobs:
       # nothing. Name the empty one here, before anything else can absorb it.
       - name: Every secret this job needs is present
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
         run: |
           missing=""
-          for k in SUPABASE_URL SUPABASE_ANON_KEY E2E_ADMIN_PASSWORD E2E_BUYER_PASSWORD; do
+          for k in E2E_ADMIN_PASSWORD E2E_BUYER_PASSWORD; do
             [ -n "${!k}" ] || missing="$missing $k"
           done
           if [ -n "$missing" ]; then
@@ -98,11 +105,21 @@ jobs:
           fi
           echo "all required secrets present"
 
+      # Prove the credential BEFORE 800 tests run, and say which half is wrong.
+      # A password grant answers this in one round trip, and the reply
+      # distinguishes "wrong password" from "wrong project" from "unconfirmed
+      # email" — three failures that are indistinguishable once they surface as
+      # a skipped suite. The password never touches a shell word: node reads it
+      # from the environment and JSON-encodes it, so `$` and `#` cannot expand.
+      - name: The E2E credentials actually authenticate
+        env:
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+        run: node scripts/verify-e2e-credentials.mjs buyer admin
+
       - name: Run the suite
         env:
           ALLOW_SKIP_LIVE_DB: "1"
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           VITE_TEST_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
           VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
@@ -116,8 +133,6 @@ jobs:
       # failure are both stopping conditions, and the reason is printed.
       - name: The role-enforcement contract must actually run
         env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           VITE_TEST_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
           VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
@@ -181,14 +196,12 @@ jobs:
 
       - name: Every secret this job needs is present
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
           E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
           missing=""
-          for k in SUPABASE_URL SUPABASE_ANON_KEY E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
+          for k in E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
             [ -n "${!k}" ] || missing="$missing $k"
           done
           if [ -n "$missing" ]; then
@@ -196,6 +209,16 @@ jobs:
             exit 1
           fi
           echo "all required secrets present"
+
+      # Chromium's 400 arrives 20 minutes into a render sweep and reads as a
+      # layout failure. Ask the same question in one round trip first, before a
+      # browser is launched, and name the account and the reason.
+      - name: The E2E credentials actually authenticate
+        env:
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+          E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: node scripts/verify-e2e-credentials.mjs buyer seller admin
 
       # GitHub secrets are write-only: once saved, no token or API can read the
       # value back. So when a login is rejected there is no way to tell WHICH
@@ -226,9 +249,6 @@ jobs:
           done
 
       - name: Start the app
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           bun run dev -- --host 127.0.0.1 --port 5199 &
           npx wait-on http://127.0.0.1:5199 --timeout 90000
