@@ -520,12 +520,56 @@ async function measureRoute(page, width) {
 
 async function signIn(page, email, password) {
   await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
-  await page.waitForTimeout(2000);
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
+
+  // The old version filled after a flat 2s wait. That held on a warm dev server
+  // and failed every time on a cold CI runner: Vite compiles the /auth chunk on
+  // first hit, so the input can be in the DOM before react-hook-form has
+  // attached to it. Fill then reaches an unregistered field, the form submits
+  // empty, no token request is ever made, and the route reads as LOGIN FAILED.
+  // Wait for the field, fill, and confirm the value actually stuck before
+  // trusting it — re-fill until it does or we give up.
+  const em = page.locator('input[type="email"]');
+  const pw = page.locator('input[type="password"]');
+  await em.waitFor({ state: "visible", timeout: 25000 });
+
+  let registered = false;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await em.fill(email);
+    await pw.fill(password);
+    await page.waitForTimeout(400);
+    if ((await em.inputValue()) === email && (await pw.inputValue()) === password) {
+      registered = true;
+      break;
+    }
+    await page.waitForTimeout(1000); // hydration still catching up — try again
+  }
+  if (!registered) {
+    console.error(`  signIn[${email}] fields never accepted input — form not interactive`);
+    return false;
+  }
+
+  // Wait for the actual auth call and for the app to leave /auth, on real
+  // signals rather than a fixed sleep. A cold runner can take well over 6s to
+  // walk signIn → session → AAL → roles → navigate.
+  const tokenResp = page
+    .waitForResponse(
+      (r) => r.url().includes("/auth/v1/token") && r.request().method() === "POST",
+      { timeout: 25000 },
+    )
+    .catch(() => null);
   await page.click('button[type="submit"]');
-  await page.waitForTimeout(6000);
-  return !/\/auth\b/.test(page.url());
+  const resp = await tokenResp;
+  await page
+    .waitForURL((u) => !/\/auth\b/.test(u.toString()), { timeout: 25000 })
+    .catch(() => {});
+
+  const ok = !/\/auth\b/.test(page.url());
+  if (!ok) {
+    // Say why, so a red CI run is a diagnosis and not a guess.
+    const status = resp ? resp.status() : "no-token-request";
+    console.error(`  signIn[${email}] failed: token=${status} url=${page.url()}`);
+  }
+  return ok;
 }
 
 async function main() {
