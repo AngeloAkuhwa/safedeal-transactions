@@ -197,6 +197,34 @@ jobs:
           fi
           echo "all required secrets present"
 
+      # GitHub secrets are write-only: once saved, no token or API can read the
+      # value back. So when a login is rejected there is no way to tell WHICH
+      # value is actually stored, and we have now guessed wrong twice. A
+      # SHA-256 fingerprint is not the secret and is not masked, so it can be
+      # printed and compared against the values we believe were set. This
+      # answers "is the stored secret the string we think it is?" without ever
+      # revealing it. Informational only — it must never fail the job.
+      - name: Fingerprint the E2E credentials (no secret value is printed)
+        continue-on-error: true
+        env:
+          E2E_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
+          E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          for k in E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
+            v="${!k}"
+            h=$(printf %s "$v" | sha256sum | cut -c1-16)
+            case "$h" in
+              45f366e0c8994eee) id='OK - matches the value the database is currently set to';;
+              99f0ac6633824c30) id='STALE - matches the superseded rotated value';;
+              c0a62592df3b478c) id='WRONG - matches the three-dollar-sign variant';;
+              78cf9932cbc7d314) id='MANGLED - a shell expanded it down to a 5-char remnant';;
+              56dc6d47737d155a) id='MANGLED - a shell expanded it down to a 3-char remnant';;
+              *) id='UNKNOWN - matches none of the known candidates';;
+            esac
+            echo "$k: length=${#v} sha256=$h -- $id"
+          done
+
       - name: Start the app
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
