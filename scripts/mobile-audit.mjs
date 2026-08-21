@@ -51,13 +51,13 @@ import {
   signIn,
 } from "./audit-shared.mjs";
 
-// Playwright is not a project dependency — it is a local tool. Import it
+// Playwright is not a project dependency. It is a local tool. Import it
 // dynamically so a missing install produces an instruction rather than a
 // MODULE_NOT_FOUND stack trace.
 let chromium;
 async function loadChromium() {
   // Playwright is a local tool, not a project dependency. Try the project
-  // first, then a global install, and only then explain what to do — a
+  // first, then a global install, and only then explain what to do. A
   // MODULE_NOT_FOUND stack trace is not an instruction.
   try {
     return (await import("playwright")).chromium;
@@ -79,7 +79,7 @@ async function loadChromium() {
 /**
  * Playwright pins one Chromium build per release and refuses to start against
  * any other. A sandbox that ships its own Chromium therefore breaks the audit
- * on a version mismatch — "Executable doesn't exist at .../chromium-1234" when
+ * on a version mismatch: "Executable doesn't exist at .../chromium-1234" when
  * .../chromium-1194 is sitting right there and works fine for measuring layout.
  * Re-downloading is not an option on an egress allowlist, so find what is
  * already installed instead. PLAYWRIGHT_CHROMIUM_PATH overrides.
@@ -118,7 +118,7 @@ async function resolveExecutable() {
  * passed explicitly, AND Chromium has to be capped at TLS 1.2. Its TLS 1.3
  * ClientHello is reset by the proxy after ~12s, which reads as a network
  * outage rather than a handshake rejection. This caps only the audit browser's
- * own connections — it says nothing about what the app negotiates in
+ * own connections: it says nothing about what the app negotiates in
  * production.
  */
 function proxyConfig() {
@@ -244,8 +244,8 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
         if (glyphW > r.width + 1.5) {
           // Overflowing the box is only a defect if something actually cuts
           // the glyphs off. Asking `closest('[class*=overflow-hidden]')`
-          // answers a different question — whether any ancestor anywhere up
-          // the tree clips — and a paragraph two subpixels wider than its own
+          // answers a different question: whether any ancestor anywhere up
+          // the tree clips: and a paragraph two subpixels wider than its own
           // box inside a page-level `overflow-hidden` is not clipped by
           // anything. Find the real edge and compare against it.
           let edge = null;
@@ -259,8 +259,8 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
             }
           }
           // Escaping the box hurts in two different ways, and only one of them
-          // is clipping. `₦1,250,000.00` in a 78px box was never cut off — its
-          // card is wider than the glyphs — it ran straight into the
+          // is clipping. `₦1,250,000.00` in a 78px box was never cut off. Its
+          // card is wider than the glyphs: it ran straight into the
           // add-to-cart button next to it. Reporting that as clipping sent the
           // last pass looking for an `overflow-hidden` that was not the
           // problem, so name the two separately.
@@ -274,7 +274,7 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
               if (sr.width === 0 || sr.height === 0) continue;
               const overlapX = Math.min(gr.right, sr.right) - Math.max(gr.left, sr.left);
               const overlapY = Math.min(gr.bottom, sr.bottom) - Math.max(gr.top, sr.top);
-              // The box itself must not already overlap — that would be a
+              // The box itself must not already overlap. That would be a
               // deliberate stack, not glyphs spilling into a neighbour.
               const boxOverlapX = Math.min(r.right, sr.right) - Math.max(r.left, sr.left);
               if (overlapX > 1 && overlapY > 1 && boxOverlapX <= 1) {
@@ -305,7 +305,7 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
     if (el.matches('a,button,input,select,textarea,[role="button"],[role="link"]')) {
       if (c.position === "absolute" && c.clip !== "auto") continue;
       // WCAG 2.5.5 exempts a link inline in a sentence: it cannot be enlarged
-      // without breaking the line it sits in. Detect it structurally — an
+      // without breaking the line it sits in. Detect it structurally. An
       // inline-display anchor whose parent holds text either side of it —
       // rather than by guessing from class names.
       if (el.tagName === "A" && c.display.startsWith("inline") && el.parentElement) {
@@ -315,7 +315,7 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
       }
       // An absolutely-positioned pseudo-element is the real pointer target, and
       // it is not always a small nudge outwards. `after:absolute after:inset-0`
-      // — the "stretched link" idiom behind every clickable card — makes a
+      //: the "stretched link" idiom behind every clickable card. Makes a
       // 141x35 title into a 171x353 target covering the whole card. Resolving
       // the pseudo against its containing block catches both that and the
       // negative-inset nudge; measuring the element's own box catches neither,
@@ -415,15 +415,15 @@ const contextOpts = contextOptsFor;
  * A modal that opens by itself makes every measurement behind it a lie.
  *
  * The dashboard raises a "Turn on two-factor authentication" dialog on load,
- * and Radix marks the page inert while it is up — `document.body` gets
+ * and Radix marks the page inert while it is up. `document.body` gets
  * `pointer-events: none`, which every element behind the overlay inherits.
  * The touch-target pass then sees a stretched link whose overlay expands
  * nothing and reports the card title as a violation, and the wishlist button
  * whose `before:-inset-2` hit area is real reports as 32x32. Both are
  * artefacts of the page being dead, not defects.
  *
- * It is also intermittent — it appeared on three of five buyer routes and on
- * /admin at one width out of four — so it produces findings that cannot be
+ * It is also intermittent: it appeared on three of five buyer routes and on
+ * /admin at one width out of four: so it produces findings that cannot be
  * reproduced by looking at the page.
  *
  * So: measure the dialog on its own terms (its buttons are real and were
@@ -480,8 +480,8 @@ async function dismissDialog(page) {
  *
  * Dismissing a dialog starts an exit animation, and a fixed sleep afterwards is
  * a guess. Measuring during it produced a phantom sub-44px finding that moved
- * between elements and widths on every run — "Open Release Queue" one time,
- * "View Users" the next — and vanished when the element was measured directly.
+ * between elements and widths on every run. "Open Release Queue" one time,
+ * "View Users" the next: and vanished when the element was measured directly.
  * A detector that reports a different defect each run teaches people to rerun
  * until it passes, which is worse than not running it.
  */
@@ -502,7 +502,7 @@ async function measureRoute(page, width) {
   if (blocker) {
     // Settle BEFORE measuring the dialog, not only after dismissing it. Radix
     // enters with `zoom-in-95`, so a dialog caught mid-entrance measures at 95%
-    // of its real size — a 44px button reads as 41.8px and a 270px one as 257px.
+    // of its real size: a 44px button reads as 41.8px and a 270px one as 257px.
     // That produced three "sub-44px" findings that were all exactly 44px when
     // the dialog was measured at rest.
     await settle(page);
@@ -589,11 +589,11 @@ async function main() {
 
   let failures = 0;
   for (const row of report) {
-    if (row.skipped) { console.log(`${row.who.padEnd(7)}  SKIPPED — ${row.skipped}`); failures += 1; continue; }
+    if (row.skipped) { console.log(`${row.who.padEnd(7)}  SKIPPED. ${row.skipped}`); failures += 1; continue; }
     if (row.loginFailed) { console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)}  LOGIN FAILED`); failures += 1; continue; }
     if (row.inert) {
       // Never let an unmeasurable page fall through as clean.
-      console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE — a modal held the page inert: "${row.inert}"`);
+      console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE. A modal held the page inert: "${row.inert}"`);
       failures += 1;
       continue;
     }

@@ -7,7 +7,7 @@
  * migration no longer sets a password, and 20260815203000 revoked the
  * privileges and disabled the logins on databases that already had them.
  *
- * This is where they come back — at run time, from secrets, only when an audit
+ * This is where they come back: at run time, from secrets, only when an audit
  * needs them:
  *
  *   SUPABASE_URL                 project URL
@@ -30,7 +30,7 @@
  * variables and never prints a password it was not given.
  *
  * The accounts, their roles and the seeded product are all still created by the
- * migration — only the credential is dynamic. That keeps the fixture data in
+ * migration: only the credential is dynamic. That keeps the fixture data in
  * version control, where it is reviewable, and the secret out of it.
  */
 
@@ -47,7 +47,7 @@ const AS_SQL = process.argv.includes("--sql");
 
 // The minimum length for an audit credential, applied identically by both
 // paths below. It used to be 16 in both, which quietly refused a 15-character
-// secret — and "quietly" was the whole problem, not the number: the --sql path
+// secret: and "quietly" was the whole problem, not the number: the --sql path
 // printed no UPDATE for that account, exited 0, and the operator pasted an
 // output that provisioned two of three users with nothing to say so. 12 keeps
 // out the obviously guessable. The refusal is now visible in the pasted SQL
@@ -56,7 +56,7 @@ const AS_SQL = process.argv.includes("--sql");
 const MIN_PASSWORD_LENGTH = 12;
 
 if (AS_SQL) {
-  // No service role key needed — this is the Lovable Cloud path.
+  // No service role key needed: this is the Lovable Cloud path.
   const lines = [
     "-- Provision the disposable audit identities.",
     "-- Passwords come from the environment; nothing here is committed.",
@@ -72,14 +72,14 @@ if (AS_SQL) {
     const pw = process.env[a.env];
     if (!pw) {
       // Into `lines`, not just stderr: this has to survive being copied.
-      lines.push(`-- !! MISSING ${a.env} — ${a.email} NOT provisioned.`);
+      lines.push(`-- !! MISSING ${a.env}. ${a.email} NOT provisioned.`);
       console.error(`MISSING ${a.env}: ${a.email} not provisioned`);
       refused = true;
       continue;
     }
     if (pw.length < MIN_PASSWORD_LENGTH) {
       lines.push(
-        `-- !! ${a.env} is under ${MIN_PASSWORD_LENGTH} characters — ${a.email} NOT provisioned.`,
+        `-- !! ${a.env} is under ${MIN_PASSWORD_LENGTH} characters. ${a.email} NOT provisioned.`,
       );
       console.error(`REFUSED ${a.env}: under ${MIN_PASSWORD_LENGTH} characters`);
       refused = true;
@@ -134,7 +134,7 @@ for (const account of ACCOUNTS) {
 
     const password = process.env[account.env];
     if (!password) {
-      console.error(`missing ${account.env} — ${account.email} left disabled`);
+      console.error(`missing ${account.env}. ${account.email} left disabled`);
       failed = true;
       continue;
     }
