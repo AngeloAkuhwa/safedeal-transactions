@@ -40,17 +40,6 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
-  // Coarse gate before the body is touched — `invalid_json` was a 400 an
-  // anonymous caller could earn, which tells them the endpoint exists and
-  // takes JSON. The per-action permission still resolves after parsing.
-  let baseCtx;
-  try { baseCtx = await requireAdmin(req); }
-  catch (err) {
-    const r = authErrorResponse(err, corsHeaders);
-    if (r) return r;
-    return json(500, { error: "auth_failed" });
-  }
-
   let body: Record<string, unknown>;
   try { body = await req.json(); }
   catch { return json(400, { error: "invalid_json" }); }
