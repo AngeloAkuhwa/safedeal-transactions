@@ -110,10 +110,17 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
           render audit could not see it while it only ran phone widths, where
           this nav is hidden.
 
+          Width needed the same treatment on the second pass: raising the
+          height left "Saved" at 42x44 and "Profile" at 43x44, both still under
+          44 across. The padding is paid for out of the gap rather than added
+          on top, so the rhythm is unchanged: gap-4 is 16px between text edges,
+          and gap-1 plus px-1.5 is 4 + 6 + 6, also 16. At lg, gap-6 is 24 and
+          gap-3 plus px-1.5 is 12 + 6 + 6, also 24.
+
           The header row is a fixed-height flex row, so the taller hit area
           sits inside it and centres. Nothing moves.
         */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-6 overflow-x-auto">
+        <nav className="hidden md:flex items-center gap-1 lg:gap-3 overflow-x-auto">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href || 
               (link.href !== "/dashboard" && location.pathname.startsWith(link.href));
@@ -121,7 +128,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`inline-flex min-h-11 items-center whitespace-nowrap text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-1.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
