@@ -82,9 +82,12 @@ Deno.serve(async (req) => {
       console.error("[reconcile-escrow] auth error", err);
       return json(500, { error: "auth_failed" });
     }
-
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
   }
+
+  // Method contract is disclosed only after the caller is authorized.
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+
+
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* allow empty */ }
