@@ -14,7 +14,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { adminClient } = await requireUser(req);
+
+    if (req.method !== "GET" && req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+        status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data, error } = await adminClient
+
       .from("system_settings")
       .select("setting_key, setting_value")
       .eq("scope", "platform")
