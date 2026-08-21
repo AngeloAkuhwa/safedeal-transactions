@@ -2,12 +2,13 @@
 import { useParams, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
+  Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
   Globe, Users, Lock, Share2, ShieldCheck,
   Info, ImageIcon, Banknote, Handshake, PackagePlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/common/BackLink";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { PublishSuccessModal } from "@/components/storefront/PublishSuccessModal";
 import { RestockModal } from "@/components/seller/RestockModal";
@@ -217,9 +218,7 @@ const SellerProductDetail = () => {
         <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} identityVerified={identityVerified} />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center gap-3 border-b border-border px-3 py-3 sm:px-6 lg:px-8 lg:py-4">
-            <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate("/seller/storefront")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <BackLink to="/seller/storefront" label="Back to storefront" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-base font-bold text-foreground sm:text-xl">{product.title}</h1>
@@ -282,14 +281,7 @@ const SellerProductDetail = () => {
 
         <div className="sticky top-0 z-sticky flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-6 lg:px-8 lg:py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl"
-              onClick={() => navigate("/seller/storefront")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <BackLink to="/seller/storefront" label="Back to storefront" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-foreground sm:text-xl">Edit Product</h1>
