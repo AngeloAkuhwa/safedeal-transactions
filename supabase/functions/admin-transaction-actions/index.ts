@@ -118,6 +118,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  // Stage (a): base authentication + admin check BEFORE any body handling so
+  // anonymous callers get 401 and authenticated non-admins get 403.
+  let baseCtx;
+  try {
+    baseCtx = await requireAdmin(req);
+  } catch (err) {
+    const resp = authErrorResponse(err, corsHeaders);
+    if (resp) return resp;
+    return json({ error: "auth_failed" }, 500);
+  }
+
+  // Stage (b): parse/validate the body.
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -131,9 +143,11 @@ Deno.serve(async (req) => {
     return badRequest("Refund must be handled from dispute or payout review");
   }
 
-  const gated = await gateAction(req, body.action);
+  // Stage (c): fine-grained per-action permission gate (unchanged).
+  const gated = await gateAction(req, body.action, baseCtx);
   if (gated instanceof Response) return gated;
   const { admin, userId } = gated;
+
   const txId = body.transactionId;
   const payload = (body.payload ?? {}) as Record<string, any>;
   const _meta = extractRequestMeta(req);
