@@ -109,7 +109,7 @@ const BuyerTransactions = () => {
         </section>
 
         <div className="sd-page sd-page-y space-y-4">
-          {/* Filters — always mounted in this one slot so the input never
+          {/* Filters: always mounted in this one slot so the input never
               unmounts (and loses focus) across loading/error/success states. */}
           <div className="sd-fade-in-stagger sd-delay-1">
             <TransactionFilters

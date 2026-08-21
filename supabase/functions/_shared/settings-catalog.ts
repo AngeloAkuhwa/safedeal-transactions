@@ -68,7 +68,7 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
  * - Every `rate` is finite, >= 0 and <= 1 (0%-100%).
  * - Every non-open-ended `upto` is a positive finite number.
  * - `upto` values are strictly increasing across the list (this both
- *   prevents overlaps — a duplicate or smaller `upto` after a larger one —
+ *   prevents overlaps: a duplicate or smaller `upto` after a larger one —
  *   and prevents gaps, since each tier's implicit lower bound is the
  *   previous tier's `upto`, so a strictly increasing chain starting at 0
  *   is gapless by construction).
@@ -163,7 +163,7 @@ export function clampSetting(
   return { ok: true, value };
 }
 /**
- * DEPRECATED setting keys — mirror of `src/lib/settings-catalog.ts`.
+ * DEPRECATED setting keys: mirror of `src/lib/settings-catalog.ts`.
  *
  * These rows still exist in `system_settings` but no code reads them. They are
  * kept (not deleted) because historical settings rows are part of the audit

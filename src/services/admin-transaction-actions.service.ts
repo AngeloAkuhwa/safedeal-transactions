@@ -172,7 +172,7 @@ export interface RetryDisputeRefundResult {
 export const retryDisputeRefund = (transactionId: string, notes?: string) =>
   invokeAction("retry_dispute_refund", transactionId, { notes }) as Promise<RetryDisputeRefundResult>;
 
-// Dedicated dispute state transition — calls the `admin-dispute-transition`
+// Dedicated dispute state transition. Calls the `admin-dispute-transition`
 // edge function so the state machine, history row, and audit diff are handled
 // server-side. Used by AdminDisputeDetail's Move-to-Under-Review action.
 export async function transitionDisputeStatus(

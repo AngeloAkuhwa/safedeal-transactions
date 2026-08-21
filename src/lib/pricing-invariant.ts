@@ -10,7 +10,7 @@
  * MIN_PLATFORM_MARGIN_NGN is ₦100: it mirrors Paystack's flat per-transaction
  * component and is the smallest amount that keeps SafeDeal strictly positive
  * on every transaction once variable costs are paid. It is deliberately BELOW
- * the seeded ₦250 platform-fee floor — ₦250 is a commercial choice that may be
+ * the seeded ₦250 platform-fee floor. ₦250 is a commercial choice that may be
  * renegotiated, ₦100 is the hard economic line that must never be crossed.
  *
  * The check is a coupled sweep: tier rates, floor and cap interact, so any of

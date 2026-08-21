@@ -16,9 +16,9 @@ export interface CommerceGateState {
 }
 
 export const DEFAULT_CART_DISABLED_REASON =
-  "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.";
+  "Cart is temporarily unavailable. You can still buy this item now. Checkout works normally.";
 export const DEFAULT_CHECKOUT_DISABLED_REASON =
-  "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.";
+  "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.";
 
 const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   checkoutEnabled: false,
@@ -26,7 +26,7 @@ const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   // fetch fails we must not show a control that the server will reject.
   addToCartEnabled: false,
   disabledReason:
-    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+    "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.",
   cartDisabledReason: DEFAULT_CART_DISABLED_REASON,
   checkoutDisabledReason: DEFAULT_CHECKOUT_DISABLED_REASON,
   scope: "platform",

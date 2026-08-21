@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import type { AgentRosterEntry, RebalanceMove } from "@/services/task-orchestration.service";
 
 const SKIP_REASON: Record<string, string> = {
-  final_decision_locked: "Task is in Final Decision — cannot move",
-  approval_or_escalated: "Pending approval or escalated — cannot move",
+  final_decision_locked: "Task is in Final Decision: cannot move",
+  approval_or_escalated: "Pending approval or escalated: cannot move",
   locked_by_action: "Currently locked by another action",
-  continuity_required: "Continuity required — same-agent hand-off protected",
+  continuity_required: "Continuity required: same-agent hand-off protected",
   no_eligible_target: "No eligible target with matching skills / capacity",
 };
 
@@ -108,7 +108,7 @@ export function RebalancePreviewDrawer({
         {skipped.length > 0 && (
           <>
             <div className="mt-5 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <AlertTriangle className="h-3 w-3 text-amber-400" /> Protected — cannot move
+              <AlertTriangle className="h-3 w-3 text-amber-400" /> Protected: cannot move
               <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-xs tabular-nums">{skipped.length}</span>
             </div>
             <div className="space-y-1">

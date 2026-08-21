@@ -7,7 +7,7 @@
  * `minimumFractionDigits: 0`.
  *
  * Do NOT introduce a new `Intl.NumberFormat` call elsewhere in the codebase
- * with `minimumFractionDigits: 0` — keep money formatting in this one file.
+ * with `minimumFractionDigits: 0`: keep money formatting in this one file.
  *
  * `currency` is a REQUIRED parameter on every helper here. It used to default
  * to "NGN", which quietly re-introduced the invented-currency defect at every
@@ -53,7 +53,7 @@ function isMissing(amount: number | null | undefined): boolean {
 
 /**
  * Upper-cases a currency code. An empty/blank code is NOT silently promoted to
- * a currency — it renders as a bare number, so a missing code looks missing
+ * a currency: it renders as a bare number, so a missing code looks missing
  * instead of looking like Naira.
  */
 function normalizeCurrency(currency: string): string {

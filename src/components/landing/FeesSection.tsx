@@ -30,7 +30,7 @@ export function FeesSection() {
             {copy.safedealFeeHeadline}
           </p>
           <p className="mt-2 text-base text-muted-foreground">
-            when a deal completes — capped at {copy.safedealFeeCap}.
+            when a deal completes: capped at {copy.safedealFeeCap}.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">{copy.feeDisclosure}</p>
           <p className="mt-2 text-xs text-muted-foreground">

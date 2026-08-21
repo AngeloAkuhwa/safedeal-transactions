@@ -7,7 +7,7 @@ import {
 } from "./helpers/adminAuth";
 
 /**
- * Item #16 — contract tests that lock in server-side role enforcement for
+ * Item #16: contract tests that lock in server-side role enforcement for
  * every admin edge function. Runs against the live backend and requires:
  *   VITE_TEST_ADMIN_EMAIL / VITE_TEST_ADMIN_PASSWORD
  *   VITE_TEST_BUYER_EMAIL / VITE_TEST_BUYER_PASSWORD
@@ -17,7 +17,7 @@ import {
  */
 const d = hasTestCreds ? describe : describe.skip;
 
-d("admin edge functions — role enforcement contract", () => {
+d("admin edge functions: role enforcement contract", () => {
   let buyerToken: string;
 
   beforeAll(async () => {
@@ -48,7 +48,7 @@ d("admin edge functions — role enforcement contract", () => {
         extraHeaders: { "x-role": "admin", "x-user-role": "admin" },
       });
       await res.text();
-      // Function must still refuse — role must come from JWT/has_role, never from client input.
+      // Function must still refuse: role must come from JWT/has_role, never from client input.
       expect([401, 403]).toContain(res.status);
       expect(res.status).not.toBe(200);
     });

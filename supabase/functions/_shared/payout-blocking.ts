@@ -24,7 +24,7 @@ export const OPEN_RELEASE_REVIEW_STATUSES = ["pending", "claimed", "held"] as co
  * payout account while one of these exists could redirect money to a new
  * (mule) account, so the edit is rejected with 409 payout_in_flight.
  *
- * NOTE: 'blocked' is deliberately NOT here — a seller with a blocked payout
+ * NOTE: 'blocked' is deliberately NOT here: a seller with a blocked payout
  * MUST be able to add an account in order to unblock it.
  */
 export const IN_FLIGHT_PAYOUT_STATUSES = ["pending", "processing", "awaiting_release"] as const;

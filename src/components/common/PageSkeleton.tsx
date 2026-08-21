@@ -76,7 +76,7 @@ export function SummaryPageSkeleton({ label, className }: Props) {
   );
 }
 
-/** Rows inside an already-rendered page — keeps the surrounding chrome intact. */
+/** Rows inside an already-rendered page. Keeps the surrounding chrome intact. */
 export function ListSkeleton({ label, className, rows = 4, height = "h-20" }: Props & { rows?: number; height?: string }) {
   return (
     <Region label={label} className={cn("space-y-3", className)}>

@@ -54,7 +54,7 @@ const AcceptInvite = () => {
       }
     };
 
-    // Session may not be available on first tick — supabase-js consumes the
+    // Session may not be available on first tick. Supabase-js consumes the
     // invite hash asynchronously. Listen and also poll briefly.
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       if (cancelled) return;
@@ -86,7 +86,7 @@ const AcceptInvite = () => {
         toast.error(error.message);
         return;
       }
-      toast.success("Password set — welcome to SafeDeal!");
+      toast.success("Password set: welcome to SafeDeal!");
 
       // Route internal team members to the admin dashboard; everyone else
       // continues through the normal role-selection flow.
@@ -107,7 +107,7 @@ const AcceptInvite = () => {
               })
               .eq("id", uid)
               .eq("status", "invited");
-          } catch { /* non-fatal — badge will flip on next admin refresh */ }
+          } catch { /* non-fatal: badge will flip on next admin refresh */ }
           navigate("/admin/dashboard", { replace: true });
           return;
         }

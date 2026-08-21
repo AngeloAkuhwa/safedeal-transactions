@@ -982,7 +982,7 @@ Deno.serve(async (req) => {
               event: "no_eligible_agent",
               recipients: seniors,
               title: `${unmatched.length} task${unmatched.length === 1 ? "" : "s"} without an eligible agent`,
-              body: "Auto-assign preview left tasks unmatched — check skills, capacity, or availability.",
+              body: "Auto-assign preview left tasks unmatched. Check skills, capacity, or availability.",
               dedupeKey: `no_eligible:${new Date().toISOString().slice(0,13)}`,
               dedupeMinutes: 60,
               link: `/admin/task-orchestration?status=unassigned`,
@@ -1312,7 +1312,7 @@ Deno.serve(async (req) => {
                 await notifyEvent({
                   event: "sla_overdue",
                   recipients: [r.assigned_agent_id, ...seniorsForSla].filter(Boolean) as string[],
-                  title: `SLA breached — ${r.task_code}`,
+                  title: `SLA breached: ${r.task_code}`,
                   body: "This task passed its SLA due date and needs immediate attention.",
                   dedupeKey: `sla_overdue:${r.id}:${hourBucket}`,
                   dedupeMinutes: 60,
@@ -1324,7 +1324,7 @@ Deno.serve(async (req) => {
                 await notifyEvent({
                   event: "sla_approaching",
                   recipients: [r.assigned_agent_id],
-                  title: `SLA approaching — ${r.task_code}`,
+                  title: `SLA approaching: ${r.task_code}`,
                   body: `Due in under ${thresholdMin} minutes.`,
                   dedupeKey: `sla_approaching:${r.id}:${quarterBucket}`,
                   dedupeMinutes: 15,
@@ -1334,7 +1334,7 @@ Deno.serve(async (req) => {
                 slaApproaching++;
               }
             }
-          } catch { /* best effort — SLA alerts never fail the run */ }
+          } catch { /* best effort: SLA alerts never fail the run */ }
           return respond({ ok: true, candidates: candidates.length, escalated, sla_approaching: slaApproaching, sla_overdue: slaOverdue });
         } catch (err) {
           const seniors = await seniorAdmins();
@@ -1373,7 +1373,7 @@ Deno.serve(async (req) => {
               if (!target) {
                 await notifyEvent({
                   event: "no_eligible_agent", recipients: seniors,
-                  title: "Offline reassign — no eligible target",
+                  title: "Offline reassign: no eligible target",
                   body: `Task ${(t as any).task_code} could not be moved off offline agent.`,
                   dedupeKey: `offline_reassign_no_target:${(t as any).id}`,
                   link: `/admin/task-orchestration?status=unassigned`,

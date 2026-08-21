@@ -88,7 +88,7 @@ export function InvestigationDrawer({ open, onOpenChange, transactionCode, inves
             {existing ? "Update investigation" : "Open investigation"}
           </SheetTitle>
           <SheetDescription>
-            #{transactionCode} — investigations are recorded in the audit trail.
+            #{transactionCode}: investigations are recorded in the audit trail.
           </SheetDescription>
         </SheetHeader>
 
@@ -175,7 +175,7 @@ export function InvestigationDrawer({ open, onOpenChange, transactionCode, inves
                       <span className="text-muted-foreground">{fmt(h.at)}</span>
                     </div>
                     <div className="mt-0.5 text-muted-foreground">
-                      {h.by ?? "Admin"}{h.note ? ` — ${h.note}` : ""}
+                      {h.by ?? "Admin"}{h.note ? `: ${h.note}` : ""}
                     </div>
                   </li>
                 ))}

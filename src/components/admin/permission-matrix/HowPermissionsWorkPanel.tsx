@@ -12,7 +12,7 @@ const LEGEND: Array<{ state: PermissionRowState; title: string; desc: string }> 
   { state: "override_granted", title: "Override",   desc: "User-specific grant that extends beyond the role." },
   { state: "pending",          title: "Pending",    desc: "Change awaiting approval or audit review." },
   { state: "denied",           title: "None",       desc: "No access to this feature for the selected role." },
-  { state: "override_denied",  title: "Limited",    desc: "Partial access — some actions removed by override." },
+  { state: "override_denied",  title: "Limited",    desc: "Partial access: some actions removed by override." },
   { state: "restricted",       title: "Restricted", desc: "Disabled by policy; cannot be granted from this screen." },
 ];
 
@@ -42,7 +42,7 @@ export function HowPermissionsWorkPanel() {
       className="bg-gradient-to-br from-sky-500/[0.06] via-card/60 to-transparent"
       icon={<Info className="h-4 w-4" />}
       title="How permissions work"
-      subtitle={open ? "Overview of access states, roles and override behavior." : dismissed ? "Collapsed — click to expand again." : "Click to expand."}
+      subtitle={open ? "Overview of access states, roles and override behavior." : dismissed ? "Collapsed: click to expand again." : "Click to expand."}
       actions={
         <button
           type="button"

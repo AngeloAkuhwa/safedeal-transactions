@@ -5,7 +5,7 @@ import type {
   MarkReadResponse,
 } from "./notifications.service";
 
-// Re-export shared types — the seller endpoint returns the same shape.
+// Re-export shared types: the seller endpoint returns the same shape.
 export type SellerNotificationFilters = BuyerNotificationFilters;
 export type SellerNotificationsResponse = BuyerNotificationsResponse;
 

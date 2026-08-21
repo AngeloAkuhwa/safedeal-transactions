@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
         success: true,
         expires_in: 600,
         message: "OTP sent",
-        // DEV ONLY — remove in production
+        // DEV ONLY: remove in production
         dev_otp: code,
       });
     }

@@ -29,7 +29,7 @@ export function AgentPerformanceFilters({
   teams: string[];
   roles: { key: string; name: string }[];
 }) {
-  // Local, immediately-responsive search text — the debounced value is what
+  // Local, immediately-responsive search text. The debounced value is what
   // actually reaches `onChange` (and therefore the query key), so typing
   // never fires a request per keystroke.
   const [searchInput, setSearchInput] = useState(filters.search);

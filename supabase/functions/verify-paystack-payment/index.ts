@@ -17,7 +17,7 @@ const corsHeaders = {
 
 /**
  * Shared verification logic used by both the frontend callback and webhook.
- * Idempotent — safe to call multiple times for the same reference.
+ * Idempotent: safe to call multiple times for the same reference.
  */
 export async function processPaystackVerification(
   paystackReference: string,
@@ -79,7 +79,7 @@ export async function processPaystackVerification(
 
   // 4. Check Paystack status
   if (psData.status !== "success") {
-    // Payment failed — revert
+    // Payment failed: revert
     await supabase
       .from("payments")
       .update({
@@ -106,7 +106,7 @@ export async function processPaystackVerification(
     return { success: false, error: psData.gateway_response || "Payment was not successful" };
   }
 
-  // 5. Payment succeeded — fetch transaction and pricing
+  // 5. Payment succeeded. Fetch transaction and pricing
   const [txRes, pricingRes] = await Promise.all([
     supabase
       .from("transactions")
@@ -133,7 +133,7 @@ export async function processPaystackVerification(
   }
 
   // SNAPSHOT-FIRST: display the immutable transaction_pricing row that was
-  // locked at checkout time. Only recompute (for display only — never for
+  // locked at checkout time. Only recompute (for display only. Never for
   // what is charged) when no snapshot row exists at all.
   const pricingSnapshot = pricingRes.data;
   const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
@@ -147,7 +147,7 @@ export async function processPaystackVerification(
      * `transaction_pricing` has no rate column, so the rate is DERIVED from the
      * charged fees the same way `resolve-share-token` derives it: service fee ÷
      * item amount, null when the item amount is 0 or either fee is missing.
-     * It must be persisted explicitly — the payment screen treats it as
+     * It must be persisted explicitly. The payment screen treats it as
      * load-bearing evidence of what the buyer was actually charged.
      */
     service_fee_rate: number | null;
@@ -178,7 +178,7 @@ export async function processPaystackVerification(
   } else {
     // FALLBACK: no transaction_pricing snapshot row exists (should not happen
     // post-checkout). Recompute using the seller's vendor config for display
-    // only — the actual charge already happened via Paystack.
+    // only: the actual charge already happened via Paystack.
     const fallback = computePricing(
       koboToNairaSafe(psData.amount),
       psData.currency || "NGN",
@@ -230,11 +230,11 @@ export async function processPaystackVerification(
     }
   } else {
     console.warn(
-      `verify-paystack-payment: no pricing snapshot for transaction ${txId} — strict amount/currency check skipped (legacy fallback path)`,
+      `verify-paystack-payment: no pricing snapshot for transaction ${txId}: strict amount/currency check skipped (legacy fallback path)`,
     );
   }
 
-  // 6. Atomic updates — all must succeed
+  // 6. Atomic updates. All must succeed
   // 6a–6d. Payment capture is recorded through the single guarded routine:
   // payment row, transaction/escrow state and the four authoritative ledger
   // entries are written all-or-nothing, keyed on the Paystack event id so a
@@ -340,7 +340,7 @@ export async function processPaystackVerification(
     user_id: tx.seller_id,
     type: "payment",
     channel: "in_app",
-    title: "Payment Received — Begin Fulfillment",
+    title: "Payment Received: Begin Fulfillment",
     message: `The buyer has completed payment of ${pricing.currency_code} ${pricing.total_amount.toLocaleString()}. The agreement is now locked. Please begin preparing the item for delivery.`,
     related_transaction_id: txId,
     status: "pending",
@@ -514,7 +514,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 3. Process verification — reference is Paystack's, provider_reference is ours (for DB lookup)
+    // 3. Process verification. Reference is Paystack's, provider_reference is ours (for DB lookup)
     const result = await processPaystackVerification(reference, supabase, userId, provider_reference);
 
     if (!result.success) {

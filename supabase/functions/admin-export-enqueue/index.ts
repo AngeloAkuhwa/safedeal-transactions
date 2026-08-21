@@ -1,5 +1,5 @@
 /**
- * Admin Export Enqueue — P1 scale item.
+ * Admin Export Enqueue: P1 scale item.
  *
  * Creates a background CSV export job in `admin_export_jobs`, then
  * fire-and-forgets the worker via HTTP. Returns { job_id } immediately so the
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   // That is true of the *fine-grained* check and not of the coarse one: an
   // anonymous caller could send `{"export_type":"x"}` repeatedly and read off
   // the supported set from which values came back `unsupported_export_type`
-  // versus which came back 401 — the list of things the back office can
+  // versus which came back 401: the list of things the back office can
   // extract, disclosed to someone who never signed in.
   //
   // "Never signed in" is literal, not shorthand. `config.toml` does not list
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
   // should reject a caller with no token before this handler runs. It does
   // not: a POST with no Authorization header, no apikey header, no headers at
   // all reached this code and was answered `unsupported_export_type`. Checked,
-  // not assumed — and worth remembering the next time a control is presumed to
+  // not assumed: and worth remembering the next time a control is presumed to
   // be applied upstream.
   //
   // Prove the caller is an admin, then parse, then gate on the export type
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     return json({ error: "enqueue_failed", detail: insErr?.message ?? null }, 500);
   }
 
-  // Fire-and-forget the worker. We do NOT await the response — the worker
+  // Fire-and-forget the worker. We do NOT await the response. The worker
   // runs in its own request lifecycle so this endpoint returns immediately.
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

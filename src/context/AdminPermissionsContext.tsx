@@ -48,7 +48,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) {
-        // No session — silently mark as unauthenticated; ProtectedRoute
+        // No session: silently mark as unauthenticated; ProtectedRoute
         // will handle redirecting to /auth.
         setData(null);
         setError(null);
@@ -134,7 +134,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
 export function useAdminPermissions(): AdminPermissionsValue {
   const ctx = useContext(AdminPermissionsContext);
   if (!ctx) {
-    // Safe fallback so components outside the provider don't crash — they
+    // Safe fallback so components outside the provider don't crash: they
     // simply get "no access". This only fires in tests/storybook contexts.
     return {
       loading: false,

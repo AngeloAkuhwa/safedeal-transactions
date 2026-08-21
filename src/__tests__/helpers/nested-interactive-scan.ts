@@ -90,7 +90,7 @@ export function scanNestedSource(source: string, file: string): NestedViolation[
       file,
       line: lineOf(source, m.index!),
       outer: tag,
-      reason: `<${tag}> contains another interactive element — use the stretched-link pattern instead`,
+      reason: `<${tag}> contains another interactive element. Use the stretched-link pattern instead`,
     });
   }
   return out;

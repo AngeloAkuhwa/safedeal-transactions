@@ -47,13 +47,13 @@ export function ReviewRulesDrawer({
       w.push("Auto-escalate stale is on but no escalation queue is set.");
     }
     if ((draft.max_active_per_agent ?? 0) < (current.max_active_per_agent ?? 0)) {
-      w.push("Max active per agent decreased — some agents may exceed the new cap.");
+      w.push("Max active per agent decreased: some agents may exceed the new cap.");
     }
     if (draft.priority_to_senior_pool && !draft.senior_pool_queue) {
       w.push("Priority-to-senior-pool is on but no senior pool queue is set.");
     }
     if (draft.super_admin_self_assign) {
-      w.push("Super Admin self-assignment is enabled — every use will be audited.");
+      w.push("Super Admin self-assignment is enabled. Every use will be audited.");
     }
     return w;
   }, [current, draft]);
@@ -81,7 +81,7 @@ export function ReviewRulesDrawer({
 
         {readOnly && changeSetId && (
           <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
-            Change set <span className="font-mono">{changeSetId.slice(0, 8)}</span> — pending approval.
+            Change set <span className="font-mono">{changeSetId.slice(0, 8)}</span>: pending approval.
           </div>
         )}
 

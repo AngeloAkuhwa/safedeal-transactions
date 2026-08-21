@@ -164,7 +164,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
-        if (!isBuiltAdminRoute(item.href)) return false; // "Coming soon" — hide until built
+        if (!isBuiltAdminRoute(item.href)) return false; // "Coming soon": hide until built
         const required = permissionForPath(item.href);
         if (!required) return true;
         if (loading) return item.href === "/admin/dashboard";

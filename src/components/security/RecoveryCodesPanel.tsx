@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * Recovery codes are shown exactly once, right after generation. They are
- * never stored in the browser and never re-fetchable — only regenerable.
+ * never stored in the browser and never re-fetchable. Only regenerable.
  */
 export function RecoveryCodesPanel({ unused, total, onGenerated }: Props) {
   const [codes, setCodes] = useState<string[] | null>(null);

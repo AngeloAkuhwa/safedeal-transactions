@@ -1,4 +1,4 @@
-// Admin Audit Logs — read-only aggregator for the /admin/audit-logs screen.
+// Admin Audit Logs: read-only aggregator for the /admin/audit-logs screen.
 // Returns paginated rows from admin_actions (canonical) with parsed diff /
 // severity, plus lightweight aggregate stats for the KPI cards.
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
@@ -30,7 +30,7 @@ function severityFor(action: string): Severity {
 // action_type is a Postgres enum, so severity filtering can't use `ilike` or
 // `imatch`. We resolve enum values once per request and filter with `.in()`.
 const UUID_RE = /^[0-9a-f-]{36}$/i;
-// Full enum snapshot for admin_action_type — kept in sync with the DB enum so
+// Full enum snapshot for admin_action_type. Kept in sync with the DB enum so
 // severity filtering can map into `.in()` clauses (Postgres enums don't support
 // ilike/imatch operators via PostgREST).
 const ACTION_TYPES: string[] = [
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", to);
 
-  // Severity — resolve to enum member list and use `.in()`.
+  // Severity: resolve to enum member list and use `.in()`.
   if (severity && severity !== ("all" as Severity)) {
     const all = await listActionTypes(admin);
     const wanted = actionsForSeverity(all, severity);
@@ -263,6 +263,6 @@ Deno.serve(async (req) => {
 
 function deriveDescription(action: string, notes: Record<string, unknown>): string {
   const keys = (notes.changed_keys as string[]) ?? [];
-  if (keys.length) return `${humanAction(action)} — updated ${keys.slice(0, 4).join(", ")}${keys.length > 4 ? "…" : ""}`;
+  if (keys.length) return `${humanAction(action)}: updated ${keys.slice(0, 4).join(", ")}${keys.length > 4 ? "…" : ""}`;
   return humanAction(action);
 }

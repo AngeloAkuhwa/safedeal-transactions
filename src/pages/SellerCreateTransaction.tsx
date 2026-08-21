@@ -114,7 +114,7 @@ const SellerCreateTransaction = () => {
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishedCode, setPublishedCode] = useState<string>("");
 
-  // Upload state — with local preview URLs
+  // Upload state: with local preview URLs
   const [photos, setPhotos] = useState<(UploadedFile & { preview_url: string })[]>([]);
   const [video, setVideo] = useState<(UploadedFile & { preview_url: string }) | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -175,7 +175,7 @@ const SellerCreateTransaction = () => {
   const loadDraft = (draft: DraftTransaction) => {
     // The server no longer fabricates condition / currency / window / price on
     // the load path. A missing value returns the field to its untouched wizard
-    // state so the seller must set it — it is never presented as their choice.
+    // state so the seller must set it. It is never presented as their choice.
     setForm({
       buyer_name: draft.buyer_name,
       buyer_contact: draft.buyer_contact,
@@ -647,7 +647,7 @@ const SellerCreateTransaction = () => {
                         className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
                       >
                         <Video className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max {formatMaxMb(mediaConfig.videoMaxBytes)})</p>
+                        <p className="text-xs text-muted-foreground">Click to upload product video: MP4, MOV or WEBM (max {formatMaxMb(mediaConfig.videoMaxBytes)})</p>
                       </button>
                     )}
                     <p className="text-xs text-muted-foreground">Upload at least one photo or video to proceed.</p>

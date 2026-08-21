@@ -88,13 +88,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Validation failed", fields: errors }, 400);
     }
 
-    // Mask account number — keep last 4 digits only
+    // Mask account number: keep last 4 digits only
     const cleanNumber = account_number.trim();
     const maskedAccountNumber = `****** ${cleanNumber.slice(-4)}`;
 
     // Guard: refuse the edit while a genuine release is in flight, so a
     // compromised session cannot redirect an imminent payout. Blocked payouts
-    // are intentionally excluded — adding an account is how they self-heal.
+    // are intentionally excluded: adding an account is how they self-heal.
     const { data: inFlightPayouts, error: inFlightErr } = await adminClient
       .from("payouts")
       .select("id, status")
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     }
 
     // 1) Verify with Paystack FIRST. The plaintext account number never
-    //    touches our database — only Paystack receives it for recipient
+    //    touches our database: only Paystack receives it for recipient
     //    creation, and we persist the masked form.
     const paystackResult = await createTransferRecipient({
       type: "nuban",
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     }).catch((e) => ({ ok: false, status: 0, message: String(e?.message ?? e), raw: null }) as any);
 
     if (!paystackResult.ok) {
-      // Network / 5xx — do NOT persist anything, surface a 502 so the
+      // Network / 5xx: do NOT persist anything, surface a 502 so the
       // seller can retry. We still record the attempt for ops.
       if (!paystackResult.status || paystackResult.status >= 500) {
         await logEdgeError(adminClient, {
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "verification_unavailable" }, 502);
       }
 
-      // 4xx — persist a failed verification so the UI can show the reason.
+      // 4xx: persist a failed verification so the UI can show the reason.
       const failMessage = paystackResult.message ?? "Bank account could not be verified";
       const { data: failed } = await adminClient
         .from("payout_accounts")
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
-    // 2) Paystack accepted — persist verified account.
+    // 2) Paystack accepted: persist verified account.
     const recipientCode = paystackResult.data?.recipient_code ?? null;
     const recipientId = paystackResult.data?.id ? String(paystackResult.data.id) : null;
 

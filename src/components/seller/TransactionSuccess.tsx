@@ -37,7 +37,7 @@ interface TransactionSuccessProps {
     /**
      * Whether a ceiling actually bound THIS calculation, decided by the
      * vendor's effective config upstream. Never re-derived here against a
-     * platform default — a vendor with a lower cap must still see the badge.
+     * platform default: a vendor with a lower cap must still see the badge.
      */
     is_capped?: boolean;
   } | null;
@@ -121,7 +121,7 @@ export function TransactionSuccess({
             <div className="flex-1">
               <h3 className="text-xl font-bold text-white mb-2">Transaction starts when the buyer pays</h3>
               <p className="text-primary-foreground/90 text-sm leading-relaxed">
-                We don't create a live transaction until the buyer opens this link and accepts the agreement. Funds enter escrow only after they pay through the secure flow — at that point all terms become immutable.
+                We don't create a live transaction until the buyer opens this link and accepts the agreement. Funds enter escrow only after they pay through the secure flow. At that point all terms become immutable.
               </p>
             </div>
           </div>
@@ -440,7 +440,7 @@ export function TransactionSuccess({
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-muted-foreground font-bold text-sm">3</div>
-                  <p className="text-sm text-muted-foreground">Funds held in escrow — you fulfill order</p>
+                  <p className="text-sm text-muted-foreground">Funds held in escrow: you fulfill order</p>
                 </div>
               </div>
 

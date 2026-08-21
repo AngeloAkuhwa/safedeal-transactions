@@ -20,7 +20,7 @@ export type ProviderRefundResult =
  * Single implementation of "actually move the money at Paystack for a refund
  * row". Used by the ad-hoc admin refund pipeline (`refundBuyerCore`), by the
  * dispute-resolution path in `admin-transaction-actions`, and by the retry
- * action — so there is exactly one place that talks to Paystack for refunds.
+ * action: so there is exactly one place that talks to Paystack for refunds.
  *
  * Idempotent: a refund already handed off (status processing/refunded, or one
  * that already carries a provider_reference) returns success without calling
@@ -28,10 +28,10 @@ export type ProviderRefundResult =
  *
  * Fail closed on pricing: the refundable amount is defined by the pricing
  * snapshot (buyer total minus the non-refundable processing fee). The guard
- * lives HERE rather than in one caller so all three rails — the ad-hoc admin
- * refund, the dispute-resolution path and the retry action — share it.
+ * lives HERE rather than in one caller so all three rails. The ad-hoc admin
+ * refund, the dispute-resolution path and the retry action. Share it.
  *
- * Never throws — failures call `fail_refund_atomic`, alert ops, and return an
+ * Never throws: failures call `fail_refund_atomic`, alert ops, and return an
  * error result so the caller can decide what to report.
  */
 export async function executeProviderRefund(
@@ -52,7 +52,7 @@ export async function executeProviderRefund(
     const existingRef = (refund as any).provider_reference as string | null;
     const refundAmount = Number((refund as any).refund_amount ?? 0);
 
-    // Idempotency short-circuit — already handed off to Paystack.
+    // Idempotency short-circuit: already handed off to Paystack.
     if (currentStatus === "processing" || currentStatus === "refunded" || existingRef) {
       return {
         ok: true,
@@ -71,7 +71,7 @@ export async function executeProviderRefund(
 
     const transactionId = (refund as any).transaction_id as string;
 
-    // Pricing-snapshot guard — no snapshot, no money movement.
+    // Pricing-snapshot guard: no snapshot, no money movement.
     const { data: pricingRow } = await admin
       .from("transaction_pricing")
       .select("buyer_total_amount, payment_processing_fee_amount")

@@ -3,7 +3,7 @@
  *
  * This is the ONLY place the SafeDeal app shell service worker is registered.
  * It refuses to register in dev, inside iframes, in any Lovable preview host,
- * and when the URL carries ?sw=off — and unregisters stale workers there.
+ * and when the URL carries ?sw=off. And unregisters stale workers there.
  */
 
 const SW_URL = "/sw.js";

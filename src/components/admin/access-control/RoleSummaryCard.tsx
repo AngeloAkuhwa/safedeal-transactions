@@ -124,7 +124,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
     };
   });
 
-  // Notable restrictions — high-signal permissions the user does NOT have.
+  // Notable restrictions: high-signal permissions the user does NOT have.
   const RESTRICTED_VISIBLE = 5;
   const restrictedAll = ALL_PERMISSIONS
     .filter((p) =>
@@ -159,7 +159,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
         </div>
       )}
 
-      {/* Capability overview — bucket bars */}
+      {/* Capability overview: bucket bars */}
       <section className="space-y-2">
         <SectionLabel>Capability overview</SectionLabel>
         <div className="space-y-1.5">

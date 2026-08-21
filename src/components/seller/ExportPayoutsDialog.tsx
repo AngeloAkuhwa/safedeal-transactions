@@ -115,7 +115,7 @@ export function ExportPayoutsDialog({
   const releasedCount = rows.filter((r) => r.status === "completed").length;
 
   const helperText = !fromDate && !toDate
-    ? "No date range selected — exporting all payout history."
+    ? "No date range selected: exporting all payout history."
     : "Export payout records within the selected date range.";
 
   const handleDownload = () => {

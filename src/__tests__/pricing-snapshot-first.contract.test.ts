@@ -107,7 +107,7 @@ describe("pricing snapshot-first contract", () => {
         const isDocumentedFallback = /FALLBACK/.test(lookback);
 
         if (!hasFourArgs && !isDocumentedFallback) {
-          violations.push(`${file}:${lineNo + 1} — computePricing call missing config arg and not in a documented FALLBACK branch`);
+          violations.push(`${file}:${lineNo + 1}: computePricing call missing config arg and not in a documented FALLBACK branch`);
         }
       }
     }

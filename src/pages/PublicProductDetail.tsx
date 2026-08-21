@@ -73,7 +73,7 @@ const PublicProductDetail = () => {
   const metaImage =
     (metaProduct?.media || []).find((m: any) => m.media_type === "image")?.file_url ?? null;
   usePageMeta({
-    title: `${metaProduct?.title ?? ""} — ${metaSeller?.full_name ?? "SafeDeal"} | SafeDeal`,
+    title: `${metaProduct?.title ?? ""}: ${metaSeller?.full_name ?? "SafeDeal"} | SafeDeal`,
     description:
       metaProduct?.short_description ||
       `Buy ${metaProduct?.title ?? "this item"} on SafeDeal. Your payment stays in escrow until you confirm delivery.`,
@@ -182,7 +182,7 @@ const PublicProductDetail = () => {
   const handleWhatsAppShare = () => {
     if (!sellerSlug || !productSlug) return;
     openWhatsAppShare(
-      `${product.title} — protected by SafeDeal escrow:`,
+      `${product.title}. Protected by SafeDeal escrow:`,
       productShareMetaUrl(sellerSlug, productSlug),
     );
   };
@@ -279,9 +279,9 @@ const PublicProductDetail = () => {
         <span className="text-foreground font-medium truncate max-w-[200px]">{product.title}</span>
       </div>
 
-      {/* Two-column grid — Image + Product Info */}
+      {/* Two-column grid: Image + Product Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left — Image Gallery */}
+        {/* Left: Image Gallery */}
         <div className="space-y-3">
           <div className={`${glassPanel} overflow-hidden aspect-square`}>
             {currentImage && !imgError ? (
@@ -317,7 +317,7 @@ const PublicProductDetail = () => {
           )}
         </div>
 
-        {/* Right — Product Info */}
+        {/* Right: Product Info */}
         <div className="space-y-4">
           {/* Category + Stock inline */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -361,8 +361,8 @@ const PublicProductDetail = () => {
               </div>
               {/* The escrow fee used to appear for the first time on the payment
                   screen, after the buyer had committed. A cost revealed late
-                  reads as a surprise charge — the single most cited reason for
-                  abandoning a checkout — and on a trust product it costs more
+                  reads as a surprise charge: the single most cited reason for
+                  abandoning a checkout: and on a trust product it costs more
                   than the sale. Stated here, from live pricing config rather
                   than a hardcoded string, so it cannot drift from what is
                   actually charged. */}
@@ -401,7 +401,7 @@ const PublicProductDetail = () => {
             </div>
           </div>
 
-          {/* Quantity selector — bordered square buttons */}
+          {/* Quantity selector: bordered square buttons */}
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-foreground">Quantity:</span>
             <div className="flex items-center gap-1">
@@ -513,7 +513,7 @@ const PublicProductDetail = () => {
         </div>
       </div>
 
-      {/* Below-the-fold — ALL sections stacked vertically in max-w-4xl */}
+      {/* Below-the-fold: ALL sections stacked vertically in max-w-4xl */}
       <div className="max-w-4xl space-y-6">
         {/* Product Description */}
         <div className={`${glassPanel} p-5`}>
@@ -639,7 +639,7 @@ const PublicProductDetail = () => {
             )}
           </div>
 
-          {/* Delivery detail rows — single card */}
+          {/* Delivery detail rows: single card */}
           <div className="rounded-xl border border-border bg-muted/30 divide-y divide-border/50">
             <div className="flex justify-between items-center px-4 py-3">
               <span className="text-sm text-muted-foreground">Delivery Scope</span>
@@ -656,7 +656,7 @@ const PublicProductDetail = () => {
           </div>
         </div>
 
-        {/* Customer Reviews — real data only. No review system exists yet, so we
+        {/* Customer Reviews: real data only. No review system exists yet, so we
             render an honest empty state instead of fabricated ratings. */}
         <div className={`${glassPanel} p-5`}>
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">

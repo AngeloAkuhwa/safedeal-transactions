@@ -4,7 +4,7 @@
  * `src/lib/settings-catalog.ts` (client) and
  * `supabase/functions/_shared/settings-catalog.ts` (edge function) are
  * hand-duplicated (Deno can't import from src/). Both must reject the same
- * malformed tier lists — overlapping ranges, gaps, more than one open-ended
+ * malformed tier lists: overlapping ranges, gaps, more than one open-ended
  * tier, non-monotonic ordering, and out-of-range rates.
  */
 import { describe, it, expect } from "vitest";

@@ -517,7 +517,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         <section className="flex-1 min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden no-scrollbar">
           {renderHeader()}
 
-          {/* Summary strip — scrolls under the sticky header */}
+          {/* Summary strip: scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
               {/* Col 1: Dispute ID / Transaction */}
@@ -658,7 +658,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               {active.isDisputeActive && moneyStatus === "funds_pending_release" && (
                 <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
                   <AlertTriangle className="inline h-4 w-4 mr-1.5" />
-                  Active dispute — release is blocked until the dispute is resolved.
+                  Active dispute: release is blocked until the dispute is resolved.
                 </div>
               )}
               {active.isFrozen && (
@@ -851,7 +851,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           </div>
         </section>
 
-        {/* Right resolution sidebar (desktop) — scrolls independently of main content */}
+        {/* Right resolution sidebar (desktop). Scrolls independently of main content */}
         <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:border-[#253044] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto no-scrollbar bg-[#111827]/80">
           <ResolutionSidebar
               disputeStatus={row.status}
@@ -1041,7 +1041,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
   return (
     <Card>
       <div className="p-6">
-        {/* Title row — no border */}
+        {/* Title row: no border */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
             {isBuyer ? "Buyer Information" : "Seller Information"}
@@ -1636,7 +1636,7 @@ function CaseCommunicationSection(props: {
     if (activeTab === "internal") {
       onAddNote();
     }
-    // buyer/seller messaging not wired yet — visual-only per plan.
+    // buyer/seller messaging not wired yet: visual-only per plan.
   };
 
   return (
@@ -2554,7 +2554,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     Icon: XCircle,
   };
   if (status === "escalated") return {
-    label: "Escalated", message: "Case escalated — requires immediate admin review.",
+    label: "Escalated", message: "Case escalated: requires immediate admin review.",
     next: "Review evidence and determine outcome.",
     cls: "border-red-500/40 bg-red-500/10 text-red-100",
     dotCls: "bg-red-400",

@@ -1,6 +1,6 @@
 /**
  * Canonical `transaction_status` enum members (public.transaction_status).
- * Keep in sync with the database enum — tests assert the two match.
+ * Keep in sync with the database enum. Tests assert the two match.
  */
 export const TRANSACTION_STATUSES = [
   "draft",

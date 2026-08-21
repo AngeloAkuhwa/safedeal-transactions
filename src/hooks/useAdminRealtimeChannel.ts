@@ -6,7 +6,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
  * Subscription descriptor for an admin realtime channel.
  * `filter` uses the postgres_changes filter syntax, e.g. `status=in.(flagged,frozen)`
  * or `type=eq.security_alert`. Passing a filter is what keeps the browser sane
- * at platform scale — without it every admin receives every row change on the table.
+ * at platform scale: without it every admin receives every row change on the table.
  */
 export interface AdminRealtimeSub {
   table: string;

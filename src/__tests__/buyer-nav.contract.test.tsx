@@ -1,5 +1,5 @@
 /**
- * BuyerNav — cart badge, Saved link, and real unread bell indicator.
+ * BuyerNav: cart badge, Saved link, and real unread bell indicator.
  */
 import React from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";

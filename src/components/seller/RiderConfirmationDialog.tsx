@@ -43,7 +43,7 @@ export function RiderConfirmationDialog({
   };
 
   const waMessage =
-    `SafeDeal delivery — ${itemTitle ?? "your order"}${transactionCode ? ` (${transactionCode})` : ""}.\n\n` +
+    `SafeDeal delivery: ${itemTitle ?? "your order"}${transactionCode ? ` (${transactionCode})` : ""}.\n\n` +
     `When you arrive, open this link, send the code to the buyer, and ask them to read the 6-digit code back to you:\n${riderUrl}`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 

@@ -252,7 +252,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                   <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Info className="h-3 w-3" /> Assigned by the system — cannot be edited.
+                  <Info className="h-3 w-3" /> Assigned by the system: cannot be edited.
                 </div>
               </div>
             </section>
@@ -367,7 +367,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                   onChange={(e) => setReason(e.target.value)}
                   rows={2}
                   placeholder={requiresApproval
-                    ? "Required for privileged roles — recorded on the access change request."
+                    ? "Required for privileged roles: recorded on the access change request."
                     : "Optional justification for the audit trail."}
                 />
               </div>

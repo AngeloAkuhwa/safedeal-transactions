@@ -1,5 +1,5 @@
 /**
- * PHASE 0k — internal access must respect ACCOUNT STATUS, not just role rows.
+ * PHASE 0k: internal access must respect ACCOUNT STATUS, not just role rows.
  *
  * Defect: `has_any_internal_role()` only asked "does this user hold an internal
  * role row", so a SUSPENDED teammate whose role rows survived kept full
@@ -25,7 +25,7 @@ function internalAccessActive(row: InternalRow, now = new Date()): boolean {
   return true;
 }
 
-describe("internal_access_active — status + expiry predicate", () => {
+describe("internal_access_active: status + expiry predicate", () => {
   const future = "2099-01-01T00:00:00Z";
   const past = "2020-01-01T00:00:00Z";
 

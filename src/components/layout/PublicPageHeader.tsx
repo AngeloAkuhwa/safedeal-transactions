@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  *
  * `/marketplace` signed out rendered no header at all: no logo, no way back to
  * the site, and no way to sign up. A visitor arriving from a shared product
- * link was in a dead end — they could browse and then had nowhere to go, which
+ * link was in a dead end: they could browse and then had nowhere to go, which
  * is the worst possible place to lose someone who is already interested.
  *
  * Deliberately not the landing `Header`: that one carries in-page anchors
@@ -38,7 +38,7 @@ export function PublicPageHeader({ current }: { current?: "marketplace" | "prici
               two links live in the footer on every public page. */}
         <nav className="flex items-center gap-2 sm:gap-6" aria-label="Main navigation">
           {/* Classes are inline rather than behind a helper so the touch-target
-              scanner can resolve them — a className it cannot read is a target
+              scanner can resolve them: a className it cannot read is a target
               it cannot verify, and it correctly refuses to assume. */}
           <Link
             to="/marketplace"

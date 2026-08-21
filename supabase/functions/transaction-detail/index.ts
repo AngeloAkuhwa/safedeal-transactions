@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
 
     const nextAction = deriveNextAction(tx.status, dispute?.id ?? null);
 
-    // Derive completion event — ONLY when funds have actually been released.
+    // Derive completion event: ONLY when funds have actually been released.
     // Phase A: tx.status === 'completed' is now reached at buyer-confirm time, but
     // funds remain in escrow until SafeDeal review. The completion banner must wait
     // for money_status === 'funds_released'.

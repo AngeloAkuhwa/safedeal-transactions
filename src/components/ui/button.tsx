@@ -20,8 +20,8 @@ const buttonVariants = cva(
         default: "h-11 px-4 py-2",
         // Every size guarantees a 44px height; only this one could not
         // guarantee a width. `px-3` around a 16px icon is 40px, so a `sm`
-        // button whose label is hidden on mobile — `<span class="hidden
-        // sm:inline">Refresh</span>` is the exact shape — passes the height
+        // button whose label is hidden on mobile. `<span class="hidden
+        // sm:inline">Refresh</span>` is the exact shape: passes the height
         // half of WCAG 2.5.5 and fails the width half. `default` (px-4) and
         // `lg` (px-8) already clear 44px, and `icon` is explicitly 44x44.
         //
@@ -32,7 +32,7 @@ const buttonVariants = cva(
         sm: "h-11 min-w-11 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         // `w-11` is a *width*, and a flex item will shrink below its width on
-        // demand — this one was squeezed to 18px in the product-preview header
+        // demand: this one was squeezed to 18px in the product-preview header
         // while still reporting `w-11`. pagination.tsx had already hit this and
         // patched around it locally with `min-h-11 min-w-11`; the floor belongs
         // here instead.

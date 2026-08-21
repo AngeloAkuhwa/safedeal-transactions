@@ -122,7 +122,7 @@ export let PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
     key: `${m.key}.${action}`,
     module: m.key,
     action,
-    label: `${m.label} — ${ACTION_LABEL[action]}`,
+    label: `${m.label}. ${ACTION_LABEL[action]}`,
   })),
 }));
 
@@ -133,13 +133,13 @@ export function getAllPermissionKeys(): string[] {
 // Kept for backwards compatibility with existing callers.
 export const ALL_PERMISSION_KEYS: string[] = getAllPermissionKeys();
 
-// Risk lookup — hydrated from DB alongside the module catalog.
+// Risk lookup: hydrated from DB alongside the module catalog.
 const RISK_BY_KEY = new Map<string, PermissionRiskLevel>();
 export function getPermissionRisk(key: string): PermissionRiskLevel {
   return RISK_BY_KEY.get(key) ?? "low";
 }
 
-// System-default lookup — permissions inserted by the base seed migration.
+// System-default lookup: permissions inserted by the base seed migration.
 const SYSTEM_DEFAULT_KEYS = new Set<string>();
 export function isSystemDefaultPermission(key: string): boolean {
   return SYSTEM_DEFAULT_KEYS.has(key);
@@ -220,7 +220,7 @@ export function permissionsForRoles(
  * High-signal / dangerous action list. Used to flag "privileged permissions
  * being introduced" in the Change Role diff and "restricted" listings.
  *
- * @deprecated Use `getPermissionRisk(key)` — this heuristic pre-dates the
+ * @deprecated Use `getPermissionRisk(key)`: this heuristic pre-dates the
  * `permissions.risk_level` column and is only kept for legacy call sites.
  */
 export const PRIVILEGED_ACTIONS: PermissionAction[] = [
@@ -354,10 +354,10 @@ const HIGH_PERMISSIONS = new Set<string>([
 ]);
 
 // Suspension permission split (Support Agent RBAC finalisation):
-//   • `flagged_users.suspend`     — suspensions initiated from the Flagged
+//   • `flagged_users.suspend`    : suspensions initiated from the Flagged
 //     Users queue (contextual to a risk signal). Wired in
 //     `admin-flagged-users-action`.
-//   • `users_and_access.suspend`  — directory-initiated suspensions from the
+//   • `users_and_access.suspend` : directory-initiated suspensions from the
 //     Users & Access screen (independent of flags). Enforced on any
 //     directory-side suspend endpoint.
 // Both map to the same DB mutation but audit distinctly by source.

@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     metadata: { event: "admin_mfa_unenrol", actor_id: ctx.userId },
   });
 
-  // Alert every super_admin — an assisted unenrol is always newsworthy.
+  // Alert every super_admin: an assisted unenrol is always newsworthy.
   const { data: supers } = await admin
     .from("internal_user_roles")
     .select("user_id")

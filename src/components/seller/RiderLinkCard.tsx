@@ -106,7 +106,7 @@ export function RiderLinkCard({
   };
 
   const waMessage =
-    `SafeDeal delivery — ${itemTitle ?? "your order"}${transactionCode ? ` (${transactionCode})` : ""}.\n\n` +
+    `SafeDeal delivery: ${itemTitle ?? "your order"}${transactionCode ? ` (${transactionCode})` : ""}.\n\n` +
     `When you arrive, open this link, send the code to the buyer, and ask them to read the 6-digit code back to you:\n${riderUrl}`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
@@ -120,7 +120,7 @@ export function RiderLinkCard({
           <div>
             <h3 className="text-base font-bold text-foreground">Rider Confirmation Link</h3>
             <p className="text-xs text-muted-foreground">
-              Share with whoever delivers — they'll trigger an OTP that the buyer reads back at handoff.
+              Share with whoever delivers: they'll trigger an OTP that the buyer reads back at handoff.
             </p>
           </div>
         </div>

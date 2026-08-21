@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { CheckCircle2, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 
 const TITLE = "Identity Review";
-const SUBTITLE = "Approve or reject seller identity submissions — payouts depend on this queue";
+const SUBTITLE = "Approve or reject seller identity submissions. Payouts depend on this queue";
 
 const TABS: { key: IdentityStatus; label: string }[] = [
   { key: "pending_review", label: "Pending" },
@@ -227,7 +227,7 @@ export default function AdminIdentity() {
               {pending?.decision === "approve" ? "Approve identity" : "Reject identity"}
             </DialogTitle>
             <DialogDescription>
-              {pending?.row.submitter?.full_name ?? "This user"} — {pending?.row.masked_identifier ?? "no identifier"}.
+              {pending?.row.submitter?.full_name ?? "This user"}: {pending?.row.masked_identifier ?? "no identifier"}.
               {pending?.decision === "approve"
                 ? " Approving raises their verification level and unblocks payouts."
                 : " Rejection reason is shared with the user and recorded in the audit log."}

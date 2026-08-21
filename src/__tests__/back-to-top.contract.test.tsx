@@ -20,7 +20,7 @@ function isShown() {
   return fab().getAttribute("aria-hidden") === "false";
 }
 
-describe("BackToTop — direction-based visibility", () => {
+describe("BackToTop: direction-based visibility", () => {
   beforeEach(() => {
     Object.defineProperty(window, "scrollY", { value: 0, writable: true, configurable: true });
     render(

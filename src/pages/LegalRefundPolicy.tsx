@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const TITLE = "Refund & Dispute Policy — SafeDeal";
+const TITLE = "Refund & Dispute Policy: SafeDeal";
 const DESCRIPTION =
   "How SafeDeal escrow refunds work: when funds are returned, what is non-refundable, how to open a dispute, and the timelines for each stage.";
 
@@ -24,7 +24,7 @@ export default function LegalRefundPolicy() {
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
 
         <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Placeholder policy — replace with your reviewed legal copy before launch. This text is a
+          Placeholder policy: replace with your reviewed legal copy before launch. This text is a
           structural draft only and is not legal advice.
         </div>
 
@@ -54,8 +54,8 @@ export default function LegalRefundPolicy() {
               </li>
               <li>
                 <span className="text-foreground">Dispute resolved for the buyer.</span> Where a
-                dispute outcome finds for the buyer, the held amount — in full or in the part the
-                outcome specifies — is refunded.
+                dispute outcome finds for the buyer, the held amount. In full or in the part the
+                outcome specifies: is refunded.
               </li>
               <li>
                 <span className="text-foreground">Item materially differs from the agreement.</span>{" "}
@@ -77,8 +77,8 @@ export default function LegalRefundPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">4. Once funds are released</h2>
             <p className="mt-2">
-              After the buyer confirms receipt — or after the auto-release window passes with no
-              dispute — the held funds are released to the seller and the transaction is closed. A
+              After the buyer confirms receipt. Or after the auto-release window passes with no
+              dispute: the held funds are released to the seller and the transaction is closed. A
               closed transaction can no longer be refunded through escrow; any remaining claim is a
               matter between the buyer and the seller.
             </p>
@@ -125,7 +125,7 @@ export default function LegalRefundPolicy() {
                 contact page
               </Link>
               . For a problem with a specific transaction, use the dispute flow on that transaction
-              rather than email — it keeps the funds held while the case is reviewed.
+              rather than email: it keeps the funds held while the case is reviewed.
             </p>
           </section>
         </div>

@@ -67,7 +67,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
     staleTime: 60_000,
   });
 
-  // disputes.assigned_to isn't in the schema yet — surface 0 rather than a fake count.
+  // disputes.assigned_to isn't in the schema yet: surface 0 rather than a fake count.
   const activeTasks = 0;
   const activeSessions = sessionsQ.data ?? 0;
   const targets = targetsQ.data ?? [];

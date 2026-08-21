@@ -128,7 +128,7 @@ const BuyerVerification = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN-based identity submission (manual review) or government-issued ID. Your full NIN is never transmitted or stored — only the last 4 digits are retained." },
+              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN-based identity submission (manual review) or government-issued ID. Your full NIN is never transmitted or stored. Only the last 4 digits are retained." },
               { icon: Clock, title: "Manual Review", desc: "Our team reviews your submission within 24–48 hours. This is not automated verification." },
               { icon: UserCheck, title: "Get Verified", desc: "Once approved, you unlock higher limits and trusted buyer status." },
             ].map((step, idx) => (
@@ -155,7 +155,7 @@ const BuyerVerification = () => {
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Your identity data is stored securely, accessible only to you and our review team.
                   Sellers only see your trust level, never your identity documents or NIN.
-                  Only minimal data is retained — masked identifiers are preferred, and uploaded documents
+                  Only minimal data is retained: masked identifiers are preferred, and uploaded documents
                   are tightly access-controlled.
                 </p>
               </div>
@@ -295,7 +295,7 @@ function IdentitySubmissionForm({
                 <RadioGroupItem value="government_id" id="gov-id" disabled />
                 <Label htmlFor="gov-id" className="flex-1 cursor-pointer">
                   <p className="text-sm font-medium">Government-Issued ID Upload</p>
-                  <p className="text-xs text-muted-foreground">Coming soon — passport, driver's license, or voter's card</p>
+                  <p className="text-xs text-muted-foreground">Coming soon: passport, driver's license, or voter's card</p>
                 </Label>
               </div>
             </RadioGroup>

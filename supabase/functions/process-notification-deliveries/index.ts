@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   if (!RESEND_API_KEY) return json(500, { error: "RESEND_API_KEY not configured" });
   if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY not configured" });
   if (FROM.includes("onboarding@resend.dev")) {
-    console.warn("Using onboarding@resend.dev — Resend restricts this to the account owner. Set RESEND_FROM_EMAIL to a verified sender.");
+    console.warn("Using onboarding@resend.dev. Resend restricts this to the account owner. Set RESEND_FROM_EMAIL to a verified sender.");
   }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

@@ -130,7 +130,7 @@ export default function DeliveryConfirm() {
             {stage === "ready" && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-border p-4 space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Step 1 — Send code to buyer</p>
+                  <p className="text-sm font-semibold text-foreground">Step 1: Send code to buyer</p>
                   {info.has_phone ? (
                     <p className="text-sm text-muted-foreground">
                       We'll text a 6-digit code to <span className="font-mono">{info.masked_buyer_phone}</span> ({info.buyer_name_first}). Ask them to read it to you ONLY when they have the item in hand.
@@ -158,7 +158,7 @@ export default function DeliveryConfirm() {
             {stage === "otp_sent" && (
               <div className="space-y-4">
                 <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Step 2 — Enter the code</p>
+                  <p className="text-sm font-semibold text-foreground">Step 2: Enter the code</p>
                   <p className="text-xs text-muted-foreground">
                     Ask {info.buyer_name_first} for the 6-digit code from their phone.
                   </p>

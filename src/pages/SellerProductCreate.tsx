@@ -190,7 +190,7 @@ const SellerProductCreate = () => {
         if (!res.ok) { toast.error(res.errors[0].message); continue; }
         photos.push(file);
       } catch {
-        // Unreadable locally — let the server be the judge.
+        // Unreadable locally: let the server be the judge.
         passthrough.push(file);
       }
     }
@@ -235,7 +235,7 @@ const SellerProductCreate = () => {
           if (result.normalised) {
             toast.info(
               `${file.name} was padded with a white border to fit ${mediaConfig.imageAllowedRatios[0]}. ` +
-              `Nothing was cropped — remove it and re-upload a square photo if you'd rather crop it yourself.`,
+              `Nothing was cropped: remove it and re-upload a square photo if you'd rather crop it yourself.`,
             );
           }
           setFiles((prev) =>
@@ -308,7 +308,7 @@ const SellerProductCreate = () => {
   /**
    * Every publish blocker, each anchored to the field that causes it. The old
    * build gated on four conditions but only ever surfaced one of them, through
-   * a `title` tooltip on a DISABLED button — which has no touch equivalent and
+   * a `title` tooltip on a DISABLED button: which has no touch equivalent and
    * is suppressed by mobile browsers, so publishing simply did nothing.
    */
   const publishBlockers: { field: string; message: string }[] = [
@@ -753,7 +753,7 @@ const SellerProductCreate = () => {
               </div>
             </div>
 
-            {/* Bottom Bar — stacks on narrow screens instead of forcing a
+            {/* Bottom Bar: stacks on narrow screens instead of forcing a
                 no-wrap row that cannot fit 360px. */}
             <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-6">
               <div className="flex items-start gap-3">

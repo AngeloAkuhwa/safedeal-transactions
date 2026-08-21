@@ -125,7 +125,7 @@ export interface PayoutTimelineEntry {
 export interface PayoutDetail {
   payout: Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing" | "amount" | "currency"> & {
     notes: string | null;
-    /** Null when the payout record carries no amount — never coerced to 0. */
+    /** Null when the payout record carries no amount. Never coerced to 0. */
     amount: number | null;
     currency: string | null;
   };
@@ -138,7 +138,7 @@ export interface PayoutDetail {
     payment_processing_fee: number | null;
     total_charged: number | null;
     seller_payout: number | null;
-    /** Where the release figure came from — snapshot is canonical. */
+    /** Where the release figure came from. Snapshot is canonical. */
     seller_payout_source?: "pricing_snapshot" | null;
     recorded_payout_amount?: number | null;
     release_amount_mismatch?: boolean;

@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
     const sinceDate = periodStart(period);
     const sinceIso = sinceDate?.toISOString() ?? null;
 
-    // 1. Pull all relevant transactions for this seller in window (broad — single fetch)
+    // 1. Pull all relevant transactions for this seller in window (broad. Single fetch)
     let txQuery = admin
       .from("transactions")
       .select(
@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
       if ((ACTIVE_STATUSES as readonly string[]).includes(t.status as string)) active_count += 1;
     }
 
-    // Open disputes & failed payouts (window-scoped) — independent fetches
+    // Open disputes & failed payouts (window-scoped). Independent fetches
     const { data: openDisputes } = await admin
       .from("disputes")
       .select("id,transaction_id,status,opened_at,resolved_at,reason," +

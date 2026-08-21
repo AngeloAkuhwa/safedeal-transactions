@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
   try {
     // Who, before what. The permission required here depends on the target
-    // status, so the fine-grained gate has to wait for the body — but proving
+    // status, so the fine-grained gate has to wait for the body. But proving
     // the caller is an admin at all does not, and doing it first stops an
     // anonymous caller from walking the validation errors to learn the shape
     // of the dispute state machine.

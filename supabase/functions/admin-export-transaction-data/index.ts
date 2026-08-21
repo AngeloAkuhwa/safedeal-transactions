@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     const snap: any = (agreementRes as any)?.data ?? null;
     payload.agreement = snap ? {
       lockedAt: snap.locked_at ?? tx.agreement_locked_at,
-      // immutable JSONB snapshot only — no PDF/file URL
+      // immutable JSONB snapshot only: no PDF/file URL
       snapshot: snap.snapshot_json ?? null,
     } : null;
   }
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
           uploadedByRole: e.submitted_by_role ?? null,
           uploadedAt: e.created_at,
           fileHash: f?.file_hash ?? null,
-          // Strict redaction — NO storage_path, secure_url, file_url, signed_url, download_url.
+          // Strict redaction: NO storage_path, secure_url, file_url, signed_url, download_url.
         };
       });
     }

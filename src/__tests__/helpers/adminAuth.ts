@@ -6,7 +6,7 @@ import path from "node:path";
  * Read from Vite's env, then fall back to the process environment.
  *
  * Vite does merge `VITE_`-prefixed shell variables into `import.meta.env`, so
- * the fallback is not what makes CI work — it is here because these helpers
+ * the fallback is not what makes CI work. It is here because these helpers
  * also run outside a Vite transform (the provisioning script, ad-hoc node), and
  * because reading the secret from the place CI actually put it removes a whole
  * class of question when something is empty.
@@ -15,7 +15,7 @@ import path from "node:path";
  * dotenv-expand over it, so a password containing `$` is silently rewritten
  * before anything uses it. A literal `$name` is read as an undefined variable
  * and `$$` as a process id, so the value that reaches sign-in is not the value
- * that was set — and the failure looks like a credential someone typed wrong.
+ * that was set: and the failure looks like a credential someone typed wrong.
  * Prefer passwords with no `$`, and let secrets reach this process as
  * environment variables rather than through a file.
  *
@@ -70,7 +70,7 @@ export async function anonClient(): Promise<SupabaseClient> {
 /**
  * List of admin edge functions to probe. Keep in sync with
  * `supabase/functions/admin-*`. `admin-export-worker` is intentionally
- * excluded — it is service-role only and rejects user JWTs by design.
+ * excluded: it is service-role only and rejects user JWTs by design.
  */
 export const ADMIN_FUNCTIONS: string[] = [
   "admin-dashboard",
@@ -114,7 +114,7 @@ export const ADMIN_FUNCTIONS: string[] = [
  *
  * `rawInvoke` used to POST to everything. Fifteen of these functions are
  * GET-only and one is PATCH-only, so they answered `405 method_not_allowed`
- * from the first line of the handler — before any auth ran. The test asserted
+ * from the first line of the handler. Before any auth ran. The test asserted
  * "not 200" and passed, while proving nothing at all about who is allowed in.
  * A guard test that a missing guard would still satisfy is worse than no test,
  * because it is counted.
@@ -127,13 +127,13 @@ export const ADMIN_FUNCTIONS: string[] = [
  * Three deliberate choices about failure:
  *
  *   - Unreadable source THROWS. Swallowing it would silently restore the exact
- *     hollow probe this function exists to remove — every method derives POST,
+ *     hollow probe this function exists to remove. Every method derives POST,
  *     every GET-only handler answers 405, every assertion passes. A test helper
  *     that degrades into passing is the failure mode with no symptom.
  *   - No `!==` guard means the handler dispatches on method some other way
  *     (`admin-system-settings` takes GET and PUT via a switch). Falling back to
  *     POST there would probe a method it does not serve, so the CORS
- *     `Access-Control-Allow-Methods` header — which those handlers do declare —
+ *     `Access-Control-Allow-Methods` header: which those handlers do declare —
  *     is read instead, and its first non-OPTIONS entry used.
  *   - The method comes from repo source; the request goes to the deployed
  *     function. On Lovable Cloud those can drift between merge and deploy. A
@@ -152,12 +152,12 @@ export function methodFor(fn: string): string {
     src = fs.readFileSync(file, "utf8");
   } catch (err) {
     throw new Error(
-      `methodFor(${fn}): cannot read ${file}. Refusing to guess a method — ` +
+      `methodFor(${fn}): cannot read ${file}. Refusing to guess a method. ` +
         `guessing POST would make every GET-only probe pass on a 405. (${(err as Error).message})`,
     );
   }
 
-  // `if (req.method !== "GET") return ... 405` — the guard names the one
+  // `if (req.method !== "GET") return ... 405`: the guard names the one
   // method the handler serves.
   const guard = src.match(/req\.method\s*!==\s*["'`]([A-Z]+)["'`]/);
   if (guard) {
@@ -194,7 +194,7 @@ export async function rawInvoke(
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
 
   // A GET cannot carry a body, so the role hints move to the query string.
-  // They still have to be ignored — the point of the assertion is that role
+  // They still have to be ignored: the point of the assertion is that role
   // comes from the JWT, and a caller who can put it in a body can put it in a
   // URL just as easily. Objects are JSON-encoded rather than stringified,
   // because `[object Object]` is not a role hint anyone would send.

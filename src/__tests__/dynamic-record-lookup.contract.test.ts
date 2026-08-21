@@ -27,7 +27,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Open-keyed maps of objects — the shape whose miss is `undefined`. */
+/** Open-keyed maps of objects: the shape whose miss is `undefined`. */
 const DECL = /const ([A-Za-z_$][\w$]*)\s*:\s*Record<\s*string\s*,\s*\{/g;
 
 /** Individually reviewed exceptions. Keep empty unless a guard is impossible. */
@@ -46,7 +46,7 @@ describe("dynamic record lookups", () => {
         const use = new RegExp(`${name}\\[([^\\]\\n]+)\\]`, "g");
         for (const m of src.matchAll(use)) {
           const key = m[1].trim();
-          if (/^["\'`]/.test(key)) continue; // literal key — statically checked
+          if (/^["\'`]/.test(key)) continue; // literal key: statically checked
           const after = src.slice(m.index! + m[0].length);
           if (/^\s*(\?\?|\|\|)/.test(after)) continue; // guarded
           if (after.startsWith(".")) {

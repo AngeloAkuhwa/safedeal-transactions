@@ -1,7 +1,7 @@
 /**
  * SINGLE SOURCE OF TRUTH for every user-facing trust / protection claim.
  *
- * PHASE 0g — the claim TEXT is no longer reachable. `TRUST_CLAIMS` is module
+ * PHASE 0g: the claim TEXT is no longer reachable. `TRUST_CLAIMS` is module
  * private and `.text` is never exported. The only way to obtain a claim string
  * is through a resolver whose evidence parameter is typed by the claim's own
  * condition, so a call site physically cannot render "Verified Seller" without
@@ -35,7 +35,7 @@ interface TrustClaim {
   readonly text: string;
   /** What must be true for this text to render. */
   readonly condition: TrustCondition;
-  /** Where the condition is read from — auditable in one place. */
+  /** Where the condition is read from. Auditable in one place. */
   readonly basis: string;
 }
 
@@ -52,7 +52,7 @@ const TRUST_CLAIMS = {
   ESCROW_PROTECTION_HEADING: claim(
     "SafeDeal Escrow Protection",
     "ALWAYS_TRUE",
-    "Same as ESCROW_PROTECTED — heading form.",
+    "Same as ESCROW_PROTECTED: heading form.",
   ),
   ESCROW_HANDLER_LABEL: claim(
     "Payment handled by",
@@ -64,11 +64,11 @@ const TRUST_CLAIMS = {
     "ALWAYS_TRUE",
     "Funds are held by SafeDeal escrow for every paid transaction.",
   ),
-  /** Present tense — only true once money is actually sitting in escrow. */
+  /** Present tense: only true once money is actually sitting in escrow. */
   ESCROW_ACTIVE: claim(
     "Escrow Protection Active",
     "FUNDS_HELD_IN_ESCROW",
-    "escrow.state === 'held' — escrow_ledger_entries booked and not yet released or refunded.",
+    "escrow.state === 'held': escrow_ledger_entries booked and not yet released or refunded.",
   ),
   PAYMENT_PROTECTED_NOW: claim(
     "Your payment is protected",
@@ -78,9 +78,9 @@ const TRUST_CLAIMS = {
   MONEY_PROTECTED_NOW: claim(
     "Your money is protected",
     "FUNDS_HELD_IN_ESCROW",
-    "Same basis as PAYMENT_PROTECTED_NOW — money wording.",
+    "Same basis as PAYMENT_PROTECTED_NOW. Money wording.",
   ),
-  /** Future tense — safe to show before payment because it describes what will happen. */
+  /** Future tense: safe to show before payment because it describes what will happen. */
   PAYMENT_WILL_BE_ESCROWED: claim(
     "Your payment will be held in escrow until you confirm the item",
     "ALWAYS_TRUE",
@@ -200,14 +200,14 @@ export function resolveClaim<K extends ConditionalKey>(
   return satisfied(c.condition, evidence as TrustEvidenceMap[TrustCondition]) ? c.text : null;
 }
 
-/** Claims that are structurally true for every transaction — no evidence exists to demand. */
+/** Claims that are structurally true for every transaction. No evidence exists to demand. */
 export function alwaysClaim(key: AlwaysTrueKey): string {
   return TRUST_CLAIMS[key].text;
 }
 
 /**
  * Resolves the strongest seller verification claim that real data supports.
- * Returns `null` when identity is not verified — callers must render nothing.
+ * Returns `null` when identity is not verified: callers must render nothing.
  */
 export function sellerVerificationClaim(input: {
   identityVerified?: boolean | null;

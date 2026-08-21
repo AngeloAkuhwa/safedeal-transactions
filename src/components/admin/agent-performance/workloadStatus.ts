@@ -4,7 +4,7 @@ import type { AgentPerformanceRow } from "@/services/agent-performance.service";
  * Single derivation of an agent's workload status, built from the existing
  * Task Orchestration capacity + availability configuration
  * (agent_capacity.max_active_tasks vs current active work, agent_availability.status).
- * No second capacity model exists — every screen reads this helper.
+ * No second capacity model exists. Every screen reads this helper.
  */
 export type WorkloadStatus =
   | "available" | "normal" | "near_capacity" | "at_capacity" | "overloaded" | "offline" | "on_leave";

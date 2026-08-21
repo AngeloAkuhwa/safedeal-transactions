@@ -113,8 +113,8 @@ const BuyerTransactionVerify = () => {
             <Clock className="h-5 w-5" />
             <p className="text-sm font-semibold">
               {remainingHours !== null
-                ? `Verification window is now open — Please confirm or dispute within ${remainingHours} hours`
-                : "Verification window is now open — Please confirm receipt or raise a dispute"}
+                ? `Verification window is now open. Please confirm or dispute within ${remainingHours} hours`
+                : "Verification window is now open. Please confirm receipt or raise a dispute"}
             </p>
             <AlertTriangle className="h-4 w-4" />
           </div>

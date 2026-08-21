@@ -26,7 +26,7 @@ export function SecuritySection() {
   const [loading, setLoading] = useState(false);
   const [securityAlerts, setSecurityAlerts] = useState(true);
   const [twoFaOpen, setTwoFaOpen] = useState(false);
-  // Real derived state from the auth factor list — no hardcoded badge.
+  // Real derived state from the auth factor list. No hardcoded badge.
   const [twoFa, setTwoFa] = useState<{ enabled: boolean; unused: number } | null>(null);
 
   const loadTwoFa = async () => {

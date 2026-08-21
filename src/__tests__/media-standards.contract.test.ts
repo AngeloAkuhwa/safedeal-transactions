@@ -16,7 +16,7 @@ import { SETTINGS_CATALOG } from "@/lib/settings-catalog";
 const cfg = FALLBACK_MEDIA_CONFIG;
 const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8");
 
-describe("media rules — hard blocks", () => {
+describe("media rules: hard blocks", () => {
   it("rejects an image below the minimum dimension with a specific message", () => {
     const res = validateImage({ width: 640, height: 480, bytes: 100_000, format: "jpg" }, cfg);
     expect(res.ok).toBe(false);
@@ -41,7 +41,7 @@ describe("media rules — hard blocks", () => {
   });
 });
 
-describe("aspect ratio — normalise, never crop", () => {
+describe("aspect ratio: normalise, never crop", () => {
   it("treats 4:3 phone photos as normalisable, not rejected", () => {
     const res = validateImage({ width: 1600, height: 1200, bytes: 500_000, format: "jpg" }, cfg);
     expect(res.ok).toBe(true);

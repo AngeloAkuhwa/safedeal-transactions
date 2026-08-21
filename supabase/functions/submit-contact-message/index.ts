@@ -42,7 +42,7 @@ async function sendAcknowledgement(to: string, name: string, reference: string |
         subject: "We received your SafeDeal support message",
         html: `<p>Hi ${name},</p>
 <p>We have your message${reference ? ` about <strong>${reference}</strong>` : ""}. ${SUPPORT_ACK_SENTENCE}</p>
-<p>If money is still held in escrow on a transaction, open a dispute from the transaction itself — that freezes the funds while the case is reviewed.</p>
+<p>If money is still held in escrow on a transaction, open a dispute from the transaction itself. That freezes the funds while the case is reviewed.</p>
 <p>— SafeDeal Support</p>`,
       }),
     });
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       _dedupe_key: `contact_message:${inserted.id}`,
       _type: "system_message",
       _title: `New support message${transaction_reference ? ` · ${transaction_reference}` : ""}`,
-      _message: `${full_name} (${email}) — ${topic}: ${message.slice(0, 240)}`,
+      _message: `${full_name} (${email}): ${topic}: ${message.slice(0, 240)}`,
       _related_transaction_id: null,
       _metadata: { contact_message_id: inserted.id, topic, transaction_reference },
     });

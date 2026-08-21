@@ -108,7 +108,7 @@ const SellerProductDetail = () => {
       setVisibilityType(p.visibility_type || "public");
       setBrand(p.brand || "");
       setModelSku(p.sku || p.model || "");
-      // Empty when unset — the seller picks a window rather than inheriting an
+      // Empty when unset: the seller picks a window rather than inheriting an
       // invented one silently saved back on the next update.
       setVerificationWindow(p.verification_window_hours ? String(p.verification_window_hours) : "");
     }
@@ -237,7 +237,7 @@ const SellerProductDetail = () => {
                 <div>
                   <h2 className="text-base font-semibold text-foreground mb-1">This is a private offer product</h2>
                   <p className="text-sm text-muted-foreground">
-                    Manage it from your <strong>Private Offers</strong> list. Price, quantity, and agreement terms are locked once published — to change anything, cancel and recreate the offer.
+                    Manage it from your <strong>Private Offers</strong> list. Price, quantity, and agreement terms are locked once published. To change anything, cancel and recreate the offer.
                   </p>
                 </div>
               </div>
@@ -338,10 +338,10 @@ const SellerProductDetail = () => {
           </div>
         </div>
 
-        {/* Content — document scroll, no nested scroller */}
+        {/* Content: document scroll, no nested scroller */}
         <div className="relative z-rail flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           <div className="grid max-w-7xl grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-4">
-            {/* Main content — col-span-3 */}
+            {/* Main content: col-span-3 */}
             <div className="xl:col-span-3 space-y-6">
               {/* Product Details */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
@@ -602,7 +602,7 @@ const SellerProductDetail = () => {
               </div>
             </div>
 
-            {/* Right sidebar — col-span-1 */}
+            {/* Right sidebar: col-span-1 */}
             <div className="xl:col-span-1 space-y-6">
               {/* Product Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">

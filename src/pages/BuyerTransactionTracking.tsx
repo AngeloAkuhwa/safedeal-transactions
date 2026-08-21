@@ -177,7 +177,7 @@ const BuyerTransactionTracking = () => {
           <Shield className="h-4 w-4 text-primary shrink-0" />
           <p className="text-xs sm:text-sm text-primary font-medium">
             {escrow?.state === "held"
-              ? `Your payment of ${formatMoney(escrow.held_amount, pricing.currency_code)} is securely held in escrow — funds will only release once you verify receipt.`
+              ? `Your payment of ${formatMoney(escrow.held_amount, pricing.currency_code)} is securely held in escrow. Funds will only release once you verify receipt.`
               : escrow?.state === "released"
                 ? "Transaction completed. Funds have been released to the seller."
                 : escrow?.state === "refunded"
@@ -275,7 +275,7 @@ const BuyerTransactionTracking = () => {
               moneyStatus={tx.money_status}
             />
 
-            {/* Completion banner — only after funds actually released. */}
+            {/* Completion banner: only after funds actually released. */}
             {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
               <TransactionCompletionBanner
                 variant={completion_event.variant}

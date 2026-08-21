@@ -8,7 +8,7 @@ export type StagedOp = "grant" | "revoke";
  * Module-level snapshot of the current staged-change count. Consumed by
  * cross-component guards (e.g. `EnvironmentSwitcher.beforeChange`) that
  * can't hold a reference to the owning hook instance. Kept intentionally
- * simple — a single writer (RoleMatrix) mirrors `totalChanges` here.
+ * simple: a single writer (RoleMatrix) mirrors `totalChanges` here.
  */
 let _stagedCount = 0;
 export function getStagedPermissionChangeCount(): number { return _stagedCount; }

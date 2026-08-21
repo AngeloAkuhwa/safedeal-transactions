@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   const hasPricing = !!pricing;
   const itemTotal = hasPricing && pricing!.item_amount != null ? Number(pricing!.item_amount) : null;
   // The protection fee was already charged and frozen into the snapshot. We
-  // display it verbatim — re-capping a charged amount from a duplicated
+  // display it verbatim: re-capping a charged amount from a duplicated
   // constant would show the admin a figure the buyer never paid.
   const protectionFee = hasPricing && pricing!.platform_fee_amount != null
     ? Number(pricing!.platform_fee_amount)
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
       pass: account?.verification_status === "verified",
       actual: account?.verification_status ?? "missing",
       detail: !account ? "Seller has not added a payout account."
-        : account.verification_status === "verified" ? `${account.bank_name} ${maskAccount(account.account_number)} — verified.`
+        : account.verification_status === "verified" ? `${account.bank_name} ${maskAccount(account.account_number)}. Verified.`
         : `Account ${maskAccount(account.account_number) ?? ""} is "${account.verification_status}".` },
     { key: "recipient_code", label: "Provider recipient code on file",
       pass: !!account?.provider_recipient_code,
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
   (moneyHist ?? []).forEach((m: any) => tl.push({
     id: `money-${m.id}`, at: m.changed_at, type: "money_status",
     title: `Money: ${String(m.to_status).replace(/_/g, " ")}`,
-    description: `From ${m.from_status ? String(m.from_status).replace(/_/g, " ") : "—"}${m.reason ? ` — ${m.reason}` : ""}`,
+    description: `From ${m.from_status ? String(m.from_status).replace(/_/g, " ") : "—"}${m.reason ? `: ${m.reason}` : ""}`,
     actorType: m.changed_by_role, actorName: null,
     severity: m.to_status === "funds_frozen" ? "critical" : null, icon: "vault",
   }));

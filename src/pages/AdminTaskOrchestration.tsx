@@ -208,7 +208,7 @@ export default function AdminTaskOrchestration() {
       if (assignBulk && res?.results?.length) {
         setBulkResults(res.results);
         const fail = res.results.filter(r => !r.ok).length;
-        if (fail) toast.warning(`${res.count}/${res.total} assigned — ${fail} failed`);
+        if (fail) toast.warning(`${res.count}/${res.total} assigned. ${fail} failed`);
         else toast.success(`${res.count}/${res.total} assigned`);
       } else {
         toast.success("Assigned");
@@ -327,7 +327,7 @@ export default function AdminTaskOrchestration() {
     setReviewDraft({ ...draft, mode });
     setReviewImpact(null);
     setReviewError(null);
-    // Heuristic — server sets the authoritative flag on save.
+    // Heuristic: server sets the authoritative flag on save.
     const curr = (data?.rules?.config ?? {}) as AssignmentRulesConfig;
     setReviewRequiresApproval(
       (curr.mode ?? null) !== ((draft.mode ?? mode) ?? null) ||

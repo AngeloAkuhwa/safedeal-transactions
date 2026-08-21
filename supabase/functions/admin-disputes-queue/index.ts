@@ -164,7 +164,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
   const under_review = underRes.count ?? 0;
   const overdue = overdueRes.count ?? 0;
   const resolved_today = resolvedTodayRes.count ?? 0;
-  const escalated = 0; // schema has no escalated/priority — surfaced as 0
+  const escalated = 0; // schema has no escalated/priority: surfaced as 0
 
   const kpis = {
     open_disputes,
@@ -217,7 +217,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     case "under_review":
       q = q.eq("status", "under_review"); break;
     case "escalated":
-      // No escalation flag in current schema — return empty set without enum cast errors.
+      // No escalation flag in current schema. Return empty set without enum cast errors.
       q = q.eq("id", "00000000-0000-0000-0000-000000000000");
       break;
     case "resolved":
@@ -334,7 +334,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     });
   }
 
-  // Search filter (in-memory after fetch — small page sizes)
+  // Search filter (in-memory after fetch. Small page sizes)
   if (params.q) {
     const needle = params.q.toLowerCase();
     rows = rows.filter((r) =>

@@ -120,7 +120,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
   });
   const diff = diffQ.data;
 
-  // Rule f — warn when the role change removes permissions required by
+  // Rule f: warn when the role change removes permissions required by
   // open work assigned to the target.
   const impactQ = useQuery({
     enabled: !!user && !!diff && diff.removed.length > 0,
@@ -167,7 +167,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
     <Sheet open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
       <SheetContent side="right" className="w-full sm:max-w-[960px] p-0 flex flex-col gap-0 overflow-hidden">
         <SheetHeader className="shrink-0 border-b border-border bg-muted/30 px-6 py-4">
-          <SheetTitle className="text-lg">Change role — {user.full_name}</SheetTitle>
+          <SheetTitle className="text-lg">Change role: {user.full_name}</SheetTitle>
           <p className="text-xs text-muted-foreground">
             Compare current vs new access, set an effective window, and route protected changes to approval.
           </p>

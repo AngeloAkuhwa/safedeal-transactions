@@ -278,7 +278,7 @@ function ReviewDrawer({
                     {safeguardsQ.data.map((s) => (
                       <li key={s.code}>
                         <span className="font-mono text-xs uppercase tracking-wider text-red-300">Rule {s.rule}</span>
-                        {" — "}
+                        {": "}
                         {s.message}
                       </li>
                     ))}

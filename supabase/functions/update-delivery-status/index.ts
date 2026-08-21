@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     // Marking delivered starts the buyer's inspection clock. Without an agreed
-    // window there is no clock to start — refuse instead of inventing one.
+    // window there is no clock to start. Refuse instead of inventing one.
     if (action === "delivered" && verificationWindowHours === null) {
       return jsonResponse({
         error:

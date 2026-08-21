@@ -7,7 +7,7 @@
  * bounces human visitors on to the canonical SPA URL.
  *
  * Everything interpolated here (store names, product titles) is USER INPUT and
- * MUST be escaped — these helpers are the single escaping choke point.
+ * MUST be escaped: these helpers are the single escaping choke point.
  */
 
 export const SITE_ORIGIN = "https://trust-link-secure.lovable.app";
@@ -29,7 +29,7 @@ export function escapeJsString(value: unknown): string {
 }
 
 /**
- * Only http(s) URLs are ever emitted as og:image — never `javascript:`,
+ * Only http(s) URLs are ever emitted as og:image. Never `javascript:`,
  * `data:` or a relative path a crawler cannot resolve.
  */
 export function safeImageUrl(url: string | null | undefined): string {
@@ -48,7 +48,7 @@ export interface ShareMeta {
 }
 
 export const GENERIC_META: ShareMeta = {
-  title: "SafeDeal — Protected Deals",
+  title: "SafeDeal: Protected Deals",
   description:
     "Buy and sell safely in Nigeria. SafeDeal holds the money in escrow until the buyer confirms delivery.",
   image: DEFAULT_OG_IMAGE,
@@ -67,7 +67,7 @@ export function productCanonicalUrl(
   return `${origin}/store/${encodeURIComponent(storeSlug)}/${encodeURIComponent(productSlug)}`;
 }
 
-/** "Chioma's Store on SafeDeal — Verified Vendor" */
+/** "Chioma's Store on SafeDeal: Verified Vendor" */
 export function buildStoreMeta(params: {
   storeName: string;
   slug: string;
@@ -77,21 +77,21 @@ export function buildStoreMeta(params: {
   origin?: string;
 }): ShareMeta {
   const name = (params.storeName || "").trim() || "SafeDeal Store";
-  const suffix = params.verified ? " — Verified Vendor" : "";
+  const suffix = params.verified ? ": Verified Vendor" : "";
   const count = Math.max(0, params.productCount || 0);
   const items = count === 1 ? "1 item" : `${count} items`;
   return {
     title: `${name} on SafeDeal${suffix}`,
     description:
       count > 0
-        ? `Browse ${items} from ${name}. Every order is protected by SafeDeal escrow — the seller is only paid after you confirm delivery.`
-        : `${name} on SafeDeal. Every order is protected by SafeDeal escrow — the seller is only paid after you confirm delivery.`,
+        ? `Browse ${items} from ${name}. Every order is protected by SafeDeal escrow. The seller is only paid after you confirm delivery.`
+        : `${name} on SafeDeal. Every order is protected by SafeDeal escrow. The seller is only paid after you confirm delivery.`,
     image: safeImageUrl(params.imageUrl),
     canonicalUrl: storeCanonicalUrl(params.slug, params.origin),
   };
 }
 
-/** "iPhone 13 — ₦450,000 · Protected by SafeDeal" */
+/** "iPhone 13: ₦450,000 · Protected by SafeDeal" */
 export function buildProductMeta(params: {
   title: string;
   priceMajor: number;
@@ -108,10 +108,10 @@ export function buildProductMeta(params: {
   const price = `${symbol}${Math.round(Number(params.priceMajor) || 0).toLocaleString("en-NG")}`;
   const seller = (params.storeName || "").trim();
   return {
-    title: `${(params.title || "Product").trim()} — ${price} · Protected by SafeDeal`,
+    title: `${(params.title || "Product").trim()}: ${price} · Protected by SafeDeal`,
     description: seller
-      ? `${price} from ${seller} on SafeDeal. Pay into escrow — the seller is only paid after you confirm delivery.`
-      : `${price} on SafeDeal. Pay into escrow — the seller is only paid after you confirm delivery.`,
+      ? `${price} from ${seller} on SafeDeal. Pay into escrow. The seller is only paid after you confirm delivery.`
+      : `${price} on SafeDeal. Pay into escrow. The seller is only paid after you confirm delivery.`,
     image: safeImageUrl(params.imageUrl),
     canonicalUrl: productCanonicalUrl(params.storeSlug, params.productSlug, params.origin),
   };

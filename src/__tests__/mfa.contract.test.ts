@@ -13,7 +13,7 @@ const unenrolFn = readFileSync("supabase/functions/admin-mfa-unenrol/index.ts", 
 const mfaShared = readFileSync("supabase/functions/_shared/mfa.ts", "utf8");
 const authShared = readFileSync("supabase/functions/_shared/auth.ts", "utf8");
 
-describe("2FA — consumer prompt policy", () => {
+describe("2FA: consumer prompt policy", () => {
   it("never prompts on money, transaction or dispute routes", () => {
     for (const p of [
       "/cart",
@@ -53,7 +53,7 @@ describe("2FA — consumer prompt policy", () => {
   });
 });
 
-describe("2FA — enforcement stays OFF by default", () => {
+describe("2FA: enforcement stays OFF by default", () => {
   it("the enforcement key is a platform-only boolean and defaults off in the UI", () => {
     const entry = SETTINGS_CATALOG.find((s) => s.key === "security.two_factor_admin_enforced");
     expect(entry).toBeTruthy();
@@ -70,7 +70,7 @@ describe("2FA — enforcement stays OFF by default", () => {
   });
 });
 
-describe("2FA — recovery endpoint contract", () => {
+describe("2FA: recovery endpoint contract", () => {
   it("authenticates at aal1 (requireUser) and never behind requireAdmin", () => {
     expect(recoveryFn).toContain("requireUser");
     expect(recoveryFn).not.toContain("requireAdmin");
@@ -102,7 +102,7 @@ describe("2FA — recovery endpoint contract", () => {
   });
 });
 
-describe("2FA — code entropy", () => {
+describe("2FA: code entropy", () => {
   it("uses a CSPRNG, never Math.random", () => {
     expect(mfaShared).toContain("crypto.getRandomValues");
     expect(mfaShared).not.toContain("Math.random");
@@ -115,7 +115,7 @@ describe("2FA — code entropy", () => {
   });
 });
 
-describe("2FA — admin-assisted unenrol authorisation", () => {
+describe("2FA: admin-assisted unenrol authorisation", () => {
   it("requires the manage_permissions permission and a long reason", () => {
     expect(unenrolFn).toContain('requirePermission(req, "users_and_access.manage_permissions")');
     expect(unenrolFn).toContain("reason.length < 20");
@@ -137,7 +137,7 @@ describe("2FA — admin-assisted unenrol authorisation", () => {
   });
 });
 
-describe("2FA — derived state, no shadow truth", () => {
+describe("2FA: derived state, no shadow truth", () => {
   const service = readFileSync("src/services/admin-access-control.service.ts", "utf8");
   const securitySection = readFileSync("src/components/profile/SecuritySection.tsx", "utf8");
 
@@ -152,7 +152,7 @@ describe("2FA — derived state, no shadow truth", () => {
   });
 });
 
-describe("2FA — enrolment cleanup", () => {
+describe("2FA: enrolment cleanup", () => {
   const svc = readFileSync("src/services/mfa.service.ts", "utf8");
   it("removes abandoned unverified factors before enrolling again", () => {
     expect(svc).toContain("cleanUpUnverifiedFactors");

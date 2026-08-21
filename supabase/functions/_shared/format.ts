@@ -4,7 +4,7 @@
  *
  * `currency` is REQUIRED, exactly as on the client. It used to default to
  * "NGN", which quietly invented a currency at every call site that omitted it
- * — notification and receipt copy renders to a person just like a component
+ *: notification and receipt copy renders to a person just like a component
  * does. If a currency genuinely isn't known, render `—` (see
  * `formatMoneyOrDash`) rather than guessing one.
  */
@@ -22,7 +22,7 @@ const DECIMAL_2 = new Intl.NumberFormat("en-NG", {
   maximumFractionDigits: 2,
 });
 
-/** Money never falls back to zero — a missing amount renders as `—`. */
+/** Money never falls back to zero: a missing amount renders as `—`. */
 export const MISSING_AMOUNT = "—";
 
 export function formatMoney(
@@ -52,7 +52,7 @@ export function formatMoneyOrDash(
 
 /**
  * CSV-safe variant: no currency symbol, just `1234.50` (still 2 dp).
- * A missing amount yields an EMPTY cell — writing `0.00` would state, in a
+ * A missing amount yields an EMPTY cell. Writing `0.00` would state, in a
  * file someone reconciles against, that the figure was zero.
  */
 export function formatMoneyCsv(amount: number | null | undefined): string {

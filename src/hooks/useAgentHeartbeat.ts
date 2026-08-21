@@ -18,7 +18,7 @@ export function useAgentHeartbeat(intervalMs = 60_000) {
           body: status ? { status } : {},
         });
       } catch {
-        /* offline / not internal — ignore */
+        /* offline / not internal: ignore */
       }
     };
 

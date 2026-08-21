@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
 
     // Only ADOPT a complete transaction. An incomplete one (no pricing, no
     // share link, no escrow row) would be handed back as a 200 whose review
-    // page has nothing to show, whose payment initiation fails, or — worse —
+    // page has nothing to show, whose payment initiation fails, or. Worse —
     // which funds with no escrow row and is invisible to every admin escrow
     // surface. The escrow probe matters for records created before the escrow
     // insert existed on this path.
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && (escrowCount ?? 0) > 0 && existingCandidate.share_token) {
         existingTx = existingCandidate;
       } else if ((pricingCount ?? 0) > 0 && (linkCount ?? 0) > 0 && existingCandidate.share_token) {
-        // Everything else is present — backfill the missing escrow row rather
+        // Everything else is present: backfill the missing escrow row rather
         // than orphaning the record (parity with `claim-offer`'s reuse path).
         const { error: escrowErr } = await adminClient.from("escrow_states").insert({
           transaction_id: existingCandidate.id,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // (Reuse handling moved below — needs product + pricing context to
+    // (Reuse handling moved below: needs product + pricing context to
     // reconcile quantity/pricing/reservation when the buyer changes intent.)
 
     // Fetch product
@@ -293,7 +293,7 @@ Deno.serve(async (req) => {
     //
     // Until now this function applied no region gate at all. It validated auth,
     // role, stock, self-purchase, delivery method and whether an address was
-    // present — but never whether SafeDeal serves the place the goods are going.
+    // present: but never whether SafeDeal serves the place the goods are going.
     // The check existed only in the UI, in the permissions object behind the pay
     // button, which means any caller that skips the UI could create a protected
     // transaction into a region we cannot deliver to or adjudicate a dispute in.
@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
     // It is deliberately asked about the DELIVERY ADDRESS, not the buyer's
     // profile. Where the goods go is a property of this deal; where the buyer
     // happens to live is not. For an in-person method there is no address, so
-    // the seller's own region is what governs — that is where the handover
+    // the seller's own region is what governs: that is where the handover
     // happens.
     {
       const place = needsAddress
@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // The delivery estimate is NOT a commitment — it is optional seller-supplied
+    // The delivery estimate is NOT a commitment. It is optional seller-supplied
     // information. Absent an estimate we carry `null` through and show none,
     // rather than promising a week nobody agreed to or blocking the sale.
     const rawDeliveryDays = product.estimated_delivery_days;
@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
     const { data: transactionCode } = await adminClient.rpc("generate_transaction_code");
     const shareToken = generateShareToken();
 
-    // Create the transaction — insert directly as awaiting_payment
+    // Create the transaction: insert directly as awaiting_payment
     // (INSERT bypasses the state-machine trigger which only fires on UPDATE)
     const { data: newTx, error: txError } = await adminClient
       .from("transactions")

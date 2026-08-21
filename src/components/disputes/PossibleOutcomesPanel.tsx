@@ -10,7 +10,7 @@ interface PossibleOutcomesPanelProps {
  *
  * No figure is rendered here: a buyer refund excludes the non-refundable
  * service fee (see `src/lib/payment/fee-policy.ts`), so the two outcomes can
- * never carry the same amount — and the frontend is forbidden from computing
+ * never carry the same amount: and the frontend is forbidden from computing
  * a refund or payout figure (see `payment-flow.service.ts`). Any number shown
  * for these outcomes must come from the server after a decision is recorded.
  */

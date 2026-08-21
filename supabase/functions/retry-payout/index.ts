@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
   }
 
   const attempt = (payout.failed_attempt_count ?? 0) + 1;
-  // Paystack rejects duplicate references — suffix retries so each attempt is unique.
+  // Paystack rejects duplicate references. Suffix retries so each attempt is unique.
   const reference = `payout_${payout.id}_r${attempt}`;
   const amountKobo = nairaToKobo(payoutAmount);
 
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       .select("setting_value")
       .eq("setting_key", "payout_max_retry_attempts")
       .maybeSingle();
-    // Fail closed: with no configured ceiling we do not invent one — zero
+    // Fail closed: with no configured ceiling we do not invent one. Zero
     // further retries are allowed until an operator sets the setting.
     const rawMaxRetries = maxRetriesSetting?.setting_value;
     const maxRetries =

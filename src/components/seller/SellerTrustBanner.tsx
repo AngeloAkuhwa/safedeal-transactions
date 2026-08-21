@@ -8,7 +8,7 @@ export function SellerTrustBanner() {
       <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-white/5 rounded-full translate-y-1/2" />
 
       {/* `items-center` applies to the cross axis of a column too, which sizes
-          these children to their content instead of the available width — the
+          these children to their content instead of the available width. The
           stat pair then ran 51px past a 320px screen and `overflow-hidden`
           above quietly ate it. Centre only once this is actually a row. */}
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">

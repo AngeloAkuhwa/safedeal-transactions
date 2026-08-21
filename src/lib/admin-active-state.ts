@@ -4,7 +4,7 @@
  * transaction detail, list pages).
  *
  * History rows (status_history, money_status_history, dispute_status_history,
- * old admin_actions) must NEVER feed into these flags — they are derived
+ * old admin_actions) must NEVER feed into these flags. They are derived
  * from the *current* row state only. Timelines are display-only history.
  */
 

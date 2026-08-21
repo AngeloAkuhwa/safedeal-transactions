@@ -48,7 +48,7 @@ d("live refund rail", () => {
     const failed = (result.checks ?? []).filter((c) => !c.pass);
     expect({ error: result.error, failed }).toEqual({ error: undefined, failed: [] });
     expect(result.ok).toBe(true);
-    // Named checks that must exist — a harness that silently stops asserting
+    // Named checks that must exist: a harness that silently stops asserting
     // is worse than no harness.
     const names = (result.checks ?? []).map((c) => c.check);
     expect(names).toEqual(
@@ -136,7 +136,7 @@ d("live refund rail", () => {
 
   it("keeps every public money-typed column guarded against non-finite values", () => {
     // numeric today, but float8/float4/money would be invisible to a
-    // numeric-only filter — the gap is vacuous now and latent later.
+    // numeric-only filter: the gap is vacuous now and latent later.
     const unguarded = psql(
       "select c.relname || '.' || a.attname from pg_class c" +
         " join pg_namespace n on n.oid = c.relnamespace" +
@@ -374,8 +374,8 @@ d("live money-table grants", () => {
   });
 
   /**
-   * TRUNCATE is NOT subject to row level security — neither relrowsecurity nor
-   * relforcerowsecurity mitigates it — so it is scanned across EVERY public
+   * TRUNCATE is NOT subject to row level security. Neither relrowsecurity nor
+   * relforcerowsecurity mitigates it. So it is scanned across EVERY public
    * table, not just the list above.
    */
   it("leaves TRUNCATE on no public table for any client role", () => {
@@ -401,13 +401,13 @@ d("live default privileges", () => {
   /**
    * EXPLICIT BASELINE, not a grantor allowlist. A previous version filtered
    * out every row whose grantor was `supabase_admin`, which erased all 24 live
-   * rows — including `supabase_admin:r:anon:TRUNCATE` and
+   * rows: including `supabase_admin:r:anon:TRUNCATE` and
    * `supabase_admin:f:anon:EXECUTE`. A green tick then carried zero
    * information. These rows are KNOWN, UNFIXED and PLATFORM-OWNED: our
    * migration role is not a member of supabase_admin and cannot ALTER them.
    * They bind only to objects CREATED BY supabase_admin; SafeDeal migrations
    * run as `postgres`, whose default ACLs are now empty for client roles.
-   * Listing them verbatim keeps them visible and fails on ANY change — a new
+   * Listing them verbatim keeps them visible and fails on ANY change. A new
    * row, a removed row, or a postgres-granted row appearing.
    */
   const DEFAULT_ACL_BASELINE = [
@@ -540,7 +540,7 @@ d("live default privileges", () => {
   it("forces RLS on every table in the realtime publication", () => {
     // supabase_realtime streams complete OLD rows for tables with
     // REPLICA IDENTITY FULL. The decision to keep FULL rests on RLS being
-    // enforced for every publisher — which was true for payments, payouts,
+    // enforced for every publisher: which was true for payments, payouts,
     // transactions and money_status_history but NOT for disputes,
     // notifications, notification_deliveries and transaction_events.
     const found = psql(
@@ -563,7 +563,7 @@ d("live default privileges", () => {
  * the next defect lives.
  */
 d("live view surface", () => {
-  // Individually justified exceptions. Empty by design — a definer view is a
+  // Individually justified exceptions. Empty by design. A definer view is a
   // deliberate RLS bypass and must be argued for in writing, here.
   const SECURITY_DEFINER_VIEW_BASELINE: string[] = [];
 
@@ -715,7 +715,7 @@ d("live helper reachability", () => {
  * Inversion, like the column and guard scans: everything touching a money
  * table is a finding unless it appears in the commented allowlist below.
  */
-// DERIVED from MONEY_TABLE_LIST — the single subject list. It is no longer
+// DERIVED from MONEY_TABLE_LIST: the single subject list. It is no longer
 // possible for the grant scan and the definer scan to disagree on scope.
 const MONEY_TABLES = MONEY_TABLE_LIST.join("|");
 
@@ -768,7 +768,7 @@ const CLIENT_REACHABLE_MONEY_DEFINERS: string[] = [
 ];
 
 // SECURITY DEFINER WRITERS a signed-in client may reach. Each must carry its
-// own authorization check in the body — the grant is not the control.
+// own authorization check in the body. The grant is not the control.
 const CLIENT_REACHABLE_DEFINER_WRITERS: string[] = [
   // super_admin check + self-approval guard in the body; revoked from anon.
   "apply_permission_change_set",
@@ -799,7 +799,7 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
   });
 
   it("never lets a client role reach a SECURITY DEFINER money WRITER", () => {
-    // Allowlist entries are read-only by contract — this proves it, so a
+    // Allowlist entries are read-only by contract. This proves it, so a
     // later body change cannot smuggle a write in under an existing entry.
     const writers = psql(
       "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
@@ -847,7 +847,7 @@ d("live SECURITY DEFINER EXECUTE grants", () => {
 /**
  * Live `pg_proc` scan. Authored migrations are only half the truth: a function
  * body can be replaced and the literal never appears in a file we scan.
- * These are RATCHETS — the named baselines may shrink, never grow.
+ * These are RATCHETS: the named baselines may shrink, never grow.
  */
 const NGN_LITERAL_BASELINE = [
   "admin_financial_reconciliation",
@@ -931,7 +931,7 @@ d("live pg_proc invented-defaults scan", () => {
 
   // Zero is NOT carved out of the scan any more: "money coerced to zero by
   // column default" is the same class as any other invented default. Nor is
-  // the column NAME a filter any more — `escrow_reconciliation_results
+  // the column NAME a filter any more. `escrow_reconciliation_results
   // .ledger_balance DEFAULT 0` was invisible because it matches none of
   // (fee|rate|amount|price|cap). Every numeric-typed column in the schema is
   // scanned. Each remaining entry is a running accumulator that legitimately
@@ -948,7 +948,7 @@ d("live pg_proc invented-defaults scan", () => {
 
   it("adds no fee rate, cap, or price literal to a column default", () => {
     // The proc scan reads pg_proc only, so `vendor_plans.escrow_fee_rate
-    // DEFAULT 0.0200` — a fabricated 2% — was invisible to it.
+    // DEFAULT 0.0200`: a fabricated 2%: was invisible to it.
     const found = psql(
       "select c.relname || '.' || a.attname || ' = ' || pg_get_expr(d.adbin, d.adrelid)" +
         " from pg_attrdef d join pg_class c on c.oid = d.adrelid" +

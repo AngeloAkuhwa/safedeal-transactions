@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
         const reviewReason = tx.release_review_reason as string | null;
         let blockerReason = "Manual review in progress";
         if (txStatus === "disputed") blockerReason = "Dispute in review";
-        else if (failedPayoutTxSet.has(txId)) blockerReason = "Payout failed — retry needed";
+        else if (failedPayoutTxSet.has(txId)) blockerReason = "Payout failed: retry needed";
         else if (reviewReason === "payout_account_missing") blockerReason = "Add a verified payout account to receive funds";
         else if (reviewReason === "pricing_missing") blockerReason = "SafeDeal is reviewing this transaction";
         else if (tx.needs_release_review === true) blockerReason = "SafeDeal review in progress";

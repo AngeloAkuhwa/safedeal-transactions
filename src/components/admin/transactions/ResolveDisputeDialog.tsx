@@ -161,7 +161,7 @@ export function ResolveDisputeDialog({
         <DialogHeader>
           <DialogTitle>Resolve Dispute</DialogTitle>
           <DialogDescription>
-            Final outcomes are written to the immutable case record. Seller-favor outcomes only queue funds for admin release — payout is never automatic.
+            Final outcomes are written to the immutable case record. Seller-favor outcomes only queue funds for admin release. Payout is never automatic.
           </DialogDescription>
         </DialogHeader>
 

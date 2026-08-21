@@ -53,7 +53,7 @@ export function CloneRoleAsTemplateDialog({
           </label>
           <label className="block">
             <span className="mb-1 block text-xs uppercase text-muted-foreground">Description</span>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Optional — where this template applies" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-background p-2 text-xs" placeholder="Optional: where this template applies" />
           </label>
         </div>
         <DialogFooter>

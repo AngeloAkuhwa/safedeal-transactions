@@ -317,7 +317,7 @@ export default function AdminAuditLogs() {
   const qc = useQueryClient();
   // Deep-link support: `/admin/audit-logs?ref=<id>&type=change_set|override`
   // seeds the search box with the reference id so the operator lands on the
-  // filtered rows. `type` is currently informational only — the audit list is
+  // filtered rows. `type` is currently informational only. The audit list is
   // full-text and any resource id is matched by the `q` filter.
   const initialRef = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("ref") ?? ""
@@ -348,7 +348,7 @@ export default function AdminAuditLogs() {
     return () => clearInterval(id);
   }, [statsQ]);
 
-  // Realtime — invalidate list + stats when new admin actions arrive, throttled.
+  // Realtime: invalidate list + stats when new admin actions arrive, throttled.
   const throttleRef = useMemo(() => createBurstThrottle(3000), []);
   useAdminRealtimeChannel({
     channelName: "admin-audit-logs",

@@ -9,7 +9,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 const faqs = [
   {
     q: "How does SafeDeal protect my payment?",
-    a: "Your payment sits in escrow until you confirm the item matches — or the verification window closes without a dispute.",
+    a: "Your payment sits in escrow until you confirm the item matches. Or the verification window closes without a dispute.",
   },
   {
     q: "Can I browse without signing up?",
@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: "Can sellers create direct links?",
-    a: "Yes. Share a protected link for deals that start anywhere — social apps, marketplaces, email, or your own website.",
+    a: "Yes. Share a protected link for deals that start anywhere. Social apps, marketplaces, email, or your own website.",
   },
   {
     q: "Are payments outside SafeDeal protected?",
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     q: "What do sellers verify?",
-    a: "Email, phone, and identity — so buyers know they're real.",
+    a: "Email, phone, and identity: so buyers know they're real.",
   },
 ];
 

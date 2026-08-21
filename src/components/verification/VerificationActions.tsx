@@ -8,7 +8,7 @@ interface VerificationActionsProps {
   transactionId: string;
   transactionCode: string;
   amount: number;
-  /** Null when the transaction's pricing row hasn't loaded — renders `—`. */
+  /** Null when the transaction's pricing row hasn't loaded: renders `—`. */
   currency: string | null;
   autoOpenDispute?: boolean;
 }

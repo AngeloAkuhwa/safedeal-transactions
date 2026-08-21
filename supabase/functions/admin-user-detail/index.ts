@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
-  // Admin notes (notes/flags) — derived from admin_actions
+  // Admin notes (notes/flags): derived from admin_actions
   const adminNotes = (actions ?? [])
     .filter((a) => {
       const t = String(a.action_type ?? "");
@@ -442,7 +442,7 @@ function buildTimeline(input: {
     });
   }
 
-  // 4) Sessions — Login events
+  // 4) Sessions: Login events
   for (const s of sessions) {
     const ip = s.ip_address ? String(s.ip_address) : null;
     const city = (s.city_name as string | null) ?? null;
@@ -459,7 +459,7 @@ function buildTimeline(input: {
     });
   }
 
-  // 5) Payout accounts — add + update
+  // 5) Payout accounts: add + update
   for (const p of payouts) {
     const bank = (p.bank_name as string | null) ?? "Bank";
     const mask = (p.masked_account_number as string | null) ?? "";

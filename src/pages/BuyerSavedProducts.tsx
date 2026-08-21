@@ -202,12 +202,12 @@ export default function BuyerSavedProducts() {
                         </div>
                       )}
 
-                      {/* Stock badge — top left */}
+                      {/* Stock badge: top left */}
                       <span className={cn("absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold", stock.cls)}>
                         {stock.label}
                       </span>
 
-                      {/* Heart button — top right */}
+                      {/* Heart button: top right */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleUnsave(item.id); }}
                         className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 backdrop-blur-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors relative before:absolute before:-inset-2 before:content-['']"

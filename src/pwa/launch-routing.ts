@@ -4,8 +4,8 @@
  * When SafeDeal is launched from a home-screen icon (standalone display mode,
  * iOS `navigator.standalone`, or the manifest's `?source=pwa` start_url) the
  * root route should open the user's app home instead of the marketing landing
- * page. Normal browser visitors — and crawlers, which never match any of these
- * signals — must keep seeing the full landing page.
+ * page. Normal browser visitors. And crawlers, which never match any of these
+ * signals: must keep seeing the full landing page.
  */
 
 export function isStandaloneLaunch(win: Window | undefined = typeof window !== "undefined" ? window : undefined): boolean {
@@ -24,7 +24,7 @@ export function isStandaloneLaunch(win: Window | undefined = typeof window !== "
  * Role home for an authenticated installed-app launch.
  *
  * Internal (back-office) teammates have no rows in `user_roles`, so they must
- * be resolved from their internal status — otherwise the installed app lands
+ * be resolved from their internal status. Otherwise the installed app lands
  * them on `/role-selection` and bounces to `/admin/dashboard` from that page's
  * effect. `internal` must come from a server-trusted check
  * (`has_any_internal_role`), which now also enforces account status.

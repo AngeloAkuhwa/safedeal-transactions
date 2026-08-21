@@ -45,7 +45,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       badgeLabel: "In Review",
       badgeBg: "bg-primary/10 text-primary",
       tooltip:
-        "SafeDeal is weighing both sides. No action needed from you right now — we'll notify you when there's an update.",
+        "SafeDeal is weighing both sides. No action needed from you right now. We'll notify you when there's an update.",
     },
     {
       label: "Resolved",
@@ -57,7 +57,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       badgeLabel: "Closed",
       badgeBg: "bg-success/10 text-success",
       tooltip:
-        "Cases with a final outcome — funds released, refunded, or partially refunded.",
+        "Cases with a final outcome: funds released, refunded, or partially refunded.",
     },
     {
       label: "Payouts Blocked",

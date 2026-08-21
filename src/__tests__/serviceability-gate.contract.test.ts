@@ -3,13 +3,13 @@
  *
  * `storefront-checkout` used to apply no region gate at all. It checked auth,
  * buyer role, stock, self-purchase, delivery method and whether an address was
- * present — and never whether SafeDeal serves the place the goods were going.
+ * present: and never whether SafeDeal serves the place the goods were going.
  * The only region check lived in the UI, inside the permissions object behind
  * the pay button.
  *
  * A gate that exists only in the client is not a gate. Any caller that skips
  * the UI could open a protected transaction into a region we cannot deliver to
- * or adjudicate a dispute in — and by the time that is noticed, the money is
+ * or adjudicate a dispute in: and by the time that is noticed, the money is
  * already held.
  *
  * These tests lock in three things about the fix, each of which is a decision
@@ -19,7 +19,7 @@
  *      transaction;
  *   2. it is asked about the DELIVERY ADDRESS, because where the goods go is a
  *      property of the deal, and where the buyer lives is not;
- *   3. it fails closed — an error resolving serviceability is not permission.
+ *   3. it fails closed. An error resolving serviceability is not permission.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -34,7 +34,7 @@ describe("serviceability is enforced at transaction creation", () => {
   it("storefront-checkout consults serviceability", () => {
     expect(
       /is_region_serviceable/.test(src),
-      "storefront-checkout must check serviceability itself — a UI-only gate is not a gate",
+      "storefront-checkout must check serviceability itself. A UI-only gate is not a gate",
     ).toBe(true);
   });
 

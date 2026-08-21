@@ -8,7 +8,7 @@ import { stripComments } from "./touch-target-scan";
  * A centred spinner tells the user "something is happening" and nothing else.
  * It destroys the layout, so the page jumps when data lands (layout shift), it
  * gives no clue what is coming, and under `prefers-reduced-motion` this app
- * stops `animate-spin` entirely — leaving a motionless icon and no progress
+ * stops `animate-spin` entirely: leaving a motionless icon and no progress
  * signal at all.
  *
  * shadcn's own guidance is explicit: "Skeleton matching content layout", never
@@ -90,7 +90,7 @@ export function scanLoadingSource(source: string, file: string): LoadingViolatio
     }
     const body = elementBody(source, m.index!);
     if (SKELETON.test(body)) continue;
-    // A spinner *inside a control* is correct — it sits beside content rather
+    // A spinner *inside a control* is correct: it sits beside content rather
     // than replacing it, so a retry button on an error card is not a finding.
     // Strip every <Button> subtree before deciding whether this branch spins.
     const withoutControls = body

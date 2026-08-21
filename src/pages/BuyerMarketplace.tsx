@@ -114,7 +114,7 @@ export default function BuyerMarketplace() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background lg:h-[100dvh] lg:flex-row lg:overflow-hidden">
-      {/* Signed out, this page had no chrome at all — no logo, no route back to
+      {/* Signed out, this page had no chrome at all. No logo, no route back to
           the site, no way to sign up. A visitor arriving on a shared product
           link could browse and then had nowhere to go. */}
       {!isAuthenticated && <PublicPageHeader current="marketplace" />}

@@ -1,5 +1,5 @@
 /**
- * Admin route smoke suite (UAT Fix 5, Stage 2 — kept permanently).
+ * Admin route smoke suite (UAT Fix 5, Stage 2. Kept permanently).
  *
  * Mounts every admin page component behind a mocked backend and a super-admin
  * permission context, and asserts that:
@@ -134,7 +134,7 @@ const ROUTES: RouteCase[] = [
 ];
 
 /**
- * Fix 7 — tab / sub-view coverage.
+ * Fix 7: tab / sub-view coverage.
  *
  * Every admin screen whose tabs are URL-driven is mounted once per tab so a
  * broken sub-view fails here instead of in the browser. Tabs that are local
@@ -143,7 +143,7 @@ const ROUTES: RouteCase[] = [
  * NEEDS MANUAL CHECK list of the Fix 7 report instead of being skipped here.
  */
 const TAB_ROUTES: RouteCase[] = [
-  // Payouts — status tabs (?tab=)
+  // Payouts: status tabs (?tab=)
   ...["all", "pending_release", "blocked", "processing", "completed", "failed", "reversed", "on_hold"].map(
     (tab) => ({
       path: "/admin/payouts",
@@ -151,7 +151,7 @@ const TAB_ROUTES: RouteCase[] = [
       load: () => import("@/pages/AdminPayouts"),
     }),
   ),
-  // Permission Matrix — workspace tabs (?tab=)
+  // Permission Matrix: workspace tabs (?tab=)
   ...[
     "role-matrix",
     "role-detail",
@@ -165,19 +165,19 @@ const TAB_ROUTES: RouteCase[] = [
     url: `/admin/permission-matrix?tab=${tab}`,
     load: () => import("@/pages/AdminPermissionMatrix"),
   })),
-  // Agent Performance — analysis tabs (?tab=)
+  // Agent Performance: analysis tabs (?tab=)
   ...["workload", "performance", "sla", "rankings"].map((tab) => ({
     path: "/admin/agent-performance",
     url: `/admin/agent-performance?tab=${tab}`,
     load: () => import("@/pages/AdminAgentPerformance"),
   })),
-  // Transactions — quick-filter views (?quick=)
+  // Transactions: quick-filter views (?quick=)
   ...["high_risk", "overdue", "in_dispute", "flagged"].map((quick) => ({
     path: "/admin/transactions",
     url: `/admin/transactions?quick=${quick}`,
     load: () => import("@/pages/AdminTransactions"),
   })),
-  // Disputes — quick-filter views (?quick=)
+  // Disputes: quick-filter views (?quick=)
   ...["all", "priority"].map((quick) => ({
     path: "/admin/disputes",
     url: `/admin/disputes?quick=${quick}`,
@@ -205,7 +205,7 @@ function messages(spy: ReturnType<typeof vi.spyOn>): string[] {
   return spy.mock.calls.map((args) => args.map((a) => String(a)).join(" "));
 }
 
-describe("admin routes — mount smoke test", () => {
+describe("admin routes: mount smoke test", () => {
   it.each(ROUTES.map((r) => [r.path, r] as const))("%s mounts cleanly", async (_path, route) => {
     if (route.skip) {
       console.info(`skipped ${route.path}: ${route.skip}`);
@@ -234,7 +234,7 @@ describe("admin routes — mount smoke test", () => {
   }, 20000);
 });
 
-describe("admin tabs — sub-view smoke test", () => {
+describe("admin tabs: sub-view smoke test", () => {
   it.each(TAB_ROUTES.map((r) => [r.url ?? r.path, r] as const))(
     "%s renders cleanly",
     async (_url, route) => {

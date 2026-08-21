@@ -352,7 +352,7 @@ export default function AdminTransactionDetail() {
   const disputeResolved = !!disputeDisplay?.resolved;
   const disputeOpen = !!dispute && !disputeResolved && dispute.status !== "closed";
 
-  // Centralised active-state — overrides ad-hoc `disputeOpen` / `funds_frozen`
+  // Centralised active-state: overrides ad-hoc `disputeOpen` / `funds_frozen`
   // checks so resolved/unfrozen cases drop their banners immediately.
   const active = useMemo(
     () =>
@@ -481,7 +481,7 @@ export default function AdminTransactionDetail() {
   }, [data?.timeline, tlFilter, tlNewest]);
 
   const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
-  // Banner tone is now derived from *current* blockers only — resolved
+  // Banner tone is now derived from *current* blockers only: resolved
   // disputes / unfrozen funds with only a pending release no longer paint
   // the page red.
   const bannerTone = useMemo(
@@ -720,7 +720,7 @@ export default function AdminTransactionDetail() {
             </div>
           </div>
 
-          {/* Risk banner — red only when there is an active blocker.
+          {/* Risk banner: red only when there is an active blocker.
               An amber "pending release review" banner shows when the
               dispute is resolved but the seller payout still needs
               admin sign-off. */}
@@ -733,7 +733,7 @@ export default function AdminTransactionDetail() {
                 <div className="text-sm font-semibold text-red-200">
                   {active.isFrozen ? "Funds Frozen" :
                    active.isInvestigationActive ? "Active Investigation" :
-                   data.risk?.level === "escalated" ? "High Risk — Escalated" :
+                   data.risk?.level === "escalated" ? "High Risk: Escalated" :
                    "High Risk Transaction"}
                 </div>
                 <div className="mt-0.5 text-xs text-red-300/90">
@@ -828,7 +828,7 @@ export default function AdminTransactionDetail() {
                 })}
               </div>
 
-              {/* Status Grid — buyer-side reconciliation */}
+              {/* Status Grid: buyer-side reconciliation */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
@@ -859,7 +859,7 @@ export default function AdminTransactionDetail() {
                 </div>
               </div>
 
-              {/* Seller-side payout row — only when money has reached escrow */}
+              {/* Seller-side payout row: only when money has reached escrow */}
               {(tx.moneyStatus === "funds_held_in_escrow"
                 || tx.moneyStatus === "funds_pending_release"
                 || tx.moneyStatus === "funds_releasing"
@@ -1144,7 +1144,7 @@ export default function AdminTransactionDetail() {
                     escrow_ledger: { Icon: Receipt, cls: "bg-violet-500/20 text-violet-400" },
                   };
                   const isParty = typeKey === "buyer" || typeKey === "seller";
-                  // `r.type` is open-ended (buyer/seller rows included) — an unmapped key must
+                  // `r.type` is open-ended (buyer/seller rows included): an unmapped key must
                   // not crash the record list.
                   const iconMeta = ICON_MAP[typeKey] ?? { Icon: FileSignature, cls: "bg-slate-500/20 text-slate-300" };
                   const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
@@ -1565,7 +1565,7 @@ export default function AdminTransactionDetail() {
                   </div>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
-                  {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
+                  {dispute ? "No payout yet: pending dispute resolution." : "No payout recorded."}
                 </div>
               ) : (
                 <dl className="grid grid-cols-2 gap-4">
@@ -1686,7 +1686,7 @@ export default function AdminTransactionDetail() {
         open={flagOpen}
         onOpenChange={setFlagOpen}
         title="Flag for Review"
-        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. This adds the transaction to the admin review queue and marks it as needing release review.`}
+        description={`Transaction #${code}: current money status: ${titleCase(tx?.moneyStatus ?? "—")}. This adds the transaction to the admin review queue and marks it as needing release review.`}
         confirmLabel="Flag for Review"
         confirmTone="danger"
         onConfirm={async (reason) => {
