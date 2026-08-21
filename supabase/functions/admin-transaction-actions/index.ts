@@ -144,6 +144,10 @@ Deno.serve(async (req) => {
     return json({ error: "auth_failed" }, 500);
   }
 
+  // Method contract is disclosed only to callers we have already identified.
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
