@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requireAdmin, requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, requirePermission, requireAnyPermission, authErrorResponse, type AuthContext } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 import { executeProviderRefund } from "../_shared/provider-refund.ts";
@@ -97,7 +97,7 @@ const ACTION_PERMS: Record<string, string[]> = {
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
 };
-async function gateAction(req: Request, action: string, baseCtx?: any): Promise<{ admin: any; userId: string } | Response> {
+async function gateAction(req: Request, action: string, baseCtx?: AuthContext): Promise<{ admin: any; userId: string } | Response> {
   const perms = ACTION_PERMS[action] ?? ["transactions.update"];
   try {
     const ctx = await requireAnyPermission(req, perms, baseCtx);
