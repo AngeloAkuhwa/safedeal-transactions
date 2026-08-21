@@ -27,6 +27,17 @@ const REQUIRES_NOTE: Record<Action, boolean> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Identify the caller before disclosing the method contract or reading the
+  // body: an anonymous request must not be able to probe this surface.
+  let baseCtx;
+  try { baseCtx = await requireAdmin(req); }
+  catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json(500, { error: "auth_failed" });
+  }
+
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let body: Record<string, unknown>;
@@ -43,12 +54,13 @@ Deno.serve(async (req) => {
         ? ["flagged_users.remove_flag", "flagged_users.update"]
         : ["flagged_users.update"];
   let ctx;
-  try { ctx = await requireAnyPermission(req, perms); }
+  try { ctx = await requireAnyPermission(req, perms, baseCtx); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
   const admin = ctx.adminClient;
 
   const user_id = body.user_id as string;
