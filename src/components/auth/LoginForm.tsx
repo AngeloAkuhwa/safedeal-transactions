@@ -40,7 +40,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   // Step-up state: only ever entered when the signed-in user already has a
-  // verified factor. Consumer routes never trigger this — it lives on /auth.
+  // verified factor. Consumer routes never trigger this. It lives on /auth.
   const [stepUp, setStepUp] = useState<{ userId: string; factorId: string } | null>(null);
   const [stepUpCode, setStepUpCode] = useState("");
   const [recoveryMode, setRecoveryMode] = useState(false);
@@ -119,7 +119,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
         await invalidateOldSessions(data.user.id);
         await createSession(data.user.id, data.session.access_token);
 
-        // Step up to aal2 when — and only when — this account has a verified
+        // Step up to aal2 when: and only when. This account has a verified
         // factor. Users without 2FA continue straight through, unchanged.
         try {
           const aal = await getAal();

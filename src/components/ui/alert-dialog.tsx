@@ -25,7 +25,7 @@ const AlertDialogOverlay = React.forwardRef<
 ));
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
-// Same grid min-width trap as DialogContent — see the note there. This is the
+// Same grid min-width trap as DialogContent. See the note there. This is the
 // component behind the 2FA prompt that opens on every dashboard route.
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,

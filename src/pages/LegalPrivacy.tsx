@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const TITLE = "Privacy Policy — SafeDeal";
+const TITLE = "Privacy Policy: SafeDeal";
 const DESCRIPTION =
   "How SafeDeal collects, uses, and protects personal information across transaction protection and escrow services.";
 
@@ -24,7 +24,7 @@ export default function LegalPrivacy() {
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
 
         <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Placeholder policy — replace with your reviewed legal copy before launch. This text is a
+          Placeholder policy: replace with your reviewed legal copy before launch. This text is a
           structural draft only and is not legal advice.
         </div>
 

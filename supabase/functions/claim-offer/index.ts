@@ -1,4 +1,4 @@
-// Resolver for /offer/:offerToken — validates, links, reuses-or-creates a transaction, redirects.
+// Resolver for /offer/:offerToken: validates, links, reuses-or-creates a transaction, redirects.
 // Locked responsibility: validate → link → reuse-or-create tx → return redirect_to.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
@@ -78,7 +78,7 @@ function httpError(status: number, body: unknown): Error {
 
 // States we can REUSE a pre-purchase transaction in.
 const REUSABLE_PRE_PAYMENT_STATES = ["draft", "awaiting_buyer", "awaiting_payment"];
-// States that mean payment is done or beyond — resume into existing tx.
+// States that mean payment is done or beyond. Resume into existing tx.
 const RESUME_STATES = [
   "payment_secured",
   "seller_preparing_delivery",
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ scenario: "cancelled", offer: publicOffer(offer), seller });
     }
 
-    // Already purchased — resume into existing tx
+    // Already purchased: resume into existing tx
     if (offer.status === "purchased") {
       if (callerId && (matchesByLink || matchesByEmail)) {
         const { data: tx } = await adminClient
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // No reusable tx — create one fresh
+    // No reusable tx: create one fresh
     const txId = await createTransactionFromOffer(adminClient, offer, callerId);
     if (!txId) return jsonResponse({ error: "Failed to create transaction" }, 500);
 
@@ -513,7 +513,7 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
   const aggregateTitle = items.length === 1
     ? items[0].product_title
     : `Bundle: ${items.length} items (${items[0].product_title}${items.length > 2 ? ` and ${items.length - 1} more` : items.length === 2 ? ` and 1 more` : ""})`;
-  const aggregateDescription = items.map((i: any) => `• ${i.quantity}x ${i.product_title} — ${i.currency_code} ${Number(i.unit_price_snapshot).toLocaleString()}`).join("\n");
+  const aggregateDescription = items.map((i: any) => `• ${i.quantity}x ${i.product_title}. ${i.currency_code} ${Number(i.unit_price_snapshot).toLocaleString()}`).join("\n");
   const totalQuantity = items.reduce((s: number, i: any) => s + (i.quantity || 1), 0);
 
   // Buyer profile for participants

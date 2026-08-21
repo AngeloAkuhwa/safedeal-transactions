@@ -1,12 +1,12 @@
 /**
- * Admin Export Worker — runs a queued admin_export_jobs record, generates a
+ * Admin Export Worker: runs a queued admin_export_jobs record, generates a
  * CSV, uploads it to the private `admin-exports` bucket, and marks the job
  * completed with the resulting file_path / row_count / size.
  *
  * Invoked service-to-service from `admin-export-enqueue`. Never exposed to
  * end users (guarded by verifying the caller's service-role bearer token).
  *
- * NEW export types can be added by appending a builder in `BUILDERS` — no
+ * NEW export types can be added by appending a builder in `BUILDERS`: no
  * schema change required.
  */
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -169,13 +169,13 @@ const buildEscrowCsv: Builder = async (admin, params) => {
 };
 
 /**
- * Placeholder builders — the sync versions still work; they'll be migrated
+ * Placeholder builders: the sync versions still work; they'll be migrated
  * to this worker one by one. For now, calling those types returns a stub CSV
  * with a header row so the async pipeline is wired end-to-end.
  */
 const buildStubCsv = (label: string): Builder => async () => {
   const header = ["notice"].join(",");
-  const row = [csvEscape(`${label}: async export coming soon — use the sync endpoint for now.`)].join(",");
+  const row = [csvEscape(`${label}: async export coming soon. Use the sync endpoint for now.`)].join(",");
   return { csv: `${header}\n${row}`, rowCount: 0 };
 };
 
@@ -414,7 +414,7 @@ const buildAuditLogsCsv: Builder = async (admin, params) => {
   ];
   const lines: string[] = [];
   if (compliance) {
-    lines.push(csvEscape(`# Compliance report — generated ${new Date().toISOString()}, range ${from ?? "*"}\u2192${to ?? "*"}, severity=${severity}`));
+    lines.push(csvEscape(`# Compliance report: generated ${new Date().toISOString()}, range ${from ?? "*"}\u2192${to ?? "*"}, severity=${severity}`));
     lines.push(csvEscape(`# Rows: ${list.length}`));
   }
   lines.push(header.join(","));

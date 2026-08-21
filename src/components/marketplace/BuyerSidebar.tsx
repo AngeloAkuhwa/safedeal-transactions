@@ -48,7 +48,7 @@ export function BuyerSidebar() {
   useEffect(() => {
     if (!mobileOpen) return;
     // Move focus into the drawer, trap Tab inside it, and restore focus to the
-    // trigger on close — the rest of the dialog contract.
+    // trigger on close: the rest of the dialog contract.
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -110,7 +110,7 @@ export function BuyerSidebar() {
             <span className="text-lg font-bold text-sidebar-foreground">SafeDeal</span>
           )}
         </div>
-        {/* Mobile close — the rail toggle is painted underneath the drawer. */}
+        {/* Mobile close: the rail toggle is painted underneath the drawer. */}
         {onClose && (
           <Button
             ref={closeRef}
@@ -123,7 +123,7 @@ export function BuyerSidebar() {
             <X className="h-5 w-5" />
           </Button>
         )}
-        {/* Desktop collapse toggle — hidden on mobile */}
+        {/* Desktop collapse toggle: hidden on mobile */}
         {!isCollapsed && (
           <Button
             variant="ghost"
@@ -290,7 +290,7 @@ export function BuyerSidebar() {
         </Button>
       </div>
 
-      {/* Mobile overlay — a real control, not a clickable aria-hidden div. */}
+      {/* Mobile overlay: a real control, not a clickable aria-hidden div. */}
       {mobileOpen && (
         <button
           type="button"
@@ -300,7 +300,7 @@ export function BuyerSidebar() {
         />
       )}
 
-      {/* Mobile sidebar — always mounted, so it must leave the tab order and
+      {/* Mobile sidebar: always mounted, so it must leave the tab order and
           the accessibility tree while it is translated off-screen. */}
       <div
         ref={drawerRef}
@@ -317,7 +317,7 @@ export function BuyerSidebar() {
         {sidebarContent(false, () => setMobileOpen(false))}
       </div>
 
-      {/* Desktop sidebar — collapsible */}
+      {/* Desktop sidebar: collapsible */}
       <div className="hidden lg:block shrink-0">{sidebarContent(collapsed)}</div>
     </>
   );

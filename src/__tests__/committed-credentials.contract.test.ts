@@ -14,8 +14,8 @@
  * grant a privileged role to an account whose password is also committed.**
  *
  * It is deliberately not a secret scanner. It asks two questions a scanner
- * cannot: does this file create a login, and does the same file — or any
- * other — hand that login a privileged role.
+ * cannot: does this file create a login, and does the same file. Or any
+ * other: hand that login a privileged role.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -39,7 +39,7 @@ function sqlFiles(): string[] {
 
 const rel = (f: string) => path.relative(ROOT, f).replace(/\\/g, "/");
 
-/** `crypt('secret', gen_salt(...))` — a password being set in committed SQL. */
+/** `crypt('secret', gen_salt(...))`: a password being set in committed SQL. */
 const CRYPT_LITERAL = /\bcrypt\s*\(\s*'([^']+)'\s*,\s*gen_salt/gi;
 
 /** A password column assigned a bare string. */
@@ -62,11 +62,11 @@ describe("committed credentials", () => {
       // and only inside comments. Strip comments before looking.
       const code = src.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
       for (const m of code.matchAll(CRYPT_LITERAL)) {
-        offenders.push(`${rel(file)} — crypt('${m[1].slice(0, 4)}…') sets a readable password`);
+        offenders.push(`${rel(file)}: crypt('${m[1].slice(0, 4)}…') sets a readable password`);
       }
       for (const m of code.matchAll(PASSWORD_LITERAL)) {
         if (/null/i.test(m[2])) continue;
-        offenders.push(`${rel(file)} — ${m[1]} assigned a literal`);
+        offenders.push(`${rel(file)}: ${m[1]} assigned a literal`);
       }
     }
     expect(offenders, offenders.join("\n")).toEqual([]);
@@ -91,7 +91,7 @@ describe("committed credentials", () => {
         const block = m[0].toLowerCase();
         for (const id of exposed) {
           if (block.includes(id)) {
-            offenders.push(`${rel(file)} — grants ${m[3]} to an account with a committed password`);
+            offenders.push(`${rel(file)}: grants ${m[3]} to an account with a committed password`);
             break;
           }
         }
@@ -102,7 +102,7 @@ describe("committed credentials", () => {
 
   it("the tracked .env holds only values that are meant to ship in the bundle", () => {
     // `.env` is deliberately tracked: Vite inlines VITE_* at build time, and the
-    // hosted build has no other source for them — removing it broke the
+    // hosted build has no other source for them. Removing it broke the
     // published app with "supabaseUrl is required". What must stay true is that
     // nothing in it authenticates. The project URL, project id and anon
     // (publishable) key already ship inside the client bundle and are gated by
@@ -122,7 +122,7 @@ describe("committed credentials", () => {
       if (!trimmed || trimmed.startsWith("#")) continue;
       const key = trimmed.split("=")[0].trim();
       if (!ALLOWED.has(key)) {
-        offenders.push(`.env — ${key} is not a publishable value; move it to the secret store`);
+        offenders.push(`.env. ${key} is not a publishable value; move it to the secret store`);
       }
     }
     expect(offenders, offenders.join("\n")).toEqual([]);

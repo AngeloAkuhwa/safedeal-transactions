@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     .eq("id", body.user_id);
   if (iuErr) return json(500, { error: "row_delete_failed", detail: iuErr.message });
 
-  // 3. auth user (best-effort — if it fails the row is already gone,
+  // 3. auth user (best-effort. If it fails the row is already gone,
   //    surface the message so the admin knows to clean up manually)
   let authWarning: string | null = null;
   try {

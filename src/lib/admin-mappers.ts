@@ -38,7 +38,7 @@ export function mapTransactionStatus(s: string | null | undefined): Mapped {
     case "payment_secured": return m("funds_held", "Funds Held", "Funds Held", "success");
     case "seller_preparing_delivery": return m("in_fulfillment", "In Fulfillment", "In Fulfillment", "info");
     case "seller_dispatched": return m("dispatched", "Dispatched", "Dispatched", "info");
-    case "delivered_awaiting_verification": return m("delivered", "Delivered — Awaiting Verification", "Delivered", "warning");
+    case "delivered_awaiting_verification": return m("delivered", "Delivered: Awaiting Verification", "Delivered", "warning");
     case "disputed": return m("in_dispute", "In Dispute", "In Dispute", "destructive");
     case "completed": return m("completed", "Completed", "Completed", "success");
     case "cancelled": return m("cancelled", "Cancelled", "Cancelled", "muted");
@@ -140,7 +140,7 @@ export function mapRiskLevel(input: {
 /**
  * `currency` is REQUIRED. It used to default to "NGN", which invented a
  * currency at every call site that omitted it. Renders `—` when the amount is
- * missing, and a bare number when the code is blank — never a guessed symbol.
+ * missing, and a bare number when the code is blank. Never a guessed symbol.
  */
 export function formatCurrencyNGN(amount: number | null | undefined, currency: string): string {
   if (amount === null || amount === undefined || Number.isNaN(Number(amount))) return "—";

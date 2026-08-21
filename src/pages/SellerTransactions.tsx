@@ -221,7 +221,7 @@ const SellerTransactions = () => {
                 <p className="sd-eyebrow text-success">Net Earned</p>
                 <InfoTip>
                   Total amount you've earned from completed deals after SafeDeal fees.
-                  Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.
+                  Some may still be queued for bank transfer. See the Payouts tab for actual deposit status.
                 </InfoTip>
               </div>
               <p className="sd-kpi-value tabular-nums">{formatMoney(summary.total_earned, "NGN")}</p>

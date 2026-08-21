@@ -11,7 +11,7 @@ import { scanNestedRepo, scanNestedSource } from "./helpers/nested-interactive-s
  *     grew a stretched `<button>`, which gave two tab stops per card AND left
  *     that button dead, because the page never passed it an `onClick`.
  *  2. `SellerAnalytics` wrapped each of six KPI cards in a `<Link>` with an
- *     info `<button>` inside — twelve tab stops for six cards.
+ *     info `<button>` inside: twelve tab stops for six cards.
  *  3. Dispute evidence thumbnails were a `<button>` with a download `<a>` in it.
  */
 const ALLOWLIST: Array<{ file: string; reason: string }> = [];

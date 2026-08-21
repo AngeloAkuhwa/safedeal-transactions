@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
  * Measured in Chromium at a signed-in 360px viewport (a 128px card, ~98px of
  * content box): `₦1,250,000.00` is 114px of glyphs at 16px and `₦12,500,000.00`
  * is 124px. Both were cut off by the card's `overflow-hidden`, and nothing
- * showed it — `index.css` hides horizontal scrollbars app-wide.
+ * showed it: `index.css` hides horizontal scrollbars app-wide.
  *
  * The trap this guards against is subtle: adding `min-w-0` makes the *element
  * box* fit while the glyphs still overflow it, so a box-based overflow check
@@ -28,7 +28,7 @@ describe("product card price", () => {
       .find((l) => /className=/.test(l) && /font-bold/.test(l) && /tabular-nums/.test(l));
 
     it(`${file} sizes the price fluidly`, () => {
-      expect(price, "no price line found — did the markup change?").toBeTruthy();
+      expect(price, "no price line found: did the markup change?").toBeTruthy();
       const clamp = /text-\[clamp\((\d*\.?\d+)rem,[^,]+,(\d*\.?\d+)rem\)\]/.exec(price!);
       expect(clamp, `price must use a fluid clamp, got: ${price}`).toBeTruthy();
       // Floor at or above the 12px legibility minimum, ceiling no larger than 1.25rem.

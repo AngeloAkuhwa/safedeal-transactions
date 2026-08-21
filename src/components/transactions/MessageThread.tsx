@@ -29,7 +29,7 @@ interface ThreadMessage {
 
 interface MessageThreadProps {
   transactionId: string;
-  /** "Reply to {counterpartyName}" — used as the visible label on the send button */
+  /** "Reply to {counterpartyName}": used as the visible label on the send button */
   counterpartyName: string;
 }
 

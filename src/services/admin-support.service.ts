@@ -1,5 +1,5 @@
 /**
- * Support inbox — reads `contact_messages` under RLS (internal admins only)
+ * Support inbox: reads `contact_messages` under RLS (internal admins only)
  * and routes every mutation through the permission-gated, audited edge function.
  */
 import { supabase } from "@/integrations/supabase/client";

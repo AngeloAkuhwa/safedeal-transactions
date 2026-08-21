@@ -1,5 +1,5 @@
 /**
- * Commerce flag semantics — 2x2 matrix, split reason keys, catalog registration.
+ * Commerce flag semantics: 2x2 matrix, split reason keys, catalog registration.
  * Static + behavioural contract; no network, no DB.
  */
 import { describe, it, expect } from "vitest";

@@ -1,5 +1,5 @@
 /**
- * Showcase slots — the vendor-plan limit on how many product photos a seller
+ * Showcase slots: the vendor-plan limit on how many product photos a seller
  * can have live at once. NEVER call these "storage": a slot is a showcase
  * position, and the language must stay commercial ("Showcase up to N products").
  *

@@ -111,7 +111,7 @@ export function assertMonitorDetailConsistent(
       detail: formatCurrencyNGN(detail.pricing?.buyerTotal ?? null, detCur),
     });
   }
-  // 7. protection fee — monitor sums platform + processing; detail exposes only platform
+  // 7. protection fee. Monitor sums platform + processing; detail exposes only platform
   if (monitor.protectionFee != null && detail.pricing?.protectionFee != null) {
     // tolerate the well-known monitor=platform+processing vs detail=platform shape
     const okExact = close(monitor.protectionFee, detail.pricing.protectionFee);
@@ -131,7 +131,7 @@ export function assertMonitorDetailConsistent(
       detail: formatCurrencyNGN(detail.pricing?.sellerNet ?? null, detCur),
     });
   }
-  // 9-12. statuses — compare canonical keys (not labels), since monitor uses
+  // 9-12. statuses. Compare canonical keys (not labels), since monitor uses
   // short labels and detail uses long labels intentionally.
   const txKeyMon = monitor.transactionStatus?.key ?? mapTransactionStatus(monitor.transactionStatus?.raw).key;
   const txKeyDet = mapTransactionStatus(detail.transaction.status).key;
@@ -190,7 +190,7 @@ export function assertMonitorDetailConsistent(
   if (issues.length === 0) return;
   // eslint-disable-next-line no-console
   console.groupCollapsed(
-    `%c[admin-consistency] %c${monitor.transactionCode ?? monitor.transactionId} — ${issues.length} mismatch${issues.length > 1 ? "es" : ""}`,
+    `%c[admin-consistency] %c${monitor.transactionCode ?? monitor.transactionId}. ${issues.length} mismatch${issues.length > 1 ? "es" : ""}`,
     "color:#f59e0b;font-weight:600",
     "color:inherit",
   );

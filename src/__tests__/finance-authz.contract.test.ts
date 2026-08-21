@@ -26,7 +26,7 @@ const ROLE_PERMS: Record<string, string[]> = {
   dispute_agent: ["disputes.view_assigned", "disputes.add_internal_note"],
 };
 
-describe("money-movement endpoints — permission gate", () => {
+describe("money-movement endpoints: permission gate", () => {
   for (const [fn, perm] of Object.entries(FINANCE_ENDPOINT_PERMISSIONS)) {
     it(`${fn} calls requirePermission("${perm}") and no bare requireAdmin`, () => {
       const src = fnSource(fn);
@@ -43,7 +43,7 @@ describe("money-movement endpoints — permission gate", () => {
   describe.each(Object.keys(FINANCE_ENDPOINT_PERMISSIONS))("%s authorisation", (fn) => {
     const required = FINANCE_ENDPOINT_PERMISSIONS[fn];
 
-    it("rejects an auditor (403 — permission_denied)", () => {
+    it("rejects an auditor (403: permission_denied)", () => {
       expect(
         financeGateAllows({ effectivePermissions: ROLE_PERMS.auditor, required }),
       ).toBe(false);

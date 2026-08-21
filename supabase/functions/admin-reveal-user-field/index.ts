@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   if (field === "account_number") {
     if (!reason) return json(400, { error: "reason_required" });
     // requireAdmin already enforced admin. compliance/super_admin are optional
-    // elevated roles that may not exist in the app_role enum yet — failures
+    // elevated roles that may not exist in the app_role enum yet. Failures
     // are treated as "not granted" rather than 500s. Admin role is sufficient.
   }
 
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     return json(500, { error: "lookup_failed", detail: (e as Error).message });
   }
 
-  // Audit — security-sensitive, mirror to audit_logs
+  // Audit: security-sensitive, mirror to audit_logs
   const meta = extractRequestMeta(req);
   await logAdminAction(admin, {
     actorId: ctx.userId,

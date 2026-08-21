@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 
-/** Keys whose values change money behaviour — mirror of the edge function gate. */
+/** Keys whose values change money behaviour. Mirror of the edge function gate. */
 const isFinancialSettingKey = (key: string) =>
   key.startsWith("pricing.") || key === "fees.refund_policy";
 
@@ -204,7 +204,7 @@ function HeaderBar({
           <TriangleAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-red-300 text-sm font-semibold">
-              Production Environment — Changes Affect Live Transactions
+              Production Environment: Changes Affect Live Transactions
             </p>
             <p className="text-red-300/80 text-xs mt-1">
               All configuration changes are permanently logged and require admin approval.
@@ -282,13 +282,13 @@ export default function AdminSettings() {
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
   const [addToCartEnabled, setAddToCartEnabled] = useState(false);
   const [disabledReason, setDisabledReason] = useState(
-    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+    "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.",
   );
   const [cartDisabledReason, setCartDisabledReason] = useState(
-    "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.",
+    "Cart is temporarily unavailable. You can still buy this item now. Checkout works normally.",
   );
   const [checkoutDisabledReason, setCheckoutDisabledReason] = useState(
-    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+    "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.",
   );
 
   // Media standards (product photo / video quality bar)
@@ -406,7 +406,7 @@ export default function AdminSettings() {
     return () => clearTimeout(t);
   }, [vendorQuery, scope]);
 
-  // Audit history — refresh on load and after successful save
+  // Audit history: refresh on load and after successful save
   const loadAudit = async () => {
     try { setAuditRows(await fetchSettingsAudit(15)); } catch { /* ignore */ }
   };
@@ -556,7 +556,7 @@ export default function AdminSettings() {
                   onChange={setStr(setAutoRelease)}
                   unit="hours"
                   disabled={!autoReleaseOn}
-                  disabledHint="Auto-Release is OFF — payouts require manual admin release."
+                  disabledHint="Auto-Release is OFF: payouts require manual admin release."
                 />
                 <TimeoutRow label="Payment Session Expiry" desc="How long a Paystack payment session stays open" value={paymentExpiry} onChange={setStr(setPaymentExpiry)} unit="minutes" />
               </div>
@@ -610,7 +610,7 @@ export default function AdminSettings() {
                   {!canConfigureFinancial && (
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
                       <ShieldAlert className="h-3 w-3 text-amber-400" />
-                      <span className="text-amber-300 text-xs font-medium">Read-only — needs financial access</span>
+                      <span className="text-amber-300 text-xs font-medium">Read-only: needs financial access</span>
                     </div>
                   )}
                   <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
@@ -790,7 +790,7 @@ export default function AdminSettings() {
                       title="Two-Factor Authentication (advisory)"
                       desc={twoFAEnforced
                         ? "Policy signal. Enforcement is active via the switch below."
-                        : "Policy signal only — this does NOT block sign-in. Admin access is not gated until enforcement is turned on."}
+                        : "Policy signal only: this does NOT block sign-in. Admin access is not gated until enforcement is turned on."}
                       on={twoFA}
                       onChange={setBool(setTwoFA)}
                       overridden={isOverridden("security.two_factor_admin")}
@@ -804,7 +804,7 @@ export default function AdminSettings() {
                     />
                     <ToggleRow
                       title="Maker-checker for money movement"
-                      desc="Blocks the admin who flagged or opened a release/refund from executing it. Leave off for single-operator teams — self-approvals are logged either way."
+                      desc="Blocks the admin who flagged or opened a release/refund from executing it. Leave off for single-operator teams. Self-approvals are logged either way."
                       on={makerChecker}
                       onChange={setBool(setMakerChecker)}
                       overridden={isOverridden("finance.maker_checker_enforced")}
@@ -839,7 +839,7 @@ export default function AdminSettings() {
               />
               <ToggleRow
                 title="Add-to-Cart Enabled"
-                desc="Controls cart mutations: adding an item and changing quantity. When OFF the button is hidden and the server rejects both — existing cart rows are preserved and can still be removed or checked out (if checkout is ON)."
+                desc="Controls cart mutations: adding an item and changing quantity. When OFF the button is hidden and the server rejects both. Existing cart rows are preserved and can still be removed or checked out (if checkout is ON)."
                 on={addToCartEnabled}
                 onChange={setBool(setAddToCartEnabled)}
                 overridden={isOverridden("commerce.add_to_cart_enabled")}
@@ -919,14 +919,14 @@ export default function AdminSettings() {
               </div>
               <ToggleRow
                 title="Auto-normalise aspect ratio"
-                desc="ON: odd-shaped photos are padded with a white border to the first allowed ratio and the seller is shown the result — nothing is cropped. OFF: those photos are rejected instead."
+                desc="ON: odd-shaped photos are padded with a white border to the first allowed ratio and the seller is shown the result. Nothing is cropped. OFF: those photos are rejected instead."
                 on={mediaAutoNormalise}
                 onChange={setBool(setMediaAutoNormalise)}
                 overridden={isOverridden("media.image_auto_normalise_ratio")}
               />
               <ToggleRow
                 title="Server-side verification"
-                desc="Kill switch. ON: every product upload is re-read from the media provider and validated against these limits (a direct API call cannot bypass them). OFF: only the browser checks apply — emergency use only."
+                desc="Kill switch. ON: every product upload is re-read from the media provider and validated against these limits (a direct API call cannot bypass them). OFF: only the browser checks apply. Emergency use only."
                 on={mediaServerVerification}
                 onChange={setBool(setMediaServerVerification)}
                 overridden={isOverridden("media.server_verification_enabled")}

@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
     const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
     const moneyHistory = (moneyHistoryRes.data ?? []) as Array<Record<string, unknown>>;
 
-    // Derive completion event — ONLY when money has actually been released.
+    // Derive completion event: ONLY when money has actually been released.
     // Phase A: status === 'completed' no longer implies funds released; we wait
     // for money_status === 'funds_released' (post SafeDeal review release).
     let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
     }
 
     // Build timeline
-    // Phase A: timeline split — "completed" no longer claims funds released.
+    // Phase A: timeline split: "completed" no longer claims funds released.
     // Final "funds_released" step lights up only when money_status reaches that state.
     const timelineSteps = [
       { key: "draft", label: "Transaction Created", description: "Secure transaction link generated and ready to share with buyer." },
@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
       { key: "seller_preparing_delivery", label: "Seller Preparing Shipment", description: "Prepare the item and update delivery information when shipped." },
       { key: "seller_dispatched", label: "Seller Dispatched", description: "Item has been shipped to the buyer." },
       { key: "delivered_awaiting_verification", label: "Buyer Verification", description: "Buyer is verifying the received item." },
-      { key: "completed", label: "Confirmed — In SafeDeal Review", description: "Both parties confirmed. SafeDeal is finalising the release." },
+      { key: "completed", label: "Confirmed: In SafeDeal Review", description: "Both parties confirmed. SafeDeal is finalising the release." },
       { key: "funds_released", label: "Funds Released", description: "Funds have been released to your payout account." },
     ];
 
@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
         status = fundsReleased ? "completed" : "pending";
         timestamp = fundsReleasedAt ? (fundsReleasedAt as Record<string, unknown>).changed_at : null;
       } else if (step.key === "completed") {
-        // "Confirmed — In SafeDeal Review" stays current until funds release.
+        // "Confirmed: In SafeDeal Review" stays current until funds release.
         status = fundsReleased ? "completed" : tx.status === "completed" ? "current" : i < currentIndex ? "completed" : "pending";
       } else {
         status = i < currentIndex ? "completed" : i === currentIndex ? "current" : "pending";

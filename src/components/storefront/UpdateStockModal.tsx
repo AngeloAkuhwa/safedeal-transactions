@@ -155,7 +155,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
             <span className={`h-2 w-2 rounded-full ${stockStatus.dot}`} />
             <p className={`text-sm font-medium ${stockStatus.color}`}>
               {stockStatus.label}
-              {projectedAvailable > 0 && ` — ${projectedAvailable} units available`}
+              {projectedAvailable > 0 && `: ${projectedAvailable} units available`}
               {reserved > 0 && ` (${reserved} reserved)`}
             </p>
           </div>

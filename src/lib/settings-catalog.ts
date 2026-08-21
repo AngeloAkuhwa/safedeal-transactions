@@ -112,21 +112,21 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   {
     key: "security.two_factor_admin",
     label: "Two-factor for admins",
-    help: "Advisory only — records the platform's 2FA policy. It does NOT block sign-in on its own; turn on \"Enforce two-factor for admins\" to actually require AAL2.",
+    help: "Advisory only: records the platform's 2FA policy. It does NOT block sign-in on its own; turn on \"Enforce two-factor for admins\" to actually require AAL2.",
     spec: { type: "boolean" },
     writable: ["platform"],
   },
   {
     key: "security.two_factor_admin_enforced",
     label: "Enforce two-factor for admins",
-    help: "When on, admin API calls are rejected unless the session has completed a second factor (AAL2). Leave off until every internal user has enrolled — otherwise they lose access immediately.",
+    help: "When on, admin API calls are rejected unless the session has completed a second factor (AAL2). Leave off until every internal user has enrolled. Otherwise they lose access immediately.",
     spec: { type: "boolean" },
     writable: ["platform"],
   },
   {
     key: "finance.maker_checker_enforced",
     label: "Maker-checker for money movement",
-    help: "When on, the admin who flagged or opened a release/refund cannot be the one who executes it. Leave off for single-operator teams — self-approvals are logged either way.",
+    help: "When on, the admin who flagged or opened a release/refund cannot be the one who executes it. Leave off for single-operator teams. Self-approvals are logged either way.",
     spec: { type: "boolean" },
     writable: ["platform"],
   },
@@ -225,7 +225,7 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   {
     key: "media.image_allowed_formats",
     label: "Allowed image formats",
-    help: "Accepted image formats. HEIC is intentionally excluded — sellers are told to switch iPhone Camera to 'Most Compatible'.",
+    help: "Accepted image formats. HEIC is intentionally excluded. Sellers are told to switch iPhone Camera to 'Most Compatible'.",
     spec: { type: "string_list", options: ["jpeg", "png", "webp"], minItems: 1 },
     writable: ["platform"],
   },
@@ -317,7 +317,7 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
  * - Every `rate` is finite, >= 0 and <= 1 (0%-100%).
  * - Every non-open-ended `upto` is a positive finite number.
  * - `upto` values are strictly increasing across the list (this both
- *   prevents overlaps — a duplicate or smaller `upto` after a larger one —
+ *   prevents overlaps: a duplicate or smaller `upto` after a larger one —
  *   and prevents gaps, since each tier's implicit lower bound is the
  *   previous tier's `upto`, so a strictly increasing chain starting at 0
  *   is gapless by construction).
@@ -374,7 +374,7 @@ export const CATALOG_BY_KEY: Record<string, CatalogEntry> = Object.fromEntries(
  *
  * These rows still exist in `system_settings` but NO code reads them. They are
  * superseded by the canonical keys in `SETTINGS_CATALOG` above. They are
- * intentionally NOT deleted — historical settings rows are part of the audit
+ * intentionally NOT deleted: historical settings rows are part of the audit
  * record, and deleting them would erase who configured what and when.
  *
  * Rules:
@@ -405,11 +405,11 @@ export const DEPRECATED_SETTING_KEYS: Record<string, { replacedBy: string | null
   },
   platform_fee_percentage: {
     replacedBy: "pricing.tier_rates",
-    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates — see docs/pricing-fee-generations.md.",
+    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates. See docs/pricing-fee-generations.md.",
   },
   processing_fee_percentage: {
     replacedBy: "pricing.tier_rates",
-    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates — see docs/pricing-fee-generations.md.",
+    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates. See docs/pricing-fee-generations.md.",
   },
 };
 

@@ -39,8 +39,8 @@ export function isAtOpenDisputeCap(level: string | null | undefined, openCount: 
 /**
  * Recourse rule: a buyer may still raise a dispute after
  * verification_deadline_at as long as the case is unresolved and the money is
- * still held in escrow. There is no automatic release job — funds only move
- * after manual SafeDeal review — so the buyer must never lose recourse in the
+ * still held in escrow. There is no automatic release job. Funds only move
+ * after manual SafeDeal review: so the buyer must never lose recourse in the
  * window between the deadline and that review.
  */
 export function isDisputeStillAllowed(tx: {

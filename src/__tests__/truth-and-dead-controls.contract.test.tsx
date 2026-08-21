@@ -1,5 +1,5 @@
 /**
- * PHASE 0 CONTRACT — truth and dead controls.
+ * PHASE 0 CONTRACT: truth and dead controls.
  *
  * Locks the removal of fabricated trust signals (ratings, review counts,
  * transaction counts, response times, unconditional Verified badges, fake
@@ -45,7 +45,7 @@ function walk(dir: string): string[] {
 
 const FILES = walk(SRC).filter((f) => !/\.test\.tsx?$/.test(f));
 
-/** Input placeholders are not claims — strip them before scanning for fake data. */
+/** Input placeholders are not claims. Strip them before scanning for fake data. */
 const readScannable = (f: string) =>
   fs
     .readFileSync(f, "utf8")
@@ -247,7 +247,7 @@ describe("BuyerTransactionDetail renders verification state truthfully", () => {
 /* ───────────────────────── dead control scans ─────────────────────────── */
 
 describe("no dead controls anywhere under src/pages and src/components", () => {
-  // Every .tsx under pages/ and components/ — no allowlist, no exceptions.
+  // Every .tsx under pages/ and components/: no allowlist, no exceptions.
   const SURFACES = FILES.filter(
     (f) => /\.tsx$/.test(f) && /(^|\/)(pages|components)\//.test(rel(f).replace(/\\/g, "/")),
   );

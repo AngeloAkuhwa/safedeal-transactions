@@ -45,7 +45,7 @@ export function UserDetailsDrawer({
   });
   const { data: myPerms } = useInternalPermissions();
 
-  // Contextual navigation — surface a link to any pending approval that
+  // Contextual navigation: surface a link to any pending approval that
   // targets this user so operators can jump straight to the queue.
   const { data: pendingReq } = useQuery({
     queryKey: ["access-approvals", "pending-for", user?.id],
@@ -179,7 +179,7 @@ export function UserDetailsDrawer({
             </div>
             {!work?.task_orchestration_available && (
               <div className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">
-                Task orchestration surface isn't wired to this workspace yet — dispute assignment is used as a proxy.
+                Task orchestration surface isn't wired to this workspace yet: dispute assignment is used as a proxy.
               </div>
             )}
           </TabsContent>
@@ -261,7 +261,7 @@ export function UserDetailsDrawer({
           )}
           {!canManageRoles && !canManagePerms && !canSuspend && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Lock className="h-3 w-3" /> Read-only view — you don't have permission to make changes.
+              <Lock className="h-3 w-3" /> Read-only view: you don't have permission to make changes.
             </div>
           )}
         </div>

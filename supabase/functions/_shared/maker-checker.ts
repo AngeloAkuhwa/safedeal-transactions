@@ -6,7 +6,7 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  * The approver executing a release/refund must not be the same person who
  * initiated (flagged / opened) the underlying item. Controlled by the
  * platform setting `finance.maker_checker_enforced`, which is OFF by default
- * so a single-operator launch is not blocked — when off we log only.
+ * so a single-operator launch is not blocked. When off we log only.
  */
 export {
   MAKER_CHECKER_SETTING_KEY,

@@ -126,7 +126,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
           {/* Stock state belongs to the product, not to the seller row.
               Measured at 360px it was taking ~68px of a ~100px text line, which
-              squeezed the seller name down to a 6px sliver of ellipsis — the
+              squeezed the seller name down to a 6px sliver of ellipsis. The
               name was present in the DOM and invisible on screen. On the image
               it costs the text column nothing and reads sooner. */}
           <div className="absolute bottom-2.5 left-2.5 z-rail">
@@ -201,7 +201,7 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
           {/* Price has to FIT, not just have a box that fits.
               Signed in at 360px the grid gives a 128px card and ~98px of content
               box, but `₦1,250,000.00` is 114px of glyphs at 16px and
-              `₦12,500,000.00` is 124px — so the text was cut off by the card's
+              `₦12,500,000.00` is 124px: so the text was cut off by the card's
               `overflow-hidden` even after the box was allowed to shrink. Nothing
               showed it: the app hides horizontal scrollbars globally.
               Price is the one field every user looks for, so it neither

@@ -1,5 +1,5 @@
 // Thin resolver: validates token, redirects into the existing buyer flow.
-// Renders only loading + error states — the happy path always navigates away.
+// Renders only loading + error states. The happy path always navigates away.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
@@ -81,7 +81,7 @@ export default function OfferClaimLanding() {
         navigate(target, { replace: true });
         return;
       }
-      // No redirect (e.g. wrong_account, expired) — show state
+      // No redirect (e.g. wrong_account, expired). Show state
       setData(result);
       setLoading(false);
     } catch (err: any) {
@@ -161,7 +161,7 @@ export default function OfferClaimLanding() {
     );
   }
 
-  // Anonymous view — show preview + sign-in CTA
+  // Anonymous view: show preview + sign-in CTA
   if (data.scenario === "anon_view") {
     return (
       <AnonymousPreview
@@ -177,7 +177,7 @@ export default function OfferClaimLanding() {
   // ready_to_claim fallback (anon → just signed in but auto-claim didn't fire)
   if (data.scenario === "ready_to_claim") {
     return (
-      /* Nothing is loading here — the buyer has just signed in and auto-claim
+      /* Nothing is loading here: the buyer has just signed in and auto-claim
          did not fire, so this is a prompt, not a wait. The old spinner said
          "hold on" while the button said "act", which is a contradiction the
          user has to resolve. State the situation and give one clear action. */

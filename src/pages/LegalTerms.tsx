@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const TITLE = "Terms of Service — SafeDeal";
+const TITLE = "Terms of Service: SafeDeal";
 const DESCRIPTION =
   "The terms that govern use of SafeDeal transaction protection, escrow, delivery confirmation, and dispute resolution.";
 
@@ -24,7 +24,7 @@ export default function LegalTerms() {
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
 
         <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Placeholder terms — replace with your reviewed legal copy before launch. This text is a
+          Placeholder terms: replace with your reviewed legal copy before launch. This text is a
           structural draft only and is not legal advice.
         </div>
 

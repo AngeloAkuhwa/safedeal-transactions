@@ -1,4 +1,4 @@
-// Security & risk settings resolver — pulls effective values from
+// Security & risk settings resolver. Pulls effective values from
 // system_settings for a given vendor scope, and provides helpers that
 // runtime consumers (checkout, webhooks) use to enforce those values.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -114,7 +114,7 @@ export async function checkIdVerificationRequirement(
   currencyCode: string,
   amount: number,
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
-  // Only NGN is thresholded today — quietly bypass for other currencies.
+  // Only NGN is thresholded today: quietly bypass for other currencies.
   if ((currencyCode || "NGN").toUpperCase() !== "NGN") return null;
   const cfg = await loadSecurityConfig(vendorId);
   if (!cfg.require_id_verification) return null;
@@ -135,7 +135,7 @@ export async function checkIdVerificationRequirement(
 /**
  * Emit a high-value transaction flag + admin notifications when the
  * settled amount crosses the effective high-value threshold. Idempotent
- * per (transaction_id) — subsequent calls short-circuit if an existing
+ * per (transaction_id): subsequent calls short-circuit if an existing
  * high_value_flag admin_action row is already present.
  */
 export async function emitHighValueFlagIfNeeded(params: {
@@ -152,7 +152,7 @@ export async function emitHighValueFlagIfNeeded(params: {
     if (params.amount < cfg.high_value_alert_ngn) return;
 
     const client = admin();
-    // Idempotent guard — one flag per transaction.
+    // Idempotent guard: one flag per transaction.
     const { data: existing } = await client
       .from("admin_actions")
       .select("id")
@@ -186,7 +186,7 @@ export async function emitHighValueFlagIfNeeded(params: {
       type: "risk_alert",
       channel: "in_app",
       title: "High-value transaction paid",
-      message: `A transaction of ₦${params.amount.toLocaleString()} just settled — above the ₦${cfg.high_value_alert_ngn.toLocaleString()} alert threshold. Review before release.`,
+      message: `A transaction of ₦${params.amount.toLocaleString()} just settled. Above the ₦${cfg.high_value_alert_ngn.toLocaleString()} alert threshold. Review before release.`,
       related_transaction_id: params.transactionId,
       status: "pending",
     }));

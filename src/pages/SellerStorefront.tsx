@@ -17,7 +17,7 @@ import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * The verification claim is driven by `identity_verified` only — the declared
+ * The verification claim is driven by `identity_verified` only: the declared
  * basis of SELLER_VERIFIED. `verification_level` is an internal trust tier and
  * never on its own earns a verification badge.
  */
@@ -159,7 +159,7 @@ const SellerStorefront = () => {
 
       {/* min-w-0: a flex child defaults to min-width:auto, so without this the
           pane refuses to shrink below its content's min-content width and the
-          whole page is 542px wide inside a 320px phone — with `Add Product`
+          whole page is 542px wide inside a 320px phone. With `Add Product`
           sitting at x=435, past the edge and unreachable. Its siblings
           (SellerProductDetail, SellerProductCreate) already carry it. */}
       <div className="relative flex min-w-0 flex-1 flex-col lg:overflow-hidden">
@@ -179,7 +179,7 @@ const SellerStorefront = () => {
             {planState && (
               <p className="text-xs text-muted-foreground mt-1">
                 {planState.showcase_slots.used} of {planState.showcase_slots.limit} showcase slots used
-                {planState.showcase_slots.remaining === 0 ? " — " : " · "}
+                {planState.showcase_slots.remaining === 0 ? ": " : " · "}
                 <Link to="/seller/profile?section=plan" className="text-primary hover:underline">
                   {planState.showcase_slots.remaining === 0 ? "Add slots or upgrade" : "Manage plan"}
                 </Link>

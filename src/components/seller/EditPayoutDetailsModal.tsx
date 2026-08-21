@@ -119,7 +119,7 @@ export function EditPayoutDetailsModal({
               <p className="text-muted-foreground">
                 Current account: <span className="font-medium text-foreground">{existingAccount.bank_name}</span>
                 {existingAccount.masked_account_number && (
-                  <> — {existingAccount.masked_account_number}</>
+                  <>: {existingAccount.masked_account_number}</>
                 )}
               </p>
             </div>

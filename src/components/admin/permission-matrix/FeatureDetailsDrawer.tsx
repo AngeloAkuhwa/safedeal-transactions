@@ -142,7 +142,7 @@ export function FeatureDetailsDrawer({
                     <Ban className="h-3 w-3" /> Deprecate
                   </button>
                 )}
-                <span className="ml-auto text-xs italic text-muted-foreground">Hard delete disabled — use Deprecated</span>
+                <span className="ml-auto text-xs italic text-muted-foreground">Hard delete disabled: use Deprecated</span>
               </div>
             )}
 

@@ -349,7 +349,7 @@ class SupabasePermissionRepository implements PermissionRepository {
 
   async setPermissionAssignable(key: string, assignable: boolean, reason: string): Promise<void> {
     // Flips permissions.assignable; existing role_permissions and user_permission_overrides
-    // are intentionally left in place — only *new* assignments are blocked.
+    // are intentionally left in place. Only *new* assignments are blocked.
     const { error } = await (supabase as any)
       .from("permissions")
       .update({ assignable })

@@ -56,7 +56,7 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   const ctx = await requireUser(req);
   // Accept either the legacy consumer `admin` role OR any internal
   // (back-office) role. Internal teammates like support_agent, auditor,
-  // finance_ops, etc. don't have rows in `user_roles` — their access
+  // finance_ops, etc. don't have rows in `user_roles`: their access
   // comes from `internal_user_roles`.
   const [{ data: hasConsumerAdmin, error: consumerErr }, { data: hasInternal, error: internalErr }] =
     await Promise.all([
@@ -78,13 +78,13 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   if (!hasConsumerAdmin && !hasInternal) throw new AuthError(403, "admin_required");
 
   // AAL2 gate.
-  //   `security.two_factor_admin`          — ADVISORY policy signal only.
-  //   `security.two_factor_admin_enforced` — the real switch (default OFF).
+  //   `security.two_factor_admin`         : ADVISORY policy signal only.
+  //   `security.two_factor_admin_enforced`: the real switch (default OFF).
   // Until the enforcement key is turned on we run in log-only mode so the
   // platform can measure how many admins would be blocked.
   //
   // FAIL-CLOSED CONTRACT: if enforcement is (or was last observed to be) ON,
-  // a settings-read failure must NOT bypass the gate — we return 503
+  // a settings-read failure must NOT bypass the gate. We return 503
   // `mfa_gate_unavailable` instead of silently allowing the request. When the
   // flags are off we keep the log-only behaviour.
   try {

@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Action: send_otp — generate code & store in phone_otp_codes for the buyer
+    // Action: send_otp: generate code & store in phone_otp_codes for the buyer
     if (action === "send_otp") {
       if (!buyerPhone) {
         return jsonResponse({ error: "Buyer has no phone number on file. Ask the buyer to contact the seller." }, 400);
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
         type: "delivery_update",
         channel: "in_app",
         title: "Confirm delivery to release the OTP",
-        message: `A rider is asking to confirm delivery of your order. We've sent a 6-digit code to your phone — share it ONLY when you have the item in hand.`,
+        message: `A rider is asking to confirm delivery of your order. We've sent a 6-digit code to your phone. Share it ONLY when you have the item in hand.`,
         related_transaction_id: tx.id,
         status: "pending",
       });

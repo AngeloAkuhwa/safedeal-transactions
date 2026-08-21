@@ -20,7 +20,7 @@ const DEFAULT_MIRROR: PricingConfigOverride = {
 
 const AMOUNTS = [1_000, 25_000, 100_000, 450_000, 1_500_000, 5_000_000];
 
-describe("computePricing — platform defaults (G3)", () => {
+describe("computePricing: platform defaults (G3)", () => {
   it("mirrors the shipped fallback config", () => {
     expect(FALLBACK_PRICING_CONFIG).toEqual(DEFAULT_MIRROR);
   });
@@ -54,7 +54,7 @@ describe("computePricing — platform defaults (G3)", () => {
   });
 });
 
-describe("computePricing — snapshot parity (no config == mirrored default config)", () => {
+describe("computePricing: snapshot parity (no config == mirrored default config)", () => {
   it.each(AMOUNTS)("matches for amount %i", (amount) => {
     const a = computePricing(amount);
     const b = computePricing(amount, "NGN", DEFAULT_MIRROR);
@@ -62,7 +62,7 @@ describe("computePricing — snapshot parity (no config == mirrored default conf
   });
 });
 
-describe("computePricing — vendor override", () => {
+describe("computePricing: vendor override", () => {
   it("applies a reduced vendor plan rate (Growth 1.5%)", () => {
     const cfg: PricingConfigOverride = { platform_fee_rate: 0.015 };
     const r = computePricing(100_000, "NGN", cfg);

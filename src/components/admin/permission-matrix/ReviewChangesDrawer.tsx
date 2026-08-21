@@ -176,7 +176,7 @@ function StagedReview({ open, onOpenChange, changes, roleMap, environment = DEFA
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/5 p-2 text-xs text-emerald-200">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Non-privileged change — you can apply directly.
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Non-privileged change: you can apply directly.
                   </div>
                 )}
               </div>

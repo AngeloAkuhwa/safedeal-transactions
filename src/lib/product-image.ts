@@ -1,5 +1,5 @@
 /**
- * SafeDeal Image Standard — delivery layer.
+ * SafeDeal Image Standard: delivery layer.
  *
  * Every product photo is stored once (master, capped at 2000px) and delivered
  * through named Cloudinary renditions built purely from URL transformations —

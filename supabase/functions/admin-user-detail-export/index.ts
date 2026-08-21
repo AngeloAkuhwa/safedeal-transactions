@@ -1,5 +1,5 @@
 /**
- * Admin User Detail Export — sanitized CSV exports keyed off the user.
+ * Admin User Detail Export: sanitized CSV exports keyed off the user.
  * GET ?user_id=<id>&export_type=sanitized|activity|transactions|disputes|compliance&reason=<text>
  * Admin-only. compliance additionally requires compliance/super_admin + reason.
  * Returns text/csv; writes admin_actions audit row per export.
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     ]);
     // ctx already passed requireAdmin, so admin role is implicit.
     if (!isCompliance && !isSuper) {
-      // Allow admin fallback — record the elevated access in the audit row below.
+      // Allow admin fallback: record the elevated access in the audit row below.
     }
   }
 

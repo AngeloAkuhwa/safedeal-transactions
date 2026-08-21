@@ -14,7 +14,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 const Index = () => {
   usePageMeta({
-    title: "SafeDeal — Escrow for every online deal",
+    title: "SafeDeal: Escrow for every online deal",
     description:
       "SafeDeal holds the buyer's payment in escrow until the item is delivered and confirmed. Protected transactions for sellers and buyers online.",
     path: "/",

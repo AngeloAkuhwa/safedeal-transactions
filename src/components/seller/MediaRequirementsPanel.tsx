@@ -33,7 +33,7 @@ export function MediaRequirementsPanel({ config }: { config: MediaConfig }) {
         <li className="flex gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
           {config.imageAutoNormaliseRatio
-            ? `Any shape is fine — we'll pad odd shapes to ${config.imageAllowedRatios[0]} with a white border and show you first`
+            ? `Any shape is fine: we'll pad odd shapes to ${config.imageAllowedRatios[0]} with a white border and show you first`
             : `Shape must be ${config.imageAllowedRatios.join(", ")}`}
         </li>
       </ul>

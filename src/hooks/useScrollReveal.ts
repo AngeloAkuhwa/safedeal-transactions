@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 /**
  * Adds the `sd-reveal` initial state and toggles `is-visible` once the
  * element enters view. Falls back to immediately visible if IO is missing
- * or the user prefers reduced motion — so content NEVER stays hidden.
+ * or the user prefers reduced motion. So content NEVER stays hidden.
  */
 export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(opts?: {
   delay?: number;

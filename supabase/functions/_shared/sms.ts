@@ -51,7 +51,7 @@ export function isSmsConfigured(config: SmsConfig): boolean {
 
 /**
  * Send an SMS through the configured provider.
- * Returns delivered:false when no provider is configured — callers must still
+ * Returns delivered:false when no provider is configured. Callers must still
  * succeed (the OTP stays retrievable only via the buyer's phone / support).
  */
 export async function sendSms(
@@ -104,7 +104,7 @@ export async function sendSms(
     }
     return { delivered: true, provider: "twilio" };
   } catch (e) {
-    // Never log the message body — it carries the OTP.
+    // Never log the message body: it carries the OTP.
     console.error("[sendSms] provider error:", e instanceof Error ? e.message : "unknown");
     return { delivered: false, provider: config.provider, reason: "provider_error" };
   }

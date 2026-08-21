@@ -32,18 +32,18 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
   };
 
   const handleWhatsApp = () => {
-    openWhatsAppShare("Shop my store on SafeDeal — every order is protected by escrow:", richUrl);
+    openWhatsAppShare("Shop my store on SafeDeal: every order is protected by escrow:", richUrl);
   };
 
   return (
     <div className="rounded-2xl border-2 border-primary/20 bg-card p-4 sm:p-6">
       {/* `items-start` belongs to the lg row only. On a column flex container
-          it also applies to the cross axis — width — so children size to
+          it also applies to the cross axis. Width. So children size to
           their content instead of stretching, and no amount of `min-w-0`
           helps because it is not a min-width problem. That is what took this
           card 228px past a 320px screen. */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        {/* Left content — min-w-0 or this column keeps its content's
+        {/* Left content: min-w-0 or this column keeps its content's
             min-content width and takes the card 236px past a 320px screen. */}
         <div className="min-w-0 flex-1 space-y-4">
           <div className="flex items-center gap-3">
@@ -76,7 +76,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
             </Button>
           </div>
 
-          {/* Action buttons — three of them do not fit one phone line. */}
+          {/* Action buttons: three of them do not fit one phone line. */}
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"

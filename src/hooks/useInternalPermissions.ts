@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Fetches the current admin's effective permission set from the
  * `internal_effective_permissions` RPC. Falls back to an empty set when the
- * user isn't an internal user or the call errors — callers should treat
+ * user isn't an internal user or the call errors. Callers should treat
  * an unknown permission as "not allowed".
  */
 export function useInternalPermissions() {

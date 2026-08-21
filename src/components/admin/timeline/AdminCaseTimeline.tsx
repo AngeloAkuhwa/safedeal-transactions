@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
  * the same labels and tone.
  *
  * Input: the `timeline` array returned by the `admin-transaction-detail`
- * edge function — each entry has { id, at, type, title, description,
+ * edge function: each entry has { id, at, type, title, description,
  * actorType, actorName, severity, icon }.
  *
  * This component is *history only*. It must never feed any active state
- * flag — those derive from `deriveActiveState`.
+ * flag: those derive from `deriveActiveState`.
  */
 
 export interface AdminTimelineEntry {
@@ -238,7 +238,7 @@ function statusPillColor(
 
 export interface AdminCaseTimelineProps {
   items: AdminTimelineEntry[];
-  /** Optional header pill — pass dispute status + resolvedAt. */
+  /** Optional header pill: pass dispute status + resolvedAt. */
   disputeStatus?: string | null;
   resolvedAt?: string | null;
   /** Only show dispute-relevant rows (used by Dispute Detail page). */

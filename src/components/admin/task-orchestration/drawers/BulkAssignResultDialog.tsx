@@ -19,7 +19,7 @@ export function BulkAssignResultDialog({
         <DialogHeader>
           <DialogTitle>Bulk assignment result</DialogTitle>
           <DialogDescription>
-            {ok.length} of {results.length} assigned. {fail.length ? `${fail.length} failed — see reasons below.` : "All succeeded."}
+            {ok.length} of {results.length} assigned. {fail.length ? `${fail.length} failed. See reasons below.` : "All succeeded."}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[50vh] space-y-1.5 overflow-y-auto pr-1">

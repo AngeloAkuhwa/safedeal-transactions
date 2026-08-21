@@ -14,7 +14,7 @@ const ALLOWLIST: Array<{ file: string; reason: string }> = [
   {
     file: "src/components/auth/BrandedAuthSplash.tsx",
     reason:
-      "First-paint auth gate: there is no page layout to preserve yet — the app shell has not resolved which surface to render. A branded full-screen hold is the correct pattern here, and it carries the wordmark rather than a bare spinner.",
+      "First-paint auth gate: there is no page layout to preserve yet. The app shell has not resolved which surface to render. A branded full-screen hold is the correct pattern here, and it carries the wordmark rather than a bare spinner.",
   },
   {
     file: "src/components/pwa/LaunchGate.tsx",
@@ -37,8 +37,8 @@ describe("loading states preserve layout", () => {
     expect(
       violations.map((v) => `${v.file}:${v.line}  ${v.snippet}`),
       "Use a Skeleton that mirrors the loaded layout (see src/components/common/PageSkeleton.tsx). " +
-        "A centred spinner collapses the page, causes layout shift when data lands, and — because " +
-        "prefers-reduced-motion disables animate-spin app-wide — renders as a frozen icon for some users.",
+        "A centred spinner collapses the page, causes layout shift when data lands, and. Because " +
+        "prefers-reduced-motion disables animate-spin app-wide. Renders as a frozen icon for some users.",
     ).toEqual([]);
   });
 

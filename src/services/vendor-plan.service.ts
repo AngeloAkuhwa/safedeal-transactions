@@ -106,7 +106,7 @@ export async function verifyPlanPayment(reference: string): Promise<{ status: st
   return body ?? { status: "failed" };
 }
 
-/** Display helper — plan pricing is naira, 2dp conventions. */
+/** Display helper: plan pricing is naira, 2dp conventions. */
 export function formatNaira(amount: number): string {
   return `₦${Number(amount).toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
 }

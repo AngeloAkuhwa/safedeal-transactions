@@ -304,7 +304,7 @@ export default function AdminAgentPerformance() {
           <>
             {filters.scope === "all_time" && data.range.all_time !== true && (
               <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
-                Showing “{data.range.label}” data — the analytics service returned a windowed
+                Showing “{data.range.label}” data. The analytics service returned a windowed
                 result for an all-time request. Reload in a moment; if it persists the backend
                 is running an older version.
               </p>

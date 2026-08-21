@@ -38,7 +38,7 @@ export function TestModeBanner() {
   return (
     <div className="relative flex items-center justify-center gap-2 bg-warning/15 px-4 py-1.5 text-center text-xs font-medium text-warning-foreground border-b border-warning/30">
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-      <span>Test mode — payments are simulated and no real money moves.</span>
+      <span>Test mode: payments are simulated and no real money moves.</span>
       <button
         type="button"
         onClick={handleDismiss}

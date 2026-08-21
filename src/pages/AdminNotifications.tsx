@@ -844,7 +844,7 @@ export default function AdminNotifications() {
             <KpiCards kpis={data.kpis} />
             <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-300 flex flex-wrap items-center gap-x-4 gap-y-1">
               <span><strong>Email sender:</strong> onboarding@resend.dev (Resend restricts this to the account owner until a custom domain is verified)</span>
-              <span><strong>SMS:</strong> No provider configured — SMS rows are queued and not sent.</span>
+              <span><strong>SMS:</strong> No provider configured: SMS rows are queued and not sent.</span>
             </div>
             <FiltersBar
               f={filters}

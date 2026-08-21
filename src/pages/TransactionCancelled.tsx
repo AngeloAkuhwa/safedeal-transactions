@@ -143,7 +143,7 @@ export default function TransactionCancelled() {
               </div>
             </div>
 
-            {/* What happened to the money — read from the recorded state only. */}
+            {/* What happened to the money: read from the recorded state only. */}
             <div className="bg-primary/5 rounded-xl p-6 border border-primary/20">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         .eq("status", "invited");
     }
   } catch (_e) {
-    // non-fatal — permissions load must not be blocked by promotion
+    // non-fatal: permissions load must not be blocked by promotion
   }
 
   const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }, { data: profileRow }, { data: hasMfa }] = await Promise.all([

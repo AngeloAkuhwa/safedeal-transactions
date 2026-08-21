@@ -728,8 +728,8 @@ export const HISTORY_ACTION_LABEL: Record<string, string> = {
 
 // ---------------------------------------------------------------------------
 // Change-set derived items (Pending Approvals + Change History tabs)
-// Reads from `permission_change_sets` — the same table `ReviewChangesDrawer`
-// writes into — so staged submissions surface in the queue immediately.
+// Reads from `permission_change_sets`: the same table `ReviewChangesDrawer`
+// writes into: so staged submissions surface in the queue immediately.
 // ---------------------------------------------------------------------------
 
 const RISK_ORDER: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];

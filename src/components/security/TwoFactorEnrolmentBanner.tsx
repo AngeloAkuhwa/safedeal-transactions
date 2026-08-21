@@ -7,7 +7,7 @@ import { useAal } from "@/hooks/useAal";
 
 /**
  * Persistent (but non-blocking) enrolment prompt for internal teammates.
- * Navigation is never interrupted — enforcement stays behind the default-OFF
+ * Navigation is never interrupted. Enforcement stays behind the default-OFF
  * `security.two_factor_admin_enforced` flag.
  */
 export function TwoFactorEnrolmentBanner() {

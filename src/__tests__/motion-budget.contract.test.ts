@@ -70,12 +70,12 @@ describe("motion budget", () => {
   /**
    * The budget is repo-wide, not one hand-picked page: a screen may show at
    * most ONE unconditional live dot. Dots gated on state (`overdue &&`,
-   * `live ? … : …`, `step.status === "current"`) are exempt — they are the
+   * `live ? … : …`, `step.status === "current"`) are exempt: they are the
    * signal, and they are mutually exclusive per row.
    */
   const UNCONDITIONAL_ALLOWLIST: Record<string, string> = {
     // Three renders of the SAME pill in mutually exclusive early-return
-    // branches (collapsed / expanded / mobile) — never simultaneous.
+    // branches (collapsed / expanded / mobile): never simultaneous.
     "src/components/admin/AdminReadingModeControl.tsx": "mutually exclusive render branches",
   };
 

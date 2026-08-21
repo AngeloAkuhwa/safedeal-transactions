@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
-    // OTP verified — mark used
+    // OTP verified: mark used
     await admin
       .from("phone_otp_codes")
       .update({ verified_at: new Date().toISOString() })
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       .eq("transaction_id", tx.id)
       .maybeSingle();
     // FAIL CLOSED. The lock trigger no longer fabricates delivery terms, so a
-    // missing verification window is a real unknown — inventing 72h here would
+    // missing verification window is a real unknown. Inventing 72h here would
     // hand the buyer a release deadline nobody agreed to and then notify both
     // parties about it. Refuse; the transaction is already flagged for review.
     const rawWindow = terms?.verification_window_hours;
@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
           await walk("seller_dispatched", "seller_preparing_delivery", "Auto: rider OTP confirmation");
         }
 
-        // Final transition to delivered — optimistic lock on the expected current state.
+        // Final transition to delivered: optimistic lock on the expected current state.
         const verificationDeadline = new Date(Date.now() + verificationWindowHours! * 60 * 60 * 1000).toISOString();
         const { data: finalUpdated, error: finalErr } = await admin
           .from("transactions")
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         }
 
         if (!finalUpdated) {
-          // Zero rows updated — someone else moved the transaction concurrently.
+          // Zero rows updated: someone else moved the transaction concurrently.
           // Treat as idempotent rather than force-writing the status.
           console.warn("delivery-token-confirm: concurrent state change, skipping force-write", { transaction_id: tx.id });
           return jsonResponse({

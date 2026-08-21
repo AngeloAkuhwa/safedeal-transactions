@@ -58,7 +58,7 @@ describe("share-meta content", () => {
       verified: true,
       imageUrl: "https://res.cloudinary.com/x/a.jpg",
     });
-    expect(meta.title).toBe("Chioma's Store on SafeDeal — Verified Vendor");
+    expect(meta.title).toBe("Chioma's Store on SafeDeal: Verified Vendor");
     expect(meta.canonicalUrl).toBe("https://trust-link-secure.lovable.app/store/chioma");
     expect(meta.image).toBe("https://res.cloudinary.com/x/a.jpg");
   });
@@ -72,7 +72,7 @@ describe("share-meta content", () => {
       storeSlug: "chioma",
       productSlug: "iphone-13",
     });
-    expect(meta.title).toBe("iPhone 13 — ₦450,000 · Protected by SafeDeal");
+    expect(meta.title).toBe("iPhone 13: ₦450,000 · Protected by SafeDeal");
     expect(meta.canonicalUrl).toBe(
       "https://trust-link-secure.lovable.app/store/chioma/iphone-13",
     );
@@ -87,7 +87,7 @@ describe("share-meta content", () => {
 
   it("generic meta (unknown/private slug path) is a complete OG document", () => {
     const html = renderShareHtml(GENERIC_META);
-    expect(html).toContain('<meta property="og:title" content="SafeDeal — Protected Deals"');
+    expect(html).toContain('<meta property="og:title" content="SafeDeal: Protected Deals"');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
     expect(html).toContain(`content="${DEFAULT_OG_IMAGE}"`);
     expect(html).toContain('<meta http-equiv="refresh" content="0;url=https://trust-link-secure.lovable.app/"');

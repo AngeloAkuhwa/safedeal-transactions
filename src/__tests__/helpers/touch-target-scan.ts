@@ -61,7 +61,7 @@ const COMPONENT_DEFAULT_PX: Record<string, number | null> = {
   AlertDialogCancel: 44,
   InputOTPSlot: 44,
   BreadcrumbLink: 44,
-  // Wrappers with no box of their own — they inherit whatever the child is.
+  // Wrappers with no box of their own. They inherit whatever the child is.
   DropdownMenuTrigger: null,
   PopoverTrigger: null,
   TooltipTrigger: null,
@@ -296,7 +296,7 @@ export function evalExpr(raw: string, consts: Consts = new Map(), depth = 0): st
     return ["", ...guarded];
   }
 
-  // string concatenation — joined with NO separator, exactly like the runtime
+  // string concatenation: joined with NO separator, exactly like the runtime
   const plus = topLevelIndexes(s, "+");
   if (plus.length) {
     const parts = splitTop(s, "+");
@@ -466,7 +466,7 @@ export function classNamesOf(tagText: string): string[] {
 
 function unit(token: string): number | null {
   if (token === "px") return 1;
-  // `full`/`auto`/`screen` are not a measurement — the box depends on content
+  // `full`/`auto`/`screen` are not a measurement: the box depends on content
   // or on an ancestor. Unknown, not "infinitely large".
   if (token === "full" || token === "auto" || token === "screen" || token === "fit" || token === "min" || token === "max") {
     return null;
@@ -515,7 +515,7 @@ function pick(classes: string[], prefix: string): number | null {
 /**
  * True when the tag declares a utility for `prefix` whose value is not a
  * measurement (`h-auto`, `h-full`, `w-fit`, …). The box then depends on
- * content, so a primitive/variant default must NOT be substituted — that is
+ * content, so a primitive/variant default must NOT be substituted. That is
  * what let `h-auto p-0` on a `size="sm"` Button score 44px.
  */
 function declaresUnmeasurable(classes: string[], prefix: string): boolean {
@@ -605,7 +605,7 @@ export function contentWidthPx(body: string): number | null {
     const raw = String(expr);
     // A nested JSX element inside the expression is an icon or child element,
     // never label text. Its attribute values must not be harvested as visible
-    // characters — `{cond && <Lock className="h-2.5 w-2.5" />}` used to
+    // characters: `{cond && <Lock className="h-2.5 w-2.5" />}` used to
     // contribute 11 characters of phantom width and hide a 26px control.
     const hasJsx = /<[A-Za-z]/.test(raw);
     const withoutJsx = raw.replace(/<[^>]*>/g, "");
@@ -633,12 +633,12 @@ export function contentWidthPx(body: string): number | null {
  * `after:absolute after:inset-0` stretches the control over its *positioned*
  * ancestor (the card/row), so the real hit area is that box, not the text line.
  *
- * NOTE — honest limitation: this file scans one tag at a time, so the ancestor
+ * NOTE: honest limitation: this file scans one tag at a time, so the ancestor
  * box is never measured. The credit below is a marker-based exemption, not a
  * measurement: it asserts "this control is stretched over something", not
  * "that something is >= 44px". What it *does* verify structurally is that the
  * element is genuinely focusable/interactive (a link, a button, or an element
- * carrying an interactive role) — an `after:inset-0` on a decorative `<div>`
+ * carrying an interactive role): an `after:inset-0` on a decorative `<div>`
  * is not credited.
  */
 function isStretched(tagText: string, tag: string, classes: string[]): boolean {
@@ -742,7 +742,7 @@ function measureClasses(tagText: string, tag: string, classes: string[], body: s
   }
   if (width === null && widthIsContent && (px ?? 0) === 0) width = contentWidthPx(body);
   // An inline-level control with no declared width and no horizontal padding is
-  // sized by its content — that is measurable, and leaving it `null` (a pass)
+  // sized by its content: that is measurable, and leaving it `null` (a pass)
   // is what hid every short-label button behind `min-h-11`. Block-level and
   // flex-child elements genuinely fill their parent, so those stay unknown.
   if (width === null && px === null && !has(classes, "absolute") && !has(classes, "fixed")) {
@@ -891,7 +891,7 @@ export function scanSource(rawSource: string, file: string): Violation[] {
 }
 
 /* ------------------------------------------------------------------ */
-/* rule 2 — keyboard operability                                        */
+/* rule 2: keyboard operability                                        */
 /* ------------------------------------------------------------------ */
 
 /** Tags that are focusable and key-activatable by the platform. */
@@ -981,7 +981,7 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
     if (ownAttrIndex(text, "onClick=") === -1) continue;
     // NOTE: `aria-hidden` is deliberately NOT an exemption here. A *clickable*
     // aria-hidden element is a worse defect than a clickable div, not an
-    // exempt one — the earlier presence-only skip let real controls hide.
+    // exempt one: the earlier presence-only skip let real controls hide.
     if (hasStretchedControl(subtree(rawSource, tag, index))) continue;
     const missing: string[] = [];
     const role = attrValue(text, "role");
@@ -1019,7 +1019,7 @@ export function scanKeyboardSource(rawSource: string, file: string): Violation[]
 }
 
 /* ------------------------------------------------------------------ */
-/* rule 3 — legibility floor                                            */
+/* rule 3: legibility floor                                            */
 /* ------------------------------------------------------------------ */
 
 function toPx(value: number, unitName: string): number {
@@ -1046,7 +1046,7 @@ export function scanFontSource(rawSource: string, file: string, exempt: Set<stri
     for (const m of line.matchAll(/text-\[(\d+(?:\.\d+)?)(px|rem|pt|em)\]/g)) {
       const px = toPx(Number(m[1]), m[2]);
       if (px < MIN_FONT_PX) push(i + 1, `font ${px}px below the ${MIN_FONT_PX}px floor`, line);
-      else if (m[0] === "text-xs" || px === MIN_FONT_PX) push(i + 1, `${m[0]} duplicates the \`text-xs\` token — use \`text-xs\``, line);
+      else if (m[0] === "text-xs" || px === MIN_FONT_PX) push(i + 1, `${m[0]} duplicates the \`text-xs\` token: use \`text-xs\``, line);
     }
     for (const m of line.matchAll(/fontSize(?::\s*|=\{)(?:"|')?(\d+(?:\.\d+)?)(px|rem|pt|em)?(?:"|')?/g)) {
       const px = toPx(Number(m[1]), m[2] ?? "px");

@@ -88,7 +88,7 @@ export function SellerOnboardingChecklist({ onboarding }: Props) {
 
       <div className="mt-4 text-center">
         {/* A standalone call to action on its own line, not a link inside a
-            sentence — it was 15px tall. `inline-flex` + `min-h-11` gives it a
+            sentence: it was 15px tall. `inline-flex` + `min-h-11` gives it a
             real target; the centring is unchanged. */}
         <Link
           to="/#how-it-works"

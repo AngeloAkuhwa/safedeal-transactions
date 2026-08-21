@@ -91,7 +91,7 @@ export function ExtendAccessDialog({ user, open, onOpenChange, onConfirm }: Prop
             <p className="text-muted-foreground">Current expiry</p>
             <p className="mt-0.5 font-medium text-foreground">
               {currentExpiry
-                ? `${currentExpiry.toLocaleString()}${isExpired ? " — expired" : ""}`
+                ? `${currentExpiry.toLocaleString()}${isExpired ? " (expired)" : ""}`
                 : "No expiration set"}
             </p>
           </div>

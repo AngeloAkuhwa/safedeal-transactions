@@ -2,12 +2,12 @@
  * Centralized dispute display derivation.
  *
  * After a dispute is resolved, the visible status everywhere in the UI must
- * be derived from `dispute_outcomes` + `money_status` + escrow state — never
+ * be derived from `dispute_outcomes` + `money_status` + escrow state: never
  * from the raw `disputes.status` or the legacy "In Dispute" badge.
  *
  * SafeDeal central release model: seller-favor outcomes ALWAYS land in
  * `funds_pending_release` and are payed out by the central admin release
- * workflow — never directly from dispute resolution.
+ * workflow: never directly from dispute resolution.
  */
 
 export type DisputeOutcomeType =
@@ -37,7 +37,7 @@ export interface DisputeDisplayResult {
   tone: DisputeDisplayTone;
   /** Money status the UI should reflect for this resolved dispute. */
   moneyStatus: string | null;
-  /** Populated for partial outcomes — shows the refund + release split. */
+  /** Populated for partial outcomes: shows the refund + release split. */
   parts?: DisputeDisplayPart[];
   /**
    * True when the dispute is resolved. Callers should use this to suppress
@@ -58,7 +58,7 @@ export interface DeriveDisputeDisplayInput {
 
 /**
  * Derive the visible dispute display status. Returns `null` for unresolved
- * disputes — callers should fall back to their existing dispute-status badge.
+ * disputes: callers should fall back to their existing dispute-status badge.
  */
 export function deriveDisputeDisplay(
   input: DeriveDisputeDisplayInput,
@@ -70,7 +70,7 @@ export function deriveDisputeDisplay(
   const frozen = Number(escrow?.frozenAmount ?? 0);
   const held = Number(escrow?.heldAmount ?? 0);
 
-  // No outcome row but dispute is resolved — fall back to money state.
+  // No outcome row but dispute is resolved. Fall back to money state.
   const otype = (outcome?.outcome_type ?? "") as DisputeOutcomeType;
 
   switch (otype) {
@@ -131,7 +131,7 @@ export function deriveDisputeDisplay(
     }
 
     default:
-      // Unknown outcome — derive from money status only.
+      // Unknown outcome: derive from money status only.
       if (ms === "refund_pending") {
         return { label: "Refund Pending", tone: "warning", moneyStatus: ms, resolved: true };
       }

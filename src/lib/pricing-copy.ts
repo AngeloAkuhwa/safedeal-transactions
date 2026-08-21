@@ -68,11 +68,11 @@ export function buildPublicPricingCopy(
       `SafeDeal charges ${headline} per completed deal, capped at ${capText}. ` +
       `The payment provider's processing fee is charged on top, and the combined ` +
       `Total Service Fee never exceeds ${ceilingText}.`,
-    perDealLine: `${headline} per completed deal — capped at ${capText}`,
+    perDealLine: `${headline} per completed deal: capped at ${capText}`,
     refundLine: REFUND_SENTENCE,
     metaDescription:
       `SafeDeal is free to start: open a store, list products and get paid safely. ` +
-      `We only earn when you get paid safely — ${headline} per completed deal, capped at ${capText}.`,
+      `We only earn when you get paid safely. ${headline} per completed deal, capped at ${capText}.`,
     photoSlotsAddon: {
       price: formatNaira(sachets.photo_slots.amount_naira),
       label: `+${sachets.photo_slots.slots} photo slots`,

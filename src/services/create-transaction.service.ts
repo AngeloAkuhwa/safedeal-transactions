@@ -10,7 +10,7 @@ export interface DraftTransaction {
   item_title: string;
   item_description: string;
   item_quantity: number;
-  /** Null when the seller never recorded it — never fabricated server-side. */
+  /** Null when the seller never recorded it. Never fabricated server-side. */
   item_condition: string | null;
   price: number | null;
   currency_code: string | null;
@@ -201,7 +201,7 @@ export async function uploadProductFile(
   // These were part of the signed payload, so they must be sent verbatim.
   if (allowed_formats) formDataUpload.append("allowed_formats", allowed_formats);
   if (max_file_size) formDataUpload.append("max_file_size", max_file_size);
-  // Master cap (c_limit,w_2000,h_2000,q_auto:good) — signed, so send verbatim.
+  // Master cap (c_limit,w_2000,h_2000,q_auto:good). Signed, so send verbatim.
   if (transformation) formDataUpload.append("transformation", transformation);
 
   const cloudinaryResult = await new Promise<any>((resolve, reject) => {

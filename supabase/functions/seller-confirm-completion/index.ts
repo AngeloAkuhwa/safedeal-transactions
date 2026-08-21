@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
     if (!updated) {
       // Either already confirmed by a concurrent request, or money state moved.
       // Verify the prior call left a release_review_queue row. If not, the
-      // first call crashed mid-side-effects — self-heal by reporting back so
+      // first call crashed mid-side-effects. Self-heal by reporting back so
       // the caller can retry, rather than silently swallowing a failure.
       const { data: queueRow } = await admin
         .from("release_review_queue")
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // No queue row — the previous attempt did not finish. Re-read the
+      // No queue row: the previous attempt did not finish. Re-read the
       // transaction so we know which side-effect branch to run, then fall
       // through to the safeguards below.
       const { data: refreshed } = await admin
@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ already_confirmed: true, success: true });
       }
       // Continue to the side-effect block below using the existing tx ref.
-      // (tx is still in scope — refresh just confirms the current money state.)
+      // (tx is still in scope: refresh just confirms the current money state.)
     }
 
     // Audit + history (best-effort, parallel)
@@ -377,7 +377,7 @@ Deno.serve(async (req) => {
     }
 
     await Promise.all([
-      // Commitment only — never a debit. Guarded + idempotent on the confirmation id.
+      // Commitment only: never a debit. Guarded + idempotent on the confirmation id.
       admin.rpc("record_completion_release_intent_atomic", {
         p_transaction_id: transactionId,
         p_actor: userId,

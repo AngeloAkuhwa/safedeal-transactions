@@ -5,7 +5,7 @@ import { computePricing } from "@/lib/pricing";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
-describe("B1 — completion card links to a real surface", () => {
+describe("B1: completion card links to a real surface", () => {
   const card = read("src/components/seller/SellerConfirmCompletionCard.tsx");
   const app = read("src/App.tsx");
 
@@ -20,7 +20,7 @@ describe("B1 — completion card links to a real surface", () => {
   });
 });
 
-describe("F5 — seller net uses the canonical platform fee", () => {
+describe("F5: seller net uses the canonical platform fee", () => {
   const page = read("src/pages/SellerCreateTransaction.tsx");
 
   it("success screen no longer subtracts the buyer-borne Paystack fee", () => {

@@ -52,7 +52,7 @@ export function checkRoleStageAllowed(
     if (op === "revoke" && SUPER_ADMIN_MANDATORY.has(permissionKey)) {
       if ((ctx.activeSuperAdminCount ?? 0) <= 1) {
         return { ok: false, blocked: true,
-          message: "Last active Super Admin — critical administrative access cannot be reduced." };
+          message: "Last active Super Admin: critical administrative access cannot be reduced." };
       }
       return { ok: false, blocked: true,
         message: "This permission is mandatory for Super Admin and cannot be removed." };
@@ -62,7 +62,7 @@ export function checkRoleStageAllowed(
   // Auditor: read-only. Only view / view_assigned / export are allowed.
   if (role === "auditor" && op === "grant" && AUDITOR_WRITE_ACTION.test(permissionKey)) {
     return { ok: false, blocked: true,
-      message: "Auditor must remain read-only — write-scope permissions cannot be granted." };
+      message: "Auditor must remain read-only: write-scope permissions cannot be granted." };
   }
 
   // Finance separation of duties.

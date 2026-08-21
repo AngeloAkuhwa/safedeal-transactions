@@ -457,7 +457,7 @@ Deno.serve(async (req) => {
     items_tl.push({
       id: `ts-${r.changed_at}`, at: r.changed_at, type: "transaction_status",
       title: `Transaction: ${(r.new_status ?? "").replace(/_/g, " ")}`,
-      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? ` — ${r.reason}` : ""}` : (r.reason ?? ""),
+      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? `: ${r.reason}` : ""}` : (r.reason ?? ""),
       actorType: r.changed_by_user_id ? "user" : "system", actorName: null,
       severity: "info", icon: "truck",
     });
@@ -466,7 +466,7 @@ Deno.serve(async (req) => {
     items_tl.push({
       id: `ms-${r.changed_at}`, at: r.changed_at, type: "money_status",
       title: `Money: ${(r.new_status ?? "").replace(/_/g, " ")}`,
-      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? ` — ${r.reason}` : ""}` : (r.reason ?? ""),
+      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? `: ${r.reason}` : ""}` : (r.reason ?? ""),
       actorType: r.changed_by_user_id ? "user" : "system", actorName: null,
       severity: "info", icon: "lock",
     });

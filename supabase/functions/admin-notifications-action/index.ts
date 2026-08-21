@@ -1,5 +1,5 @@
 /**
- * Admin Notification Center — write actions: retry and broadcast.
+ * Admin Notification Center: write actions: retry and broadcast.
  * POST { action: "retry", delivery_id } | { action: "broadcast", title, message, priority, audience, channels[] }
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";

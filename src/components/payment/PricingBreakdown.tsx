@@ -2,7 +2,7 @@
  * Canonical buyer-facing pricing breakdown. Renders the 5 lines defined in
  * `BUYER_PRICING_ORDER`. Missing values render as `—` (never fake ₦0.00).
  *
- * Forbidden labels — see `FORBIDDEN_PRICING_LABELS` in payment-labels.ts —
+ * Forbidden labels: see `FORBIDDEN_PRICING_LABELS` in payment-labels.ts —
  * MUST NEVER appear; do not add Delivery Fee / Shipping Fee / Platform
  * Processing Fee / Protection & Processing Fee / USD / $.
  */

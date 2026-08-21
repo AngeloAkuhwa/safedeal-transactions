@@ -151,7 +151,7 @@ const SellerTransactionDetail = () => {
       const msg = (e?.message ?? "").toString();
       let friendly = msg || "Could not cancel transaction";
       if (msg.includes("state_conflict")) {
-        friendly = "This transaction changed state — please refresh.";
+        friendly = "This transaction changed state: please refresh.";
       } else if (msg.includes("money_not_safe")) {
         friendly = "Payment is already in progress and cannot be cancelled here.";
       } else if (msg.includes("not_cancellable")) {
@@ -338,7 +338,7 @@ const SellerTransactionDetail = () => {
           />
         )}
 
-        {/* Rider confirmation link — visible while preparing/dispatched and a token exists */}
+        {/* Rider confirmation link: visible while preparing/dispatched and a token exists */}
         {rider_link && ["seller_preparing_delivery", "seller_dispatched"].includes(tx.status) && (
           <div id="rider" className="scroll-mt-24">
             <RiderLinkCard

@@ -260,7 +260,7 @@ const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
 /**
  * Realtime tables watched by the transactions monitor.
  * Each entry carries a server-side `filter` so Postgres only forwards rows
- * that are actually actionable in the admin view — routine happy-path status
+ * that are actually actionable in the admin view. Routine happy-path status
  * flips (payment_secured → seller_preparing_delivery, etc.) never touch the
  * browser at platform scale. Audit item #12.
  */

@@ -31,7 +31,7 @@ function Panel({ title, subtitle, children, className }: { title: string; subtit
 }
 
 export function EscrowCharts({ trends }: { trends: EscrowTrends }) {
-  // Same ladder as the KPI tiles above — one formatter, one currency source.
+  // Same ladder as the KPI tiles above. One formatter, one currency source.
   const fmtMoney = (n: number) => formatMoneyCompactOrDash(n, trends.currency_code);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">

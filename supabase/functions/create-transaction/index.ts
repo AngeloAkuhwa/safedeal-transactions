@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SAVE DRAFT — preserved for backward compatibility (single-item wizard draft).
+// SAVE DRAFT: preserved for backward compatibility (single-item wizard draft).
 // Multi-item items are kept in the wizard and serialized at publish time.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleSaveDraft(adminClient: any, userId: string, body: any) {
@@ -85,7 +85,7 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   const itemTitle = (body.item_title as string) ?? "";
   const itemDescription = (body.item_description as string) ?? "";
   const itemQuantity = (body.item_quantity as number) ?? 1;
-  // A DRAFT records what the seller has entered so far — nothing more. Every
+  // A DRAFT records what the seller has entered so far. Nothing more. Every
   // unset field stays unset: a fabricated condition / currency / delivery
   // method / window is later read back by `handlePublish` as if the seller had
   // chosen it, which is exactly how the fail-closed publish guard was bypassed.
@@ -160,7 +160,7 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   const pricing = canPrice ? computePricing(price!, currencyCode!, "local", vendorConfig) : null;
   const snapshot = canPrice ? buildPricingSnapshot(price!, currencyCode!, vendorConfig) : null;
   // The seller's own entry wins; otherwise the configured window; otherwise
-  // NOTHING is written — publish will resolve it strictly and refuse if it
+  // NOTHING is written: publish will resolve it strictly and refuse if it
   // cannot. The draft path must never manufacture a commitment.
   const verificationWindowHours = verificationWindowHoursRaw
     ?? await resolveEffectiveTimeoutHours(userId, "buyer_verification_timeout");
@@ -280,7 +280,7 @@ function mapDeliveryToProduct(m: string | null | undefined): string | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLISH — creates products + offer + offer_items. NO transaction created.
+// PUBLISH: creates products + offer + offer_items. NO transaction created.
 //
 // Body shape (multi-item):
 //   {

@@ -16,12 +16,12 @@ const DISPUTE_PROMISE: { icon: LucideIcon; title: string; line: string }[] = [
   {
     icon: Scale,
     title: "Reviewed before any payout",
-    line: "While a dispute is open, the money stays in escrow — nothing is released.",
+    line: "While a dispute is open, the money stays in escrow. Nothing is released.",
   },
   {
     icon: ShieldAlert,
     title: "A real way out",
-    line: "Outcomes are refund, release, or partial resolution — recorded on the transaction.",
+    line: "Outcomes are refund, release, or partial resolution. Recorded on the transaction.",
   },
 ];
 

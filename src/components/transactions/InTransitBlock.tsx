@@ -64,7 +64,7 @@ function HandoffCodeBlock({ code, prompt }: { code: string; prompt: string }) {
 
 export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [], status }: InTransitBlockProps) {
   // Fail closed: with no recorded delivery terms we assert nothing about how
-  // the item moves — no courier tracking UI for what may be a meetup.
+  // the item moves: no courier tracking UI for what may be a meetup.
   const method = deliveryTerms?.delivery_method ?? null;
   const handoffCode = tracking?.signature_name ?? null;
   const heading = status === "delivered_awaiting_verification" ? "Delivery Summary" : "What's happening with your package";
@@ -163,7 +163,7 @@ export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [],
         </div>
       )}
 
-      {/* Rider OTP heads-up — applies to any in-transit method */}
+      {/* Rider OTP heads-up: applies to any in-transit method */}
       {(status === "seller_dispatched" || status === "seller_preparing_delivery") && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-foreground">
           <p className="font-semibold mb-1">If the rider asks for an OTP</p>

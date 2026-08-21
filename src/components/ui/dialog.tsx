@@ -33,7 +33,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
  * DialogContent is a CSS grid, and a grid item's default `min-width: auto`
  * means it will not shrink below its content's min-content width. So a dialog
  * on a 320px phone stayed 320px wide while its children laid out at 462px, and
- * the `overflow-hidden` on the panel quietly amputated the difference — no
+ * the `overflow-hidden` on the panel quietly amputated the difference. No
  * scrollbar, no visible symptom, just content that is not there. `truncate` on
  * a child could never engage, because the column it sat in refused to narrow.
  *

@@ -30,7 +30,7 @@ export interface DeliveryTermsCardProps {
 
 /**
  * Evidence rule per delivery method. Keys are the live `delivery_method_type`
- * enum members (courier / pickup / meetup / hand_delivery) — nothing else
+ * enum members (courier / pickup / meetup / hand_delivery): nothing else
  * exists in the database. The tracked-delivery case is decided by
  * `isTrackedDelivery` so this card and the trust registry can never disagree.
  */
@@ -158,7 +158,7 @@ export function DeliveryTermsCard({ terms, lockedAt, compact, className }: Deliv
         <div className="bg-muted/30 px-4 sm:px-5 py-2.5 border-t border-border">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Lock className="h-3 w-3" />
-            Locked on {format(new Date(lockedAt), "MMM d, yyyy 'at' h:mm a")} — terms cannot be changed.
+            Locked on {format(new Date(lockedAt), "MMM d, yyyy 'at' h:mm a")}: terms cannot be changed.
           </p>
         </div>
       )}

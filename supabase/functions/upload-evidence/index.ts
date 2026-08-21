@@ -242,9 +242,9 @@ async function registerFile(
     if (mediaCfg.serverVerificationEnabled) {
       const lookup = await fetchCloudinaryResource(resource_type, public_id);
       if (lookup.kind === "unavailable") {
-        // Fail closed, but tell the seller it is retry-able — never a silent loss.
+        // Fail closed, but tell the seller it is retry-able. Never a silent loss.
         return jsonResponse({
-          error: "We couldn't verify this upload just now. Please tap retry — your file was not lost.",
+          error: "We couldn't verify this upload just now. Please tap retry. Your file was not lost.",
           code: "verification_unavailable",
           retryable: true,
         }, 503);
@@ -382,7 +382,7 @@ async function registerFile(
 // Rate limit: the Admin API allows 500 requests/hour on the free tier and
 // 2,000/hour on paid plans. We spend exactly ONE call per registered product
 // file (not per byte, not per view), so 500/hr equals 500 product images per
-// hour platform-wide — comfortably above our per-seller cap of 50 uploads/hr.
+// hour platform-wide: comfortably above our per-seller cap of 50 uploads/hr.
 // If we ever approach it, `media.server_verification_enabled` degrades us to
 // client-reported metadata without a deploy. On 429 / timeout we fail CLOSED
 // with a retry-able 503 rather than admitting unverified media.

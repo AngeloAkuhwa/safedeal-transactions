@@ -6,7 +6,7 @@ export interface SellerTransactionDetailBuyer {
   phone: string;
   avatar_url: string | null;
   is_verified: boolean;
-  /** account_verifications.identity_verified — the only basis for a verification badge. */
+  /** account_verifications.identity_verified. The only basis for a verification badge. */
   identity_verified: boolean;
   email_verified: boolean;
   phone_verified: boolean;

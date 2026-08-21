@@ -87,7 +87,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
 
           return (
             <div key={r.user_id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-              {/* Card body — opens full detail page */}
+              {/* Card body: opens full detail page */}
               <div
                 role="button"
                 tabIndex={0}

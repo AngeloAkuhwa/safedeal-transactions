@@ -4,7 +4,7 @@
  * Two figures have repeatedly been conjured client-side when the real value
  * was missing:
  *
- *  - a verification window of `72` hours, which is AGREEMENT data — inventing
+ *  - a verification window of `72` hours, which is AGREEMENT data: inventing
  *    it showed buyer and seller different deadlines for the same transaction;
  *  - a currency of `"NGN"`, which is a money claim about someone else's order.
  *
@@ -22,7 +22,7 @@ function stripComments(src: string): string {
 }
 
 /**
- * `src/lib/format.ts` is no longer blanket-allowlisted — only the `Intl`
+ * `src/lib/format.ts` is no longer blanket-allowlisted. Only the `Intl`
  * constructions inside it are, because `new Intl.NumberFormat(..., { currency:
  * "NGN" })` is the one place a currency code legitimately appears as a literal.
  */
@@ -53,14 +53,14 @@ const WINDOW_DEFAULT =
 const WINDOW_PARAM_DEFAULT =
   /\b(?:verification_window_hours|verificationWindowHours|windowHours)\s*(?::\s*number\s*)?=\s*(\d+)\b/g;
 /**
- * A POSITIONAL window fallback — `loadEffectiveTimeoutHours(id, "…", 48)`.
+ * A POSITIONAL window fallback: `loadEffectiveTimeoutHours(id, "…", 48)`.
  * Neither rule above can see it, which is how `cart-checkout` persisted a
  * literal 48-hour verification window unnoticed.
  */
 const WINDOW_POSITIONAL =
   /\b(?:loadEffectiveTimeoutHours|resolveEffectiveTimeoutHours|getEffectiveTimeout|get_effective_timeout|loadAutoReleaseWindowHours)\s*\([^()]*,\s*["']?\d+["']?\s*\)/g;
 /**
- * A DELIVERY-ESTIMATE default — `estimated_delivery_days || "7"`, `days ?? 7`.
+ * A DELIVERY-ESTIMATE default: `estimated_delivery_days || "7"`, `days ?? 7`.
  * Not window-named, so the two rules above miss it, yet it invents a promise
  * about someone else's goods just as a window default does.
  */
@@ -82,7 +82,7 @@ const CURRENCY_DEFINITION_FILES = new Set([
 ]);
 
 /**
- * KNOWN DEBT — `"NGN"` defaults inside edge functions. `supabase/functions/`
+ * KNOWN DEBT: `"NGN"` defaults inside edge functions. `supabase/functions/`
  * was previously excluded from this rule entirely, which is how the edge
  * formatter kept its `currency = "NGN"` signature for fourteen rounds. Same
  * shrink-only ratchet as the front-end list.
@@ -128,7 +128,7 @@ const EDGE_CURRENCY_DEBT: string[] = [
 ];
 
 /**
- * KNOWN DEBT — pre-existing `"NGN"` defaults, recorded rather than hidden.
+ * KNOWN DEBT: pre-existing `"NGN"` defaults, recorded rather than hidden.
  * This list is a ratchet: entries may be REMOVED as files are fixed, never
  * added. A file listed here that no longer offends fails the test below, so
  * the list cannot rot.
@@ -161,7 +161,7 @@ const CURRENCY_DEBT = [
 ];
 
 /**
- * KNOWN DEBT — server-side `verification_window_hours ?? 72`. These persist a
+ * KNOWN DEBT: server-side `verification_window_hours ?? 72`. These persist a
  * platform default rather than narrating one to a user; they belong in
  * `system_settings`. Same ratchet rules as above.
  */
@@ -171,7 +171,7 @@ const WINDOW_DEBT = [
 ];
 
 /**
- * A positional currency argument — `formatMoney(x, "NGN")`. The `??`/`||`/`=`
+ * A positional currency argument: `formatMoney(x, "NGN")`. The `??`/`||`/`=`
  * regex above cannot see these, which is exactly how eight wrong-currency
  * escrow balances survived the previous pass.
  */
@@ -179,7 +179,7 @@ const CURRENCY_POSITIONAL =
   /\b(?:formatMoney(?:Compact|Delta|OrDash)?|computePricing|buildPricingSnapshot|toMinorUnits|fromMinorUnits)\s*\([^()]*["'`](?:NGN|USD|GBP|EUR)["'`]/g;
 
 /**
- * KNOWN DEBT — pre-existing positional `"NGN"` arguments. Shrink-only ratchet,
+ * KNOWN DEBT: pre-existing positional `"NGN"` arguments. Shrink-only ratchet,
  * same rules as the lists above.
  */
 const POSITIONAL_DEBT = [
@@ -302,8 +302,8 @@ describe("invented defaults", () => {
 /**
  * CURRENCY SYMBOL LOCK.
  *
- * Every rule above matches the ISO codes (`NGN|USD|GBP|EUR`). A glyph — `₦`,
- * `$`, `£`, `€` — is invisible to all of them, which is how two escrow
+ * Every rule above matches the ISO codes (`NGN|USD|GBP|EUR`). A glyph. `₦`,
+ * `$`, `£`, `€`: is invisible to all of them, which is how two escrow
  * components shipped their own `₦`-hardcoding compact formatters that
  * disagreed with each other on the same screen. A symbol asserts a currency
  * with no data behind it, exactly like a `"NGN"` default does.
@@ -320,7 +320,7 @@ const SYMBOL_DEFINITION_FILES = new Set([
 ]);
 
 /**
- * DEFERRED — pre-existing hardcoded currency symbols, found by the sweep that
+ * DEFERRED: pre-existing hardcoded currency symbols, found by the sweep that
  * introduced this rule and NOT fixed in this pass. Every entry is a
  * Naira-denominated filter band, input adornment, settings prefix or
  * NGN-only formatter helper; none can mis-render while the book is NGN-only.
@@ -347,7 +347,7 @@ const SYMBOL_DEBT: string[] = [
 ];
 
 /**
- * DEFERRED — edge-function glyphs. `supabase/functions/` was previously never
+ * DEFERRED: edge-function glyphs. `supabase/functions/` was previously never
  * scanned for symbols; this list records what that first scan found. Every
  * entry is NGN-denominated notification copy, a limit message or an
  * NGN-only formatter helper. Same shrink-only ratchet.
@@ -400,7 +400,7 @@ describe("hardcoded currency symbols", () => {
  * EXEMPTION STALENESS RATCHET.
  *
  * The debt lists are shrink-only, but the *definition* allowlists had no such
- * check — an entry there was permanent and invisible. That is precisely how
+ * check: an entry there was permanent and invisible. That is precisely how
  * `supabase/functions/_shared/format.ts` was added to `SYMBOL_DEFINITION_FILES`
  * and thereby escaped every currency rule at once.
  *
@@ -420,7 +420,7 @@ describe("exemption lists cannot rot", () => {
       }
       const src = stripIntlConstructions(stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8")));
       if (![...src.matchAll(CURRENCY_SYMBOL)].length) {
-        stale.push(`${rel}: no longer contains a currency glyph — drop the exemption`);
+        stale.push(`${rel}: no longer contains a currency glyph. Drop the exemption`);
       }
     }
     expect(stale).toEqual([]);
@@ -435,7 +435,7 @@ describe("exemption lists cannot rot", () => {
       }
       const src = stripIntlConstructions(stripComments(fs.readFileSync(path.join(ROOT, rel), "utf8")));
       if (![...src.matchAll(CURRENCY_DEFAULT)].length) {
-        stale.push(`${rel}: no longer names a currency literal — drop the exemption`);
+        stale.push(`${rel}: no longer names a currency literal. Drop the exemption`);
       }
     }
     expect(stale).toEqual([]);
@@ -464,7 +464,7 @@ describe("exemption lists cannot rot", () => {
  * admin release drawer could claim an agreement snapshot recorded ₦0.00.
  *
  * A missing amount must reach `formatMoneyOrDash` and render `—`, or block the
- * screen. Scope is the whole tree — edge functions compose receipts and
+ * screen. Scope is the whole tree. Edge functions compose receipts and
  * notification copy that a person reads.
  */
 const MONEY_NOUN =
@@ -482,7 +482,7 @@ const MONEY_ZERO_FALLBACK = new RegExp(
     // index result: `x.amount ?? 0`, `x?.amount ?? 0`, `(p as any)?.fee ?? 0`.
     String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
     // bare money-named identifier: `totalAmount ?? 0`, and one whose money
-    // noun starts at index 0 (`amountDue ?? 0`) — the old leading
+    // noun starts at index 0 (`amountDue ?? 0`): the old leading
     // `[A-Za-z_$]` forced the noun to start at index >= 1.
     String.raw`\b[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
     // bracket lookup on a money-named table: `LIMIT_BY_LEVEL[level] ?? 0`.
@@ -494,7 +494,7 @@ const MONEY_ZERO_FALLBACK = new RegExp(
 );
 
 /**
- * KNOWN DEBT — shrink-only ratchet, exactly like the currency lists. Entries
+ * KNOWN DEBT: shrink-only ratchet, exactly like the currency lists. Entries
  * may be REMOVED as files are fixed, never added; a listed file that no longer
  * offends fails the staleness assertion below.
  *
@@ -504,7 +504,7 @@ const MONEY_ZERO_FALLBACK = new RegExp(
  */
 /**
  * A COUNTER is not money. `total_count ?? 0`, `total_users ?? 0` and
- * `failed_payouts_count ?? 0` are honest zeroes — a row count that is absent
+ * `failed_payouts_count ?? 0` are honest zeroes: a row count that is absent
  * really is zero rows. Only explicitly count-shaped names are excused; a bare
  * `.total ?? 0` stays an offence, because it may well be a money total.
  */
@@ -621,7 +621,7 @@ describe("money never falls back to zero", () => {
 });
 
 /**
- * MONEY NEVER FAILS TO ZERO — WRAPPED FORM.
+ * MONEY NEVER FAILS TO ZERO: WRAPPED FORM.
  *
  * The rule above requires the money identifier to sit immediately next to
  * `??`/`||`, so `Number(x) || 0` and `num(row.fee) ?? 0` were invisible. That
@@ -632,12 +632,12 @@ describe("money never falls back to zero", () => {
 const MONEY_NAME = `(?:${MONEY_NOUN.slice(3, -1)}|net|Net|kobo|Kobo)`;
 const MONEY_ZERO_WRAPPED = new RegExp(
   [
-    // `const totalAmount = Number(x) || 0;` — money-named declaration.
+    // `const totalAmount = Number(x) || 0;`: money-named declaration.
     String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
-    // `amount: Number(x) ?? 0,` / `this.fee = num(x) || 0` — money-named
+    // `amount: Number(x) ?? 0,` / `this.fee = num(x) || 0`: money-named
     // object-literal property or assignment target.
     String.raw`\b[\w$.]*${MONEY_NAME}[\w$]*\s*[:=]\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
-    // `Number(pricingRow.platform_fee_amount) || 0` anywhere — call argument,
+    // `Number(pricingRow.platform_fee_amount) || 0` anywhere: call argument,
     // return expression, nested property. The money noun is inside the call.
     String.raw`\([^()\n]*${MONEY_NAME}[^()\n]*\)\s*(?:\?\?|\|\|)\s*0\b`,
   ].join("|"),
@@ -648,7 +648,7 @@ const MONEY_ZERO_WRAPPED = new RegExp(
  * Shrink-only ratchet. Entries may be removed, never added.
  *
  * The pattern was widened in this pass to cover object-literal values, call
- * arguments and return expressions — not only `const`/`let` declarations. The
+ * arguments and return expressions. Not only `const`/`let` declarations. The
  * 18 files appended below were always offending; the previous regex could not
  * see them. They are recorded rather than narrowed away.
  */
@@ -679,7 +679,7 @@ const MONEY_ZERO_WRAPPED_DEBT: string[] = [
 ];
 
 /**
- * Fixed in this pass and pinned clean under the WIDENED patterns — these two
+ * Fixed in this pass and pinned clean under the WIDENED patterns. These two
  * were invisible to the old rules and are now proven to carry no zero
  * fabrication at all.
  */
@@ -818,7 +818,7 @@ describe("cart checkout session currency", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The database is a writer too. Every rule above reads TypeScript, but triggers
-// and RPCs fabricate the same classes — `'courier'` enum defaults, `+ interval
+// and RPCs fabricate the same classes. `'courier'` enum defaults, `+ interval
 // '7 days'` estimates, hardcoded currency literals. Scanned over the migration
 // SQL, which is the authored source for every live `pg_proc` body.
 // Shrink-only ratchets: a listed file may stop offending, none may be added.
@@ -829,13 +829,13 @@ function stripSqlComments(src: string): string {
 
 /**
  * Seed fixtures are not covered by these rules, and the distinction is not a
- * loophole — it is the whole point of the rules.
+ * loophole: it is the whole point of the rules.
  *
  * What this file guards against is a migration inventing a fact that then
  * applies to data it does not own: `DEFAULT 'NGN'` on a column silently makes
  * a currency claim about every future row, including someone else's order.
  * A seed fixture does the opposite. It INSERTs rows it creates itself and
- * states their values explicitly — the literal `'NGN'` there is the fixture
+ * states their values explicitly: the literal `'NGN'` there is the fixture
  * saying what its own disposable product costs, which is exactly as
  * authoritative as a currency literal can be.
  *
@@ -846,7 +846,7 @@ function stripSqlComments(src: string): string {
  * The exemption is deliberately hard to abuse: a file has to declare itself
  * with an explicit marker AND contain no schema at all. The moment a
  * seed-marked file grows a CREATE, an ALTER, or a DEFAULT clause, it is
- * checked like anything else — so this cannot be used to smuggle in a real
+ * checked like anything else: so this cannot be used to smuggle in a real
  * invented default by writing one comment.
  */
 const SEED_FIXTURE_MARKER = /^[ \t]*--[ \t]*safedeal:seed-fixture\b/m;
@@ -909,7 +909,7 @@ const SQL_RULES: Array<{ name: string; pattern: RegExp; debt: string[] }> = [
         // COALESCE(_currency,'NGN') from create_orchestration_task.
         "supabase/migrations/20260814230108_938157fd-2f94-403b-853d-e67c253dd1d7.sql",
         // Historical migration text only. The live money primitives no longer
-        // COALESCE a currency — that is asserted against pg_proc in
+        // COALESCE a currency: that is asserted against pg_proc in
         // live-db.contract.test.ts, not against this file list.
         "supabase/migrations/20260814213332_f58f3b14-1766-40e2-82df-55ff5ae1123d.sql",
         "supabase/migrations/20260410185736_6fc7d507-0f0e-4a87-bd9e-7d9c903fc470.sql",

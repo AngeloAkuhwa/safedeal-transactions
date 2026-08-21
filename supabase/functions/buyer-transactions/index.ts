@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
     const sortBy = filters.sort_by || "created_at";
     const sortOrder = filters.sort_order || "desc";
 
-    // PHASE 1 — Status counts (partial-failure safe)
+    // PHASE 1: Status counts (partial-failure safe)
     let statusCounts = {
       all: 0,
       processing: 0,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       // counts default to zero
     }
 
-    // PHASE 2 — Filtered paginated list (FAILURE = real error)
+    // PHASE 2: Filtered paginated list (FAILURE = real error)
 
     // Pre-search: if search term provided, find matching transaction IDs from items and seller profiles
     let searchMatchedIds: string[] | null = null;
@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // PHASE 3 — Batch enrichment (partial-failure safe)
+    // PHASE 3: Batch enrichment (partial-failure safe)
     const txIds = txRows.map((t) => t.id as string);
     const sellerIds = [
       ...new Set(

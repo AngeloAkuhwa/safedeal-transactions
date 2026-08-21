@@ -339,7 +339,7 @@ function FeatureCard({
           </div>
         </div>
 
-        {/* Hero status chips — always visible (no sd-reveal opacity trap) */}
+        {/* Hero status chips: always visible (no sd-reveal opacity trap) */}
         {f.hero && f.chips && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {f.chips.map((c, i) => (
@@ -353,7 +353,7 @@ function FeatureCard({
           </div>
         )}
 
-        {/* Mini-flow — hero (dispute agent) only */}
+        {/* Mini-flow: hero (dispute agent) only */}
         {f.hero && f.steps && (
           <div className="mt-auto rounded-xl border border-border/70 bg-muted/30 p-1.5">
             <MiniFlow steps={f.steps} step={step} shouldPlay={shouldPlay} tone={t} />
@@ -366,7 +366,7 @@ function FeatureCard({
 
 /**
  * Small wrapper that applies a one-shot fade-up reveal and is GUARANTEED to
- * end visible — uses the project's useScrollReveal hook, which falls back to
+ * end visible: uses the project's useScrollReveal hook, which falls back to
  * immediately visible when IO/reduced-motion is unavailable.
  */
 function ChipReveal({ children, delay }: { children: React.ReactNode; delay: number }) {
@@ -500,7 +500,7 @@ export function PowerfulFeaturesSection() {
           </p>
         </div>
 
-        {/* Mobile — hero feature showcased full-width, the rest swipeable */}
+        {/* Mobile: hero feature showcased full-width, the rest swipeable */}
         <div ref={setGridRefs} className="sm:hidden">
           {FEATURES.filter((f) => f.hero).map((f) => (
             <div key={`m-${f.title}`} className="mb-4">
@@ -525,7 +525,7 @@ export function PowerfulFeaturesSection() {
           </SnapCarousel>
         </div>
 
-        {/* Desktop — even rows of ordinary cards, hero deliberately spans the full row */}
+        {/* Desktop: even rows of ordinary cards, hero deliberately spans the full row */}
         <div className="hidden gap-3 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3.5 lg:grid-cols-4">
           {FEATURES.map((f, i) => (
             <FeatureCard

@@ -95,7 +95,7 @@ export async function logAdminAction(
         action: input.action,
         actor_user_id: input.actorId,
         transaction_id: input.transactionId ?? null,
-        description: `admin:${input.action}${input.reason ? ` — ${String(input.reason).slice(0, 240)}` : ""}`,
+        description: `admin:${input.action}${input.reason ? `: ${String(input.reason).slice(0, 240)}` : ""}`,
         metadata: notesPayload,
       });
       if (mirrorErr) console.warn("[logAdminAction] mirror to audit_logs failed:", mirrorErr.message);

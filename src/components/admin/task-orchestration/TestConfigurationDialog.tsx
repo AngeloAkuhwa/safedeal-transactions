@@ -27,7 +27,7 @@ export function TestConfigurationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Test Configuration — dry run</DialogTitle>
+          <DialogTitle>Test Configuration (dry run)</DialogTitle>
           <DialogDescription>Simulation only. Nothing was assigned or modified.</DialogDescription>
         </DialogHeader>
 

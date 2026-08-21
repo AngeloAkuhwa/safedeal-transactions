@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const win = winRaw === "30D" ? "30D" : winRaw === "90D" ? "90D" : "7D";
     const days = win === "7D" ? 7 : win === "30D" ? 30 : 90;
 
-    // SQL-side date bucketing (P1 scalability fix — replaces .limit(50000) scans).
+    // SQL-side date bucketing (P1 scalability fix. Replaces .limit(50000) scans).
     const { data: rows, error: rpcErr } = await client.rpc("admin_daily_activity_counts", { _days: days });
     if (rpcErr) return jsonResp({ error: `Trend query failed: ${rpcErr.message}` }, 500);
     const points = ((rows ?? []) as Array<{ bucket_date: string; tx_count: number; dispute_count: number }>)

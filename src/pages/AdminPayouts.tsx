@@ -34,7 +34,7 @@ export default function AdminPayouts() {
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all"
   );
   const [search, setSearch] = useState("");
-  // Debounced mirror of `search` — the loader depends on this so typing costs
+  // Debounced mirror of `search`: the loader depends on this so typing costs
   // one request instead of one per keystroke.
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);

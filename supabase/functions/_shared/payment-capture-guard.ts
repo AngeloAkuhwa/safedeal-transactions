@@ -76,7 +76,7 @@ export function verifyChargeAgainstSnapshot(
 /**
  * Reference binding: the Paystack reference that was actually verified is the
  * only source of truth for locating the payment row. A client-supplied
- * reference is advisory — if it points at a different payment, refuse.
+ * reference is advisory: if it points at a different payment, refuse.
  */
 export function checkReferenceBinding(
   verifiedPaymentId: string | null | undefined,

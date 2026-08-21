@@ -230,7 +230,7 @@ export default function BuyerTransactionReview() {
         </div>
       </section>
 
-      {/* Transaction header — driven by live money_status / agreement_locked_at */}
+      {/* Transaction header: driven by live money_status / agreement_locked_at */}
       {(() => {
         const ms = data.transaction.money_status;
         const locked = !!data.transaction.agreement_locked_at;
@@ -286,7 +286,7 @@ export default function BuyerTransactionReview() {
         );
       })()}
 
-      {/* Money state preview — driven by live state */}
+      {/* Money state preview: driven by live state */}
       {(() => {
         const ms = data.transaction.money_status;
         const locked = !!data.transaction.agreement_locked_at;
@@ -328,7 +328,7 @@ export default function BuyerTransactionReview() {
         );
       })()}
 
-      {/* Lock state — green confirmation when locked, red warning when not */}
+      {/* Lock state: green confirmation when locked, red warning when not */}
       {data.transaction.agreement_locked_at ? (
         <section className="bg-success/5 py-3 sm:py-6">
           <div className="max-w-7xl mx-auto px-4">
@@ -694,7 +694,7 @@ function ItemDetailsCard({ data }: { data: ReviewData }) {
         <p className="text-muted-foreground leading-relaxed">{item.description}</p>
       </div>
 
-      {/* Media gallery — reuses the shared component (handles videos + lightbox) */}
+      {/* Media gallery: reuses the shared component (handles videos + lightbox) */}
       {data.media && data.media.length > 0 && (
         <div className="p-6 bg-muted">
           <ProductMediaGallery
@@ -878,7 +878,7 @@ function FraudWarningCard() {
   return (
     /* Neutral, not alarming. This panel sits directly above the pay button on
        every single transaction, so a solid destructive fill with a 4px border
-       shouted danger at the exact moment nothing is wrong — the buyer is about
+       shouted danger at the exact moment nothing is wrong. The buyer is about
        to do the safe thing. Red that fires unconditionally stops being read.
        The advice is unchanged; it is now stated calmly, and the destructive
        colour is kept in reserve for states that genuinely are destructive. */
@@ -1047,7 +1047,7 @@ function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate
 }
 
 function ProtectionFeaturesCard({ data }: { data: ReviewData }) {
-  // The verification window is agreement data. Absent means unknown — never
+  // The verification window is agreement data. Absent means unknown. Never
   // narrate an invented duration to the buyer.
   const window = data.delivery?.verification_window_hours ?? null;
   return (

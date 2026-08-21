@@ -1,5 +1,5 @@
 /**
- * Admin Escrow Detail — read-only deep view of one transaction's escrow record.
+ * Admin Escrow Detail: read-only deep view of one transaction's escrow record.
  * GET ?tx=<transaction_id>
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";

@@ -13,7 +13,7 @@ export interface AalState {
 
 /**
  * Read-only assurance-level awareness. Nothing in the app blocks on this in
- * the current release — it drives UI hints and the enrolment prompt only.
+ * the current release: it drives UI hints and the enrolment prompt only.
  */
 export function useAal(): AalState {
   const [state, setState] = useState<Omit<AalState, "refresh">>({

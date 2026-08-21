@@ -51,8 +51,8 @@ export function VerifyReceiptCTA({ transactionId, deadlineAt, deliveredAt }: Ver
         </div>
 
         <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs text-muted-foreground">
-          <p><span className="font-semibold text-success">Confirm</span> — records that you received the item and starts the payout process for the seller.</p>
-          <p><span className="font-semibold text-destructive">Dispute</span> — freezes funds and opens a case with SafeDeal support.</p>
+          <p><span className="font-semibold text-success">Confirm</span>: records that you received the item and starts the payout process for the seller.</p>
+          <p><span className="font-semibold text-destructive">Dispute</span>: freezes funds and opens a case with SafeDeal support.</p>
         </div>
       </div>
     </div>

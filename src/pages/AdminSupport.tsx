@@ -50,7 +50,7 @@ const TOOLS = [
     icon: ScrollText,
     label: "Audit Logs",
     href: "/admin/audit-logs",
-    hint: "Who changed what, when, and why — start every investigation here.",
+    hint: "Who changed what, when, and why. Start every investigation here.",
   },
   {
     icon: Bell,
@@ -97,7 +97,7 @@ export default function AdminSupport() {
           vars.action === "reply"
             ? res.emailed
               ? "Reply emailed"
-              : "Reply saved (email not configured — contact the sender directly)"
+              : "Reply saved (email not configured. Contact the sender directly)"
             : "Message updated",
       });
       setActive(null);
@@ -335,7 +335,7 @@ export default function AdminSupport() {
             <DialogTitle>Reply to {active?.full_name}</DialogTitle>
             <DialogDescription>
               SafeDeal will try to email {active?.email}. The reply is always stored on the
-              message and audited — the confirmation after sending tells you whether the email
+              message and audited: the confirmation after sending tells you whether the email
               actually went out.
             </DialogDescription>
           </DialogHeader>

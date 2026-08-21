@@ -36,7 +36,7 @@ async function loadSettings(uid: string): Promise<AlertSettings> {
 }
 
 async function persistSettings(uid: string, s: AlertSettings) {
-  // Upsert against the user's row — the auth trigger creates it on signup but
+  // Upsert against the user's row: the auth trigger creates it on signup but
   // we defensively upsert so a missing row does not silently drop preferences.
   const { error } = await supabase
     .from("notification_preferences")

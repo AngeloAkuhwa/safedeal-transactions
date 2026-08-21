@@ -217,7 +217,7 @@ export default function Contact() {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Never send card details, your bank password, or a one-time code — not even to us.
+                  Never send card details, your bank password, or a one-time code. Not even to us.
                 </p>
 
                 <Button type="submit" disabled={sending} className="w-full sm:w-auto">
@@ -252,7 +252,7 @@ export default function Contact() {
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Open a dispute from the transaction itself instead of emailing. A dispute freezes
-                  the held funds while the case is reviewed — email does not. You will find the
+                  the held funds while the case is reviewed. Email does not. You will find the
                   option on the transaction while the money is still in escrow.
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">

@@ -45,7 +45,7 @@ export function InternalUsersTable({
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <ShieldAlert className="h-3 w-3 text-amber-400" />
-          Manage admin and agent permissions, roles, and access levels — changes are logged and require approval
+          Manage admin and agent permissions, roles, and access levels. Changes are logged and require approval
         </p>
       </div>
 

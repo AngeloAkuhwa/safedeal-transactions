@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/format";
 import type { RemediationReport, RemediationRow } from "@/services/admin-reconciliation.service";
 
 /**
- * Financial remediation report — current value vs calculated value vs
+ * Financial remediation report: current value vs calculated value vs
  * difference, with the cause and the recommended action for every finding.
  * Read-only: remediation is performed through the existing escrow tools so
  * every correction stays audited.

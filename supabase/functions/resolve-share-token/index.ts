@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       service_fee_amount: number | null;
       /**
        * The rate this buyer was ACTUALLY charged, observed from the snapshot
-       * (service fee / item amount). Never a live config rate — the snapshot
+       * (service fee / item amount). Never a live config rate. The snapshot
        * is the only evidence of what was agreed. Null when it cannot be
        * observed, which blocks the payment screen rather than inventing one.
        */
@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Who actually cancelled — derived from the recorded status-history actor.
+    // Who actually cancelled: derived from the recorded status-history actor.
     let cancelledByRole: "buyer" | "seller" | "system" | null = null;
     if (tx.status === "cancelled") {
       const { data: hist } = await supabase
@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
         created_at: tx.created_at,
         agreement_locked_at: tx.agreement_locked_at,
         cancelled_at: tx.cancelled_at ?? null,
-        // Real reason as recorded on the transaction — never inferred.
+        // Real reason as recorded on the transaction. Never inferred.
         cancellation_reason: tx.cancellation_reason ?? null,
         cancelled_by_role: cancelledByRole,
       },

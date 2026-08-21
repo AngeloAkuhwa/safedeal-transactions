@@ -12,7 +12,7 @@ import {
 } from "@/services/vendor-plan.service";
 import { usePublicPricing } from "@/hooks/usePublicPricing";
 
-const TITLE = "Pricing — Free forever, paid to grow | SafeDeal";
+const TITLE = "Pricing: Free forever, paid to grow | SafeDeal";
 
 const PLAN_ICONS: Record<string, typeof Shield> = {
   verified: Shield,
@@ -24,7 +24,7 @@ function planFeatures(plan: VendorPlan, baseRate: number, flatFee: number, baseL
   const feats = [
     `Showcase up to ${plan.photo_slots} product photos`,
     plan.escrow_fee_rate < baseRate
-      ? `Reduced escrow fee — ${(plan.escrow_fee_rate * 100).toFixed(1)}% + ${formatNaira(flatFee)} per completed deal`
+      ? `Reduced escrow fee: ${(plan.escrow_fee_rate * 100).toFixed(1)}% + ${formatNaira(flatFee)} per completed deal`
       : `Escrow fee ${baseLine}`,
     "Buyer-protected checkout and escrow",
     "Store page with your real verification status shown",
@@ -73,7 +73,7 @@ export default function Pricing() {
           </p>
         </header>
 
-        {/* Escrow fee — the one fee everyone pays */}
+        {/* Escrow fee: the one fee everyone pays */}
         <section className="mt-10 rounded-2xl border bg-card p-6 text-center shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             The only fee on every plan
@@ -82,7 +82,7 @@ export default function Pricing() {
             {copy.safedealFeeHeadline}
           </p>
           <p className="mt-2 text-base text-muted-foreground">
-            per completed deal — capped at {copy.safedealFeeCap}.
+            per completed deal: capped at {copy.safedealFeeCap}.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">{copy.feeDisclosure}</p>
           <p className="mt-2 text-sm text-muted-foreground">{copy.refundLine}</p>
@@ -95,7 +95,7 @@ export default function Pricing() {
         <section className="mt-10">
           <h2 className="text-xl font-semibold">Vendor plans</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Plans decide how many products you can showcase at once — and how much of each sale you keep.
+            Plans decide how many products you can showcase at once. And how much of each sale you keep.
           </p>
 
           {failed && (
@@ -139,7 +139,7 @@ export default function Pricing() {
                   {!isFree && plan.yearly_price_naira > 0 && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       or {formatNaira(plan.yearly_price_naira)}/year
-                      {free > 0 ? ` — ${free} month${free === 1 ? "" : "s"} free` : ""}
+                      {free > 0 ? `: ${free} month${free === 1 ? "" : "s"} free` : ""}
                     </p>
                   )}
 
@@ -200,7 +200,7 @@ export default function Pricing() {
         <section className="mt-12 rounded-2xl border bg-muted/30 p-6 text-center">
           <p className="text-base font-semibold">We only earn when you get paid safely.</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            No listing fees. No setup fees. Cancel a paid plan anytime — it simply runs to the end of
+            No listing fees. No setup fees. Cancel a paid plan anytime. It simply runs to the end of
             the period you paid for, then returns to the free Verified plan.
           </p>
           <Button asChild className="mt-5">

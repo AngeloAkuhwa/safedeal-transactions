@@ -108,7 +108,7 @@ describe("payout-watchdog function contract", () => {
     expect(fnSrc).toMatch(/scanned,[\s\S]*stuck: stuck\.length,[\s\S]*alerted/);
   });
 
-  it("is detection-only — never touches money_status or escrow state", () => {
+  it("is detection-only: never touches money_status or escrow state", () => {
     expect(fnSrc).not.toMatch(/money_status:/);
     expect(fnSrc).not.toMatch(/escrow_states/);
     expect(fnSrc).not.toMatch(/from\("transactions"\)\s*\.update/);

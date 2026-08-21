@@ -3,13 +3,13 @@
  *
  * The 102 role-enforcement probes in `admin-auth.contract.test.ts` ask the live
  * backend a runtime question: does an anonymous caller get 401? This file asks
- * the structural one that runtime probing is bad at — is there any path through
+ * the structural one that runtime probing is bad at. Is there any path through
  * the handler that produces a *considered* response before the caller has been
  * identified at all?
  *
  * Three functions had one. `admin-export-enqueue` parsed the body first so it
  * would know which export type to gate on, and in doing so replied
- * `unsupported_export_type` to callers it had never authenticated — sweep the
+ * `unsupported_export_type` to callers it had never authenticated. Sweep the
  * field and the set of supported values is the set that did NOT come back with
  * that error. `admin-dispute-transition` gave up `dispute_id_required`, then
  * `target_status_required`, then `reason_required`, walking an anonymous caller
@@ -27,7 +27,7 @@
  *   before the first `require*` call, a handler may return only
  *   401, 403, 405, or a CORS preflight.
  *
- * — which permits `await req.json().catch(() => ({}))` (parses early, answers
+ *: which permits `await req.json().catch(() => ({}))` (parses early, answers
  * nothing) and forbids `catch { return json(400) }` (answers). Parsing is not
  * the sin; replying is.
  */
@@ -50,12 +50,12 @@ const SERVICE_ROLE_ONLY = new Set(["admin-export-worker"]);
  *
  * `admin-agent-heartbeat` resolves the JWT itself with `auth.getUser` and
  * checks `is_internal_admin`. `admin-task-orchestration-action` has a scheduler
- * path that presents a shared secret in a header instead of a session — a
+ * path that presents a shared secret in a header instead of a session. A
  * caller holding `CRON_SECRET` is identified, just not as a person.
  *
  * The secret clause requires a COMPARISON, not a read. Matching
  * `headers.get("x-anything-secret")` alone would mean one unused line —
- * `const _ = req.headers.get("x-secret")` at the top of a handler — exempts
+ * `const _ = req.headers.get("x-secret")` at the top of a handler: exempts
  * that handler from this entire file, which is the shape anyone silencing a
  * failing test lands on first. `SUPABASE_SERVICE_ROLE_KEY` is likewise the
  * credential these functions use to reach the database, and says nothing about
@@ -76,7 +76,7 @@ const stripComments = (s: string) =>
 /**
  * The OPTIONS preflight answers before auth by design and carries no data.
  * Both the one-line and braced forms are in use here, and a correct preflight
- * may legitimately carry a 204 — so the block is removed rather than its
+ * may legitimately carry a 204: so the block is removed rather than its
  * status allowed, which would let a 204 through anywhere else too.
  */
 const stripPreflight = (s: string) =>
@@ -99,7 +99,7 @@ function adminFunctions(): string[] {
  * identified. Everything in this window runs for someone unknown.
  *
  * A `require*` that appears inside an arrow function is a definition, not a
- * call — `const gate = async () => requireAdmin(req)` at the top of a handler
+ * call: `const gate = async () => requireAdmin(req)` at the top of a handler
  * would otherwise close the window while the real check happens much later.
  * Lines where `=>` precedes the match are skipped for that reason.
  */
@@ -120,7 +120,7 @@ function preAuthWindow(src: string): string | null {
   };
 
   const candidates = [firstRealAuth(AUTH_CALL), firstRealAuth(INLINE_AUTH)].filter((i) => i >= 0);
-  // No identification anywhere in the handler is itself the failure — return
+  // No identification anywhere in the handler is itself the failure. Return
   // the whole body so the assertion below reports on it.
   if (!candidates.length) return body;
   return body.slice(0, Math.min(...candidates));
@@ -138,8 +138,8 @@ function preAuthWindow(src: string): string | null {
  *
  * So the rule is inverted. Instead of hunting for statuses that are forbidden,
  * every `return <something>` in the window must be recognisably one of the
- * permitted refusals. Anything else — any helper, any indirection, any status
- * this parser cannot read — is reported. That converts "I could not tell" from
+ * permitted refusals. Anything else. Any helper, any indirection, any status
+ * this parser cannot read: is reported. That converts "I could not tell" from
  * a silent pass into a failure, which is the correct default for a file whose
  * entire job is to notice something absent.
  */
@@ -186,7 +186,7 @@ describe("admin functions authenticate before they answer", () => {
       const body = code.slice(code.indexOf("Deno.serve("));
       expect(
         AUTH_CALL.test(body) || INLINE_AUTH.test(body),
-        `${fn} never resolves who is calling — every other guarantee here rests on this one`,
+        `${fn} never resolves who is calling. Every other guarantee here rests on this one`,
       ).toBe(true);
     });
 
@@ -200,7 +200,7 @@ describe("admin functions authenticate before they answer", () => {
           "Move the check above the reply: prove who is calling with requireAdmin, " +
           "then parse and validate. A body-dependent permission can still be " +
           "resolved afterwards by passing that context into requirePermission.\n" +
-          "If this return really is a refusal, give it a literal 401/403/405 — " +
+          "If this return really is a refusal, give it a literal 401/403/405: " +
           "a status this parser cannot read is reported rather than assumed safe.",
       ).toEqual([]);
     });

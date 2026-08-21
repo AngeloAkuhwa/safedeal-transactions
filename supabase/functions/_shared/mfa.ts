@@ -63,7 +63,7 @@ export function hashesEqual(a: string, b: string): boolean {
 export const RECOVERY_WINDOW_MINUTES = 15;
 export const RECOVERY_MAX_FAILURES = 5;
 
-/** Never receives or logs the submitted code — only the outcome. */
+/** Never receives or logs the submitted code, only the outcome. */
 export async function logMfaAttempt(
   admin: SupabaseClient,
   userId: string,

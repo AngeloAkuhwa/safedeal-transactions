@@ -42,7 +42,7 @@ export function ReleaseReviewBanner({ reason }: ReleaseReviewBannerProps) {
     );
   }
 
-  // pricing_missing or any other manual review state — no seller action needed.
+  // pricing_missing or any other manual review state. No seller action needed.
   return (
     <Card className="rounded-2xl border-l-4 border-primary bg-primary/5 p-5">
       <div className="flex items-start gap-4">

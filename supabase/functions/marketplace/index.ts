@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
           const existing = new Set((products || []).map((p: any) => p.id));
           const prepend = (featuredProducts || []).filter((p: any) => !existing.has(p.id));
           (products as any[]).unshift(...prepend);
-          // Keep the page size stable — featured items replace the tail.
+          // Keep the page size stable: featured items replace the tail.
           if (products!.length > pageSize) (products as any[]).length = pageSize;
         }
         // Re-order so featured items lead the page.
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
       }));
     }
 
-    // Shape response — public-safe data only
+    // Shape response: public-safe data only
     const shaped = filteredProducts.map((p: any) => {
       const primaryMedia = (p.product_media || []).find((m: any) => m.is_primary);
       const firstMedia = primaryMedia || (p.product_media || [])[0];

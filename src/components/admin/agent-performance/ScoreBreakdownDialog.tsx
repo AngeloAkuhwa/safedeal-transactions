@@ -5,7 +5,7 @@ import { agentName, type AgentPerformanceRow } from "@/services/agent-performanc
 
 /**
  * Read-only transparency view for a composite score. Scores are never editable
- * from this screen — the breakdown exists so a ranking can be challenged with
+ * from this screen: the breakdown exists so a ranking can be challenged with
  * evidence, not overridden.
  */
 export function ScoreBreakdownDialog({

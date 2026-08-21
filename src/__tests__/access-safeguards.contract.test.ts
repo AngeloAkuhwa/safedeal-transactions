@@ -6,10 +6,10 @@ import { AccessSafeguardError } from "@/services/admin-access-control.service";
  * rule a–h surfaces a typed error the UI can render inline.
  *
  * End-to-end rule tests live in the integration suite (guarded by admin
- * credentials) — these local assertions guarantee the error contract itself
+ * credentials): these local assertions guarantee the error contract itself
  * doesn't drift when the safeguard helpers are refactored.
  */
-describe("AccessSafeguardError contract — rules a–h", () => {
+describe("AccessSafeguardError contract: rules a–h", () => {
   const cases: Array<{
     rule: "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h";
     code: string;

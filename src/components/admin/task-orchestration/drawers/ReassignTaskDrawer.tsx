@@ -63,7 +63,7 @@ export function ReassignTaskDrawer({
               <SelectContent>
                 {eligible.map(a => (
                   <SelectItem key={a.user_id} value={a.user_id}>
-                    {nameOf(a)} — {a.active}/{a.max_active} active
+                    {nameOf(a)}: {a.active}/{a.max_active} active
                   </SelectItem>
                 ))}
                 {eligible.length === 0 && <SelectItem value="__none" disabled>No eligible agents</SelectItem>}
@@ -79,7 +79,7 @@ export function ReassignTaskDrawer({
                 {canOverride ? (
                   <label className="mt-2 flex items-center gap-2">
                     <Checkbox checked={override} onCheckedChange={v => setOverride(!!v)} />
-                    <span>Override capacity — reason must be ≥ 8 characters.</span>
+                    <span>Override capacity: reason must be ≥ 8 characters.</span>
                   </label>
                 ) : (
                   <div className="mt-1">You do not hold <code>task_orchestration.override_capacity</code>.</div>

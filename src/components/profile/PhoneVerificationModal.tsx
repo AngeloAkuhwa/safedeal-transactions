@@ -155,7 +155,7 @@ export function PhoneVerificationModal({ open, onOpenChange, currentPhone }: Pro
             <div className="space-y-4 pt-2">
               {devOtp && (
                 <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-warning font-semibold">DEV MODE — OTP Code:</p>
+                  <p className="text-xs text-warning font-semibold">DEV MODE: OTP Code:</p>
                   <p className="text-2xl font-mono font-bold text-warning tracking-widest">{devOtp}</p>
                 </div>
               )}

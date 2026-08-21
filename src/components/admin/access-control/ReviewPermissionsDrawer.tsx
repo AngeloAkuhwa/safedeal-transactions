@@ -133,9 +133,9 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-[960px] p-0 flex flex-col gap-0 overflow-hidden">
           <SheetHeader className="shrink-0 border-b border-border bg-muted/30 px-6 py-4">
-            <SheetTitle className="text-lg">Review permissions — {user.full_name}</SheetTitle>
+            <SheetTitle className="text-lg">Review permissions: {user.full_name}</SheetTitle>
             <p className="text-xs text-muted-foreground">
-              Read-only view. Individual overrides are requested here — the role template is edited from the permission matrix.
+              Read-only view. Individual overrides are requested here. The role template is edited from the permission matrix.
             </p>
           </SheetHeader>
 
@@ -200,7 +200,7 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
               )}
             </SectionCard>
 
-            {/* Temporary — schema stores no expiry today; keep the section but explain */}
+            {/* Temporary: schema stores no expiry today; keep the section but explain */}
             <SectionCard
               icon={<Clock className="h-3.5 w-3.5" />}
               title="Temporary access"
@@ -221,7 +221,7 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange }: Props) {
               count={restrictedAll.length}
             >
               {restrictedAll.length === 0 ? (
-                <div className="text-xs text-muted-foreground">No restrictions — user has full privileged access.</div>
+                <div className="text-xs text-muted-foreground">No restrictions: user has full privileged access.</div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {restrictedAll.slice(0, RESTRICTED_CAP).map((k) => (

@@ -34,7 +34,7 @@ export interface PricingConfigOverride {
 }
 
 /**
- * DISASTER-RECOVERY FALLBACK ONLY — rates are DEFINED in the `pricing.*`
+ * DISASTER-RECOVERY FALLBACK ONLY. Rates are DEFINED in the `pricing.*`
  * rows of `system_settings`, never here. Used when the resolver cannot read
  * a config or rejects a stored one via the economic invariant. Must equal the
  * seeded platform rows (see docs/pricing-source-of-truth.md and the

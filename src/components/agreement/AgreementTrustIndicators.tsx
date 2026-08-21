@@ -4,7 +4,7 @@ import { formatMoney } from "@/lib/format";
 
 interface AgreementTrustIndicatorsProps {
   pricing: AgreementData["pricing"];
-  /** `transactions.agreement_locked_at` — the only evidence that terms are frozen. */
+  /** `transactions.agreement_locked_at`: the only evidence that terms are frozen. */
   lockedAt?: string | null;
 }
 

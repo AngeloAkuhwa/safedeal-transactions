@@ -90,13 +90,13 @@ Deno.serve(async (req) => {
         processed_successfully: false,
       });
     if (logInsertErr && (logInsertErr as any).code === "23505") {
-      // Duplicate event — already processed (or in flight). No-op.
+      // Duplicate event: already processed (or in flight). No-op.
       return new Response("OK", { status: 200 });
     }
 
     // 3. Process charge.success
     // 3a. Vendor plan / sachet purchases ride the same Paystack account but
-    //     are NOT escrow payments — capture them separately and stop.
+    //     are NOT escrow payments: capture them separately and stop.
     if (eventType === "charge.success" && isVendorPlanReference(providerReference)) {
       const paidKobo = typeof payload.data?.amount === "number" ? payload.data.amount : null;
       const result = await captureVendorPlanPayment(supabase as any, providerReference!, paidKobo);
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
 
         if (!payment) {
           console.warn(`Webhook: No payment found for reference ${providerReference}`);
-          await updateWebhookLog(supabase, providerReference, true, "No payment record found — skipped");
+          await updateWebhookLog(supabase, providerReference, true, "No payment record found: skipped");
           return new Response("OK", { status: 200 });
         }
 
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         // SNAPSHOT-FIRST: display the locked transaction_pricing row. Only
-        // recompute (display only — the charge already happened) when no
+        // recompute (display only: the charge already happened) when no
         // snapshot row exists.
         const numW = (v: unknown) => (v === null || v === undefined ? null : Number(v));
         let pricing: {
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
             await supabase.from("system_logs").insert({
               level: "error",
               service_name: "paystack-webhook",
-              message: "amount_mismatch — capture refused",
+              message: "amount_mismatch: capture refused",
               metadata: {
                 payment_id: payment.id,
                 transaction_id: txId,
@@ -251,12 +251,12 @@ Deno.serve(async (req) => {
                 charged_currency: guard.chargedCurrency,
               },
             });
-            await updateWebhookLog(supabase, providerReference, false, "amount_mismatch — capture refused");
+            await updateWebhookLog(supabase, providerReference, false, "amount_mismatch: capture refused");
             return new Response("OK", { status: 200 });
           }
         } else {
           console.warn(
-            `paystack-webhook: no pricing snapshot for transaction ${txId} — strict amount/currency check skipped (legacy fallback path)`,
+            `paystack-webhook: no pricing snapshot for transaction ${txId}: strict amount/currency check skipped (legacy fallback path)`,
           );
         }
 
@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
           user_id: tx.seller_id,
           type: "payment",
           channel: "in_app",
-          title: "Payment Received — Begin Fulfillment",
+          title: "Payment Received: Begin Fulfillment",
           message: `The buyer has completed payment of ${pricing.currency_code} ${pricing.total_amount.toLocaleString()}. Please begin preparing the item for delivery.`,
           related_transaction_id: txId,
           status: "pending",
@@ -487,7 +487,7 @@ Deno.serve(async (req) => {
     } else if (eventType === "refund.failed" && providerReference) {
       await handleRefundFailed(supabase, payload, providerReference);
     } else {
-      // Non-charge.success events — just log
+      // Non-charge.success events. Just log
       await updateWebhookLog(supabase, providerReference, true, `Event ${eventType} logged (no action needed)`);
     }
 
@@ -559,7 +559,7 @@ async function handleTransferSuccess(
   try {
     const payout = await findPayoutByReference(supabase, reference);
     if (!payout) {
-      await updateWebhookLog(supabase, reference, true, "transfer.success: no matching payout — ignored");
+      await updateWebhookLog(supabase, reference, true, "transfer.success: no matching payout. Ignored");
       return;
     }
     if (payout.status === "completed") {
@@ -663,7 +663,7 @@ async function handleTransferFailed(
     });
     await notifyOpsTeam(supabase, {
       type: "system_message",
-      title: "Payout failed — review needed",
+      title: "Payout failed: review needed",
       message: `Payout ${payout.id} failed: ${reason}`,
       related_transaction_id: payout.transaction_id,
       metadata: { severity: "high", payout_id: payout.id },
@@ -700,7 +700,7 @@ async function handleTransferReversed(
     }
     await notifyOpsTeam(supabase, {
       type: "security_alert",
-      title: "Payout reversed — high severity",
+      title: "Payout reversed: high severity",
       message: `Payout ${payout.id} reversed by Paystack: ${reason}`,
       related_transaction_id: payout.transaction_id,
       metadata: { severity: "high", payout_id: payout.id, reason },

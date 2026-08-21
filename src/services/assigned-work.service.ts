@@ -36,10 +36,10 @@ export interface AssignedWorkImpact {
 }
 
 /**
- * Rule f — non-blocking warning surface. Given a set of permission keys that
+ * Rule f: non-blocking warning surface. Given a set of permission keys that
  * would be removed from the target user, return a coarse count of open work
  * items in the affected modules so the UI can render an "I understand" panel.
- * Best-effort — never throws; returns zero counts on error.
+ * Best-effort: never throws; returns zero counts on error.
  */
 export async function fetchAssignedWorkImpact(
   targetUserId: string,

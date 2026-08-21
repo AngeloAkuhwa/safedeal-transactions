@@ -276,7 +276,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                         {detail.pricing.recorded_payout_amount != null
                           ? formatMoneyOrDash(detail.pricing.recorded_payout_amount, detail.pricing.currency)
                           : "no recorded amount"}
-                        . The snapshot is authoritative — reconcile before releasing.
+                        . The snapshot is authoritative. Reconcile before releasing.
                       </p>
                     </div>
                   )}
@@ -415,10 +415,10 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   )}
                 </div>
                 {!releaseEnabled && p!.status === "awaiting_release" && (
-                  <p className="text-xs text-slate-500 mt-1">Release is disabled — resolve the failing gate above before retrying.</p>
+                  <p className="text-xs text-slate-500 mt-1">Release is disabled: resolve the failing gate above before retrying.</p>
                 )}
                 {p!.status === "failed" && !retryEnabled && (
-                  <p className="text-xs text-slate-500 mt-1">Retry is disabled — the bank account must be updated or re-verified before retry.</p>
+                  <p className="text-xs text-slate-500 mt-1">Retry is disabled: the bank account must be updated or re-verified before retry.</p>
                 )}
               </div>
             </div>
@@ -433,7 +433,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
           <DialogHeader>
             <DialogTitle>Release payout to seller?</DialogTitle>
             <DialogDescription>
-              This initiates a real Paystack transfer. The action is idempotent — clicking again will not duplicate the payment.
+              This initiates a real Paystack transfer. The action is idempotent. Clicking again will not duplicate the payment.
             </DialogDescription>
           </DialogHeader>
           {detail && (

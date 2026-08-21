@@ -140,7 +140,7 @@ export default function BuyerPaymentSummary() {
     // A bank transfer is asynchronous: the buyer leaves, moves the money, and
     // comes back. Success here was driven purely by the Paystack popup's
     // synchronous callback, so a buyer who completed a transfer and closed the
-    // popup got a toast telling them to try again — on money that had already
+    // popup got a toast telling them to try again. On money that had already
     // left their account. The review screen one step earlier already polls on
     // `payment_pending`; the screen where payment actually happens did not.
     refetchInterval: (q) => {
@@ -153,7 +153,7 @@ export default function BuyerPaymentSummary() {
   // lands, show success regardless of how the buyer left the popup.
   //
   // Allowlist, not denylist. "Anything that isn't pending counts as paid" would
-  // also fire on a refund or a release — showing a buyer a payment-success
+  // also fire on a refund or a release. Showing a buyer a payment-success
   // screen for money that has just gone back to them. Name the states that
   // actually mean "we are holding your money" and let every other value,
   // including ones added later, fall through to the normal render.
@@ -186,7 +186,7 @@ export default function BuyerPaymentSummary() {
           ? "concurrency"
           : "verification"
   ) : null;
-  /** No permissions payload yet — we cannot prove the buyer may pay. */
+  /** No permissions payload yet: we cannot prove the buyer may pay. */
   const permissionsUnavailable = !canPay && !permissions;
 
   const Header = authState === "ready"
@@ -269,18 +269,18 @@ export default function BuyerPaymentSummary() {
             setShowSuccess(true);
           }).catch((verifyErr) => {
             console.error("Verification error:", verifyErr);
-            setFailureReason("Payment verification failed. If you were charged, your payment is safe — please contact support.");
+            setFailureReason("Payment verification failed. If you were charged, your payment is safe. Please contact support.");
             setIsProcessing(false);
             setShowFailed(true);
           });
         },
         onClose: () => {
-          // Closing the popup does not mean the payment did not happen — with a
+          // Closing the popup does not mean the payment did not happen. With a
           // transfer it usually means the opposite. Keep watching rather than
           // telling someone who has just paid to try again.
           setIsProcessing(false);
           void refetch();
-          toast.info("Checking for your payment — this updates automatically once it arrives.");
+          toast.info("Checking for your payment: this updates automatically once it arrives.");
         },
       });
 
@@ -755,7 +755,7 @@ export default function BuyerPaymentSummary() {
                     How this fee is calculated
                   </CollapsibleTrigger>
                   <CollapsibleContent className="text-xs text-muted-foreground pt-1.5 pl-0.5 leading-relaxed">
-                    {/* Narrated from the buyer's own snapshot — never from a
+                    {/* Narrated from the buyer's own snapshot: never from a
                         live config rate that may differ from what was charged. */}
                     {describeChargedFee({
                       itemAmount,
@@ -783,7 +783,7 @@ export default function BuyerPaymentSummary() {
                 <div className="flex items-start gap-3 mb-4">
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    {/* Pre-payment screen: future tense only — nothing is in escrow yet. */}
+                    {/* Pre-payment screen: future tense only. Nothing is in escrow yet. */}
                     <p className="text-sm font-bold text-foreground mb-1">{alwaysClaim("PAYMENT_WILL_BE_ESCROWED")}</p>
                     <p className="text-xs text-muted-foreground">Once you pay, SafeDeal holds the money until you confirm the item has been received and matches the agreement. If something goes wrong, you can open a dispute and SafeDeal will review the case.</p>
                   </div>
@@ -811,7 +811,7 @@ export default function BuyerPaymentSummary() {
               </div>
 
               <div className="space-y-4" aria-label="Payment method">
-                {/* Bank transfer — first, and the default. */}
+                {/* Bank transfer: first, and the default. */}
                 <div role="button" tabIndex={0} onKeyDown={keyActivate} aria-pressed={selectedMethod === "bank"}
                   onClick={() => setSelectedMethod("bank")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
@@ -824,7 +824,7 @@ export default function BuyerPaymentSummary() {
                     <div className="flex items-start gap-4">
                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${selectedMethod === "bank" ? "bg-primary/10" : "bg-muted"}`}>
                         <Building2 className={`h-5 w-5 ${selectedMethod === "bank" ? "text-primary" : "text-muted-foreground"}`} />
-                        {/* Card — second: fewer than half of Nigerian buyers reach for it first. */}
+                        {/* Card: second: fewer than half of Nigerian buyers reach for it first. */}
                 <div role="button" tabIndex={0} onKeyDown={keyActivate} aria-pressed={selectedMethod === "card"}
                   onClick={() => setSelectedMethod("card")}
                   className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
@@ -1321,7 +1321,7 @@ export default function BuyerPaymentSummary() {
                   </div>
                 </div>
 
-                {/* Security reassurance — only when retry is still valid */}
+                {/* Security reassurance: only when retry is still valid */}
                 {!failureTerminal && failureBlocker !== "concurrency" && (
                   <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
                     <div className="flex items-start gap-2">

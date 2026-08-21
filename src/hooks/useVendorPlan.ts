@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getVendorPlanState, type VendorPlanState } from "@/services/vendor-plan.service";
 
 /**
- * Seller-side plan + showcase-slot state. Display only — the server enforces
+ * Seller-side plan + showcase-slot state. Display only. The server enforces
  * every limit independently.
  */
 export function useVendorPlan(enabled = true) {

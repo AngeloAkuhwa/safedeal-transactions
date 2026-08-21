@@ -197,8 +197,9 @@ can be done as it is found, provided it clears the change bar.
 
 Tracked debt: 65 raw `<img>` sites across 51 files; roughly 190 shrink only
 currency entries; Supabase default privileges that re-grant anonymous DML on
-future tables after every migration; and roughly 1000 em dashes still in `src/`
-awaiting a sweep with a guard.
+future tables after every migration; and roughly 380 standalone `"—"` empty-value
+placeholders in admin tables, which are a pending product decision rather than
+prose (see `src/__tests__/no-em-dashes.contract.test.ts`).
 
 ## Out of scope without asking
 

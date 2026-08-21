@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     const { data: buyerProfile } = await admin.from("profiles").select("id, full_name, email, phone").eq("id", buyerId).single();
     if (!buyerProfile) return json({ error: "Buyer profile not found" }, 404);
 
-    // 3. Validate ALL items — block entire checkout if any fail
+    // 3. Validate ALL items. Block entire checkout if any fail
     const errors: Array<{ product_id: string; error: string; code?: string }> = [];
     // Resolved selection per cart item, populated during validation
     const resolvedByCartItem = new Map<
@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
     //
     // The verification window IS a commitment: it is the clock the buyer is
     // held to, so it must come from the product or the vendor's effective
-    // settings — never a literal, and never a guess.
+    // settings: never a literal, and never a guess.
     //
     // The delivery estimate is NOT a commitment: it is optional seller-supplied
     // information. When the seller left it blank we carry `null` through and
@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
       let transactionCode: string;
 
       if (existingTx) {
-        // Reuse existing transaction — update pricing if needed
+        // Reuse existing transaction: update pricing if needed
         transactionId = existingTx.id;
         shareToken = existingTx.share_token;
         transactionCode = existingTx.transaction_code;

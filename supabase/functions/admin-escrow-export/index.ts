@@ -1,5 +1,5 @@
 /**
- * Admin Escrow CSV Export — exports filtered escrow records as CSV.
+ * Admin Escrow CSV Export: exports filtered escrow records as CSV.
  * Honors same filters as admin-escrow-overview (state, date_range, amount_bucket, flag, q).
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
