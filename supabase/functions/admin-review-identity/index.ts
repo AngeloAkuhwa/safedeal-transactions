@@ -21,10 +21,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "PATCH" && req.method !== "GET") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
   try {
     let ctx;
     try {
@@ -36,6 +32,10 @@ Deno.serve(async (req) => {
       const resp = authErrorResponse(err, corsHeaders);
       if (resp) return resp;
       throw err;
+    }
+
+    if (req.method !== "PATCH" && req.method !== "GET") {
+      return jsonResponse({ error: "Method not allowed" }, 405);
     }
     const adminClient = ctx.adminClient;
     const adminUserId = ctx.userId;

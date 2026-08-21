@@ -33,7 +33,6 @@ async function fetchPaystackBalance(): Promise<{ ok: boolean; available?: number
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "GET") return json({ error: "method_not_allowed" }, 405);
 
   let ctx;
   try {
@@ -43,6 +42,8 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json({ error: "auth_failed" }, 500);
   }
+
+  if (req.method !== "GET") return json({ error: "method_not_allowed" }, 405);
   const admin = ctx.adminClient;
 
   const { data: stuckSetting } = await admin

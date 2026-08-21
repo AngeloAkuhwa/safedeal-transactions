@@ -27,7 +27,6 @@ const ALLOWED: Record<string, string[]> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
     // Who, before what. The permission required here depends on the target
@@ -36,6 +35,8 @@ Deno.serve(async (req) => {
     // anonymous caller from walking the validation errors to learn the shape
     // of the dispute state machine.
     const baseCtx = await requireAdmin(req);
+
+    if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
     let body: any;
     try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }

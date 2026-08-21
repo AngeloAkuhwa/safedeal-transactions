@@ -46,7 +46,6 @@ async function sendReplyEmail(to: string, name: string, reference: string | null
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
     const ctx = await requirePermission(req, "support.update");
@@ -121,4 +120,6 @@ Deno.serve(async (req) => {
     console.error("[admin-reply-contact-message] unexpected", err);
     return json({ error: "Unexpected error" }, 500);
   }
+
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 });

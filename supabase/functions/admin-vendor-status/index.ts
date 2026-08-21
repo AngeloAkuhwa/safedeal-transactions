@@ -20,7 +20,6 @@ const ALLOWED = new Set(["active", "disabled", "suspended"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
     const { userId, adminClient } = await requirePermission(req, "users_and_access.update");
@@ -76,4 +75,6 @@ Deno.serve(async (req) => {
     console.error("[admin-vendor-status] unexpected", err);
     return json(500, { error: "internal_error" });
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 });

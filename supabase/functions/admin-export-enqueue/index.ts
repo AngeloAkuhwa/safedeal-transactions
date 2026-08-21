@@ -48,7 +48,6 @@ function json(body: unknown, status = 200) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   // Identity first, export_type second.
   //
@@ -79,6 +78,8 @@ Deno.serve(async (req) => {
     console.error("[admin-export-enqueue] auth failed", err);
     return json({ error: "auth_failed" }, 500);
   }
+
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let body: { export_type?: string; params?: Record<string, unknown> } = {};
   try {
