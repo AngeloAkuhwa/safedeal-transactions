@@ -36,6 +36,22 @@ import path from "node:path";
 const ROOT = path.resolve(__dirname, "../..");
 const ROOTS = [path.join(ROOT, "src"), path.join(ROOT, "supabase/functions")];
 
+/**
+ * The shell, which the tree walk above cannot reach.
+ *
+ * `ROOTS` only descends into TypeScript, and the sweep that cleared 677 em
+ * dashes did the same, so `index.html` kept six of them in the most visible
+ * prose the product has: the browser tab title, the Open Graph title, the
+ * Twitter card title, and three FAQ answers inside the JSON-LD block that
+ * Google renders directly in its results. Every page of the app shipped one in
+ * the tab, and the rule read as satisfied because the guard was looking
+ * somewhere else.
+ *
+ * A guard that cannot see something has to say so. This one can now see the
+ * shell.
+ */
+const SHELL_FILES = [path.join(ROOT, "index.html")];
+
 /** This file quotes the character it bans, so it cannot check itself. */
 const SELF = path.basename(__filename);
 
@@ -49,7 +65,10 @@ function walk(dir: string, out: string[]): string[] {
   return out;
 }
 
-const sourceFiles = () => ROOTS.reduce<string[]>((acc, r) => walk(r, acc), []);
+const sourceFiles = () => [
+  ...ROOTS.reduce<string[]>((acc, r) => walk(r, acc), []),
+  ...SHELL_FILES.filter((f) => fs.existsSync(f)),
+];
 
 /**
  * An em dash acting as punctuation: spaced on both sides, or touching a word
@@ -72,7 +91,11 @@ describe("no em dashes in prose", () => {
     expect(files.length).toBeGreaterThan(100);
   });
 
-  it("has no em dash used as punctuation anywhere in src/", () => {
+  it("checks the shell as well as the sources", () => {
+    expect(files.some((f) => f.endsWith("index.html"))).toBe(true);
+  });
+
+  it("has no em dash used as punctuation in any shipped source", () => {
     const offenders: string[] = [];
     for (const file of files) {
       const lines = fs.readFileSync(file, "utf8").split("\n");
