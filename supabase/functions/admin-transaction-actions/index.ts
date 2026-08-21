@@ -113,7 +113,6 @@ async function gateAction(
   }
 }
 
-
 function badRequest(msg: string) {
   return json({ error: msg }, 400);
 }
