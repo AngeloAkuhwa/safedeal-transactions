@@ -601,13 +601,25 @@ async function main() {
   await browser.close();
   writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 1));
 
+  // Every failing line, gathered as it is printed, so the end of the log can
+  // repeat them.
+  const failed = [];
+
   let failures = 0;
   for (const row of report) {
-    if (row.skipped) { console.log(`${row.who.padEnd(7)}  SKIPPED. ${row.skipped}`); failures += 1; continue; }
-    if (row.loginFailed) { console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)}  LOGIN FAILED`); failures += 1; continue; }
+    if (row.skipped) {
+      const line = `${row.who.padEnd(7)}  SKIPPED. ${row.skipped}`;
+      console.log(line); failed.push([line]); failures += 1; continue;
+    }
+    if (row.loginFailed) {
+      const line = `${row.who.padEnd(7)} ${String(row.width).padStart(4)}  LOGIN FAILED`;
+      console.log(line); failed.push([line]); failures += 1; continue;
+    }
     if (row.inert) {
       // Never let an unmeasurable page fall through as clean.
-      console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE. A modal held the page inert: "${row.inert}"`);
+      const line = `${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE. A modal held the page inert: "${row.inert}"`;
+      console.log(line);
+      failed.push([line]);
       failures += 1;
       continue;
     }
@@ -652,10 +664,32 @@ async function main() {
       example("prose", (o) => `~${o.chars} chars in ${o.box}px: "${o.text}"`),
     ].filter(Boolean);
     const cls6 = CLASS_FOR_WIDTH(row.width).name.padEnd(7);
-    console.log(`${row.who.padEnd(7)} ${cls6} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`);
-    if (flags.length) for (const d of details) console.log(d);
+    const line = `${row.who.padEnd(7)} ${cls6} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`;
+    console.log(line);
+    if (flags.length) {
+      for (const d of details) console.log(d);
+      failed.push([line, ...details]);
+    }
   }
   console.log(`\nscreenshots: ${OUT}\nreport:      ${OUT}/report.json`);
+
+  // Repeat the failures at the end.
+  //
+  // A full sweep prints 236 rows and CI shows you the tail, so a single red
+  // line in the public section is invisible below two hundred clean ones. On
+  // the run that motivated this, working out which route had failed took
+  // three separate fetches of the same log, and the answer was on line 32.
+  //
+  // The per-row output above stays exactly as it is: it is the record of what
+  // was checked, and "clean" on every route is the thing worth being able to
+  // read. This is the part you need when it is not clean.
+  if (failed.length) {
+    const rows = failed.length === 1 ? "1 row" : `${failed.length} rows`;
+    console.log(`\n${"=".repeat(64)}\nFAILED: ${rows} of ${report.length}\n${"=".repeat(64)}`);
+    for (const block of failed) for (const l of block) console.log(l);
+    console.log("");
+  }
+
   process.exit(failures ? 1 : 0);
 }
 
