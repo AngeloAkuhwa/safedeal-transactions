@@ -42,6 +42,14 @@
  * silently skipped rather than reported clean.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
+import {
+  VIEWPORT_CLASSES,
+  classForWidth as CLASS_FOR_WIDTH,
+  contextOptsFor,
+  PUBLIC_ROUTES,
+  AUTH_ROUTES,
+  signIn,
+} from "./audit-shared.mjs";
 
 // Playwright is not a project dependency — it is a local tool. Import it
 // dynamically so a missing install produces an instruction rather than a
@@ -127,66 +135,20 @@ const arg = (name, fallback) => {
   return i === -1 ? fallback : process.argv[i + 1];
 };
 const BASE = arg("base", "http://127.0.0.1:5199");
-const WIDTHS = String(arg("widths", "320,360,390,414")).split(",").map(Number);
+const CLASSES = String(arg("classes", VIEWPORT_CLASSES.map((c) => c.name).join(",")))
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const WIDTHS = process.argv.some((a) => a.startsWith("--widths"))
+  ? String(arg("widths", "")).split(",").map(Number).filter(Boolean)
+  : VIEWPORT_CLASSES.filter((c) => CLASSES.includes(c.name)).flatMap((c) => c.widths);
 const OUT = arg("out", "/tmp/mobile-audit");
 const WITH_AUTH = process.argv.includes("--auth");
 
-const PUBLIC_ROUTES = [
-  { name: "landing", path: "/" },
-  { name: "marketplace", path: "/marketplace" },
-  { name: "pricing", path: "/pricing" },
-  { name: "auth", path: "/auth" },
-];
-
-// `/seller/storefront` lost 278px of content at every width while three
-// sibling pages sharing its exact shell were never audited at all. A route
-// list that covers one page of a shell and not the others is how the same
-// defect gets fixed once and shipped three more times.
-const SEED_PRODUCT_ID = process.env.E2E_PRODUCT_ID || "0e2e0003-0000-4000-8000-000000000001";
-
-const AUTH_ROUTES = {
-  buyer: [
-    "/dashboard",
-    "/dashboard/marketplace",
-    "/dashboard/cart",
-    "/dashboard/saved",
-    "/dashboard/transactions",
-    // Checkout is where the money is agreed. Both entry points, audited.
-    "/dashboard/cart/checkout",
-    `/store/${process.env.E2E_STORE_SLUG || "claude-e2e-store"}/${process.env.E2E_PRODUCT_SLUG || "claude-e2e-test-listing-16in-pro-laptop"}/checkout?qty=1`,
-  ],
-  seller: [
-    "/seller",
-    "/seller/storefront",
-    "/seller/storefront/new",
-    `/seller/storefront/${SEED_PRODUCT_ID}`,
-    `/seller/storefront/${SEED_PRODUCT_ID}/preview`,
-    "/seller/transactions",
-    "/seller/payouts",
-  ],
-  // One admin route was never going to be enough. The static touch-target
-  // scanner cannot compute a width for 1,186 elements and silently counts each
-  // as a pass, so the width axis is only ever really checked by rendering.
-  // These are the admin surfaces that carry the controls it cannot see:
-  // permission toggles, sortable table headers, and dense data tables.
-  admin: [
-    "/admin",
-    "/admin/transactions",
-    "/admin/disputes",
-    "/admin/users",
-    "/admin/payouts",
-    "/admin/escrow",
-    "/admin/flagged-users",
-    "/admin/access-control",
-    "/admin/permission-matrix",
-    "/admin/settings",
-    "/admin/audit-logs",
-  ],
-};
-
 /** Runs in the page. Keep it dependency-free and self-contained. */
-function measure({ VW, scope }) {
-  const out = { docW: document.documentElement.scrollWidth, overflow: [], clipped: [], glyph: [], tiny: [], small: [], squashed: [] };
+function measure({ VW, scope, minTarget = 44, checkProse = false }) {
+  const out = { docW: document.documentElement.scrollWidth, overflow: [], clipped: [], glyph: [], tiny: [], small: [], squashed: [], prose: [] };
   const cls = (e) => (e.className || "").toString().slice(0, 60);
   const label = (e) => (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 30);
   const visible = (e) => {
@@ -370,8 +332,39 @@ function measure({ VW, scope }) {
         hitW = Math.max(hitW, pr.right - pr.left);
         hitH = Math.max(hitH, pr.bottom - pr.top);
       }
-      if (hitW < 44 || hitH < 44) {
+      if (hitW < minTarget || hitH < minTarget) {
         out.small.push({ text: label(el), w: Math.round(hitW), h: Math.round(hitH), cls: cls(el) });
+      }
+    }
+
+    // A line that runs the full width of a large display is measured, not
+    // judged by eye. Width divided by font size approximates characters per
+    // line at roughly half an em per character, so 45 is about 90 characters:
+    // past the comfortable 45 to 75 range by enough that it is not a taste
+    // argument. Only bodies of text qualify, and only leaves, so a heading, a
+    // nav row, a table cell or a wrapper that happens to contain a paragraph
+    // cannot be reported as one.
+    // Only an element that holds the text ITSELF counts. Summing
+    // `textContent` and excusing containers whose children are individually
+    // short does not work: a centred wrapper holding a heading and two
+    // `max-w-xl` paragraphs has over 200 characters, no child over 120, and
+    // the full width of its container, so it reported as a 137-character line
+    // while every actual line on screen was comfortably inside 65. Direct
+    // text nodes are what wrap into lines, so they are what gets measured.
+    if (checkProse && fontPx) {
+      const ownText = Array.from(el.childNodes)
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent)
+        .join("")
+        .trim();
+      const isBlock = c.display === "block" || c.display === "flow-root";
+      if (ownText.length >= 200 && isBlock && r.width / fontPx > 45) {
+        out.prose.push({
+          cls: cls(el),
+          text: ownText.slice(0, 40),
+          chars: Math.round(r.width / fontPx * 2),
+          box: Math.round(r.width),
+        });
       }
     }
 
@@ -397,19 +390,14 @@ function measure({ VW, scope }) {
     tiny: dedupe(out.tiny, "tiny"),
     small: dedupe(out.small, "small"),
     squashed: dedupe(out.squashed, "squashed"),
+    prose: dedupe(out.prose, "prose"),
     totals,
   };
 }
 
 // One place for viewport + the proxy's self-signed MITM certificate, so the
 // public sweep and the signed-in sweep can never drift apart.
-const contextOpts = (width) => ({
-  viewport: { width, height: 860 },
-  deviceScaleFactor: 2,
-  isMobile: true,
-  hasTouch: true,
-  ignoreHTTPSErrors: true,
-});
+const contextOpts = contextOptsFor;
 
 /**
  * A modal that opens by itself makes every measurement behind it a lie.
@@ -496,6 +484,8 @@ async function settle(page) {
 
 async function measureRoute(page, width) {
   const rows = [];
+  const vp = CLASS_FOR_WIDTH(width);
+  const opts = { minTarget: vp.minTarget, checkProse: vp.prose };
   const blocker = await blockingDialog(page);
   if (blocker) {
     // Settle BEFORE measuring the dialog, not only after dismissing it. Radix
@@ -504,7 +494,7 @@ async function measureRoute(page, width) {
     // That produced three "sub-44px" findings that were all exactly 44px when
     // the dialog was measured at rest.
     await settle(page);
-    const dlg = await page.evaluate(measure, { VW: width, scope: '[role="dialog"],[role="alertdialog"]' });
+    const dlg = await page.evaluate(measure, { VW: width, scope: '[role="dialog"],[role="alertdialog"]', ...opts });
     rows.push({ dialog: blocker.title, ...dlg, horizScroll: false });
     const cleared = await dismissDialog(page);
     if (!cleared) {
@@ -513,53 +503,9 @@ async function measureRoute(page, width) {
     }
     await settle(page);
   }
-  const found = await page.evaluate(measure, { VW: width, scope: null });
+  const found = await page.evaluate(measure, { VW: width, scope: null, ...opts });
   rows.push({ ...found, horizScroll: found.docW > width + 1 });
   return rows;
-}
-
-async function signIn(page, email, password) {
-  // A sign-in that fails must say WHY. Without this, every failure looks the
-  // same — "LOGIN FAILED" — whether the password is wrong, the account is
-  // unconfirmed, or the app is pointed at a Supabase project where the
-  // account does not exist. Capture the token response itself: its status and
-  // its error body are the only things that distinguish those three.
-  let tokenStatus = null;
-  let tokenBody = "";
-  let tokenHost = "";
-  const onResponse = async (res) => {
-    if (!/\/auth\/v1\/token\b/.test(res.url())) return;
-    tokenStatus = res.status();
-    tokenHost = new URL(res.url()).host;
-    if (tokenStatus >= 400) {
-      try { tokenBody = (await res.text()).slice(0, 300); } catch { /* body already consumed */ }
-    }
-  };
-  page.on("response", onResponse);
-  await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
-  await page.waitForTimeout(2000);
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(6000);
-  page.off("response", onResponse);
-  const ok = !/\/auth\b/.test(page.url());
-  if (!ok) {
-    const why =
-      tokenStatus === null
-        ? "the browser never reached /auth/v1/token — the form did not submit, or Supabase is unreachable from this browser"
-        : `POST /auth/v1/token -> ${tokenStatus} from ${tokenHost}${tokenBody ? ` :: ${tokenBody}` : ""}`;
-    console.error(`signIn[${email}] failed: ${why}`);
-    if (tokenStatus === 400) {
-      console.error(
-        `  400 on the password grant means ${tokenHost} rejected this credential.\n` +
-          `  Check, in this order: (a) is ${tokenHost} the project that holds the seeded\n` +
-          `  accounts, (b) does the password in E2E_<ROLE>_PASSWORD match the one set on the\n` +
-          `  account, (c) is the account email-confirmed.`,
-      );
-    }
-  }
-  return ok;
 }
 
 async function main() {
@@ -606,7 +552,7 @@ async function main() {
       for (const width of WIDTHS) {
         const ctx = await browser.newContext({ ...contextOpts(width) });
         const page = await ctx.newPage();
-        const ok = await signIn(page, email, password);
+        const ok = await signIn(page, BASE, email, password);
         if (!ok) {
           // Loud, not silent: a failed sign-in must never read as "clean".
           report.push({ who, route: "(login)", width, loginFailed: true });
@@ -650,12 +596,14 @@ async function main() {
     if (row.clipped.length) flags.push(`clipped:${n("clipped")}`);
     if (row.glyph.length) flags.push(`glyph:${n("glyph")}`);
     if (row.tiny.length) flags.push(`tiny:${n("tiny")}`);
-    if (row.small.length) flags.push(`tap<44:${n("small")}`);
+    if (row.small.length) flags.push(`tap<${CLASS_FOR_WIDTH(row.width).minTarget}:${n("small")}`);
     if (row.squashed.length) flags.push(`squashed:${n("squashed")}`);
+    if (row.prose && row.prose.length) flags.push(`longline:${n("prose")}`);
     if (row.errors && row.errors.length) flags.push(`ERR:${row.errors.length}`);
     if (flags.length) failures += 1;
     const where = row.dialog ? `${row.route}  [dialog: ${row.dialog.slice(0, 28)}]` : row.route;
-    console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`);
+    const cls6 = CLASS_FOR_WIDTH(row.width).name.padEnd(7);
+    console.log(`${row.who.padEnd(7)} ${cls6} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`);
   }
   console.log(`\nscreenshots: ${OUT}\nreport:      ${OUT}/report.json`);
   process.exit(failures ? 1 : 0);

@@ -273,7 +273,23 @@ jobs:
           E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
           E2E_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
-        run: node scripts/mobile-audit.mjs --auth --out audit-out
+        # Seven widths, not the full eleven, and the seven are named rather
+        # than left to the default so the runtime is a decision instead of a
+        # side effect.
+        #
+        # All four phone widths, because that is the priority market and 320 is
+        # the hardest case. Then one width per remaining class: 834 covers the
+        # tablet range, 1440 the desktop range, 1920 the large one. The full
+        # eleven is ~29 routes x 11 widths and lands around 27 minutes with
+        # auth, which is too slow to sit in front of every PR; this set is
+        # about 17.
+        #
+        # The widths dropped here (360 is kept, 768 / 1024 / 1280 / 2560 are
+        # not) are the interior of each class, where a defect that exists at
+        # one is almost always visible at its neighbour. Run the full sweep
+        # locally with `node scripts/mobile-audit.mjs`, which defaults to all
+        # eleven.
+        run: node scripts/mobile-audit.mjs --auth --widths 320,360,390,414,834,1440,1920 --out audit-out
 
       - name: Keep the screenshots when it fails
         if: failure()
