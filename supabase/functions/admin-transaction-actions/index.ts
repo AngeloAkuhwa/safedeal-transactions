@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requireAdmin, requirePermission, requireAnyPermission, authErrorResponse, type AuthContext } from "../_shared/auth.ts";
+import { requireAdmin, requireAnyPermission, authErrorResponse, type AuthContext } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 import { executeProviderRefund } from "../_shared/provider-refund.ts";
@@ -97,10 +97,14 @@ const ACTION_PERMS: Record<string, string[]> = {
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
 };
-async function gateAction(req: Request, action: string, baseCtx?: AuthContext): Promise<{ admin: any; userId: string } | Response> {
+async function gateAction(
+  req: Request,
+  action: string,
+  existing?: AuthContext,
+): Promise<{ admin: any; userId: string } | Response> {
   const perms = ACTION_PERMS[action] ?? ["transactions.update"];
   try {
-    const ctx = await requireAnyPermission(req, perms, baseCtx);
+    const ctx = await requireAnyPermission(req, perms, existing);
     return { admin: ctx.adminClient, userId: ctx.userId };
   } catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
@@ -108,7 +112,6 @@ async function gateAction(req: Request, action: string, baseCtx?: AuthContext): 
     throw err;
   }
 }
-
 
 function badRequest(msg: string) {
   return json({ error: msg }, 400);
@@ -118,18 +121,29 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // Stage (a): base authentication + admin check BEFORE any body handling so
-  // anonymous callers get 401 and authenticated non-admins get 403.
-  let baseCtx;
+  // Establish WHO is calling before reading WHAT they sent.
+  //
+  // The specific permission depends on `body.action`, so the fine-grained
+  // check genuinely cannot run until the body is parsed. The coarse one can,
+  // and must: parsing first meant an anonymous caller got `missing_fields`,
+  // and by varying the body could map which actions exist, which are refused
+  // outright, and which are merely unauthorised — a free index of the admin
+  // surface, answered by a function that never learned their name.
+  let baseCtx: AuthContext;
   try {
     baseCtx = await requireAdmin(req);
   } catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
     if (resp) return resp;
+    // Not an AuthError. Rethrowing would escape Deno.serve and produce a bare
+    // runtime 500 with no CORS headers, so the admin UI would show a CORS
+    // failure instead of the actual problem — and this now runs on every
+    // request rather than only after the body parsed, so it is a hotter path
+    // than it was.
+    console.error("[admin-transaction-actions] auth failed", err);
     return json({ error: "auth_failed" }, 500);
   }
 
-  // Stage (b): parse/validate the body.
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -143,11 +157,9 @@ Deno.serve(async (req) => {
     return badRequest("Refund must be handled from dispute or payout review");
   }
 
-  // Stage (c): fine-grained per-action permission gate (unchanged).
   const gated = await gateAction(req, body.action, baseCtx);
   if (gated instanceof Response) return gated;
   const { admin, userId } = gated;
-
   const txId = body.transactionId;
   const payload = (body.payload ?? {}) as Record<string, any>;
   const _meta = extractRequestMeta(req);

@@ -30,8 +30,11 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
-    // Authenticate FIRST — an anonymous caller must get 401 and an
-    // authenticated non-admin 403, regardless of the request body.
+    // Who, before what. The permission required here depends on the target
+    // status, so the fine-grained gate has to wait for the body — but proving
+    // the caller is an admin at all does not, and doing it first stops an
+    // anonymous caller from walking the validation errors to learn the shape
+    // of the dispute state machine.
     const baseCtx = await requireAdmin(req);
 
     let body: any;
@@ -54,7 +57,6 @@ Deno.serve(async (req) => {
         ? ["disputes.escalate"]
         : ["disputes.update_status", "disputes.update"];
     const { userId, adminClient } = await requireAnyPermission(req, requiredPerms, baseCtx);
-
 
     const { data: dispute, error: dErr } = await adminClient
       .from("disputes")

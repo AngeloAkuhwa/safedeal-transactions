@@ -50,18 +50,36 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // Authenticate FIRST so anonymous callers get 401 and non-admins 403 before
-  // any body parsing/validation can emit a 400.
+  // Identity first, export_type second.
+  //
+  // This used to parse and validate before authenticating, on the reasoning
+  // that the required permission depends on which export is being asked for.
+  // That is true of the *fine-grained* check and not of the coarse one: an
+  // anonymous caller could send `{"export_type":"x"}` repeatedly and read off
+  // the supported set from which values came back `unsupported_export_type`
+  // versus which came back 401 — the list of things the back office can
+  // extract, disclosed to someone who never signed in.
+  //
+  // "Never signed in" is literal, not shorthand. `config.toml` does not list
+  // this function, so `verify_jwt` should default to true and the platform
+  // should reject a caller with no token before this handler runs. It does
+  // not: a POST with no Authorization header, no apikey header, no headers at
+  // all reached this code and was answered `unsupported_export_type`. Checked,
+  // not assumed — and worth remembering the next time a control is presumed to
+  // be applied upstream.
+  //
+  // Prove the caller is an admin, then parse, then gate on the export type
+  // with the context already in hand (no second round of role lookups).
   let ctx;
   try {
     ctx = await requireAdmin(req);
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
+    console.error("[admin-export-enqueue] auth failed", err);
     return json({ error: "auth_failed" }, 500);
   }
 
-  // Parse body so we know which export_type we're gating.
   let body: { export_type?: string; params?: Record<string, unknown> } = {};
   try {
     body = await req.json();
@@ -73,16 +91,17 @@ Deno.serve(async (req) => {
     return json({ error: "unsupported_export_type", detail: exportType }, 400);
   }
 
-  // Per-export-type permission gate (unchanged semantics).
   const requiredPerm = EXPORT_PERMS[exportType];
-  try {
-    if (requiredPerm) ctx = await requirePermission(req, requiredPerm, ctx);
-  } catch (err) {
-    const r = authErrorResponse(err, corsHeaders);
-    if (r) return r;
-    return json({ error: "auth_failed" }, 500);
+  if (requiredPerm) {
+    try {
+      ctx = await requirePermission(req, requiredPerm, ctx);
+    } catch (err) {
+      const r = authErrorResponse(err, corsHeaders);
+      if (r) return r;
+      console.error("[admin-export-enqueue] permission check failed", err);
+      return json({ error: "auth_failed" }, 500);
+    }
   }
-
 
   const rl = await enforceAdminRateLimit(ctx, "export_enqueue", 20, corsHeaders);
   if (rl) return rl;
