@@ -58,7 +58,6 @@ Deno.serve(async (req) => {
         : ["disputes.update_status", "disputes.update"];
     const { userId, adminClient } = await requireAnyPermission(req, requiredPerms, baseCtx);
 
-
     const { data: dispute, error: dErr } = await adminClient
       .from("disputes")
       .select("id, status, transaction_id, filed_by_user_id")
