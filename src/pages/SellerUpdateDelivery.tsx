@@ -15,6 +15,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { TONE } from "@/lib/tone";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { uploadDeliveryEvidence, updateDeliveryStatus, type UploadedDeliveryFile } from "@/services/delivery.service";
@@ -287,11 +288,11 @@ export default function SellerUpdateDelivery() {
               <DeliveryMethodBadge method={rawDeliveryMethod} />
             </div>
             <div className="flex items-center gap-3">
-              <div className="bg-blue-50 dark:bg-blue-950/30 px-4 py-2 rounded-lg border border-blue-100 dark:border-blue-900">
-                <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{fmt(itemAmount, currency)}</span>
+              <div className="rounded-lg border border-primary/25 bg-primary/10 px-4 py-2">
+                <span className="text-2xl font-bold text-foreground">{fmt(itemAmount, currency)}</span>
               </div>
               <div className="h-8 w-px bg-border" />
-              <Badge variant="outline" className="font-mono text-xs bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900">{tx.transaction_code}</Badge>
+              <Badge variant="outline" className="border-primary/25 bg-primary/10 font-mono text-xs text-foreground">{tx.transaction_code}</Badge>
             </div>
           </div>
 
@@ -317,15 +318,15 @@ export default function SellerUpdateDelivery() {
           )}
 
           {/* Money Status Banner */}
-          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className={cn("rounded-xl border p-4", TONE.warning.surface)}>
             <div className="flex items-center gap-2 mb-1">
-              <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">MONEY STATUS</span>
-              <Badge className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 border-0 rounded-full px-2 py-0.5 ml-auto">
+              <Shield className={cn("h-4 w-4", TONE.warning.icon)} />
+              <span className="text-sm font-semibold text-foreground">MONEY STATUS</span>
+              <Badge className="ml-auto rounded-full border-0 bg-warning/20 px-2 py-0.5 text-foreground">
                 Funds Held in Escrow
               </Badge>
             </div>
-            <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">Payment is securely held by SafeDeal until buyer verification is complete.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Payment is securely held by SafeDeal until buyer verification is complete.</p>
           </div>
 
           {/* Quick Info */}
@@ -408,11 +409,11 @@ export default function SellerUpdateDelivery() {
         </Card>
 
         {/* Evidence Integrity Warning */}
-        <div className="bg-red-50 dark:bg-red-950/20 border-l-4 border-red-400 rounded-r-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-r-xl border-l-4 border-destructive bg-destructive/10 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div>
-            <p className="text-sm font-semibold text-red-700 dark:text-red-300">Important: Evidence Integrity</p>
-            <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
+            <p className="text-sm font-semibold text-foreground">Important: Evidence Integrity</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               <strong>Submitting false delivery proof</strong> may lead to <strong>account suspension</strong> and loss of seller privileges. All evidence is verified and stored for dispute resolution.
             </p>
           </div>
@@ -566,9 +567,9 @@ export default function SellerUpdateDelivery() {
                       {deliveredEvidence.map((f) => (
                         <div key={f.file_id} className="flex items-center gap-3 bg-muted/50 border rounded-xl p-3">
                           {f.mime_type.startsWith("video/") ? (
-                            <FileVideo className="h-5 w-5 text-purple-500 shrink-0" />
+                            <FileVideo className="h-5 w-5 shrink-0 text-muted-foreground" />
                           ) : (
-                            <ImageIcon className="h-5 w-5 text-green-500 shrink-0" />
+                            <ImageIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{f.original_name}</p>
@@ -609,8 +610,8 @@ export default function SellerUpdateDelivery() {
                         className="hidden"
                         onChange={handleFileSelect}
                       />
-                      <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                        <Upload className="h-6 w-6 text-primary" />
                       </div>
                       <p className="text-sm font-medium">Click to upload or drag and drop</p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -647,7 +648,7 @@ export default function SellerUpdateDelivery() {
         </Card>
 
         {/* What Happens Next */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl border p-6 md:p-8 space-y-5">
+        <div className="space-y-5 rounded-2xl border bg-muted/40 p-6 md:p-8">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
               <Info className="h-6 w-6 text-primary-foreground" />
@@ -678,7 +679,7 @@ export default function SellerUpdateDelivery() {
             ))}
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
+          <div className={cn("rounded-xl border p-3 text-xs text-muted-foreground", TONE.warning.surface)}>
             <strong>Estimated release time:</strong> Funds will be released after buyer confirmation or automatic release after the verification window expires without disputes.
           </div>
         </div>
@@ -686,14 +687,12 @@ export default function SellerUpdateDelivery() {
         {/* Trust Indicators */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
           {[
-            { icon: Lock, title: "Secure Process", desc: "Your data is encrypted end-to-end", bgColor: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" },
-            { icon: Headphones, title: "Support", desc: "Reach the SafeDeal team from any transaction", bgColor: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" },
-            { icon: ShieldCheck, title: "Evidence Protection", desc: "Media securely stored for disputes", bgColor: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" },
+            { icon: Lock, title: "Secure Process", desc: "Your data is encrypted end-to-end" },
+            { icon: Headphones, title: "Support", desc: "Reach the SafeDeal team from any transaction" },
+            { icon: ShieldCheck, title: "Evidence Protection", desc: "Media securely stored for disputes" },
           ].map((t) => (
             <Card key={t.title} className="p-5 flex items-start gap-3 rounded-xl">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${t.bgColor}`}>
-                <t.icon className="h-5 w-5" />
-              </div>
+              <t.icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
               <div>
                 <p className="text-sm font-bold">{t.title}</p>
                 <p className="text-xs text-muted-foreground">{t.desc}</p>

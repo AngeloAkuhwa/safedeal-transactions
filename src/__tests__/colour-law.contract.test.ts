@@ -20,10 +20,11 @@
  *              or seller ever sees, which is why it is not the first thing to
  *              fix despite being the biggest.
  *   customer   everything else: landing, marketplace, checkout, buyer and
- *              seller. Landing itself is already at zero, and the weight sits
- *              in the seller surfaces (SellerAnalytics 67, SellerUpdateDelivery
- *              62, TransactionSuccess 51). This is the budget that should reach
- *              zero first, because these are the screens customers see.
+ *              seller. This is the budget that should reach zero first, because
+ *              these are the screens customers see. The three heaviest files
+ *              (SellerAnalytics 67, SellerUpdateDelivery 62, TransactionSuccess
+ *              51) are now at zero via `src/lib/tone.ts`; what is left is a long
+ *              tail of ten-to-twenty per file.
  *   ui         the shadcn primitives.
  *
  * Splitting it this way stops a hundred admin fixes from paying for one new
@@ -46,6 +47,23 @@ const RAW_COLOUR = new RegExp(
     `|\\b(?:bg|text|border)-(?:white|black)\\b`,
   "g",
 );
+
+/**
+ * The other half, and the half that got past the first version of this file.
+ *
+ * A Tailwind class is not the only way to write a colour outside the system.
+ * `SellerAnalytics` drew its fee series with `stroke="#f59e0b"`, a literal amber
+ * passed straight to recharts, which the class regex above structurally cannot
+ * see: there is no class there to match. It sat in the middle of a chart whose
+ * every other value already read from `hsl(var(--...))`, so the file scored zero
+ * on the utility count while still shipping a hard-coded hue that ignored the
+ * theme in exactly the way this test exists to stop.
+ *
+ * Print stylesheets are the legitimate exception and the reason this is a
+ * ratchet rather than a ban: `TransactionReceipt` sets `#fff` and `#111` inside
+ * an `@media print` block, and a sheet of paper has no dark mode to follow.
+ */
+const RAW_HEX = /#[0-9a-fA-F]{3,8}\b/g;
 
 const stripComments = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -71,8 +89,11 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
 const BUDGET = {
   admin: 4053,
   ui: 7,
-  customer: 564,
+  customer: 384,
 };
+
+/** Literal hex, anywhere in a component. Same rule: it only goes down. */
+const HEX_BUDGET = 107;
 
 describe("the colour law ratchets", () => {
   const files = walk(path.join(ROOT, "src"));
@@ -93,6 +114,28 @@ describe("the colour law ratchets", () => {
     counts[area] += hits;
     worst[rel] = hits;
   }
+
+  it(`no more than ${HEX_BUDGET} literal hex colours`, () => {
+    const perFile: string[] = [];
+    let total = 0;
+    for (const file of files) {
+      const rel = path.relative(ROOT, file);
+      if (rel.includes("__tests__")) continue;
+      const n = (stripComments(fs.readFileSync(file, "utf8")).match(RAW_HEX) ?? []).length;
+      if (!n) continue;
+      total += n;
+      perFile.push(`${n}  ${rel}`);
+    }
+
+    expect(
+      total,
+      `literal hex count is ${total}, budget ${HEX_BUDGET}.\n` +
+        "A hex value does not follow the theme and does not follow a rebrand. " +
+        "Use hsl(var(--primary)) and friends, which work everywhere a hex does, " +
+        "including inside recharts props and inline styles.\n" +
+        `files:\n  ${perFile.sort((a, b) => parseInt(b) - parseInt(a)).join("\n  ")}`,
+    ).toBeLessThanOrEqual(HEX_BUDGET);
+  });
 
   for (const area of ["customer", "ui", "admin"] as const) {
     it(`${area}: no more than ${BUDGET[area]} raw colour utilities`, () => {
