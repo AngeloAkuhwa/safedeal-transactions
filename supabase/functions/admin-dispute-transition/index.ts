@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
+    // Authenticate FIRST — an anonymous caller must get 401 and an
+    // authenticated non-admin 403, regardless of the request body.
+    const baseCtx = await requireAdmin(req);
+
     let body: any;
     try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
 
@@ -49,7 +53,8 @@ Deno.serve(async (req) => {
       target === "escalated"
         ? ["disputes.escalate"]
         : ["disputes.update_status", "disputes.update"];
-    const { userId, adminClient } = await requireAnyPermission(req, requiredPerms);
+    const { userId, adminClient } = await requireAnyPermission(req, requiredPerms, baseCtx);
+
 
     const { data: dispute, error: dErr } = await adminClient
       .from("disputes")
