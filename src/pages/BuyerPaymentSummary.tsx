@@ -30,6 +30,7 @@ import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/tr
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 import { keyActivate } from "@/lib/a11y";
 import { ProductImage } from "@/components/common/ProductImage";
+import { useCheckoutIdentity } from "@/hooks/useCheckoutIdentity";
 
 declare global {
   interface Window {
@@ -46,7 +47,6 @@ declare global {
   }
 }
 
-type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
 function PaymentHeader() {
   return (
@@ -83,7 +83,7 @@ const FUNDS_SECURED = new Set([
 export default function BuyerPaymentSummary() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
-  const [authState, setAuthState] = useState<AuthState>("loading");
+  const { authState, requireIdentity } = useCheckoutIdentity(shareToken);
   const { buyerName, avatarUrl } = useBuyerIdentity();
   const [selectedMethod, setSelectedMethod] = useState<"card" | "bank">("bank");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -109,29 +109,6 @@ export default function BuyerPaymentSummary() {
     script.onerror = () => console.error("Failed to load Paystack inline.js");
     document.head.appendChild(script);
   }, []);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setAuthState("anonymous"); return; }
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-      if (!roles || roles.length === 0) { setAuthState("needs-role"); return; }
-      const hasBuyer = roles.some((r: { role: string }) => r.role === "buyer");
-      setAuthState(hasBuyer ? "ready" : "needs-role");
-    };
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (authState === "anonymous") {
-      navigate(`/auth?redirect=/t/${shareToken}/pay`);
-    } else if (authState === "needs-role") {
-      navigate(`/role-selection?redirect=/t/${shareToken}/pay`);
-    }
-  }, [authState, navigate, shareToken]);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transaction-review", shareToken],
@@ -172,9 +149,36 @@ export default function BuyerPaymentSummary() {
     enabled: authState === "ready",
   });
 
+  /**
+   * A buyer without an account is on their way to one, not on their way to
+   * Paystack, so the button says so and the terms checkbox does not gate it.
+   * Agreeing to escrow terms before you have an account is the wrong order:
+   * they tick it on the way back, when the button really does take payment.
+   */
+  const needsIdentity = authState === "anonymous" || authState === "needs-role";
+
   const permissions = profileData?.permissions;
   // Fail closed: if the permission check has not resolved, payment stays blocked.
   const canPay = permissions?.canStartProtectedPayment === true;
+
+  /**
+   * Fail closed, but only about people we are actually checking.
+   *
+   * `canPay` is false for an anonymous visitor and always will be: the profile
+   * query is disabled without a session, so no payload ever arrives. Read
+   * literally that put "We couldn't confirm your account status. Payment is
+   * blocked until your account checks load." in front of every buyer who
+   * followed a share link, with a Retry button that could only ever fail.
+   *
+   * Not having asked is not the same as having asked and got no answer. There
+   * is no account to confirm yet, and the honest next step is to make one.
+   *
+   * The fail-closed rule itself is untouched for signed-in buyers, and this
+   * does not open a payment path: `handlePay` calls `requireIdentity()` first,
+   * and once they are back with an account `needsIdentity` is false and the
+   * real permission check applies.
+   */
+  const paymentBlocked = !needsIdentity && !canPay;
 
   // Determine specific lock reason for context-aware messaging
   const lockReason = !canPay && permissions ? (
@@ -187,7 +191,7 @@ export default function BuyerPaymentSummary() {
           : "verification"
   ) : null;
   /** No permissions payload yet: we cannot prove the buyer may pay. */
-  const permissionsUnavailable = !canPay && !permissions;
+  const permissionsUnavailable = paymentBlocked && !permissions;
 
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
@@ -294,12 +298,16 @@ export default function BuyerPaymentSummary() {
   }, [paystackLoaded, shareToken, selectedMethod, refetch]);
 
   const handlePay = useCallback(async () => {
+    // Identity is checked here rather than on mount, so a buyer who followed
+    // a share link reads what they are paying for before being asked to make
+    // an account. requireIdentity navigates and returns true when it does.
+    if (requireIdentity()) return;
     if (!agreedToTerms) {
       toast.error("Please agree to the escrow payment terms before proceeding.");
       return;
     }
     openPaystackPayment();
-  }, [agreedToTerms, openPaystackPayment]);
+  }, [requireIdentity, agreedToTerms, openPaystackPayment]);
 
   const handleRetryPay = useCallback(() => {
     setShowFailed(false);
@@ -308,7 +316,10 @@ export default function BuyerPaymentSummary() {
     openPaystackPayment();
   }, [openPaystackPayment]);
 
-  if (authState === "loading" || authState === "anonymous" || authState === "needs-role") {
+  // Only the session read itself is a reason to wait. "anonymous" and
+  // "needs-role" used to be listed here too, which is what made the page a
+  // skeleton-then-redirect for anyone arriving without an account.
+  if (authState === "loading") {
     return (
       <div className="min-h-[100dvh] bg-background px-4 py-8">
         <div className="mx-auto max-w-5xl space-y-6">
@@ -456,7 +467,7 @@ export default function BuyerPaymentSummary() {
       <Header />
 
       {/* Context-aware Lock Banner */}
-      {!canPay && (
+      {paymentBlocked && (
         <section className="bg-destructive/10 border-b border-destructive/20 py-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -972,7 +983,7 @@ export default function BuyerPaymentSummary() {
               <div className="bg-card rounded-2xl shadow-lg border p-6">
                 <h3 className="text-lg font-bold text-foreground mb-4">Payment Actions</h3>
 
-                {!canPay ? (
+                {paymentBlocked ? (
                   <button
                     onClick={() => {
                       if (permissionsUnavailable) { window.location.reload(); return; }
@@ -991,8 +1002,8 @@ export default function BuyerPaymentSummary() {
                 ) : (
                   <button
                     onClick={handlePay}
-                    disabled={!agreedToTerms || isProcessing}
-                    className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={(!needsIdentity && !agreedToTerms) || isProcessing}
+                    className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <>
@@ -1002,7 +1013,11 @@ export default function BuyerPaymentSummary() {
                     ) : (
                       <>
                         <Lock className="h-5 w-5" />
-                        <span>Pay {formatMoney(totalAmount, currencyCode)}</span>
+                        <span>
+                          {needsIdentity
+                            ? `Sign up to pay ${formatMoney(totalAmount, currencyCode)}`
+                            : `Pay ${formatMoney(totalAmount, currencyCode)}`}
+                        </span>
                       </>
                     )}
                   </button>
@@ -1010,10 +1025,16 @@ export default function BuyerPaymentSummary() {
                 <StickyPayBar
                   total={formatMoney(totalAmount, currencyCode)}
                   totalLabel="Total you pay"
-                  actionLabel={isProcessing ? "Processing…" : "Pay"}
+                  actionLabel={isProcessing ? "Processing…" : needsIdentity ? "Sign up to pay" : "Pay"}
                   onAction={handlePay}
-                  disabled={!agreedToTerms || isProcessing}
-                  note={!agreedToTerms ? "Accept the terms above to pay" : undefined}
+                  disabled={(!needsIdentity && !agreedToTerms) || isProcessing}
+                  note={
+                    needsIdentity
+                      ? "You will be asked to create an account before paying"
+                      : !agreedToTerms
+                        ? "Accept the terms above to pay"
+                        : undefined
+                  }
                 />
 
                 <button

@@ -39,14 +39,14 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 import { FEE_NAME, FEE_CAPTION } from "@/lib/payment/fee-policy";
+import { useCheckoutIdentity, type CheckoutAuthState } from "@/hooks/useCheckoutIdentity";
 
-type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
 export default function BuyerTransactionReview() {
   const isMobile = useIsMobile();
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
-  const [authState, setAuthState] = useState<AuthState>("loading");
+  const { authState } = useCheckoutIdentity(shareToken);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [isDeclineLoading, setIsDeclineLoading] = useState(false);
   const { buyerName, avatarUrl } = useBuyerIdentity();
@@ -54,22 +54,6 @@ export default function BuyerTransactionReview() {
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
     : ReviewHeader;
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setAuthState("anonymous"); return; }
-      // Check buyer role
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-      if (!roles || roles.length === 0) { setAuthState("needs-role"); return; }
-      const hasBuyer = roles.some((r: { role: string }) => r.role === "buyer");
-      setAuthState(hasBuyer ? "ready" : "needs-role");
-    };
-    checkAuth();
-  }, []);
-
   const { data, isLoading, error } = useQuery({
     queryKey: ["transaction-review", shareToken],
     queryFn: () => getTransactionReview(shareToken!),
@@ -103,17 +87,17 @@ export default function BuyerTransactionReview() {
           : "verification"
   ) : null;
 
+  /**
+   * Forward, for everyone.
+   *
+   * This used to divert an anonymous buyer to `/auth` from here, because the
+   * payment page would only have bounced them anyway. Now that the payment
+   * page is readable without an account, sending them on is strictly better:
+   * they get the full fee breakdown and the payment method choice before
+   * anyone asks them to sign up, and the ask happens where it makes sense,
+   * next to the button that actually moves money.
+   */
   const handlePayClick = () => {
-    if (authState === "anonymous") {
-      sessionStorage.setItem("safedeal_redirect", `/t/${shareToken}`);
-      navigate(`/auth?redirect=/t/${shareToken}`);
-      return;
-    }
-    if (authState === "needs-role") {
-      sessionStorage.setItem("safedeal_redirect", `/t/${shareToken}`);
-      navigate(`/role-selection?redirect=/t/${shareToken}`);
-      return;
-    }
     navigate(`/t/${shareToken}/pay`);
   };
 
@@ -206,7 +190,10 @@ export default function BuyerTransactionReview() {
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
-  const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${formatMoney(totalAmount, currencyCode)}`;
+  const payButtonLabel =
+    authState === "ready"
+      ? `Pay ${formatMoney(totalAmount, currencyCode)}`
+      : `Continue to payment`;
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col">
@@ -464,7 +451,7 @@ export default function BuyerTransactionReview() {
                   here the total is already beside it, so the label stays short. */}
               <StickyPayBar
                 total={formatMoney(totalAmount, currencyCode)}
-                actionLabel={authState === "anonymous" ? "Sign up to pay" : "Pay"}
+                actionLabel={authState === "ready" ? "Pay" : "Continue"}
                 onAction={handlePayClick}
                 disabled={!canPay}
                 note={canPay ? undefined : "Action needed before payment"}
@@ -920,7 +907,7 @@ function FraudWarningCard() {
 }
 
 function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockReason, onGoToProfile, onGoToTransactions }: {
-  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void; onGoToTransactions: () => void;
+  payLabel: string; onPay: () => void; onDecline: () => void; authState: CheckoutAuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void; onGoToTransactions: () => void;
 }) {
   const isLocked = !canPay && authState === "ready";
   const lockedCtaLabel =
@@ -963,7 +950,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
       )}
 
       <h3 className="text-xl font-bold mb-2">
-        {isLocked ? "Action Needed Before Payment" : authState === "anonymous" ? "Sign Up to Pay Securely" : "Pay Securely"}
+        {isLocked ? "Action Needed Before Payment" : "Pay Securely"}
       </h3>
       <p className="text-sm opacity-80 mb-6">
         {isLocked
