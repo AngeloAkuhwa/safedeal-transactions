@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
 
   try {
     const ctx = await requirePermission(req, "support.update");
+
+    if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "");
     const id = String(body.id ?? "");
@@ -121,5 +123,4 @@ Deno.serve(async (req) => {
     return json({ error: "Unexpected error" }, 500);
   }
 
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 });
