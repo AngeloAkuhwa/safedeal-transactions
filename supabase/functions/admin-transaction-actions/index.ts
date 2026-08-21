@@ -119,7 +119,7 @@ function badRequest(msg: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
 
   // Establish WHO is calling before reading WHAT they sent.
   //
