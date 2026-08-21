@@ -234,18 +234,30 @@ jobs:
           E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
+          # Hard-coded candidate hashes went stale the moment the credentials
+          # were rotated, and a stale allowlist reports a correct secret as
+          # unknown. What stays true after any rotation is the shape: all three
+          # must be non-empty, and they must agree with each other if they are
+          # meant to be the same password. A length and a hash prefix say that
+          # without revealing anything.
+          prev=""
           for k in E2E_BUYER_PASSWORD E2E_SELLER_PASSWORD E2E_ADMIN_PASSWORD; do
             v="${!k}"
-            h=$(printf %s "$v" | sha256sum | cut -c1-16)
-            case "$h" in
-              45f366e0c8994eee) id='OK - matches the value the database is currently set to';;
-              99f0ac6633824c30) id='STALE - matches the superseded rotated value';;
-              c0a62592df3b478c) id='WRONG - matches the three-dollar-sign variant';;
-              78cf9932cbc7d314) id='MANGLED - a shell expanded it down to a 5-char remnant';;
-              56dc6d47737d155a) id='MANGLED - a shell expanded it down to a 3-char remnant';;
-              *) id='UNKNOWN - matches none of the known candidates';;
+            h=$(printf %s "$v" | sha256sum | cut -c1-12)
+            warn=""
+            case "$v" in
+              *' ') warn=" [WARNING: ends with a space — likely a paste artifact]";;
+              *'
+') warn=" [WARNING: contains a newline — likely a paste artifact]";;
             esac
-            echo "$k: length=${#v} sha256=$h -- $id"
+            case "$v" in
+              *'$'*) warn="$warn [note: contains \$, which shells and dotenv expand]";;
+            esac
+            echo "$k: length=${#v} sha256=$h$warn"
+            if [ -n "$prev" ] && [ "$prev" != "$h" ]; then
+              echo "  ^ differs from the previous credential's hash"
+            fi
+            prev="$h"
           done
 
       - name: Start the app

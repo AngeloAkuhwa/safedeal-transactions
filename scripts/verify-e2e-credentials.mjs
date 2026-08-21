@@ -21,7 +21,8 @@
  *     against a different project than every local run.
  *   - The password is read from `process.env` and JSON-encoded here. It is
  *     never interpolated into a shell word, a YAML scalar or a dotenv line, so
- *     `$Kumaor627$$###` cannot be shell-expanded, dotenv-expanded, or truncated.
+ *     characters that a shell or dotenv would expand — `$`, `#`, backticks —
+ *     cannot alter it or truncate it on the way to the auth endpoint.
  */
 import { readFileSync } from "node:fs";
 
