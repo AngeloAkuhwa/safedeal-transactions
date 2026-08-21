@@ -1,5 +1,5 @@
 /**
- * Product media rules — single source of truth for what a seller may upload.
+ * Product media rules: single source of truth for what a seller may upload.
  *
  * Every threshold is config-driven from `system_settings` (`media.*` keys).
  * This module is PURE: it validates already-extracted metadata so the exact
@@ -229,7 +229,7 @@ export function validateImage(meta: ImageMeta, cfg: MediaConfig): MediaValidatio
       normalise = { toRatio: target, transformation: normalisationTransformation(target) };
       advisories.push({
         code: "ratio_not_allowed",
-        message: `This image is ${meta.width}x${meta.height}. We'll pad it with white to ${target} so it lines up with the rest of the catalogue — nothing is cropped out.`,
+        message: `This image is ${meta.width}x${meta.height}. We'll pad it with white to ${target} so it lines up with the rest of the catalogue. Nothing is cropped out.`,
       });
     } else {
       errors.push({
@@ -287,7 +287,7 @@ export function validateVideo(meta: VideoMeta, cfg: MediaConfig): MediaValidatio
   return { ok: errors.length === 0, errors, advisories };
 }
 
-/** Publish gate — draft saving never calls this. */
+/** Publish gate: draft saving never calls this. */
 export function validateProductMediaForPublish(
   counts: { images: number; videos: number },
   cfg: MediaConfig,

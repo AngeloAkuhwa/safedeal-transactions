@@ -23,7 +23,7 @@ import {
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { formatMoney } from "@/lib/format";
 
-/** Shared timestamp formatter — matches AgreementSnapshotSection / dispute UI. */
+/** Shared timestamp formatter: matches AgreementSnapshotSection / dispute UI. */
 function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {

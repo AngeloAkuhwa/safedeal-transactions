@@ -36,7 +36,7 @@ const FONT_ALLOWLIST: Array<{ file: string; reason: string }> = [
   {
     file: "src/components/transactions/TransactionReceipt.tsx",
     reason:
-      "Print-only receipt: its root is display:none outside @media print, so the 11px labels are laid out at paper width and never rendered on a phone screen. NOTE: this is a whole-file exemption — future on-screen text in this file is not covered.",
+      "Print-only receipt: its root is display:none outside @media print, so the 11px labels are laid out at paper width and never rendered on a phone screen. NOTE: this is a whole-file exemption. Future on-screen text in this file is not covered.",
   },
 ];
 

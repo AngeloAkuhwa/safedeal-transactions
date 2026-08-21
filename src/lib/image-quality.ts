@@ -1,5 +1,5 @@
 /**
- * SafeDeal Image Standard — capture-side quality checks.
+ * SafeDeal Image Standard: capture-side quality checks.
  *
  * Pure browser helpers used before a product photo is uploaded:
  *  - minimum dimensions / size validation
@@ -14,7 +14,7 @@ export const PRODUCT_IMAGE_EXPORT_MAX = 1600;
 export const BLUR_VARIANCE_THRESHOLD = 60;
 
 export const TOO_SMALL_MESSAGE =
-  "Photo too small — at least 800×800 needed. Move closer or use your camera's main lens.";
+  "Photo too small: at least 800×800 needed. Move closer or use your camera's main lens.";
 
 export interface ImageDimensions { width: number; height: number }
 

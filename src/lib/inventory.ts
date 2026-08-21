@@ -23,7 +23,7 @@ export function isOutOfStock(p: StockShape | null | undefined): boolean {
 
 /**
  * The single low-stock threshold for the whole app. Cart, checkout review and
- * listing badges must all use this — inventing per-screen numbers (3 here, 5
+ * listing badges must all use this. Inventing per-screen numbers (3 here, 5
  * there) told the same buyer two different stories about the same product.
  */
 export const LOW_STOCK_THRESHOLD = 5;

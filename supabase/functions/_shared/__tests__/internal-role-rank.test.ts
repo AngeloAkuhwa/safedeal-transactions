@@ -32,7 +32,7 @@ describe("internal role rank order", () => {
   });
 });
 
-describe("checkRoleGrant — privilege escalation guard", () => {
+describe("checkRoleGrant: privilege escalation guard", () => {
   it("rejects a senior_admin granting super_admin", () => {
     const r = checkRoleGrant(["senior_admin"], ["super_admin"]);
     expect(r.ok).toBe(false);

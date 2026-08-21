@@ -1,5 +1,5 @@
 /**
- * SafeDeal canonical financial model — the ONLY place money is computed.
+ * SafeDeal canonical financial model. The ONLY place money is computed.
  *
  * Checkpoint 1 (zero-runtime): this module is intentionally imported by no
  * runtime code yet. Consumers are migrated in Checkpoint 3.
@@ -43,7 +43,7 @@ export class InvariantError extends Error {
 }
 
 /* ------------------------------------------------------------------ *
- * 4.0 — exact decimal ingestion
+ * 4.0. Exact decimal ingestion
  * ------------------------------------------------------------------ */
 
 const DECIMAL_RE = /^([+-]?)(\d+)(?:\.(\d+))?$/;
@@ -72,7 +72,7 @@ function issue(
 
 /**
  * Convert a Postgres numeric string (or number) to integer minor units,
- * textually — no float multiplication. Rounding (half-up, away from zero) is
+ * textually: no float multiplication. Rounding (half-up, away from zero) is
  * applied exactly once here, and only when the source carries more fractional
  * digits than the currency precision.
  */
@@ -152,7 +152,7 @@ export function toMinor(value: number | string | null | undefined): Minor {
 }
 
 /* ------------------------------------------------------------------ *
- * 4.1 — verified vocabulary (live enums)
+ * 4.1. Verified vocabulary (live enums)
  * ------------------------------------------------------------------ */
 
 export type PaymentStatus = "pending" | "authorized" | "succeeded" | "failed" | "refunded";
@@ -282,7 +282,7 @@ export interface CanonicalFinancials {
   remaining_balance: Minor;
   frozen_amount: Minor;
   refund_amount: Minor;
-  /** null when the authoritative snapshot value is missing — mutations blocked. */
+  /** null when the authoritative snapshot value is missing. Mutations blocked. */
   seller_release_amount: Minor | null;
   /** NON-AUTHORITATIVE display estimate. Never used by release/refund logic. */
   seller_release_amount_display_estimate: Minor | null;
@@ -297,7 +297,7 @@ export interface CanonicalFinancials {
   reconciliation_status: ReconciliationStatus;
   financial_execution_status: FinancialExecutionStatus;
   invariants: InvariantIssue[];
-  /** true when any invariant failed — every mutation path must refuse. */
+  /** true when any invariant failed: every mutation path must refuse. */
   mutations_blocked: boolean;
 }
 
@@ -313,7 +313,7 @@ export interface BuildInput {
 }
 
 /* ------------------------------------------------------------------ *
- * 4.2 — conservation identities
+ * 4.2. Conservation identities
  * ------------------------------------------------------------------ */
 
 /**
@@ -441,7 +441,7 @@ export function buildCanonicalFinancials(input: BuildInput): CanonicalFinancials
     }
   }
 
-  // Seller release amount — authoritative snapshot only, NO item_amount fallback.
+  // Seller release amount: authoritative snapshot only, NO item_amount fallback.
   let seller_release_amount: Minor | null = null;
   if (p.seller_payout_amount !== null && p.seller_payout_amount !== undefined && p.seller_payout_amount !== "") {
     const r = parseMinor(p.seller_payout_amount, { field: "pricing.seller_payout_amount", transactionId: txId });

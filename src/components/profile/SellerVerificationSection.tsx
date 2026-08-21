@@ -21,9 +21,9 @@ const getItems = (v: SellerVerification) => {
   const payoutDescription = v.payout_verified
     ? "Payout account verified"
     : v.payout_blocker_reason === "no_recipient_code"
-      ? "Bank verified — finish linking with our payment processor to receive payouts"
+      ? "Bank verified: finish linking with our payment processor to receive payouts"
       : v.payout_blocker_reason === "unverified"
-        ? "Bank account added but not verified — re-enter details to verify"
+        ? "Bank account added but not verified. Re-enter details to verify"
         : "Set up a verified payout account to receive funds";
 
   return [

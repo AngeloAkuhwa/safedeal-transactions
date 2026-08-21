@@ -42,21 +42,21 @@ const COMPARISON =
 /**
  * `x ?? "literal"` / `x || "literal"` defaults on a method-named operand.
  * NOTE: defaulting to a VALID member is the Phase 0 defect, not the escape
- * hatch — `?? "courier"` is exactly what made four fail-closed guards dead
+ * hatch: `?? "courier"` is exactly what made four fail-closed guards dead
  * code. Any string default on a delivery-method operand is banned.
  */
 const DEFAULTING =
   /\b([A-Za-z_$][\w$]*(?:\.[\w$]+)*)\s*(?:\?\?|\|\|)\s*["'`]([a-z_]+)["'`]/g;
 /**
  * Operands allowed to carry a string default. Add entries individually, with
- * a reason — never widen the rule itself.
+ * a reason: never widen the rule itself.
  */
 const DEFAULTING_ALLOWLIST = new Set<string>([]);
-/** `switch (method) { case "literal": }` — captured per switch block below. */
+/** `switch (method) { case "literal": }`: captured per switch block below. */
 const SWITCH_HEAD = /switch\s*\(\s*([A-Za-z_$][\w$]*(?:\.[\w$]+)*)[^)]*\)\s*\{/g;
 const CASE_LABEL = /case\s+["'`]([a-z_]+)["'`]/g;
 /**
- * Any operand whose name mentions a method is in scope — the invented names
+ * Any operand whose name mentions a method is in scope. The invented names
  * have appeared under `method`, `rawMethod`, `deliveryMethod` and
  * `fulfillment_method` alike.
  */
@@ -69,7 +69,7 @@ const OTHER_METHOD_VOCAB =
  * Every entry is hand-checked; add only with a reason.
  */
 const NON_DELIVERY_OPERANDS = new Set([
-  "selectedMethod", // BuyerPaymentSummary — Paystack channel ("card" | "bank")
+  "selectedMethod", // BuyerPaymentSummary: Paystack channel ("card" | "bank")
 ]);
 /** Fail-closed sentinels are not claims about a delivery method. */
 const SENTINELS = new Set(["unknown", "none", "other", "null", "unspecified"]);
@@ -98,7 +98,7 @@ describe("delivery method vocabulary", () => {
 
     for (const file of FILES) {
       const src = fs.readFileSync(file, "utf8");
-      // Skip files that never mention delivery at all — a bare `method` there
+      // Skip files that never mention delivery at all. A bare `method` there
       // belongs to some other vocabulary.
       const deliveryFile = /deliver|shipp|fulfil|dispatch|courier|pickup|meetup/i.test(src);
       if (!deliveryFile) continue;
@@ -115,7 +115,7 @@ describe("delivery method vocabulary", () => {
         if (DEFAULTING_ALLOWLIST.has(operand)) continue;
         record(
           file,
-          `${operand} defaulted to "${literal}" — a delivery method must fail closed, not default`,
+          `${operand} defaulted to "${literal}": a delivery method must fail closed, not default`,
         );
       }
 

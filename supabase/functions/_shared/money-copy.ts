@@ -1,10 +1,10 @@
 /**
- * Phase 5 — canonical money copy for edge-function notifications and
+ * Phase 5: canonical money copy for edge-function notifications and
  * (eventually) transactional emails.
  *
  * Server-side mirror of `src/lib/payment/payment-labels.ts` so backend output
  * matches the in-app `<PricingBreakdown>` and `<SellerPayoutLine>` UI line
- * for line. Do NOT introduce ad-hoc labels in edge functions — import from
+ * for line. Do NOT introduce ad-hoc labels in edge functions. Import from
  * here instead.
  */
 
@@ -32,7 +32,7 @@ export function resolveMoneyLabel(key: PricingLineKey): string {
 }
 
 /** Re-export so notifications use one helper. NEVER call `toLocaleString()`
- *  on raw amounts in notification copy — always go through `formatMoney`. */
+ *  on raw amounts in notification copy. Always go through `formatMoney`. */
 export function formatMoney(
   amount: number | null | undefined,
   currency: string,

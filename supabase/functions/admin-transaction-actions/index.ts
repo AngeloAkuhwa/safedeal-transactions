@@ -92,7 +92,7 @@ const ACTION_PERMS: Record<string, string[]> = {
   dispute_request_more_info: ["disputes.request_information"],
   // Re-runs the Paystack hand-off for a dispute refund that is still stuck in
   // 'pending'/'failed' while the transaction sits at money_status
-  // 'refund_pending'. Money movement — finance authority only.
+  // 'refund_pending'. Money movement. Finance authority only.
   retry_dispute_refund:      ["refunds.issue"],
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   // check genuinely cannot run until the body is parsed. The coarse one can,
   // and must: parsing first meant an anonymous caller got `missing_fields`,
   // and by varying the body could map which actions exist, which are refused
-  // outright, and which are merely unauthorised — a free index of the admin
+  // outright, and which are merely unauthorised. A free index of the admin
   // surface, answered by a function that never learned their name.
   let baseCtx: AuthContext;
   try {
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     if (resp) return resp;
     // Not an AuthError. Rethrowing would escape Deno.serve and produce a bare
     // runtime 500 with no CORS headers, so the admin UI would show a CORS
-    // failure instead of the actual problem — and this now runs on every
+    // failure instead of the actual problem. And this now runs on every
     // request rather than only after the body parsed, so it is a hotter path
     // than it was.
     console.error("[admin-transaction-actions] auth failed", err);
@@ -614,7 +614,7 @@ Deno.serve(async (req) => {
               refund_provider_reference: exec.provider_reference,
             };
           } else {
-            // The dispute IS resolved — report success for the resolution but
+            // The dispute IS resolved: report success for the resolution but
             // surface the money-movement failure. fail_refund_atomic + the ops
             // alert already fired inside the helper; an admin with
             // `refunds.issue` can re-run it via `retry_dispute_refund`.

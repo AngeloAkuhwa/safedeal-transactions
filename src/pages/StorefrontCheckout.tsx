@@ -105,7 +105,7 @@ const StorefrontCheckout = () => {
   const { product, seller } = data;
 
   // Clamp requested quantity to available stock (falls back to requested qty if stock is unknown).
-  // Availability honours reservations — `stock_quantity` alone lets a buyer
+  // Availability honours reservations. `stock_quantity` alone lets a buyer
   // start a transaction the server must reject.
   const availableQuantity = getAvailableQuantity(product);
   const quantity = availableQuantity > 0 ? Math.min(requestedQty, availableQuantity) : requestedQty;

@@ -34,7 +34,7 @@ export interface CreateTaskInput {
   transactionId?: string | null;
   buyerId?: string | null;
   sellerId?: string | null;
-  /** Optional. When set, `currency` is mandatory — the database rejects an
+  /** Optional. When set, `currency` is mandatory: the database rejects an
    *  amount without its own currency rather than assuming one. */
   amount?: number | null;
   currency?: string | null;
@@ -44,7 +44,7 @@ export interface CreateTaskInput {
 }
 
 /**
- * Enqueue an orchestration task. Never throws — logs and returns null on
+ * Enqueue an orchestration task. Never throws. Logs and returns null on
  * failure so business flows (dispute creation, response submission, …) are
  * not blocked by orchestration issues.
  */

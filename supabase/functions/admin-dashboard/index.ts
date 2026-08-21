@@ -445,7 +445,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     };
     const nowIso = now.toISOString();
 
-    // Escrow low balance — only if threshold is set in settings
+    // Escrow low balance: only if threshold is set in settings
     const escrowThreshold = numSetting("escrow_balance_min_threshold");
     if (escrowThreshold != null && escrowBalance < escrowThreshold) {
       criticalAlerts.push({
@@ -479,7 +479,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       });
     }
 
-    // SLA-overdue disputes — any overdue case is alert-worthy
+    // SLA-overdue disputes: any overdue case is alert-worthy
     if (slaOverdue > 0) {
       criticalAlerts.push({
         id: "alert-disputes-overdue",
@@ -490,7 +490,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       });
     }
 
-    // Stuck transactions flagged for admin review — surface immediately
+    // Stuck transactions flagged for admin review. Surface immediately
     if (flaggedNeedsReview > 0) {
       criticalAlerts.push({
         id: "alert-stuck-tx",
@@ -555,7 +555,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ]),
   );
 
-  // Pre-seed 7-day trend via SQL RPC (P1 fix — was scanning up to 100k rows into JS).
+  // Pre-seed 7-day trend via SQL RPC (P1 fix. Was scanning up to 100k rows into JS).
   const txDisputeTrendPoints: Array<{ label: string; date: string; primary: number; secondary: number }> = [];
   try {
     const { data: rows, error: trendErr } = await client.rpc("admin_daily_activity_counts", { _days: 7 });
@@ -641,7 +641,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       high_severity_actions_24h: highSev24h,
       impersonation_sessions_24h: 0,
       failed_admin_logins_24h: 0,
-      // Compliance can only be "green" when reconciliation is clean — the
+      // Compliance can only be "green" when reconciliation is clean: the
       // same figure the Escrow page reports.
       compliance_status:
         reconSummary.mismatch > 0

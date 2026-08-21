@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     });
     if (!result.ok) return json(result.status, result.body);
     // Canonical audit lives in admin_actions (written by releasePayoutCore).
-    // case_reviews is a dispute-review table — not a release-review table.
+    // case_reviews is a dispute-review table. Not a release-review table.
     return json(200, { ok: true, resolution: "release", ...result.body });
   }
 

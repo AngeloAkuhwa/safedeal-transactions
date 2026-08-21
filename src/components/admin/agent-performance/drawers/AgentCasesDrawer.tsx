@@ -18,7 +18,7 @@ export function AgentCasesDrawer({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   slaOnly?: boolean;
-  /** Dashboard filters — inherited so the counts match the workload row. */
+  /** Dashboard filters: inherited so the counts match the workload row. */
   filters?: AgentPerformanceFilters;
 }) {
   const navigate = useNavigate();

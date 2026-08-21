@@ -1,4 +1,4 @@
-// Pure maker-checker rules — no runtime dependencies so both Deno edge
+// Pure maker-checker rules: no runtime dependencies so both Deno edge
 // functions and the vitest contract tests can import this file directly.
 
 export const MAKER_CHECKER_SETTING_KEY = "finance.maker_checker_enforced";

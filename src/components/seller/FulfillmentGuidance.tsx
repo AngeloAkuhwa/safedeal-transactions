@@ -26,7 +26,7 @@ const COPY: Record<TransactionDeliveryMethod, { before: string[]; after: string[
   pickup: {
     before: [
       "Prepare the item and confirm the pickup location with the buyer.",
-      "When ready, mark the order as Dispatched — we'll generate a 6-digit handoff code.",
+      "When ready, mark the order as Dispatched. We'll generate a 6-digit handoff code.",
       "Share the handoff code with the buyer at pickup; do not release the item without it.",
     ],
     after: [
@@ -37,7 +37,7 @@ const COPY: Record<TransactionDeliveryMethod, { before: string[]; after: string[
   meetup: {
     before: [
       "Agree a meetup time and safe public location with the buyer.",
-      "When the meetup is scheduled, mark as Dispatched — we'll generate a 6-digit handoff code.",
+      "When the meetup is scheduled, mark as Dispatched. We'll generate a 6-digit handoff code.",
       "Share the handoff code with the buyer when you meet.",
     ],
     after: [

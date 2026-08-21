@@ -3,7 +3,7 @@
  *
  * `is_user_region_allowed` used to read a boolean copied onto `profiles`. That
  * meant opening a new city left everyone already living there ineligible until
- * something re-ran the calculation over them — and the `buyer-profile` edge
+ * something re-ran the calculation over them. And the `buyer-profile` edge
  * function recomputing it on profile update gave the same fact two sources,
  * free to disagree.
  *
@@ -31,7 +31,7 @@ function sqlFiles(): string[] {
 
 const stripComments = (s: string) => s.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
 
-/** The last definition of a function wins — that is what the database runs. */
+/** The last definition of a function wins. That is what the database runs. */
 function latestBody(fn: string): { file: string; body: string } | null {
   let found: { file: string; body: string } | null = null;
   const re = new RegExp(
@@ -51,7 +51,7 @@ describe("region eligibility is derived", () => {
     expect(fn, "is_user_region_allowed must exist").toBeTruthy();
     expect(
       /is_region_eligible/i.test(fn!.body),
-      `${fn!.file} reads profiles.is_region_eligible — the gate must derive from serviceable_regions, ` +
+      `${fn!.file} reads profiles.is_region_eligible. The gate must derive from serviceable_regions, ` +
         "or opening a new city leaves everyone already in it ineligible",
     ).toBe(false);
   });

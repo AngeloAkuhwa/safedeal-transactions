@@ -96,7 +96,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
     [onProfileChange]
   );
 
-  // Geolocation detect (convenience helper only — never determines eligibility)
+  // Geolocation detect (convenience helper only. Never determines eligibility)
   const detectLocation = useCallback(async () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
@@ -382,7 +382,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
               </div>
 
               <p className="text-xs text-muted-foreground -mt-2">
-                Location detection only prefills values — you must confirm before saving.
+                Location detection only prefills values. You must confirm before saving.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -446,7 +446,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
               {isLagos && cityName && (
                 <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  Lagos — Eligible for protected transactions
+                  Lagos: Eligible for protected transactions
                 </Badge>
               )}
             </div>

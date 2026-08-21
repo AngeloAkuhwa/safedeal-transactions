@@ -91,7 +91,7 @@ export function EscalateTaskDrawer({
             {financial && (
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
-                Financial / compliance target — only routable when the batch's task type matches the queue's authority.
+                Financial / compliance target: only routable when the batch's task type matches the queue's authority.
               </div>
             )}
           </div>

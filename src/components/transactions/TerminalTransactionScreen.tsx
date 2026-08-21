@@ -161,6 +161,6 @@ export function deriveTerminalStatus(status: string | null | undefined): Termina
     case "delivered_awaiting_verification":
       return "paid";
     default:
-      return null; // awaiting_payment, draft, awaiting_buyer, etc — still payable
+      return null; // awaiting_payment, draft, awaiting_buyer, etc. Still payable
   }
 }

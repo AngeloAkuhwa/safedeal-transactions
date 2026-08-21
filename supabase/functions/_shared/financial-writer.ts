@@ -1,5 +1,5 @@
 /**
- * financial-writer.ts — canonical fingerprinting + stable idempotency keys.
+ * financial-writer.ts. Canonical fingerprinting + stable idempotency keys.
  *
  * This file is the TypeScript twin of the SQL routines
  * `public.canonical_payload_v1(jsonb)` / `public.canonical_fingerprint_v1(jsonb)`.
@@ -67,7 +67,7 @@ export function toMinorUnits(amount: number | string): number {
  * Stable idempotency key:
  *   <scope>:<action>:<transaction_id>:<stable_operation_id>:<entry_type>
  * `stableOperationId` must be retry-stable (provider event id, confirmation id,
- * payout id, refund id) — never a timestamp or a random value.
+ * payout id, refund id): never a timestamp or a random value.
  */
 export function buildIdempotencyKey(input: {
   scope: string;

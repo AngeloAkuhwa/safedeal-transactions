@@ -1,5 +1,5 @@
 /**
- * Phase 6 — admin-only reconciliation + pricing-coverage read API.
+ * Phase 6: admin-only reconciliation + pricing-coverage read API.
  *
  * GET (default): returns latest-run drift rows + per-bucket pricing coverage
  * counts + the non-complete pricing audit list (capped at 200).
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     currency_code: driftCurrency[r.transaction_id as string] ?? null,
   }));
 
-  // Canonical remediation report — the same routine the Dashboard and Escrow
+  // Canonical remediation report: the same routine the Dashboard and Escrow
   // page read, so every screen reports identical counts.
   let summary = { ...EMPTY_SUMMARY };
   let remediationRows: ReconciliationRow[] = [];

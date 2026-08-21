@@ -84,7 +84,7 @@ describe("dispute recourse after the verification deadline", () => {
   });
 
   it("does not depend on verification_deadline_at at all", () => {
-    // deadline long past — recourse must remain
+    // deadline long past: recourse must remain
     expect(isDisputeStillAllowed({ ...held, verification_deadline_at: "2000-01-01T00:00:00Z" } as never)).toBe(true);
   });
 

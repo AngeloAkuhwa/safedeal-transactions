@@ -1,5 +1,5 @@
 /**
- * Sachet catalogue — one-off purchases, priced server-side ONLY.
+ * Sachet catalogue: one-off purchases, priced server-side ONLY.
  *
  * Both `vendor-plan` (which charges) and `public-pricing` (which discloses)
  * read from here so the price a buyer is shown and the price charged can

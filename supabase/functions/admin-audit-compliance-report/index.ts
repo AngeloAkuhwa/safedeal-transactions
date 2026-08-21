@@ -1,4 +1,4 @@
-// Admin Audit Compliance Report — enqueues a filtered audit_logs export for
+// Admin Audit Compliance Report: enqueues a filtered audit_logs export for
 // the requested date range with severity=high+critical, then returns the
 // export job id. Client uses the standard export polling flow.
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";

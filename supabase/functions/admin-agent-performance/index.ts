@@ -2,7 +2,7 @@
 // Single read endpoint powering /admin/agent-performance: summary KPIs,
 // per-agent workload / performance / SLA / ranking rows, filter facets and
 // CSV export. Everything is derived from existing internal-user, orchestration
-// task and dispute records — no separate agent registry.
+// task and dispute records: no separate agent registry.
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
         if (!o.dispute_id || coveredDisputeIds.has(o.dispute_id)) continue;
         if (seen.has(o.dispute_id)) continue;
         seen.add(o.dispute_id);
-        // Orphan outcome (parent dispute unreadable) still counts — the
+        // Orphan outcome (parent dispute unreadable) still counts. The
         // dashboard counts it, so the drawer must list it too.
         const d = byId.get(o.dispute_id) ?? null;
         const amount = Number(o.refund_amount ?? 0) || Number(o.release_amount ?? 0) || null;
@@ -839,7 +839,7 @@ Deno.serve(async (req) => {
     // ---- summary --------------------------------------------------------
     const liveAgents = ranked.filter((r) => r.is_live).length;
     // Eligible, active-status agents in the current team/role scope. Being
-    // signed in is never the criterion — suspended / on-leave are excluded.
+    // signed in is never the criterion. Suspended / on-leave are excluded.
     const activeAgents = ranked.filter((r) => !["on_leave", "suspended"].includes(r.availability)).length;
     const rankedIds = new Set(ranked.map((r) => r.user_id));
     const prevActiveAgents = eligible.filter(
@@ -849,7 +849,7 @@ Deno.serve(async (req) => {
     const scopedIds = new Set(ranked.map((r) => r.user_id));
     const scopedTasks = allTasks.filter((t) => t.assigned_agent_id && scopedIds.has(t.assigned_agent_id));
     // Open dispute work owned by the agents currently in scope. Always
-    // dispute-backed and always assigned — never a global fallback count.
+    // dispute-backed and always assigned. Never a global fallback count.
     const openDisputeTasks = scopedTasks.filter(
       (t) => ACTIVE_STATUSES.has(String(t.status)) && (t.dispute_id || DISPUTE_TASK_TYPES.has(String(t.type))),
     );
@@ -1020,7 +1020,7 @@ Deno.serve(async (req) => {
       avg_resolution_prev_hours: range.allTime ? null : prevAvgResolution,
       sla_compliance: onTimeTotal + breachedTotal > 0 ? pct(onTimeTotal, onTimeTotal + breachedTotal) : null,
       overdue_rate: activeTotal > 0 ? pct(overdueTotal, activeTotal) : null,
-      // Not modelled anywhere in the schema yet — surfaced as "not tracked"
+      // Not modelled anywhere in the schema yet. Surfaced as "not tracked"
       // rather than a fabricated zero.
       reopened_cases: null as number | null,
       quality_review_score: null as number | null,
@@ -1194,7 +1194,7 @@ Deno.serve(async (req) => {
     }, {} as Record<string, number>);
     const slaCompleted = (slaCounts.completed_within ?? 0) + (slaCounts.completed_outside ?? 0);
     // Averages are measured on the same SLA-tracked, in-scope case set that
-    // backs the table — never on every task the agents ever touched.
+    // backs the table: never on every task the agents ever touched.
     const slaTracked = slaCountBase.filter(
       (c) => c.sla_state !== "not_configured" && c.sla_state !== "cancelled",
     );
@@ -1330,7 +1330,7 @@ Deno.serve(async (req) => {
         sla_summary: slaSummary,
         facets: {
           teams,
-          // Only roles that actually qualify someone for this screen — the
+          // Only roles that actually qualify someone for this screen. The
           // same eligibility rule used above, plus any role already held by a
           // listed agent.
           roles: (roles ?? [])

@@ -3,7 +3,7 @@
  *
  * This module is the SINGLE source of truth for "who may grant what".
  * The DB trigger `public.enforce_internal_role_rules()` mirrors these exact
- * levels via `public.internal_role_rank(text)` — keep the two in sync.
+ * levels via `public.internal_role_rank(text)`: keep the two in sync.
  *
  * Higher number = more authority.
  *   super_admin                                            > 100

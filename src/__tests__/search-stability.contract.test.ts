@@ -50,7 +50,7 @@ export function searchStabilityViolations(source: string): string[] {
   if (vars.length === 0) return problems;
   for (const v of vars) {
     const usedInKey = queryKeys(source).some((k) => new RegExp(`\\b${v}\\b`).test(k));
-    if (!usedInKey) continue; // value never reaches a query key — nothing to debounce
+    if (!usedInKey) continue; // value never reaches a query key. Nothing to debounce
     problems.push(`\`${v}\` reaches a query key undebounced`);
   }
   if (problems.length && !source.includes("placeholderData: keepPreviousData")) {

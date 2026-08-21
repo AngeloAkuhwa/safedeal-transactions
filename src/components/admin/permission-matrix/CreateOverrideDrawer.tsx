@@ -45,7 +45,7 @@ export function CreateOverrideDrawer({
   }, [open]);
 
   // Load the set of permission keys that were suspended (assignable=false) so
-  // they are filtered out of the picker — existing overrides remain untouched
+  // they are filtered out of the picker. Existing overrides remain untouched
   // but new grants are blocked at the UI layer.
   useEffect(() => {
     if (!open) return;

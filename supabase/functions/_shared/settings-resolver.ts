@@ -58,7 +58,7 @@ async function guardPricingConfig(
 /**
  * Vendor plans buy a cheaper escrow rate (Growth = 1.5% instead of 2%).
  * The plan rate is applied ONLY when it improves on the resolved rate, and
- * only for the flat (G3) fee model — legacy tiered configs are untouched.
+ * only for the flat (G3) fee model. Legacy tiered configs are untouched.
  */
 async function applyVendorPlanRate(
   cfg: EffectivePricingConfig,

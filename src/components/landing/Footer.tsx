@@ -32,7 +32,7 @@ export function Footer() {
             </p>
             <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              Live in Lagos 🇳🇬 — more cities rolling out
+              Live in Lagos 🇳🇬: more cities rolling out
             </div>
           </div>
 

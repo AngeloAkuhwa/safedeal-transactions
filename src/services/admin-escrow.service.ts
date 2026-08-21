@@ -73,7 +73,7 @@ export interface EscrowOverview {
   kpis: EscrowKpis;
   trends: EscrowTrends;
   alerts: EscrowAlerts;
-  /** Canonical reconciliation counts — identical to the Dashboard card. */
+  /** Canonical reconciliation counts. Identical to the Dashboard card. */
   reconciliation?: ReconciliationSummary;
   records: { total: number; page: number; page_size: number; rows: EscrowRecordRow[] };
 }

@@ -32,7 +32,7 @@ export function VendorPlanSection() {
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Return leg from Paystack — verify once, then clean the URL.
+  // Return leg from Paystack: verify once, then clean the URL.
   useEffect(() => {
     const ref = searchParams.get("reference") ?? searchParams.get("trxref");
     if (!ref || !ref.startsWith("SDPLAN-")) return;
@@ -40,7 +40,7 @@ export function VendorPlanSection() {
     verifyPlanPayment(ref)
       .then((res) => {
         if (cancelled) return;
-        if (res.status === "paid") toast.success("Payment confirmed — your plan is active.");
+        if (res.status === "paid") toast.success("Payment confirmed: your plan is active.");
         else if (res.status === "pending") toast.info("Payment is still processing. We'll activate it automatically.");
         else toast.error(res.reason ?? "That payment did not complete.");
         void refresh();
@@ -109,7 +109,7 @@ export function VendorPlanSection() {
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-foreground">Plan & showcase slots</h2>
           <p className="text-xs text-muted-foreground">
-            Free forever to sell — upgrade only when you want to showcase more.
+            Free forever to sell: upgrade only when you want to showcase more.
           </p>
         </div>
         <Badge variant="secondary">{current?.name ?? state.current.plan_code}</Badge>
@@ -294,7 +294,7 @@ export function VendorPlanSection() {
         )}
 
         <p className="text-xs text-muted-foreground">
-          We only earn when you get paid safely. Plans are optional — selling on SafeDeal is free.
+          We only earn when you get paid safely. Plans are optional. Selling on SafeDeal is free.
         </p>
       </div>
     </div>

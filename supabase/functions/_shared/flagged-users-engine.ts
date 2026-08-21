@@ -1,5 +1,5 @@
 /**
- * Mini fraud engine — shared aggregation & risk scoring.
+ * Mini fraud engine: shared aggregation & risk scoring.
  * Pure functions over a service-role Supabase client.
  */
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";

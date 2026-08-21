@@ -28,7 +28,7 @@ function latestApplyRpcSql(): string {
   return last;
 }
 
-describe("PART 1 — admin AAL2 gate fails CLOSED on settings-read error", () => {
+describe("PART 1: admin AAL2 gate fails CLOSED on settings-read error", () => {
   it("throws on a settings read error instead of swallowing it", () => {
     expect(authShared).toContain("SettingsReadError");
     expect(authShared).toMatch(/if \(readErr\) throw new SettingsReadError/);
@@ -48,7 +48,7 @@ describe("PART 1 — admin AAL2 gate fails CLOSED on settings-read error", () =>
   });
 });
 
-describe("PART 2 — permission change set apply/approve", () => {
+describe("PART 2: permission change set apply/approve", () => {
   const sql = latestApplyRpcSql();
 
   it("submit writes a status the RPC accepts", () => {
@@ -70,7 +70,7 @@ describe("PART 2 — permission change set apply/approve", () => {
   });
 });
 
-describe("PART 3 — rate limiting and safe batch release", () => {
+describe("PART 3: rate limiting and safe batch release", () => {
   it("rate limiter fails CLOSED with 503 on internal errors", () => {
     expect(rateLimit).toContain("rate_limit_unavailable");
     expect(rateLimit).not.toMatch(/rpc error", actionKey, error\);\s*\n\s*return null;/);

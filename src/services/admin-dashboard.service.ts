@@ -4,7 +4,7 @@
  * Data source: `admin-dashboard` edge function (database-driven).
  * No demo/hardcoded values are produced here.
  *
- * MONEY ACCURACY RULES (ENFORCED — do not change without updating both
+ * MONEY ACCURACY RULES (ENFORCED: do not change without updating both
  * the edge function and this contract):
  *   - kpis.escrow_balance_amount = funds_held_in_escrow + funds_frozen ONLY.
  *   - payout_health.pending_payouts_amount = funds awaiting release / processing.
@@ -98,7 +98,7 @@ export interface AuditComplianceSignal {
   failed_admin_logins_24h: number;
   compliance_status: "green" | "amber" | "red";
   compliance_last_check_iso: string;
-  /** Canonical reconciliation counts — identical to the Escrow page. */
+  /** Canonical reconciliation counts. Identical to the Escrow page. */
   reconciliation?: {
     reconciled: number;
     pending_settlement: number;

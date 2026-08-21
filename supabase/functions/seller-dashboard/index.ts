@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const VERIFICATION_LABEL_MAP: Record<string, string> = {
   // Account-tier names only. These describe the seller's own stored tier and are
-  // NOT verification badges — the identity-verified badge requires identity_verified and
+  // NOT verification badges: the identity-verified badge requires identity_verified and
   // lives in src/lib/trust/trust-claims.ts.
   unverified: "Unverified account",
   basic_verified: "Contact details confirmed",
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
     const disputesRows = (disputesResult.status === "fulfilled" && disputesResult.value.data) ? (disputesResult.value.data as Array<Record<string, unknown>>) : [];
     const disputedTxIds = new Set<string>(disputesRows.map((d) => d.transaction_id as string));
 
-    // Delivery proof missing — exclude disputed
+    // Delivery proof missing: exclude disputed
     const dispatchedNoDispute = dispatchedTxIds.filter((id) => !disputedTxIds.has(id));
     let deliveryProofMissingTxIds: string[] = [];
     if (dispatchedNoDispute.length > 0) {
@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
     // ==================== Build alerts ====================
     const alerts: SellerAlert[] = [];
 
-    // Pri 1 — payout_failed
+    // Pri 1: payout_failed
     if (payoutsFailed.length > 0) {
       const single = payoutsFailed.length === 1 ? payoutsFailed[0] : null;
       alerts.push({
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 2 — dispute_response_required
+    // Pri 2: dispute_response_required
     if (disputeRespondTxIds.length > 0) {
       let minDue: number | null = null;
       let earliest: { id: string; transaction_id: string; due: string | null } | null = null;
@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 3 — payout_account_required
+    // Pri 3: payout_account_required
     if (!seller.payout_account_present) {
       alerts.push({
         type: "payout_account_required",
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
         dismissible: false,
       });
     } else if (!seller.payout_account_verified) {
-      // Pri 4 — payout_account_unverified
+      // Pri 4: payout_account_unverified
       const fundsAtStake = fundsPendingReleaseAmount > 0 || payoutsAwaitingRelease.length > 0 || payoutsProcessing.length > 0;
       const isLinkIssue = seller.payout_blocker_reason === "no_recipient_code";
       alerts.push({
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 5 — delivery_proof_required
+    // Pri 5: delivery_proof_required
     if (deliveryProofMissingTxIds.length > 0) {
       const single = deliveryProofMissingTxIds.length === 1 ? deliveryProofMissingTxIds[0] : null;
       alerts.push({
@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 6 — awaiting_seller_confirmation (filter out disputed)
+    // Pri 6: awaiting_seller_confirmation (filter out disputed)
     const ascNoDispute = awaitingSellerConfirmationTxIds.filter((id) => !disputedTxIds.has(id));
     if (ascNoDispute.length > 0) {
       const single = ascNoDispute.length === 1 ? ascNoDispute[0] : null;
@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 7 — identity_verification_required
+    // Pri 7: identity_verification_required
     const hasActivity = txRows.length > 0 || seller.has_published_products;
     if (!seller.identity_verified && hasActivity) {
       alerts.push({
@@ -426,7 +426,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 8 — low_stock_warning
+    // Pri 8: low_stock_warning
     if (lowStockProducts.length > 0) {
       alerts.push({
         type: "low_stock_warning",
@@ -443,7 +443,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 9 — out_of_stock_published
+    // Pri 9: out_of_stock_published
     if (outOfStockProducts.length > 0) {
       alerts.push({
         type: "out_of_stock_published",
@@ -460,7 +460,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pri 10 — awaiting_release
+    // Pri 10: awaiting_release
     const awaitingReleaseTxNoDispute = fundsPendingReleaseTxIds.filter((id) => !disputedTxIds.has(id));
     const awaitingReleaseTotal = payoutsAwaitingRelease.length + awaitingReleaseTxNoDispute.filter((id) => !payoutsAwaitingRelease.some(() => false)).length;
     // Use simple union count for clarity

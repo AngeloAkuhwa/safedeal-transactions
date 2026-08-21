@@ -13,7 +13,7 @@ const coreSrc = readFileSync(
   "utf8",
 );
 
-describe("release dispute/hold guard — rules", () => {
+describe("release dispute/hold guard: rules", () => {
   it("blocks release when a dispute is open on a funds_pending_release transaction", () => {
     expect(evaluateReleaseBlocks([{ status: "open" }], [])).toEqual({ error: "dispute_open" });
   });
@@ -66,7 +66,7 @@ describe("release dispute/hold guard — rules", () => {
   });
 });
 
-describe("release dispute/hold guard — wiring", () => {
+describe("release dispute/hold guard: wiring", () => {
   it("releasePayoutCore runs the guard BEFORE release_payout_atomic", () => {
     const guardAt = coreSrc.indexOf("evaluateReleaseBlocks(");
     const rpcAt = coreSrc.indexOf('admin.rpc("release_payout_atomic"');

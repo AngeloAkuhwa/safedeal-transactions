@@ -3,7 +3,7 @@
  *
  * Fee rates, flat amounts and caps are CONFIGURATION (`pricing.*` rows in
  * `system_settings`), never copy. They have drifted across the landing page,
- * the pricing page and the edge-function helper copy — with one already wrong.
+ * the pricing page and the edge-function helper copy. With one already wrong.
  * This test fails if any of those figures appears as a literal in a
  * user-facing file. Public surfaces must derive their wording from
  * `src/lib/pricing-copy.ts` (live config via the `public-pricing` function).
@@ -64,7 +64,7 @@ const CONFIG_AMOUNTS = [
   FALLBACK_PRICING_CONFIG.platform_fee_flat,
   FALLBACK_PRICING_CONFIG.max_platform_fee,
   FALLBACK_PRICING_CONFIG.max_total_service_fee,
-  2500, // retired Nigeria-MVP cap — must never reappear
+  2500, // retired Nigeria-MVP cap: must never reappear
   FALLBACK_SACHETS.photo_slots.amount_naira,
   FALLBACK_SACHETS.store_boost.amount_naira,
 ];
@@ -78,7 +78,7 @@ function nairaPatterns(n: number): RegExp[] {
   ];
 }
 
-/** e.g. "2% +" / "2 % +" — the rate stated as marketing copy. */
+/** e.g. "2% +" / "2 % +": the rate stated as marketing copy. */
 const RATE_LITERAL = new RegExp(
   `${(FALLBACK_PRICING_CONFIG.platform_fee_rate * 100).toFixed(0)}\\s?%\\s?\\+`,
 );

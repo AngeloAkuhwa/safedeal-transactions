@@ -13,7 +13,7 @@ import {
  * - Server-side filter on `notifications.type` so only admin-relevant types
  *   (dispute, security, verification, system) reach the browser. The full,
  *   noisy stream of buyer/seller transaction updates stays server-side.
- * - `notification_deliveries` is filtered to failure states — successful
+ * - `notification_deliveries` is filtered to failure states: successful
  *   deliveries don't need to page the admin UI.
  * - Burst throttle collapses spikes to ≤ 1 invalidation per second.
  */

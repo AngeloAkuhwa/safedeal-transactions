@@ -20,7 +20,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
   const fundsFrozenAmount = metrics.funds_frozen_amount ?? 0;
   const fundsFrozenCount = metrics.funds_frozen_count ?? 0;
   // Denomination of every aggregate below. Null when the seller has rows in
-  // more than one currency (or none) — we render `—` rather than pick one.
+  // more than one currency (or none). We render `—` rather than pick one.
   const currency = metrics.currency_code;
 
   const cards = [
@@ -107,7 +107,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconColor: "text-success",
       subtitle: "Net released to you · payout in progress for some",
       tooltip:
-        "Total amount you've earned from completed deals after SafeDeal fees. Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.",
+        "Total amount you've earned from completed deals after SafeDeal fees. Some may still be queued for bank transfer. See the Payouts tab for actual deposit status.",
       badge: "Paid",
       badgeBg: "bg-success/10 text-success",
       breakdown:

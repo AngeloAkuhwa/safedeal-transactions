@@ -33,7 +33,7 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/identity",                permission: "identity_verification.view" },
   { path: "/admin/payouts",                 permission: "financial_controls.view" },
   { path: "/admin/flagged-users/export",    permission: "flagged_users.export" },
-  // Nested action leaves — matched most-specific first by permissionForPath.
+  // Nested action leaves: matched most-specific first by permissionForPath.
   // Buttons/CTA visibility on parent pages perform additional fine-grained
   // checks (e.g. disputes.resolve_assigned vs disputes.resolve_all).
   { path: "/admin/flagged-users/:id/remove-flag", permission: "flagged_users.remove_flag" },
@@ -53,7 +53,7 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
 /**
  * Return the permission required by a given admin pathname, or `null` when
  * the route is not gated (e.g. non-admin routes, or an unlisted admin path
- * we should treat as open — should not happen if the map is complete).
+ * we should treat as open: should not happen if the map is complete).
  */
 export function permissionForPath(pathname: string | null | undefined): string | null {
   if (!pathname) return null;

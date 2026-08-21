@@ -97,7 +97,7 @@ export function TaskDetailsDrawer({
       if (parsed?.error === "financial_permission_required") {
         toast.error(`Requires ${parsed.required}. Send for approval instead.`);
       } else if (parsed?.error === "version_conflict") {
-        toast.error("Task changed since last load — refreshing.");
+        toast.error("Task changed since last load: refreshing.");
         await refresh();
       } else {
         toast.error(e instanceof Error ? e.message : "Action failed");
@@ -135,7 +135,7 @@ export function TaskDetailsDrawer({
           )}
           {isPending && (
             <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-300 ring-1 ring-inset ring-amber-500/30">
-              <Lock className="h-3 w-3" /> Awaiting approval — locked
+              <Lock className="h-3 w-3" /> Awaiting approval: locked
             </span>
           )}
           {isTerminal && (
@@ -360,7 +360,7 @@ export function TaskDetailsDrawer({
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-3">
                       <Textarea
                         value={note} onChange={e => setNote(e.target.value)}
-                        placeholder="Internal note — visible only to staff…"
+                        placeholder="Internal note: visible only to staff…"
                         className="min-h-[64px] resize-none border-0 bg-transparent p-0 text-xs focus-visible:ring-0"
                         maxLength={4000}
                       />

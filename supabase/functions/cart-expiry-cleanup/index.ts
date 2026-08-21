@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       try {
         const body = await req.json();
         if (body && typeof body.hours === "number") hours = Math.max(1, body.hours);
-      } catch (_) { /* no body — fine */ }
+      } catch (_) { /* no body: fine */ }
     }
 
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       return json({ error: error.message }, 500);
     }
 
-    // Also delete cart_items abandoned for 7+ days (hygiene only — they don't reserve stock)
+    // Also delete cart_items abandoned for 7+ days (hygiene only. They don't reserve stock)
     const sevenDays = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { error: cartErr, count: cartDeleted } = await admin
       .from("cart_items")

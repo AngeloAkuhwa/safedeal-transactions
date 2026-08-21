@@ -2,7 +2,7 @@
  * Admin Disputes Queue service.
  * Read-only: backed by `admin-disputes-queue` edge function.
  * Write actions (resolve, request more info) reuse
- * `admin-transaction-actions.service.ts` — never duplicated here.
+ * `admin-transaction-actions.service.ts`: never duplicated here.
  */
 import { supabase } from "@/integrations/supabase/client";
 

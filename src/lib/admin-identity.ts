@@ -5,7 +5,7 @@ import { INTERNAL_ROLES, ROLE_LABEL } from "@/services/permission-catalog";
  * footer. Kept free of hooks/network so they can be unit tested and reused.
  */
 
-/** Ordered highest-privilege first — mirrors the catalogue declaration order. */
+/** Ordered highest-privilege first. Mirrors the catalogue declaration order. */
 const ROLE_PRIORITY: string[] = INTERNAL_ROLES.map((r) => r.key);
 
 function emailLocalPart(email: string | null | undefined): string | null {

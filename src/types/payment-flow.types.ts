@@ -45,7 +45,7 @@ export function parsePricingCaps(version: string | null | undefined): PricingCap
 
 /**
  * Name the ceiling that actually bound a persisted breakdown, and its amount
- * — the same two facts `describeFeeBreakdown` reports from `capped_by` /
+ *: the same two facts `describeFeeBreakdown` reports from `capped_by` /
  * `applied_cap_amount`. Returns `null` when the binding ceiling cannot be
  * identified, so the UI states that a cap applied without naming a number.
  *
@@ -97,7 +97,7 @@ export interface PricingSnapshotView {
   /**
    * The ceiling that actually bound this breakdown, and which ceiling it was.
    * `null` when the applied cap is unknown (legacy rows with no version stamp)
-   * — the UI then states that a cap applied without inventing an amount.
+   *: the UI then states that a cap applied without inventing an amount.
    */
   applied_cap: AppliedFeeCap | null;
   is_estimate?: boolean;

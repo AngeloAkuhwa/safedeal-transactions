@@ -1,5 +1,5 @@
 /**
- * public-pricing — anonymous read of the live platform pricing figures.
+ * public-pricing: anonymous read of the live platform pricing figures.
  *
  * The public pricing page and the landing fee section MUST show the same
  * numbers the checkout actually charges. Those numbers live in the

@@ -1,5 +1,5 @@
 /**
- * Admin Notification Center — read aggregator.
+ * Admin Notification Center: read aggregator.
  * GET: returns KPIs, delivery performance, failed list, recent activity.
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     };
   });
 
-  // Recent activity — last 20 notifications regardless of status
+  // Recent activity: last 20 notifications regardless of status
   const recentSlice = notifs.slice(0, 20);
   const recentUserIds = Array.from(new Set(recentSlice.map((n) => n.user_id)));
   const missingProfs = recentUserIds.filter((id) => !profById.has(id));

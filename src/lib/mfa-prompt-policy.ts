@@ -50,6 +50,6 @@ export function snoozePrompt(now: number = Date.now()): void {
       String(now + PROMPT_INTERVAL_DAYS * 24 * 60 * 60 * 1000),
     );
   } catch {
-    /* storage unavailable — prompt simply reappears next session */
+    /* storage unavailable: prompt simply reappears next session */
   }
 }

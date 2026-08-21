@@ -44,7 +44,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
       >
         <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
           <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-base">Locked Agreement — #{transactionCode}</DialogTitle>
+            <DialogTitle className="text-base">Locked Agreement: #{transactionCode}</DialogTitle>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
               <ShieldCheck className="h-3.5 w-3.5" /> Read-only
             </span>

@@ -189,7 +189,7 @@ export default function AdminUserDetail() {
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
       <div className="bg-slate-950 text-slate-200 min-h-[100dvh] flex flex-col">
-        {/* Sticky page header — pins to viewport while body scrolls under it */}
+        {/* Sticky page header: pins to viewport while body scrolls under it */}
         <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-sticky shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
             <div className="flex items-center gap-3 lg:gap-4">
@@ -340,7 +340,7 @@ export default function AdminUserDetail() {
 
           {data && (
             <>
-              {/* Row 1 — 3 cards */}
+              {/* Row 1: 3 cards */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Profile Information */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
@@ -477,7 +477,7 @@ export default function AdminUserDetail() {
                 </div>
               </div>
 
-              {/* Row 2 — 4 stats */}
+              {/* Row 2: 4 stats */}
               {data.user.roles.includes("seller") && (() => {
                 const vs = (vendorStatusQuery.data?.vendor_status as string | undefined) ?? "active";
                 const reason = vendorStatusQuery.data?.vendor_status_reason as string | null | undefined;
@@ -560,7 +560,7 @@ export default function AdminUserDetail() {
                 />
               </div>
 
-              {/* Row 3 — 2 cards */}
+              {/* Row 3: 2 cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Transactions */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
@@ -661,7 +661,7 @@ export default function AdminUserDetail() {
                 </div>
               </div>
 
-              {/* Row 4 — Admin Notes & Flags */}
+              {/* Row 4: Admin Notes & Flags */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl">
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">

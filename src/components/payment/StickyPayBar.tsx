@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * On a phone the payment summary is several screens of scrolling above the
  * button that acts on it, so the buyer commits to a number they can no longer
  * see. Worse, on the review screen the total was rendered *after* the pay
- * button in document order — on desktop the sidebar hid that, on mobile it
+ * button in document order: on desktop the sidebar hid that, on mobile it
  * meant the price genuinely appeared below the thing you press.
  *
  * So the total travels with the action. Two rules hold this together and both
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
  * each other. Both reserve their own spacer, so neither can hide page content.
  */
 export interface StickyPayBarProps {
-  /** Preformatted — this component must never guess at currency. */
+  /** Preformatted: this component must never guess at currency. */
   total: string;
   totalLabel?: string;
   actionLabel: string;

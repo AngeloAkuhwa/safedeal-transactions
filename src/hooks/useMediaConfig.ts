@@ -34,7 +34,7 @@ export const getMediaConfig = fetchMediaConfig;
 
 /**
  * The single source of truth for seller-facing media thresholds.
- * Never hardcode limits in components — read them from here so the numbers
+ * Never hardcode limits in components. Read them from here so the numbers
  * shown to a seller always match what the server will enforce.
  */
 export function useMediaConfig(): { config: MediaConfig; loading: boolean } {

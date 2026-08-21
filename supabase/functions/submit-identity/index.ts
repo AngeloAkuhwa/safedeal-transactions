@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, submission }, 201);
     }
 
-    // ── PATCH: Resubmit — creates a new row, preserving history ──
+    // ── PATCH: Resubmit: creates a new row, preserving history ──
     if (req.method === "PATCH") {
       const { data: latest } = await adminClient
         .from("identity_submissions")

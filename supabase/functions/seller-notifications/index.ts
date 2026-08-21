@@ -49,7 +49,7 @@ function resolveSellerPrimaryAction(
   disputeId: string | null,
   _transaction: TransactionEnrichment | null
 ): { label: string; route: string } | null {
-  // Direct message — deeplink to seller-side transaction detail thread
+  // Direct message: deeplink to seller-side transaction detail thread
   if (dbType === "direct_message") {
     if (!transactionId) return null;
     return { label: "View Message", route: `/seller/transactions/${transactionId}#messages` };

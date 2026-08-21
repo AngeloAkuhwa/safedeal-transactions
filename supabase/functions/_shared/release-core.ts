@@ -96,7 +96,7 @@ export async function releasePayoutCore(
   }
   const recipientCode = eligibility.recipientCode;
 
-  // 5b. Canonical amount guard — the immutable pricing snapshot is the single
+  // 5b. Canonical amount guard. The immutable pricing snapshot is the single
   // source of truth for what the seller is owed. If the payout row drifted
   // from the snapshot we refuse to transfer and flag the case for review
   // rather than moving a number nobody agreed to.
@@ -155,7 +155,7 @@ export async function releasePayoutCore(
   // Releasing on a broken chain is what forced the Fix 2 remediations, so we
   // refuse and flag instead of moving money.
   // FAIL CLOSED: a null fee column must never silently zero the expectation and
-  // skip the reconciliation — that would let an unreconciled transfer through.
+  // skip the reconciliation: that would let an unreconciled transfer through.
   const rawPlatformFee = (pricingSnap as any)?.platform_fee_amount;
   const rawProcessingFee = (pricingSnap as any)?.payment_processing_fee_amount;
   if (rawPlatformFee == null || rawProcessingFee == null) {
@@ -208,7 +208,7 @@ export async function releasePayoutCore(
   // still open, or while an explicit hold ('held' / 'awaiting_info') is on the
   // release review queue. NOTE: `needs_release_review` and queue rows in
   // 'pending'/'claimed' are the normal "ready for release review" states and
-  // must remain releasable — that is how a dispute resolved in the seller's
+  // must remain releasable: that is how a dispute resolved in the seller's
   // favour legitimately pays out.
   const { data: disputeRows, error: disputeErr } = await admin
     .from("disputes")
@@ -327,7 +327,7 @@ export async function releasePayoutCore(
     related_transaction_id: transaction_id,
   });
 
-  // Buyer-side update: keep mental model consistent — funds released, not "completed".
+  // Buyer-side update: keep mental model consistent. Funds released, not "completed".
   if ((tx as any).buyer_id) {
     await notifyUser(admin, {
       user_id: (tx as any).buyer_id,
@@ -398,7 +398,7 @@ export async function refundBuyerCore(
     return { ok: false, status: 409, body: { error: "refund_already_in_flight" } };
   }
 
-  // Ad-hoc admin refunds must not run while a dispute is still open — the
+  // Ad-hoc admin refunds must not run while a dispute is still open. The
   // dispute-resolution path (resolve_dispute_atomic) is the only sanctioned
   // way to move money on a live dispute, and it is unaffected by this guard.
   const { data: refundDisputes, error: refundDisputeErr } = await admin
@@ -426,7 +426,7 @@ export async function refundBuyerCore(
   // SafeDeal MVP rule: Payment Processing Fee is non-refundable once payment
   // has been processed. Refund = buyer_total - payment_processing_fee.
   // A missing snapshot is the same missing fact that makes the release rail
-  // refuse, so the refund rail refuses and flags too — it must not silently
+  // refuse, so the refund rail refuses and flags too. It must not silently
   // return the full charged amount.
   const { data: pricingRow } = await admin
     .from("transaction_pricing")
@@ -474,7 +474,7 @@ export async function refundBuyerCore(
   }
   const refundId = refundIdRaw as string;
 
-  // Single Paystack implementation lives in `executeProviderRefund` — it
+  // Single Paystack implementation lives in `executeProviderRefund`: it
   // handles partial/full detection, idempotency, refund-row persistence,
   // party notifications, and fail_refund_atomic + ops alerting on failure.
   const exec = await executeProviderRefund(admin, refundId, {

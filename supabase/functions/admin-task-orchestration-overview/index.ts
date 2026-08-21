@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     : { data: [] as any[] };
   const roleMap = new Map((internalRoles ?? []).map((r: any) => [r.id, r]));
 
-  // Skills (may not exist per agent — safe default = []).
+  // Skills (may not exist per agent. Safe default = []).
   const userIds = (internalUsers ?? []).map((u: any) => u.user_id ?? u.id).filter(Boolean);
   const { data: allSkills } = userIds.length
     ? await admin.from("agent_skills").select("user_id,permission_key").in("user_id", userIds)

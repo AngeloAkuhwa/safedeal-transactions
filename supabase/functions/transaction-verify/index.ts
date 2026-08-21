@@ -79,7 +79,7 @@ async function transitionTransaction(params: TransitionParams) {
   }
 
   if (!updated) {
-    // Row not matched — state already changed (idempotency / race)
+    // Row not matched: state already changed (idempotency / race)
     return { success: false, alreadyProcessed: true };
   }
 
@@ -276,7 +276,7 @@ async function getVerificationData(
 }
 
 // ════════════════════════════════════════════
-// CONFIRM RECEIPT — buyer side only.
+// CONFIRM RECEIPT: buyer side only.
 // Phase A: Money does NOT move on buyer confirmation. Funds stay in escrow
 // until the seller also confirms, after which the SafeDeal release team
 // reviews and releases the payout.
@@ -299,7 +299,7 @@ async function confirmReceipt(
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // Idempotency — buyer already confirmed (regardless of seller / money state)
+  // Idempotency: buyer already confirmed (regardless of seller / money state)
   if (tx.buyer_confirmed_at) {
     return jsonResponse({ already_confirmed: true, success: true });
   }
@@ -330,7 +330,7 @@ async function confirmReceipt(
     toStatus: "completed",
     fromMoney: "funds_held_in_escrow",
     toMoney: "funds_held_in_escrow",
-    reason: "Buyer confirmed receipt — awaiting seller confirmation",
+    reason: "Buyer confirmed receipt: awaiting seller confirmation",
     eventType: "buyer_confirmed_receipt",
     eventData: { action: "confirm_receipt" },
     additionalUpdates: {
@@ -376,11 +376,11 @@ async function confirmReceipt(
 }
 
 // ════════════════════════════════════════════
-// RAISE DISPUTE — using transitionTransaction
+// RAISE DISPUTE: using transitionTransaction
 // ════════════════════════════════════════════
 
 // ════════════════════════════════════════════
-// BUYER CONFIRM DELIVERY — primary, authenticated path.
+// BUYER CONFIRM DELIVERY: primary, authenticated path.
 // Advances the transaction to delivered_awaiting_verification using the same
 // guarded transition as the rider OTP fallback. Money never moves here.
 // ════════════════════════════════════════════
@@ -400,7 +400,7 @@ async function buyerConfirmDelivery(
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // Idempotency — already delivered or terminal.
+  // Idempotency: already delivered or terminal.
   if (isDeliveryAlreadyDone(tx.status)) {
     return jsonResponse({
       success: true,
@@ -589,8 +589,8 @@ async function raiseDispute(
   if (!escrow || escrow.state !== "held") {
     return jsonResponse({ error: "Escrow not in held state" }, 409);
   }
-  // NOTE: no deadline 410 here. There is no automatic release job — funds only
-  // move after manual SafeDeal review — so the buyer keeps dispute recourse
+  // NOTE: no deadline 410 here. There is no automatic release job. Funds only
+  // move after manual SafeDeal review. So the buyer keeps dispute recourse
   // until the case is actually reviewed/closed.
   if (!isDisputeStillAllowed(tx)) {
     return jsonResponse({ error: "Dispute is no longer available for this transaction" }, 409);
@@ -806,7 +806,7 @@ async function raiseDispute(
   await enqueueOrchestrationTask(admin, {
     type: "dispute_review",
     title: `Review dispute for ${tx.transaction_code}`,
-    description: `Buyer opened dispute — reason: ${reason}`,
+    description: `Buyer opened dispute: reason: ${reason}`,
     priority: "high",
     queue: "disputes",
     disputeId: dispute.id,

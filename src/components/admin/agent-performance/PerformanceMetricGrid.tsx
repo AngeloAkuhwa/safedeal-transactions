@@ -19,7 +19,7 @@ type Tile = {
 export function PerformanceMetricGrid({
   metrics, rangeLabel,
 }: { metrics: AgentPerformanceMetrics; rangeLabel: string }) {
-  const notTracked = "Not tracked yet — no field in the case record captures this.";
+  const notTracked = "Not tracked yet: no field in the case record captures this.";
   const tiles: Tile[] = [
     {
       label: "Cases assigned", value: String(metrics.cases_assigned),

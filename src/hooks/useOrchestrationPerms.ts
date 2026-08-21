@@ -20,9 +20,9 @@ export interface OrchestrationPerms {
   canViewAgentLoad: boolean;
   canOverrideCapacity: boolean;
   canViewHistory: boolean;
-  /** Current admin user id (auth uuid) — for scoped realtime filters. */
+  /** Current admin user id (auth uuid). For scoped realtime filters. */
   userId: string | null;
-  /** Legacy convenience flag — true when the caller can do broad operational actions. */
+  /** Legacy convenience flag: true when the caller can do broad operational actions. */
   isSenior: boolean;
 }
 

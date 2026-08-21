@@ -6,7 +6,7 @@ import type { EscrowRecordRow } from "@/services/admin-escrow.service";
 
 /**
  * Fallback for a state the UI does not know about. A dynamic key lookup must
- * never be dereferenced unguarded — an unmapped value used to blank the table.
+ * never be dereferenced unguarded. An unmapped value used to blank the table.
  */
 const UNKNOWN_STATE_STYLE = {
   dot: "bg-slate-500",

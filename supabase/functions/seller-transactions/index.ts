@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     }
 
     // Build response rows. Use the canonical seller_net_amount and fee values
-    // from `transaction_pricing` directly — do NOT recompute or cap fees here.
+    // from `transaction_pricing` directly: do NOT recompute or cap fees here.
     // The pricing computation already handles tier rates and the buyer-friendly
     // service-fee cap; recomputing on read produces inconsistent numbers between
     // per-row "Net" and the aggregated `total_earned` summary value.

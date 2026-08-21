@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     created_at: t.created_at as string,
   }));
 
-  // Related disputes (latest 10 against this user — opened against their txs)
+  // Related disputes (latest 10 against this user. Opened against their txs)
   const { data: dList } = await admin
     .from("disputes")
     .select("id, transaction_id, reason, status, opened_at, opened_by_user_id")

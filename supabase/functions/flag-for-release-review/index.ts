@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     return json(409, { error: "flag_failed", detail: rpcErr.message });
   }
 
-  // Note: we intentionally do NOT write a transaction_events row here — none
+  // Note: we intentionally do NOT write a transaction_events row here. None
   // of the enum labels describe an admin-flag action. The admin_actions row
   // inserted by flag_for_release_review() is the canonical audit record.
 

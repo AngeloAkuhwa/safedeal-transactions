@@ -2,7 +2,7 @@
  * Central refund-eligibility evaluator + decision object.
  *
  * Returns the canonical `refund_decision` shape that admin/refund UIs read.
- * Backend remains final authority — the DB RPC `start_refund_atomic`
+ * Backend remains final authority. The DB RPC `start_refund_atomic`
  * enforces the refund⟂payout mutex; this module powers preview + CTA state.
  *
  * MVP rule: Payment Processing Fee is non-refundable once payment has been
@@ -150,9 +150,9 @@ export async function evaluateRefundEligibility(
         seller_payout_cancelled = true;
         reason =
           outcome === "seller_fault"
-            ? "Seller at fault — buyer refunded item amount + SafeDeal fee. Processing fee non-refundable."
+            ? "Seller at fault: buyer refunded item amount + SafeDeal fee. Processing fee non-refundable."
             : outcome === "platform_fault"
-              ? "Platform fault — buyer refunded item amount + SafeDeal fee. Processing fee non-refundable by default."
+              ? "Platform fault: buyer refunded item amount + SafeDeal fee. Processing fee non-refundable by default."
               : "Buyer cancelled after payment; seller had not yet acted.";
         break;
       }

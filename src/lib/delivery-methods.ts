@@ -3,9 +3,9 @@
  *
  * There are two, and they are NOT interchangeable:
  *
- *  - `TRANSACTION_DELIVERY_METHODS` — the live `delivery_method_type` Postgres
+ *  - `TRANSACTION_DELIVERY_METHODS`: the live `delivery_method_type` Postgres
  *    enum written to `transactions.delivery_method`. Exactly four members.
- *  - `PRODUCT_DELIVERY_METHODS` — the seller-chosen listing vocabulary stored
+ *  - `PRODUCT_DELIVERY_METHODS`: the seller-chosen listing vocabulary stored
  *    as JSON in `products.delivery_method` (see `SellerProductCreate`), which
  *    the checkout edge functions map down onto the enum.
  *
@@ -77,7 +77,7 @@ export function methodNeedsPhone(method: string | null | undefined): boolean {
 
 /**
  * What the seller and buyer will actually coordinate over the phone, keyed on
- * the LISTING vocabulary — not the enum. `digital` collapses onto the
+ * the LISTING vocabulary: not the enum. `digital` collapses onto the
  * `hand_delivery` enum member, so keying this off the enum told buyers of a
  * digital product that the seller would coordinate "hand delivery".
  *

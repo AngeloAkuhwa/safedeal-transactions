@@ -1,4 +1,4 @@
-// Access Control Management service — Supabase backed.
+// Access Control Management service. Supabase backed.
 // Model is documented in mem://architecture/service-layer.
 
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ export type InternalRole = InternalRoleKey;
 
 /**
  * Client-side throttled heartbeat writer for `internal_users.last_active_at`.
- * No-op for buyers/sellers (row missing). Never throws — presence must not
+ * No-op for buyers/sellers (row missing). Never throws. Presence must not
  * break the app shell.
  */
 const TOUCH_KEY = "sd:internal-last-active:ts";
@@ -42,7 +42,7 @@ export async function touchInternalUserLastActive(): Promise<void> {
     if (typeof sessionStorage !== "undefined") sessionStorage.setItem(TOUCH_KEY, String(now));
     await supabase.rpc("touch_internal_user_last_active");
   } catch {
-    /* silent — presence is best-effort */
+    /* silent: presence is best-effort */
   }
 }
 
@@ -407,7 +407,7 @@ async function currentUserId(): Promise<string> {
 }
 
 // ============================================================================
-// Safeguard helpers — enforced client-side (mirrored by DB triggers/RLS)
+// Safeguard helpers: enforced client-side (mirrored by DB triggers/RLS)
 // ============================================================================
 
 async function loadUserRolesAndOverrides(userId: string): Promise<{
@@ -435,7 +435,7 @@ async function loadUserRolesAndOverrides(userId: string): Promise<{
 
 const ACCESS_RANK: Record<AccessLevel, number> = { full: 4, high: 3, standard: 2, limited: 1 };
 
-/** Rule d — cannot remove `super_admin` from the last active holder. */
+/** Rule d: cannot remove `super_admin` from the last active holder. */
 async function assertNotLastSuperAdmin(targetUserId: string, willRemoveSuperAdmin: boolean): Promise<void> {
   if (!willRemoveSuperAdmin) return;
   const { data } = await supabase
@@ -449,7 +449,7 @@ async function assertNotLastSuperAdmin(targetUserId: string, willRemoveSuperAdmi
   }
 }
 
-/** Rules c + e — caller must outrank target, cannot self-modify privileges. */
+/** Rules c + e: caller must outrank target, cannot self-modify privileges. */
 async function assertOutranksTarget(callerId: string, targetUserId: string, action: string): Promise<void> {
   if (callerId === targetUserId) {
     throw new Error(`You cannot ${action} your own account.`);
@@ -467,7 +467,7 @@ async function assertOutranksTarget(callerId: string, targetUserId: string, acti
   }
 }
 
-/** Rule b — cannot grant a permission you do not hold. */
+/** Rule b: cannot grant a permission you do not hold. */
 async function assertCallerHoldsPermissions(callerId: string, keys: string[]): Promise<void> {
   if (keys.length === 0) return;
   const me = await loadUserRolesAndOverrides(callerId);
@@ -582,7 +582,7 @@ async function writeAudit(opts: AuditWriteOpts): Promise<void> {
     /* fall through to client-side best-effort write */
   }
 
-  // Fallback — direct writes so the timeline never loses an event if the
+  // Fallback: direct writes so the timeline never loses an event if the
   // edge function is unreachable.
   try {
     const uid = await currentUserId();
@@ -626,7 +626,7 @@ export class AccessSafeguardError extends Error {
 }
 
 /**
- * Rule g — Finance-touching permission changes cannot be approved by the same
+ * Rule g: Finance-touching permission changes cannot be approved by the same
  * operator that raised them, regardless of role. Called from
  * `reviewAccessChangeRequest` after the requester ≠ reviewer check.
  */
@@ -687,7 +687,7 @@ export async function updateUserRoles(input: UpdateRolesInput): Promise<{ applie
   const willRemoveSuperAdmin = before.has("super_admin") && !after.has("super_admin");
   await assertNotLastSuperAdmin(input.user_id, willRemoveSuperAdmin);
 
-  // Rule b — cannot elevate to a role you don't hold at least equivalent to.
+  // Rule b: cannot elevate to a role you don't hold at least equivalent to.
   const addedProtected = added.filter(isProtectedRole);
   if (addedProtected.length > 0) {
     const isSuper = await callerIsSuperAdmin(requester);
@@ -796,7 +796,7 @@ export async function suspendInternalUser(input: SuspendInput): Promise<void> {
   const requester = await currentUserId();
   if (!input.reason?.trim()) throw new Error("A reason is required to suspend a user.");
   await assertOutranksTarget(requester, input.user_id, "suspend");
-  // Rule d — protect the last super admin.
+  // Rule d: protect the last super admin.
   const target = await loadUserRolesAndOverrides(input.user_id);
   await assertNotLastSuperAdmin(input.user_id, target.roles.includes("super_admin"));
   const { error } = await supabase
@@ -840,7 +840,7 @@ export async function resendInternalUserInvite(input: { user_id: string; email: 
       body: { ...input, resend: true },
     });
   } catch {
-    /* best-effort — still audit */
+    /* best-effort: still audit */
   }
   await auditLog(input.user_id, "access_invite_resent",
     `Resent invitation to ${input.email}`, "info", { email: input.email });
@@ -848,7 +848,7 @@ export async function resendInternalUserInvite(input: { user_id: string; email: 
 
 // Hard-delete an invited (or already-deactivated) internal user. The edge
 // function guards status so audit rows for previously-active users can't be
-// erased — those must go through deactivateInternalUser instead.
+// erased: those must go through deactivateInternalUser instead.
 export async function deleteInvitedInternalUser(input: { user_id: string; reason: string; }): Promise<void> {
   if (!input.reason?.trim()) throw new Error("A reason is required to delete a user.");
   const { data, error } = await supabase.functions.invoke("admin-delete-internal-user", {
@@ -970,9 +970,9 @@ export async function submitRoleChangeRequest(input: SubmitRoleChangeInput): Pro
     throw new Error("Primary role must be one of the assigned roles.");
   }
   const requester = await currentUserId();
-  // Rule h — reason required.
+  // Rule h: reason required.
   if (!input.reason?.trim()) throw new Error("A reason is required to submit a role change request.");
-  // Rule c — must outrank the target even to raise.
+  // Rule c: must outrank the target even to raise.
   await assertOutranksTarget(requester, input.user_id, "raise role change for");
   const { data, error } = await supabase
     .from("access_change_requests")
@@ -1053,15 +1053,15 @@ export async function requestPermissionOverride(input: RequestOverrideInput): Pr
     throw new Error(`Unknown permission key: ${input.permission_key}`);
   }
   const requester = await currentUserId();
-  // Rule h — reason required.
+  // Rule h: reason required.
   if (!input.reason?.trim()) throw new Error("A reason is required to request a permission override.");
-  // Rule c — must outrank the target.
+  // Rule c: must outrank the target.
   await assertOutranksTarget(requester, input.user_id, "raise permission override for");
-  // Rule b — grantor must hold the permission being granted.
+  // Rule b: grantor must hold the permission being granted.
   if (input.mode === "grant") {
     await assertCallerHoldsPermissions(requester, [input.permission_key]);
   }
-  // Rule e — cannot request an override on your own account.
+  // Rule e: cannot request an override on your own account.
   if (input.user_id === requester) {
     throw new AccessSafeguardError("e", "E_SELF_ESCALATION", "You cannot request permission overrides on your own account.");
   }
@@ -1088,7 +1088,7 @@ export async function requestPermissionOverride(input: RequestOverrideInput): Pr
 }
 
 // ---------------------------------------------------------------------------
-// requiresApproval — single decision point for direct-apply vs. queue.
+// requiresApproval: single decision point for direct-apply vs. queue.
 // Kept as a pure helper so drawers, tests, and services all agree.
 // ---------------------------------------------------------------------------
 export type ApprovalAction =
@@ -1116,7 +1116,7 @@ export function requiresApproval(action: ApprovalAction, callerIsSuper: boolean)
 }
 
 // ---------------------------------------------------------------------------
-// previewRequestSafeguards — evaluates rules a–g against a pending request
+// previewRequestSafeguards: evaluates rules a–g against a pending request
 // so the Review Drawer can disable Approve and surface the failing rule
 // before calling the mutation.
 // ---------------------------------------------------------------------------
@@ -1131,12 +1131,12 @@ export async function previewRequestSafeguards(req: AccessChangeRequest): Promis
   const findings: SafeguardCheck[] = [];
   const reviewer = await currentUserId();
 
-  // a — requester != approver
+  // a: requester != approver
   if (req.requested_by === reviewer) {
     findings.push({ rule: "a", level: "block", code: "E_SELF_APPROVAL", message: "You cannot approve your own request." });
   }
 
-  // g — finance paranoid check (independent of role)
+  // g: finance paranoid check (independent of role)
   try {
     assertFinanceParanoidCheck(
       { requested_by: req.requested_by, change_type: req.change_type, payload: req.payload },
@@ -1148,7 +1148,7 @@ export async function previewRequestSafeguards(req: AccessChangeRequest): Promis
     }
   }
 
-  // c — outrank check
+  // c: outrank check
   try {
     await assertOutranksTarget(reviewer, req.target_user_id, "approve changes for");
   } catch (e) {
@@ -1385,7 +1385,7 @@ export async function checkEmailAvailability(email: string): Promise<{ available
   return { available: (data?.length ?? 0) === 0 };
 }
 
-/** Reporting-manager options — admin-tier active users only. */
+/** Reporting-manager options: admin-tier active users only. */
 export async function fetchReportingManagerOptions(): Promise<Array<{
   id: string; full_name: string; role: InternalRoleKey | null;
 }>> {
@@ -1476,14 +1476,14 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
   if (req.status !== "pending") throw new Error("Request already reviewed.");
   if (req.requested_by === requester) throw new Error("You cannot approve your own request.");
 
-  // Rule g — paranoid double check for finance-touching changes even when
+  // Rule g: paranoid double check for finance-touching changes even when
   // the reviewer is a super admin.
   assertFinanceParanoidCheck(
     { requested_by: req.requested_by, change_type: req.change_type, payload: req.payload },
     requester,
   );
 
-  // Safeguards must hold at approval time — the world may have changed
+  // Safeguards must hold at approval time. The world may have changed
   // since the request was raised.
   if (decision === "approve") {
     await assertOutranksTarget(requester, req.target_user_id, "approve changes for");
@@ -1510,7 +1510,7 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
   if (decision === "approve") {
     if (req.change_type === "role") {
       const payload = req.payload as { roles: InternalRoleKey[]; primary_role: InternalRoleKey };
-      // Apply role change directly (bypass the queue — approver is authorised).
+      // Apply role change directly (bypass the queue. Approver is authorised).
       const target = await loadUserRolesAndOverrides(req.target_user_id);
       const before = new Set(target.roles);
       const after = new Set(payload.roles);

@@ -37,13 +37,13 @@ import { resolveDeliveryMethod } from "@/lib/status-labels";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 import { ProductImage } from "@/components/common/ProductImage";
 
-/** Currency is required — a cart row always carries its own `currency_code`. */
+/** Currency is required: a cart row always carries its own `currency_code`. */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };
   // Treat units the buyer themselves has reserved (via their own pending
-  // checkout session) as available — otherwise the cart row misleadingly
+  // checkout session) as available: otherwise the cart row misleadingly
   // shows "Sold Out" the moment they start checking out.
   const ownReserved = item.product.own_reserved_quantity || 0;
   const avail = item.product.available_quantity + ownReserved;
@@ -52,7 +52,7 @@ function getStockStatus(item: CartItem) {
   if (hasPending) {
     return { label: "Checkout in progress", variant: "warning" as const, canCheckout: true };
   }
-  if (item.quantity > avail) return { label: `Only ${avail} left — reduce qty`, variant: "warning" as const, canCheckout: false };
+  if (item.quantity > avail) return { label: `Only ${avail} left: reduce qty`, variant: "warning" as const, canCheckout: false };
   if (avail <= LOW_STOCK_THRESHOLD) return { label: `Low Stock (${avail} left)`, variant: "warning" as const, canCheckout: true };
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
 }
@@ -232,7 +232,7 @@ const BuyerCart = () => {
 
   const handleQuantityChange = async (productId: string, newQty: number) => {
     if (cartMutationsBlocked) {
-      toast.error("Cart updates are paused right now. Your items are saved — you can still remove items or check out.");
+      toast.error("Cart updates are paused right now. Your items are saved. You can still remove items or check out.");
       return;
     }
     try {
@@ -281,7 +281,7 @@ const BuyerCart = () => {
   // Compute selected totals
   const selectedItems = items.filter((i) => selected.has(i.id) && i.product);
   const selectedSubtotal = selectedItems.reduce((sum, i) => sum + (i.product!.unit_price * i.quantity), 0);
-  // Group by seller, carrying the row's own currency — never assume NGN.
+  // Group by seller, carrying the row's own currency: never assume NGN.
   const sellerGroups = new Map<string, { amount: number; currency: string }>();
   for (const item of selectedItems) {
     const sid = item.product!.seller_id;
@@ -433,7 +433,7 @@ const BuyerCart = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Cart items — 2/3 */}
+                {/* Cart items: 2/3 */}
                 <div className="lg:col-span-2 space-y-3">
                   {/* Select all bar */}
                   <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between">

@@ -12,7 +12,7 @@ import { isStandaloneLaunch, resolveLaunchTarget } from "@/pwa/launch-routing";
  * session and send the user straight to their app home.
  */
 export function LaunchGate({ children }: { children: React.ReactNode }) {
-  // Evaluated once, synchronously, before first paint — no landing flash.
+  // Evaluated once, synchronously, before first paint. No landing flash.
   const [standalone] = useState(() => isStandaloneLaunch());
   const [target, setTarget] = useState<string | null>(null);
 

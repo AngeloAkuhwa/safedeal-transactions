@@ -18,9 +18,9 @@ export interface EffectiveCommerceConfig {
 }
 
 export const DEFAULT_CART_DISABLED_REASON =
-  "Cart is temporarily unavailable. You can still buy this item now — checkout works normally.";
+  "Cart is temporarily unavailable. You can still buy this item now. Checkout works normally.";
 export const DEFAULT_CHECKOUT_DISABLED_REASON =
-  "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.";
+  "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.";
 
 export const DEFAULT_COMMERCE_CONFIG: EffectiveCommerceConfig = {
   checkout_enabled: false,
@@ -28,7 +28,7 @@ export const DEFAULT_COMMERCE_CONFIG: EffectiveCommerceConfig = {
   // uses exactly these defaults so the two can never disagree.
   add_to_cart_enabled: false,
   disabled_reason:
-    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+    "Checkout is not yet available. We're preparing the platform: you can browse and set up your account in the meantime.",
   cart_disabled_reason: DEFAULT_CART_DISABLED_REASON,
   checkout_disabled_reason: DEFAULT_CHECKOUT_DISABLED_REASON,
   scope: "platform",

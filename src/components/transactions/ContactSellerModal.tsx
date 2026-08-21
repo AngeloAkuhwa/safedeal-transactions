@@ -199,7 +199,7 @@ export function ContactSellerModal({
           >
             <Paperclip className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">
-              Drag & drop or <span className="text-primary font-semibold">browse</span> — images & PDFs, up to 10MB each
+              Drag & drop or <span className="text-primary font-semibold">browse</span>: images & PDFs, up to 10MB each
             </p>
             <input
               ref={fileInputRef}

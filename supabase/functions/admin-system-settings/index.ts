@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Capture BEFORE snapshot for diff — only for the exact (key, scope, vendor) rows we're about to touch.
+      // Capture BEFORE snapshot for diff. Only for the exact (key, scope, vendor) rows we're about to touch.
       const beforeSnapshot: Record<string, unknown> = {};
       const updateKeys = Object.keys(updates);
       if (updateKeys.length) {
@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Dedicated toggle_auto_release event — one row per flip so audit
+      // Dedicated toggle_auto_release event. One row per flip so audit
       // history renders a distinct, filterable stream regardless of what
       // else was saved in the same PUT.
       if (Object.prototype.hasOwnProperty.call(updates, "escrow.auto_release_enabled")) {

@@ -14,7 +14,7 @@
  */
 
 /**
- * DISASTER-RECOVERY FALLBACK ONLY — this is NOT where rates are defined.
+ * DISASTER-RECOVERY FALLBACK ONLY. This is NOT where rates are defined.
  *
  * The only place a rate is DEFINED is the `pricing.*` rows in
  * `system_settings` (written solely through the admin settings page, resolved
@@ -22,7 +22,7 @@
  * These literals exist for one case: the resolved config could not be read
  * (network/DB failure, or config rejected by the economic invariant), where
  * charging an *identical* price beats charging a silently different one.
- * They MUST equal the seeded platform rows — enforced by
+ * They MUST equal the seeded platform rows. Enforced by
  * `src/__tests__/pricing-fallback-parity.contract.test.ts` and mirrored in
  * `supabase/functions/_shared/pricing.ts` (DEFAULT_PRICING_CONFIG).
  * See docs/pricing-source-of-truth.md.
@@ -232,14 +232,14 @@ export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingRe
     return `The minimum platform fee of ${minPlatformFee.toLocaleString()} ${result.currency_code} applied because ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on this order amount came to less than it.`;
   }
 
-  return `SafeDeal charges ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}, plus the payment processing fee — a total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code}.`;
+  return `SafeDeal charges ${ratePct}% + ${flat.toLocaleString()} ${result.currency_code} on an item amount of ${input.itemAmount.toLocaleString()} ${result.currency_code}, plus the payment processing fee. A total service fee of ${result.service_fee_amount.toLocaleString()} ${result.currency_code}.`;
 }
 
 /**
  * Narrate a fee using ONLY the persisted snapshot's own numbers.
  *
  * `describeFeeBreakdown` reads rates from the caller's config and falls back to
- * `FALLBACK_PRICING_CONFIG` when none is supplied — which tells a buyer on a
+ * `FALLBACK_PRICING_CONFIG` when none is supplied: which tells a buyer on a
  * 1.5% vendor plan that they were charged 2%. This variant states the rate that
  * was actually applied to this order (service fee ÷ item amount) and never
  * consults live configuration.
@@ -264,5 +264,5 @@ export function describeChargedFee(input: {
   }
   return `You were charged a total service fee of ${money(input.serviceFeeAmount)} on an item amount of ${money(
     input.itemAmount,
-  )} — ${ratePct}% of the item amount, covering the SafeDeal fee and payment processing.`;
+  )}: ${ratePct}% of the item amount, covering the SafeDeal fee and payment processing.`;
 }

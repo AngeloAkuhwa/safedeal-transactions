@@ -56,7 +56,7 @@ function renderInviteHtml(opts: {
     <title>You're invited to SafeDeal</title>
   </head>
   <body style="margin:0;padding:0;background:#F1F5F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
-    <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">Your SafeDeal admin invitation — accept to set your password.</span>
+    <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">Your SafeDeal admin invitation: accept to set your password.</span>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:32px 12px;">
       <tr><td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;">
@@ -91,7 +91,7 @@ function renderInviteHtml(opts: {
           <tr><td style="padding:20px 28px 24px 28px;">
             <hr style="border:none;border-top:1px solid #E2E8F0;margin:0 0 14px 0;" />
             <p style="margin:0;font-size:12px;line-height:1.6;color:#64748B;">You're receiving this because your email was added to the SafeDeal admin console. If this wasn't expected, you can ignore this email.</p>
-            <p style="margin:8px 0 0 0;font-size:11px;color:#94A3B8;">© ${new Date().getFullYear()} SafeDeal — Trust layer for online transactions.</p>
+            <p style="margin:8px 0 0 0;font-size:11px;color:#94A3B8;">© ${new Date().getFullYear()} SafeDeal. Trust layer for online transactions.</p>
           </td></tr>
         </table>
       </td></tr>
@@ -163,7 +163,7 @@ async function issueInviteEmail(admin: any, opts: {
   // 1) Generate an action link.
   //    - New user: try "invite" first (creates the auth user, does NOT email).
   //    - Existing user (resend, or invite that races with an existing row):
-  //      use "recovery" — "invite" rejects registered users, and recovery
+  //      use "recovery": "invite" rejects registered users, and recovery
   //      links drop the user into the same /accept-invite page to set a
   //      password.
   async function gen(type: "invite" | "recovery") {
@@ -229,7 +229,7 @@ async function issueInviteEmail(admin: any, opts: {
   if (resendResult.ok) return { channel: "resend", actionLink, userId };
 
   // 3) Resend failed. For new users, fall back to Supabase's default invite email.
-  //    For existing users, inviteUserByEmail rejects them — return failed.
+  //    For existing users, inviteUserByEmail rejects them. Return failed.
   if (!opts.isExistingUser) {
     const { error: fbErr } = await admin.auth.admin.inviteUserByEmail(opts.email, {
       data: { full_name: opts.fullName },
@@ -280,7 +280,7 @@ async function hydrateUser(admin: ReturnType<typeof requireAdmin> extends Promis
   const roles = (roleRows ?? []).map((r: any) => r.role_key as string);
   const primary = (roleRows ?? []).find((r: any) => r.is_primary)?.role_key
     ?? roles[0] ?? "support_agent";
-  // Derived from auth.mfa_factors — `internal_users.two_factor_enabled` is a
+  // Derived from auth.mfa_factors. `internal_users.two_factor_enabled` is a
   // deprecated shadow flag and is not trusted for display.
   const { data: hasMfa } = await (admin as any).rpc("user_has_verified_mfa", { _user_id: userId });
   return {
@@ -521,7 +521,7 @@ Deno.serve(async (req) => {
       reporting_manager_id: body.reporting_manager_id ?? null,
       access_expires_at: body.access_expires_at ?? null,
       reason_for_access: body.reason ?? null,
-      // New internal users start as "invited" — they only flip to "active"
+      // New internal users start as "invited": they only flip to "active"
       // after they accept the invite and set their password. Prevents the
       // roster from showing green "Active" pills for un-onboarded people.
       status: "invited",
@@ -535,7 +535,7 @@ Deno.serve(async (req) => {
     .select("id")
     .maybeSingle();
   if (iuErr) {
-    // Best-effort cleanup — the auth user exists but the row failed.
+    // Best-effort cleanup: the auth user exists but the row failed.
     try { await admin.auth.admin.deleteUser(newUserId); } catch { /* ignore */ }
     return json(400, { error: "insert_failed", detail: iuErr.message });
   }

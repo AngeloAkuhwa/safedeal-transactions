@@ -61,7 +61,7 @@ async function computePermissions(
   // Derived, not read. `profiles.is_region_eligible` is a display cache that
   // this function itself writes on profile update; reading it here gave the
   // UI's pay-button gate a different source of truth from the database's
-  // `is_user_region_allowed`, so the two could disagree — and the UI would be
+  // `is_user_region_allowed`, so the two could disagree: and the UI would be
   // the one telling the buyer they may pay.
   const { data: regionAllowed } = await adminClient.rpc("is_user_region_allowed", { _user_id: userId });
   const isRegionEligible = !!regionAllowed;
@@ -81,7 +81,7 @@ async function computePermissions(
 
   // An unrecognised verification level is a data fault, not a zero allowance.
   // We surface it as `null` so the UI shows "unavailable" rather than telling
-  // the buyer their limit is ₦0 — the enforcement path (initiate-paystack-
+  // the buyer their limit is ₦0: the enforcement path (initiate-paystack-
   // payment) refuses the payment outright for the same reason.
   const knownLevel =
     Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level) &&
@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
             const lgaRows = stateRows.filter((r: Record<string, unknown>) => r.city_name !== null);
 
             if (lgaRows.length > 0 && effectiveCity) {
-              // State has LGAs — validate the city/LGA exists
+              // State has LGAs: validate the city/LGA exists
               const matchedLga = lgaRows.find(
                 (r: Record<string, unknown>) =>
                   (r.city_name as string).toLowerCase() === effectiveCity!.toLowerCase()
@@ -307,11 +307,11 @@ Deno.serve(async (req) => {
               }
               isRegionEligible = !!matchedLga.is_active;
             } else if (lgaRows.length > 0 && !effectiveCity) {
-              // State has LGAs but no city provided — need LGA
+              // State has LGAs but no city provided. Need LGA
               // Don't block, just mark ineligible
               isRegionEligible = false;
             } else {
-              // State-level only row (non-Lagos) — check is_active
+              // State-level only row (non-Lagos). Check is_active
               isRegionEligible = !!stateRows[0].is_active;
             }
           }

@@ -90,7 +90,7 @@ export default function SellerUpdateDelivery() {
   });
 
   const tx = data?.transaction;
-  // Raw value straight from the transaction — passed to children untouched so
+  // Raw value straight from the transaction. Passed to children untouched so
   // each one fails closed on its own. Defaulting here made every child's
   // fail-closed guard dead code.
   const rawDeliveryMethod = tx?.delivery_method ?? null;
@@ -251,7 +251,7 @@ export default function SellerUpdateDelivery() {
 
   const item = data.item;
   const pricing = data.pricing;
-  // A currency is a claim about someone else's money — never invented here.
+  // A currency is a claim about someone else's money: never invented here.
   const currency = pricing?.currency_code ?? null;
   const itemAmount = pricing?.item_amount ?? 0;
 
@@ -614,7 +614,7 @@ export default function SellerUpdateDelivery() {
                       </div>
                       <p className="text-sm font-medium">Click to upload or drag and drop</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Images (JPEG, PNG, WEBP — max 10MB) or videos (MP4, MOV, WEBM — max 50MB). Up to {MAX_FILES} files total.
+                        Images (JPEG, PNG, WEBP: max 10MB) or videos (MP4, MOV, WEBM. Max 50MB). Up to {MAX_FILES} files total.
                       </p>
                     </div>
                   )}

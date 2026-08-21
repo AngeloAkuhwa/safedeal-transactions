@@ -50,7 +50,7 @@ function readOpeningTag(source: string, start: number): string {
  * carry `sd-stack`, or be `hidden md:table`/`hidden sm:table`; more commonly
  * in this codebase the table is wrapped in an ancestor `<div className="hidden
  * ... md:block">` a short distance above it, with a sibling `md:hidden`/
- * `sm:hidden` card block elsewhere in the file — both count.
+ * `sm:hidden` card block elsewhere in the file. Both count.
  */
 function tableTagHasFallback(tagText: string, source: string, tableStart: number): boolean {
   if (/\bsd-stack\b/.test(tagText)) return true;
@@ -151,7 +151,7 @@ describe("mobile table fallbacks", () => {
         : [source.slice(mobileIdx), source.slice(desktopIdx, mobileIdx)];
 
       // Identifiers referenced as `x.y` or `x?.y` inside TableCell/<td> blocks
-      // on the desktop side — this is a heuristic scan, not a full parser.
+      // on the desktop side: this is a heuristic scan, not a full parser.
       const idents = new Set<string>();
       const cellRe = /<(?:TableCell|td)\b[^>]*>([\s\S]*?)<\/(?:TableCell|td)>/g;
       let m: RegExpExecArray | null;
@@ -159,7 +159,7 @@ describe("mobile table fallbacks", () => {
         const body = m[1];
         for (const im of body.matchAll(/\b([a-zA-Z_$][\w$]*(?:\??\.[a-zA-Z_$][\w$]*)+)\b\s*(\()?/g)) {
           // `e.stopPropagation()` / `xs.map()` are behaviour, not displayed
-          // data — parity only concerns rendered fields.
+          // data: parity only concerns rendered fields.
           if (im[2]) continue;
           idents.add(im[1]);
         }

@@ -27,7 +27,7 @@ const GOLDEN: Array<[Record<string, any>, string]> = [
   ],
 ];
 
-describe("canonical fingerprint v1 — SQL parity", () => {
+describe("canonical fingerprint v1: SQL parity", () => {
   it.each(GOLDEN)("matches the SQL fingerprint for %j", async (payload, expected) => {
     await expect(canonicalFingerprintV1(payload)).resolves.toBe(expected);
   });

@@ -19,7 +19,7 @@
  * discovered at deploy, on the money path, by a user.
  *
  * This is not hypothetical. Merging `main` into a branch that had landed the
- * same auth-ordering fix produced a clean auto-merge — no conflict reported —
+ * same auth-ordering fix produced a clean auto-merge. No conflict reported —
  * that contained the fix twice:
  *
  *     let baseCtx;
@@ -31,7 +31,7 @@
  * Git had no conflict to report because each side inserted the block at a
  * different offset, so both survived. `admin-flagged-users-action` would have
  * thrown `SyntaxError: Identifier 'baseCtx' has already been declared` at
- * module load — every request to it a 500 — and typecheck, lint, the 1009-test
+ * module load: every request to it a 500. And typecheck, lint, the 1009-test
  * suite and the 102 live role-enforcement probes were all green on it, because
  * the probes were answered by the previous deploy.
  *
@@ -40,14 +40,14 @@
  * wherever the suite runs.
  *
  * esbuild rather than `ts.createSourceFile`, because the failure above is a
- * *binder* error, not a syntax error — TypeScript's standalone parser builds a
+ * *binder* error, not a syntax error: TypeScript's standalone parser builds a
  * tree for it happily. esbuild does scope analysis during transform and
  * rejects the redeclaration, which is the class this guard exists for. It
  * arrives transitively with Vite (which cannot function without it), so this
  * costs no new dependency and no lockfile change.
  *
  * Scope note: this proves each file parses in isolation. It does not resolve
- * the `https://deno.land/...` imports or typecheck across them — that is what
+ * the `https://deno.land/...` imports or typecheck across them. That is what
  * `bun run typecheck:edge` does, and it still wants a Deno in CI.
  */
 import { describe, it, expect } from "vitest";
@@ -103,7 +103,7 @@ describe("edge functions parse", () => {
       const src = fs.readFileSync(file, "utf8");
       await expect(
         transform(src, { loader: "ts", format: "esm", sourcefile: rel }),
-        `${rel} does not parse — it would throw at module load and answer every ` +
+        `${rel} does not parse: it would throw at module load and answer every ` +
           "request with a 500. A duplicated block from a clean auto-merge is the " +
           "usual cause; check for a declaration that appears twice in one scope.",
       ).resolves.toBeDefined();

@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
 
     // Use the authenticated buyer's real email (resolved earlier in this
     // handler). We used to override with a hardcoded test address during
-    // development — that leaked test receipts and misrouted Paystack
+    // development: that leaked test receipts and misrouted Paystack
     // notifications, so it is intentionally removed. If `userEmail` is
     // missing we cannot proceed to Paystack initialization.
     if (!userEmail) {
@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
     });
     if (charge.source === "computed") {
       console.warn(
-        `initiate-paystack-payment: no locked buyer_total_amount for transaction ${txId} — falling back to live pricing`,
+        `initiate-paystack-payment: no locked buyer_total_amount for transaction ${txId}: falling back to live pricing`,
       );
     }
 
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
     const channels = paymentMethod === "bank" ? ["bank_transfer"] : ["card"];
 
     // Snapshot fees travel to Paystack as evidence. A missing column must stay
-    // null on the charge metadata — coercing it to 0 would record a fee that
+    // null on the charge metadata: coercing it to 0 would record a fee that
     // was never charged against a real payment.
     const numOrNull = (v: unknown) =>
       v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v);

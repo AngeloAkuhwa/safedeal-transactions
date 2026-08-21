@@ -29,7 +29,7 @@ import { ProductImage } from "@/components/common/ProductImage";
 
 /**
  * Money in this screen speaks the checkout session's own currency. NEVER
- * default to NGN — the currency is required so a new call site cannot silently
+ * default to NGN: the currency is required so a new call site cannot silently
  * mislabel a non-Naira order.
  */
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);

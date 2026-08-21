@@ -140,7 +140,7 @@ export function ProductPhotoCropDialog({ photo, onConfirm, onSkip }: Props) {
 
         {blurWarning && (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
-            This photo looks blurry — retake?
+            This photo looks blurry: retake?
           </div>
         )}
 

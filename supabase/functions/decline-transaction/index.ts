@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // 0. Auth — this function runs with verify_jwt = false, so validate in code.
+    // 0. Auth. This function runs with verify_jwt = false, so validate in code.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     if (txErr) throw txErr;
 
-    // 3. Ownership — only the real parties may cancel, never a random link holder.
+    // 3. Ownership. Only the real parties may cancel, never a random link holder.
     const actorRole = resolveCancelActorRole(
       { userId: callerId, email: callerEmail },
       tx as { seller_id: string | null; buyer_id: string | null; buyer_contact_email: string | null },

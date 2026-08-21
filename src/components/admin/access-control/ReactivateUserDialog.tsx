@@ -17,7 +17,7 @@ interface Props {
 }
 
 /**
- * Reactivate flow — deliberately separate from Suspend so the two never
+ * Reactivate flow: deliberately separate from Suspend so the two never
  * share a modal. Requires a short reason and a single explicit confirm.
  */
 export function ReactivateUserDialog({ user, open, onOpenChange, onConfirm }: Props) {

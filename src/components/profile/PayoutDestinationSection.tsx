@@ -30,7 +30,7 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
   const hasAccount = !!payoutAccount?.bank_name;
   const status = payoutAccount?.verification_status ?? "pending";
   // Strict, single source of truth (matches dashboard + edge function logic).
-  // Bank verified by Paystack alone is NOT enough — we also need the secure
+  // Bank verified by Paystack alone is NOT enough. We also need the secure
   // payout link (provider_recipient_code) to be present for SafeDeal to actually
   // transfer funds. Edge function emits payout_ready/payout_blocker_reason.
   const payoutReady = payoutAccount?.payout_ready ?? (status === "verified");
@@ -81,7 +81,7 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
                   ) : showLinkIssue ? (
                     <Badge variant="outline" className="text-warning border-warning/30">
                       <Clock className="h-3 w-3 mr-1" />
-                      Action needed — finish bank link
+                      Action needed: finish bank link
                     </Badge>
                   ) : status === "failed" ? (
                     <Badge variant="destructive">
@@ -109,7 +109,7 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
                     <p className="font-medium text-foreground">Finish linking your bank to receive payouts</p>
                     <p className="text-muted-foreground">
                       Your bank details are verified, but the secure payout link with our payment processor isn't complete yet.
-                      Re-enter your account number below to finish the link — you won't be charged.
+                      Re-enter your account number below to finish the link. You won't be charged.
                     </p>
                   </div>
                 </div>

@@ -18,12 +18,12 @@ interface PurchaseAuthModalProps {
   /**
    * Passed in rather than fetched here. `usePublicPricing` is an uncached
    * `useEffect` + edge-function call, and this modal is mounted by
-   * PublicProductDetail — which already holds the copy. Calling the hook here
+   * PublicProductDetail: which already holds the copy. Calling the hook here
    * too would fire a second `public-pricing` invocation on every view of the
    * busiest public page in the app.
    *
    * Optional because MarketplaceProductCard also mounts this modal, once per
-   * card in a grid — requiring it there would mean N fetches for one page of
+   * card in a grid: requiring it there would mean N fetches for one page of
    * results. Those callers omit it until the hook is cached.
    */
   feeDisclosure?: string;
@@ -85,7 +85,7 @@ export function PurchaseAuthModal({
           </div>
 
           {/* The fee belongs wherever the buyer decides to commit, and this
-              modal is one of those moments — it is the gate between "I want
+              modal is one of those moments: it is the gate between "I want
               this" and signing up to buy it. The product page already
               discloses it; this was the one commit surface still showing a
               bare price. */}

@@ -180,7 +180,7 @@ export function resolveTransactionLabel(
   ctx?: { moneyStatus?: MoneyStatus | string | null },
 ): LabelEntry {
   // A receipt-confirmed transaction is NOT "Completed" while the money is
-  // still sitting in escrow — funds are released only after SafeDeal review.
+  // still sitting in escrow: funds are released only after SafeDeal review.
   if (
     (status === "completed" || status === "resolved") &&
     ctx?.moneyStatus != null &&
@@ -280,11 +280,11 @@ export function resolveDisputeMoneyImpact(value: string | null | undefined): Lab
 export const INTERNAL_REASON_COPY: Record<string, string> = {
   pricing_missing: "Pricing details incomplete",
   payout_account_missing: "Add a payout account to receive funds",
-  silent_dispute: "No buyer confirmation — under SafeDeal review",
-  transfer_reversed: "Bank transfer reversed — under SafeDeal review",
+  silent_dispute: "No buyer confirmation: under SafeDeal review",
+  transfer_reversed: "Bank transfer reversed: under SafeDeal review",
   manual_hold: "On hold by SafeDeal",
   delivery_proof_missing: "Delivery proof needed",
-  failed_payout: "Bank transfer failed — SafeDeal will retry",
+  failed_payout: "Bank transfer failed: SafeDeal will retry",
   refund_request: "Refund being processed",
   suspicious_activity: "Account under SafeDeal review",
   stuck: "Awaiting confirmation",
@@ -442,9 +442,9 @@ export const DISPUTE_OUTCOME_LABELS: Record<string, LabelEntry> = {
   refund_buyer: { label: "Refund to Buyer", tone: "success" },
   release_funds_to_seller: { label: "Released to Seller", tone: "info" },
   partial_refund_release: { label: "Partial Resolution", tone: "info" },
-  dismissed_seller_favor: { label: "Dismissed — Seller Favor", tone: "warning" },
-  dismissed_buyer_favor: { label: "Dismissed — Buyer Favor", tone: "success" },
-  close_case_without_resolution: { label: "Closed — No Resolution", tone: "muted" },
+  dismissed_seller_favor: { label: "Dismissed: Seller Favor", tone: "warning" },
+  dismissed_buyer_favor: { label: "Dismissed: Buyer Favor", tone: "success" },
+  close_case_without_resolution: { label: "Closed: No Resolution", tone: "muted" },
 };
 
 export function resolveDisputeOutcomeLabel(value: string | null | undefined): LabelEntry {

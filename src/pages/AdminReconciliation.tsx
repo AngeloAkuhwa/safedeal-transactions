@@ -114,7 +114,7 @@ export default function AdminReconciliation() {
           <div className="text-sm font-medium">Canonical snapshot status</div>
           <div className="text-sm text-muted-foreground mt-1">
             {phase7Ready
-              ? `Phase 7 complete — canonical snapshot enforced on all ${totalAll} post-payment transactions.`
+              ? `Phase 7 complete: canonical snapshot enforced on all ${totalAll} post-payment transactions.`
               : `${completeAll}/${totalAll} post-payment transactions on canonical snapshot. ${missing30 > 0 ? `${missing30} missing in last 30d.` : ""}`}
           </div>
         </Card>

@@ -147,7 +147,7 @@ export default function AdminAccessControl() {
       const channel = (u as any).__email_channel as "resend" | "supabase_default" | "failed" | undefined;
       if (channel === "failed") {
         toast({
-          title: "User created — email failed",
+          title: "User created: email failed",
           description: `${u.full_name} was added, but the invite email could not be sent. Use "Resend invite" to retry.`,
           variant: "destructive",
         });

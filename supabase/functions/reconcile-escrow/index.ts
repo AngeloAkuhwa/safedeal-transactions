@@ -1,5 +1,5 @@
 /**
- * Phase 6 — hourly escrow reconciliation job.
+ * Phase 6: hourly escrow reconciliation job.
  *
  * For every transaction touched in the last 24h, compares:
  *   paystack_collected (sum of succeeded payments.amount)
@@ -10,7 +10,7 @@
  * Drift (|delta| >= 0.01) raises a deduplicated ops alert (one active alert per
  * transaction, refreshed on repeat runs and resolved when the drift clears).
  *
- * Triggered hourly by pg_cron (no auth required — the function is locked to
+ * Triggered hourly by pg_cron (no auth required. The function is locked to
  * the service role and only writes its own table + sends ops notifications).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
   // ---------------------------------------------------------------------
-  // AUTHORIZATION. Two — and only two — authorized callers:
+  // AUTHORIZATION. Two. And only two. Authorized callers:
   //   1. the pg_cron scheduler, presenting the vault-held cron secret;
   //   2. a signed-in back-office user holding `financial_controls.configure`.
   // Anonymous / publishable-key / unauthenticated requests are rejected

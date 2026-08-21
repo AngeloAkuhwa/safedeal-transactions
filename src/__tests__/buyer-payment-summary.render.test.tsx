@@ -1,5 +1,5 @@
 /**
- * BUYER PAYMENT SCREEN — PAYABLE vs BLOCKED.
+ * BUYER PAYMENT SCREEN: PAYABLE vs BLOCKED.
  *
  * The pricing guard added last round is correct, but the payload that feeds it
  * omitted `service_fee_rate`, so EVERY snapshot-backed payment screen blocked

@@ -506,7 +506,7 @@ async function handleSubmitResponse(
     await enqueueOrchestrationTask(adminClient, {
       type: "dispute_response_review",
       title: `Review seller response for dispute ${disputeId.slice(0, 8)}`,
-      description: "Seller submitted their initial response — review evidence and progress the case.",
+      description: "Seller submitted their initial response. Review evidence and progress the case.",
       priority: "high",
       queue: "disputes",
       disputeId,

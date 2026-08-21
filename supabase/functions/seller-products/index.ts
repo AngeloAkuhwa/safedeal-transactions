@@ -478,7 +478,7 @@ async function handleDuplicate(adminClient: any, userId: string, body: any) {
     return jsonResponse({ error: "Failed to duplicate product" }, 500);
   }
 
-  // Clone product_media (point new rows at the same file_id — files are immutable)
+  // Clone product_media (point new rows at the same file_id. Files are immutable)
   const { data: mediaRows } = await adminClient
     .from("product_media")
     .select("file_id, media_type, sort_order, is_primary")

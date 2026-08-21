@@ -85,7 +85,7 @@ function buildReleasedCopy(
   if (variant === "dispute_resolved") {
     return perspective === "seller"
       ? {
-          title: "Dispute Resolved — Funds Released",
+          title: "Dispute Resolved: Funds Released",
           body: `The dispute was resolved in your favour on ${date} and funds were released to your account.`,
         }
       : {
@@ -112,7 +112,7 @@ function buildAwaitingCopy(
       }
     : {
         title: "Buyer Confirmed Receipt",
-        body: `The buyer confirmed receipt on ${date}. SafeDeal will release your funds after review — typically within ${FUND_RELEASE_REVIEW_TARGET}.`,
+        body: `The buyer confirmed receipt on ${date}. SafeDeal will release your funds after review. Typically within ${FUND_RELEASE_REVIEW_TARGET}.`,
       };
 }
 

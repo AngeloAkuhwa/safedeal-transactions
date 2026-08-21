@@ -1,5 +1,5 @@
 /**
- * vendor-plan — seller plan status + Paystack checkout for plans and sachets.
+ * vendor-plan: seller plan status + Paystack checkout for plans and sachets.
  *
  * GET  /vendor-plan            → catalogue + the caller's current plan, showcase
  *                                slot usage, boost status and purchase history.
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!plan || !plan.is_active) return json({ error: "unknown_plan" }, 400);
       amountNaira = Number(period === "yearly" ? plan.yearly_price_naira : plan.monthly_price_naira);
-      if (!(amountNaira > 0)) return json({ error: "plan_is_free", message: "The Verified plan is free — nothing to pay." }, 400);
+      if (!(amountNaira > 0)) return json({ error: "plan_is_free", message: "The Verified plan is free: nothing to pay." }, 400);
       description = `SafeDeal ${plan.name} plan (${period})`;
       metadata = { plan_code: plan.code, billing_period: period };
     } else if (purchaseType === "photo_slots" || purchaseType === "store_boost") {

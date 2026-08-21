@@ -31,7 +31,7 @@ export function KpiCards({ kpis }: KpiCardsProps) {
       value: (kpis.active_users ?? 0).toLocaleString("en-NG"),
       delta: kpis.active_users_delta_pct,
       tooltip: kpis.active_users_is_fallback
-        ? "Showing total registered users — no recent session activity recorded yet."
+        ? "Showing total registered users: no recent session activity recorded yet."
         : undefined,
     },
     {

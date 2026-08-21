@@ -104,7 +104,7 @@ export function AccountVerificationSection({
 
   if (identityVerified) {
     identityLabel = "Verified";
-    identityDesc = "Identity verified — trusted buyer";
+    identityDesc = "Identity verified: trusted buyer";
     identityAction = (
       <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
         <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Verified
@@ -288,7 +288,7 @@ export function AccountVerificationSection({
           <div className="space-y-3">
             <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              Account verified — you can transact up to {permissions?.transactionLimitNaira === null || permissions?.transactionLimitNaira === undefined ? "your account limit" : formatNaira(permissions.transactionLimitNaira)}
+              Account verified: you can transact up to {permissions?.transactionLimitNaira === null || permissions?.transactionLimitNaira === undefined ? "your account limit" : formatNaira(permissions.transactionLimitNaira)}
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-start gap-3">

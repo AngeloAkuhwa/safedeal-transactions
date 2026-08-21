@@ -76,7 +76,7 @@ export function PublishSuccessModal({
   const handleWhatsApp = () => {
     const url = richProductUrl || richStoreUrl;
     if (!url) return;
-    openWhatsAppShare(`${product.title} — protected by SafeDeal escrow:`, url);
+    openWhatsAppShare(`${product.title}. Protected by SafeDeal escrow:`, url);
   };
 
   return (

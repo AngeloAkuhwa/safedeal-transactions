@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
   // KPI aggregates sum across every escrow row, so they only carry a currency
   // when the whole book settles in one. `admin_escrow_kpis` computes
-  // `count(distinct currency_code)` in SQL over the ENTIRE pricing table — a
+  // `count(distinct currency_code)` in SQL over the ENTIRE pricing table. A
   // sampled page could miss a second currency and let the tiles assert one.
   // Mixed books yield null and the UI renders the amount without a symbol.
   const distinctCurrencyCount = Number(k.distinct_currency_count ?? 0);
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     .gte("created_at", since30)
     .order("created_at", { ascending: true });
 
-  // Same canonical credit/debit sets as reconcile-escrow — see note above.
+  // Same canonical credit/debit sets as reconcile-escrow: see note above.
   const CREDIT = new Set(["payment_credit", "adjustment"]);
   const DEBIT = new Set(["payout_debit", "refund_debit"]);
 
@@ -244,13 +244,13 @@ Deno.serve(async (req) => {
   ];
 
   // ---- Alerts ----
-  // Frozen too long — uses dynamic threshold from system_settings
+  // Frozen too long: uses dynamic threshold from system_settings
   const frozenCutoff = now - thresholds.frozen_days * DAY_MS;
   const frozenTooLongRows = (states ?? [])
     .filter((s) => Number(s.frozen_amount ?? 0) > 0 && new Date(s.last_changed_at as string).getTime() < frozenCutoff)
     .slice(0, 10);
 
-  // Provider mismatch — canonical reconciliation (same routine the Dashboard
+  // Provider mismatch: canonical reconciliation (same routine the Dashboard
   // and the Reconciliation hub call, so the counts always agree).
   let reconSummary = { ...EMPTY_SUMMARY };
   let reconRows: ReconciliationRow[] = [];
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
     .slice(0, 10)
     .map((r) => ({ transaction_id: r.transaction_id, delta: r.difference, status: r.status }));
 
-  // High-value held — dynamic threshold (acts as "stuck/idle" candidates pool)
+  // High-value held: dynamic threshold (acts as "stuck/idle" candidates pool)
   const highValueRows = (states ?? [])
     .filter((s) =>
       Number(s.held_amount ?? 0) >= thresholds.high_value_amount &&
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
     .sort((a, b) => Number(b.held_amount) - Number(a.held_amount))
     .slice(0, 10);
 
-  // Stalled disputes — dynamic overdue threshold
+  // Stalled disputes: dynamic overdue threshold
   const { data: stalledDisputes } = await admin
     .from("disputes")
     .select("transaction_id, opened_at, status")
@@ -334,7 +334,7 @@ Deno.serve(async (req) => {
   // ---- Records (paginated) ----
   // P1: pagination + filtering pushed fully into SQL via
   // admin_escrow_records_page. Previously this block filtered/sorted/sliced
-  // the entire escrow_states set in JS — an OOM/silent-truncation risk once
+  // the entire escrow_states set in JS. An OOM/silent-truncation risk once
   // the table grows past ~100k rows.
   // The KPI scan above still walks escrow_states, but record pagination no
   // longer materializes the full set in JS before slicing.
@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
       .from("transactions")
       .select("id, transaction_code, money_status, created_at, buyer_id, seller_id")
       .in("id", sliceTxIds);
-    // Currency is part of the balance, not a display default — an admin
+    // Currency is part of the balance, not a display default. An admin
     // reconciles these figures against the provider.
     const { data: pricingRows } = await admin
       .from("transaction_pricing")

@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
 
     const candidates = (rows ?? []).filter((t: any) => {
       // As soon as the buyer's own verification deadline passes with no
-      // confirmation, the transaction needs manual review — there is no
+      // confirmation, the transaction needs manual review. There is no
       // automatic release job, so this must not wait for a fixed 72h.
       const case1 = t.status === "delivered_awaiting_verification"
         && t.verification_deadline_at && t.verification_deadline_at < nowIso

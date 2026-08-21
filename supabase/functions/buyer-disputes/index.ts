@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Buyer role required" }, 403);
     }
 
-    // 2b. Verification gate — unverified buyers cannot access disputes
+    // 2b. Verification gate. Unverified buyers cannot access disputes
     const [verifResult, profileResult] = await Promise.all([
       adminClient
         .from("account_verifications")

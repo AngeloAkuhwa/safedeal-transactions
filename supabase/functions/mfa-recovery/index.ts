@@ -1,7 +1,7 @@
 // 2FA recovery-code endpoint.
 //
 // AAL NOTE (deliberate): this endpoint authenticates with `requireUser`, which
-// accepts an aal1 session. That is required by design — a user who has lost
+// accepts an aal1 session. That is required by design. A user who has lost
 // their authenticator can never reach aal2, so gating recovery behind aal2
 // would make it useless. The compensating controls against someone holding
 // only a stolen password are:

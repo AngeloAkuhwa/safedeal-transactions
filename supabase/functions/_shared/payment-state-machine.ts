@@ -1,5 +1,5 @@
 /**
- * SafeDeal Payment State Machine — JS mirror of the DB transition matrix.
+ * SafeDeal Payment State Machine: JS mirror of the DB transition matrix.
  *
  * Source of truth is still the DB triggers in migrations 013/014 (which raise
  * on invalid transitions). This module exists so edge functions can fail-fast

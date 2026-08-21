@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Buyer role required" }, 403);
     }
 
-    // 3. Fetch data in parallel — each query independently error-resilient
+    // 3. Fetch data in parallel. Each query independently error-resilient
     const [profileResult, metricsResult, disputeCountResult, notificationsResult, recentTxResult] =
       await Promise.allSettled([
         adminClient

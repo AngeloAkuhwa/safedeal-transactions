@@ -28,7 +28,7 @@ function coveredPages(): string[] {
     if (fs.existsSync(file)) files.add(path.relative(process.cwd(), file));
   }
   // Shell/chrome that renders on those same routes but lives outside
-  // `src/pages` — previously invisible to this scan.
+  // `src/pages`: previously invisible to this scan.
   for (const rel of ["src/components/layout/AdminLayout.tsx", "src/components/dashboard/BuyerNav.tsx", "src/components/marketplace/BuyerSidebar.tsx"]) {
     if (fs.existsSync(path.join(process.cwd(), rel))) files.add(rel);
   }
@@ -47,7 +47,7 @@ export function occlusionOffenders(source: string): string[] {
   const expand = (s: string) => s.replace(/\$\{\s*([A-Za-z0-9_]+)\s*\}/g, (full, name) => consts.get(name) ?? full);
   // One class list at a time: a greedy match would run across sibling
   // attributes and blame a card's `rounded-*` clip on a layout element.
-  // `cn(...)` and template literals are harvested too — the previous version
+  // `cn(...)` and template literals are harvested too. The previous version
   // skipped both, which hid `BuyerSavedProducts` and `BuyerSidebar` entirely.
   const lists = [
     ...source.matchAll(/className="([^"]*)"/g),

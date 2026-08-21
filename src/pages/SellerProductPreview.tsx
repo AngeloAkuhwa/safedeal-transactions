@@ -171,7 +171,7 @@ const SellerProductPreview = () => {
         identityVerified={identityVerified}
       />
 
-      {/* min-w-0 — see SellerStorefront: without it this pane cannot shrink
+      {/* min-w-0: see SellerStorefront: without it this pane cannot shrink
           below its content's min-content width on a phone. */}
       <div className="relative flex min-w-0 flex-1 flex-col lg:overflow-hidden">
         {/* Ambient glow */}
@@ -200,11 +200,11 @@ const SellerProductPreview = () => {
                 <h1 className="max-w-full truncate text-xl font-bold text-foreground sm:max-w-[300px]">{product.title}</h1>
                 <ProductStatusBadge status={product.status} />
               </div>
-              <p className="text-sm text-muted-foreground">Product preview — read-only view</p>
+              <p className="text-sm text-muted-foreground">Product preview: read-only view</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Static mode indicator, not a control — this page IS the preview. */}
+            {/* Static mode indicator, not a control. This page IS the preview. */}
             <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
               <Eye className="h-3.5 w-3.5" />
               Preview
@@ -223,7 +223,7 @@ const SellerProductPreview = () => {
         {/* Scrollable content */}
         <div className="flex-1 px-4 sm:px-6 lg:overflow-y-auto lg:px-8 py-6 relative z-rail">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl">
-            {/* Main content — 2 cols */}
+            {/* Main content: 2 cols */}
             <div className="xl:col-span-2 space-y-6">
               {/* Product Gallery */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
@@ -411,7 +411,7 @@ const SellerProductPreview = () => {
               </div>
             </div>
 
-            {/* Right sidebar — 1 col */}
+            {/* Right sidebar: 1 col */}
             <div className="xl:col-span-1 space-y-6">
               {/* Pricing & Stock */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">

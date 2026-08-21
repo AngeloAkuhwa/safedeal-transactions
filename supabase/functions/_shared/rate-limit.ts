@@ -8,7 +8,7 @@
  *
  * The REAL ceiling lives in the `security.admin_rate_limit_caps` platform
  * setting and is resolved inside the RPC. The `maxPerHour` argument below is
- * a caller-side hint that can only LOWER the configured cap — a limiter the
+ * a caller-side hint that can only LOWER the configured cap. A limiter the
  * caller can raise is not a limiter. The RPC also verifies that the subject
  * is active internal staff and is executable by `service_role` only.
  *

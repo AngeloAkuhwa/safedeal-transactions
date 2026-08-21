@@ -24,7 +24,7 @@ const CONCURRENT_BY_LEVEL: Record<string, number> = {
 
 const VERIFICATION_LABEL_MAP: Record<string, string> = {
   // Account-tier names only. These describe the seller's own stored tier and are
-  // NOT verification badges — the identity-verified badge requires identity_verified and
+  // NOT verification badges: the identity-verified badge requires identity_verified and
   // lives in src/lib/trust/trust-claims.ts.
   unverified: "Unverified account",
   basic_verified: "Contact details confirmed",
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
 
       const verification = {
         ...verificationData,
-        // Override cached flag with the strict, derived value — single source of truth
+        // Override cached flag with the strict, derived value. Single source of truth
         payout_verified: payoutReady,
         payout_ready: payoutReady,
         payout_blocker_reason: payoutBlockerReason,

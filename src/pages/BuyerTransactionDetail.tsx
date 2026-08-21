@@ -69,7 +69,7 @@ const timelineSteps = [
   { status: "seller_dispatched", label: "Seller Dispatched Item", icon: Truck },
   { status: "delivered_awaiting_verification", label: "Delivered", icon: MapPin },
   { status: "buyer_verification", label: "Buyer Verification", icon: CheckCircle },
-  { status: "completed", label: "Confirmed — In SafeDeal Review", icon: CheckCircle },
+  { status: "completed", label: "Confirmed: In SafeDeal Review", icon: CheckCircle },
   // Phase A: lights up only when money_status === 'funds_released'.
   { status: "funds_released", label: "Funds Released", icon: Shield },
 ];
@@ -356,7 +356,7 @@ const BuyerTransactionDetail = () => {
             <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-destructive/5 border-destructive/20">
               <Shield className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
               <div>
-                <p className="text-sm font-bold text-destructive">Funds Frozen — Dispute In Progress</p>
+                <p className="text-sm font-bold text-destructive">Funds Frozen: Dispute In Progress</p>
                 <p className="text-xs mt-0.5 text-destructive/80">
                   Your funds of <span className="font-bold">{formatMoney(escrow.frozen_amount, pricing.currency_code)}</span> are currently frozen while the dispute is under review. No money will move until the dispute is resolved.
                 </p>
@@ -367,7 +367,7 @@ const BuyerTransactionDetail = () => {
             <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-success/5 border-success/20">
               <Shield className="h-5 w-5 shrink-0 mt-0.5 text-success" />
               <div>
-                <p className="text-sm font-bold text-success">Transaction Completed — Funds Released</p>
+                <p className="text-sm font-bold text-success">Transaction Completed: Funds Released</p>
                 <p className="text-xs mt-0.5 text-success/80">
                   Your payment of <span className="font-bold">{formatMoney(escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.
                 </p>
@@ -407,7 +407,7 @@ const BuyerTransactionDetail = () => {
               moneyStatus={tx.money_status}
             />
 
-            {/* Completion banner — only after funds actually released. */}
+            {/* Completion banner: only after funds actually released. */}
             {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
               <TransactionCompletionBanner
                 variant={completion_event.variant}
@@ -641,7 +641,7 @@ const BuyerTransactionDetail = () => {
           {/* ═══ RIGHT SIDEBAR (1/3) ═══ */}
           <div className="space-y-5 sm:space-y-6">
 
-            {/* Desktop-only Next Action (sticky — only this card sticks) */}
+            {/* Desktop-only Next Action (sticky. Only this card sticks) */}
             {next_action && (
               <div className="hidden lg:block sticky top-24">
                 <NextActionCard
@@ -898,7 +898,7 @@ function TransactionTimeline({
             extraInfo = "Pending buyer verification";
           }
           if (step.status === "completed" && isCurrent) {
-            extraInfo = "SafeDeal is reviewing — funds will release shortly";
+            extraInfo = "SafeDeal is reviewing: funds will release shortly";
           }
           if (step.status === "funds_released" && !isReached) {
             extraInfo = "Awaiting SafeDeal release";

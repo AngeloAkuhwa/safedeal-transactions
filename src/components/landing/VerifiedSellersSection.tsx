@@ -54,7 +54,7 @@ export function VerifiedSellersSection() {
             If your customers find you in DMs, SafeDeal gives both sides one place to record and close the deal.
           </p>
           <p className="mx-auto mt-3 max-w-xl text-left text-sm font-semibold text-foreground sm:text-center">
-            Your own store link, free forever — we only earn when you get paid.
+            Your own store link, free forever. We only earn when you get paid.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export function VerifiedSellersSection() {
           ))}
         </SnapCarousel>
 
-        {/* Truthful trust strip — no invented numbers */}
+        {/* Truthful trust strip: no invented numbers */}
         <div className="mt-6 rounded-2xl border bg-muted/40 p-4 sm:mt-8">
           <ul className="flex flex-col items-start justify-center gap-2 text-left text-sm font-semibold text-muted-foreground sm:flex-row sm:items-center sm:gap-5 sm:text-center">
             <li className="inline-flex items-center gap-1.5">

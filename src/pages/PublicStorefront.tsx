@@ -41,7 +41,7 @@ const PublicStorefront = () => {
 
   const storeName = data?.seller?.full_name ?? "";
   usePageMeta({
-    title: `${storeName} — Store | SafeDeal`,
+    title: `${storeName}: Store | SafeDeal`,
     description: `Shop ${storeName} on SafeDeal and review item, delivery, and payment terms before checkout.`,
     path: `/store/${sellerSlug ?? ""}`,
     image: data?.seller?.avatar_url ?? null,

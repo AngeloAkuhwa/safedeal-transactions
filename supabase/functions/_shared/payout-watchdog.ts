@@ -1,7 +1,7 @@
 /**
  * Stuck-payout detection. A payout is "stuck" when it claims to be in flight
- * (pending/processing) but has no provider reference at all — meaning nothing
- * was ever handed to Paystack — and it has been that way past the threshold.
+ * (pending/processing) but has no provider reference at all. Meaning nothing
+ * was ever handed to Paystack: and it has been that way past the threshold.
  *
  * Detection ONLY. Nothing here mutates money_status or escrow state.
  */
