@@ -246,12 +246,12 @@ jobs:
             h=$(printf %s "$v" | sha256sum | cut -c1-12)
             warn=""
             case "$v" in
-              *' ') warn=" [WARNING: ends with a space — likely a paste artifact]";;
-              *'
-') warn=" [WARNING: contains a newline — likely a paste artifact]";;
+              *' ') warn=" [WARNING: ends with a space - likely a paste artifact]";;
+              *$'\n'*) warn=" [WARNING: contains a newline - likely a paste artifact]";;
+              *$'\r'*) warn=" [WARNING: contains a carriage return - likely a paste artifact]";;
             esac
             case "$v" in
-              *'$'*) warn="$warn [note: contains \$, which shells and dotenv expand]";;
+              *'$'*) warn="$warn [note: contains a dollar sign, which shells and dotenv expand]";;
             esac
             echo "$k: length=${#v} sha256=$h$warn"
             if [ -n "$prev" ] && [ "$prev" != "$h" ]; then
