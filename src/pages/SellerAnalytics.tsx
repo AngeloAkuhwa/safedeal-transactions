@@ -29,6 +29,7 @@ import {
   type SellerAnalyticsData,
 } from "@/services/seller-analytics.service";
 import { cn } from "@/lib/utils";
+import { TONE, toneChip, type Tone } from "@/lib/tone";
 import { formatMoney } from "@/lib/format";
 
 /* ---------- Helpers ---------- */
@@ -94,20 +95,13 @@ function downloadCsv(data: SellerAnalyticsData) {
 
 /* ---------- Sub-components ---------- */
 
-type ChipTone = "success" | "warning" | "danger" | "info" | "muted";
-const chipToneClass: Record<ChipTone, string> = {
-  success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-  warning: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  danger: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",
-  info: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
-  muted: "bg-muted text-muted-foreground",
-};
 
-function TrendChip({ tone, icon, children }: { tone: ChipTone; icon?: React.ReactNode; children: React.ReactNode }) {
+function TrendChip({ tone, icon, children }: { tone: Tone; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-xs font-semibold leading-tight",
-      chipToneClass[tone],
+      "border",
+      toneChip(tone),
     )}>
       {icon}
       {children}
@@ -179,18 +173,12 @@ function KpiCard({
 }
 
 function HealthCard({
-  title, value, tone, icon, barClass, progress, animate, index,
+  title, value, tone, icon, progress, animate, index,
 }: {
-  title: string; value: string; tone: ChipTone; icon: React.ReactNode;
-  barClass: string; progress: number | null;
+  title: string; value: string; tone: Tone; icon: React.ReactNode;
+  progress: number | null;
   animate: boolean; index: number;
 }) {
-  const valueColor =
-    tone === "success" ? "text-emerald-600 dark:text-emerald-400" :
-    tone === "info" ? "text-sky-600 dark:text-sky-400" :
-    tone === "warning" ? "text-amber-600 dark:text-amber-400" :
-    "text-foreground";
-
   const [width, setWidth] = useState(animate ? 0 : (progress ?? 100));
   useEffect(() => {
     if (!animate) { setWidth(progress ?? 100); return; }
@@ -207,12 +195,12 @@ function HealthCard({
         <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold leading-tight">{title}</p>
-            <span className={cn("shrink-0", valueColor)}>{icon}</span>
+            <span className={cn("shrink-0", TONE[tone].icon)}>{icon}</span>
           </div>
-          <p className={cn("mt-1.5 text-xl sm:text-2xl font-bold tracking-tight tabular-nums leading-tight", valueColor)}>{value}</p>
+          <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight tabular-nums leading-tight">{value}</p>
           <div className="mt-1.5 h-1 w-full rounded-full bg-muted overflow-hidden">
             <div
-              className={cn("h-full rounded-full transition-[width] duration-700 ease-out", barClass)}
+              className={cn("h-full rounded-full transition-[width] duration-700 ease-out", TONE[tone].bar)}
               style={{ width: `${Math.max(0, Math.min(100, width))}%` }}
             />
           </div>
@@ -224,18 +212,8 @@ function HealthCard({
 
 function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
   to: string; ariaLabel: string;
-  tone: ChipTone; icon: React.ReactNode; label: string; count: number;
+  tone: Tone; icon: React.ReactNode; label: string; count: number;
 }) {
-  const bg =
-    tone === "warning" ? "bg-amber-50 dark:bg-amber-950/30" :
-    tone === "info" ? "bg-sky-50 dark:bg-sky-950/30" :
-    tone === "success" ? "bg-emerald-50 dark:bg-emerald-950/30" :
-    "bg-muted";
-  const fg =
-    tone === "warning" ? "text-amber-600 dark:text-amber-400" :
-    tone === "info" ? "text-sky-600 dark:text-sky-400" :
-    tone === "success" ? "text-emerald-600 dark:text-emerald-400" :
-    "text-muted-foreground";
   return (
     <Link
       to={to}
@@ -244,11 +222,12 @@ function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
         "flex items-center justify-between rounded-md px-2.5 py-1.5 group transition-all min-h-11",
         "hover:brightness-95 dark:hover:brightness-110 hover:shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        bg,
+        "border",
+        TONE[tone].surface,
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className={cn("shrink-0", fg)}>{icon}</span>
+        <span className={cn("shrink-0", TONE[tone].icon)}>{icon}</span>
         <span className="text-[13px] font-medium truncate leading-tight">{label}</span>
       </div>
       <div className="flex items-center gap-1 shrink-0 ml-2">
@@ -272,7 +251,7 @@ function StarRow({ rating }: { rating: number | null }) {
             className={cn(
               "h-3.5 w-3.5",
               i <= Math.round(r)
-                ? "fill-amber-400 text-amber-400"
+                ? "fill-primary text-primary"
                 : "fill-muted text-muted-foreground/40",
             )}
           />
@@ -290,8 +269,8 @@ function YesNoPill({ ok }: { ok: boolean }) {
     <span className={cn(
       "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-xs font-semibold",
       ok
-        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-        : "bg-muted text-muted-foreground",
+        ? cn("border", toneChip("success"))
+        : "border border-border bg-muted text-muted-foreground",
     )}>
       {ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
       {ok ? "Yes" : "No"}
@@ -526,7 +505,6 @@ const SellerAnalytics = () => {
                   ariaLabel="Open Awaiting Release transactions"
                   title="Awaiting Release"
                   value={NGN(data.summary.funds_awaiting_release)}
-                  valueClass="text-amber-600 dark:text-amber-400"
                   helper="Reviewing"
                   tooltip={TT.awaiting}
                   chip={
@@ -541,7 +519,6 @@ const SellerAnalytics = () => {
                   ariaLabel="Open active escrow transactions"
                   title="In Escrow"
                   value={NGN(data.summary.funds_held_in_escrow)}
-                  valueClass="text-sky-600 dark:text-sky-400"
                   helper="Active protected"
                   tooltip={TT.escrow}
                   chip={
@@ -567,7 +544,6 @@ const SellerAnalytics = () => {
                   ariaLabel="Open seller disputes"
                   title="Dispute Rate"
                   value={PCT(data.dispute_rate.value)}
-                  valueClass="text-red-600 dark:text-red-400"
                   helper={`${data.dispute_rate.open_disputes} open`}
                   tooltip={TT.dispute}
                   chip={
@@ -604,13 +580,13 @@ const SellerAnalytics = () => {
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-sky-500" /> Net Released
+                        <span className="h-2 w-2 rounded-full bg-primary" /> Net Released
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-muted-foreground/50" /> Gross Sales
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-amber-500" /> Fees
+                        <span className="h-2 w-2 rounded-full bg-warning" /> Fees
                       </span>
                     </div>
                   </div>
@@ -653,7 +629,7 @@ const SellerAnalytics = () => {
                             strokeDasharray="4 4"
                             isAnimationActive={animate} animationDuration={900} />
                           <Area type="monotone" dataKey="fees_deducted" name="Fees Deducted"
-                            stroke="#f59e0b" fill="transparent" strokeWidth={1.25}
+                            stroke="hsl(var(--warning))" fill="transparent" strokeWidth={1.25}
                             isAnimationActive={animate} animationDuration={900} />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -670,7 +646,6 @@ const SellerAnalytics = () => {
                   value={PCT(completionPct)}
                   tone="success"
                   icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                  barClass="bg-emerald-500"
                   progress={completionPct}
                 />
                 <HealthCard
@@ -679,7 +654,6 @@ const SellerAnalytics = () => {
                   value={`${(data.trust_metrics.dispute_free_rate * 100).toFixed(1)}%`}
                   tone="info"
                   icon={<ShieldCheck className="h-3.5 w-3.5" />}
-                  barClass="bg-sky-500"
                   progress={disputeFreePct}
                 />
                 <HealthCard
@@ -688,7 +662,6 @@ const SellerAnalytics = () => {
                   value={onTimePct === null ? "—" : `${onTimePct.toFixed(1)}%`}
                   tone="warning"
                   icon={<Truck className="h-3.5 w-3.5" />}
-                  barClass="bg-amber-500"
                   progress={onTimePct}
                 />
                 <HealthCard
@@ -697,7 +670,6 @@ const SellerAnalytics = () => {
                   value={responseHrs === null ? "—" : `${responseHrs.toFixed(1)}h`}
                   tone="muted"
                   icon={<Clock className="h-3.5 w-3.5" />}
-                  barClass="bg-foreground/70"
                   progress={responseProgress}
                 />
               </section>
@@ -715,7 +687,7 @@ const SellerAnalytics = () => {
                     ) : (
                       <div className="space-y-1.5">
                         {data.top_products.map((p, i) => {
-                          const stockTone: ChipTone =
+                          const stockTone: Tone =
                             p.current_stock === 0 ? "danger" :
                             p.current_stock <= 5 ? "warning" : "success";
                           const stockLabel =
@@ -760,7 +732,7 @@ const SellerAnalytics = () => {
                                     Gross <span className="text-foreground tabular-nums">{NGN(p.gross_sales)}</span>
                                   </span>
                                   <span className="text-muted-foreground">
-                                    Net <span className="font-semibold text-sky-600 dark:text-sky-400 tabular-nums">{NGN(p.seller_net_released)}</span>
+                                    Net <span className="font-semibold text-primary tabular-nums">{NGN(p.seller_net_released)}</span>
                                   </span>
                                 </div>
                               </div>
@@ -844,7 +816,7 @@ const SellerAnalytics = () => {
                       </div>
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-xs text-muted-foreground">Dispute-Free Rate</span>
-                        <span className="text-xs font-bold text-sky-600 dark:text-sky-400 tabular-nums">
+                        <span className="text-xs font-bold text-primary tabular-nums">
                           {(data.trust_metrics.dispute_free_rate * 100).toFixed(1)}%
                         </span>
                       </div>
@@ -858,17 +830,17 @@ const SellerAnalytics = () => {
                       ) : (
                         <div
                           className={cn(
-                            "relative flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-sky-200 dark:border-sky-900 bg-sky-50/50 dark:bg-sky-950/20 transition-all duration-700",
+                            "relative flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-primary/30 bg-primary/10 transition-all duration-700",
                             animate && "animate-scale-in",
                           )}
                         >
-                          <span className="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none">
+                          <span className="text-2xl font-bold text-primary tabular-nums leading-none">
                             {data.trust_metrics.seller_rating === null ? "—" : data.trust_metrics.seller_rating.toFixed(1)}
                           </span>
                           <span className="text-xs text-muted-foreground mt-1">Trust Score</span>
                           {data.trust_metrics.identity_verified && data.trust_metrics.payout_verified && (
-                            <span className="absolute -bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-1.5 py-px border border-emerald-200 dark:border-emerald-900">
-                              <ShieldCheck className="h-2.5 w-2.5" /> Verified
+                            <span className={cn("absolute -bottom-2 inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-xs font-semibold", toneChip("success"))}>
+                              <ShieldCheck className={cn("h-2.5 w-2.5", TONE.success.icon)} /> Verified
                             </span>
                           )}
                         </div>

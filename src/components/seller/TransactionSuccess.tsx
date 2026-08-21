@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { FEE_NAME } from "@/lib/payment/fee-policy";
 import { MISSING_MONEY } from "@/lib/payment/money-format";
+import { cn } from "@/lib/utils";
+import { TONE } from "@/lib/tone";
 
 interface TransactionSuccessProps {
   publishedUrl: string;
@@ -85,11 +87,11 @@ export function TransactionSuccess({
   return (
     <div className="flex-1">
       {/* ── Hero ── */}
-      <section className="bg-gradient-to-br from-green-50 via-background to-sky-50 dark:from-green-950/20 dark:via-background dark:to-sky-950/20 py-12">
+      <section className="border-b border-border bg-muted/40 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-6 animate-in zoom-in duration-500">
-            <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
-              <Check className="h-10 w-10 text-white" strokeWidth={3} />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success shadow-xl">
+              <Check className="h-10 w-10 text-success-foreground" strokeWidth={3} />
             </div>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-3">Private Offer Created</h1>
@@ -115,11 +117,11 @@ export function TransactionSuccess({
         {/* ── Important Reminder Banner ── */}
         <div className="bg-gradient-to-r from-primary to-primary/90 rounded-2xl shadow-lg p-6 lg:p-8">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-              <Shield className="h-6 w-6 text-white" />
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary-foreground/20 backdrop-blur-sm">
+              <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-white mb-2">Transaction starts when the buyer pays</h3>
+              <h3 className="mb-2 text-xl font-bold text-primary-foreground">Transaction starts when the buyer pays</h3>
               <p className="text-primary-foreground/90 text-sm leading-relaxed">
                 We don't create a live transaction until the buyer opens this link and accepts the agreement. Funds enter escrow only after they pay through the secure flow. At that point all terms become immutable.
               </p>
@@ -132,14 +134,14 @@ export function TransactionSuccess({
           <div className="bg-gradient-to-r from-primary to-primary/90 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Lock className="h-6 w-6 text-white" />
+                <Lock className="h-6 w-6 text-primary-foreground" />
                 <div>
                   <p className="text-xs text-primary-foreground/70 font-medium">Offer Token</p>
-                  <p className="text-xl font-bold text-white font-mono">{transactionCode}</p>
+                  <p className="font-mono text-xl font-bold text-primary-foreground">{transactionCode}</p>
                 </div>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                <span className="text-xs text-white font-medium">Private Offer</span>
+              <div className="rounded-lg bg-primary-foreground/20 px-4 py-2 backdrop-blur-sm">
+                <span className="text-xs font-medium text-primary-foreground">Private Offer</span>
               </div>
             </div>
           </div>
@@ -198,7 +200,7 @@ export function TransactionSuccess({
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-foreground">You'll Receive</span>
-                  <span className="text-2xl font-bold text-green-600">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</span>
+                  <span className="text-2xl font-bold text-foreground">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</span>
                 </div>
               </div>
             </div>
@@ -238,12 +240,12 @@ export function TransactionSuccess({
                   className="px-4 py-3 pr-12 rounded-xl bg-muted font-mono text-sm"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Lock className="h-4 w-4 text-green-600" />
+                  <Lock className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
               <Button
                 onClick={handleCopy}
-                className={`px-6 py-3 rounded-xl font-semibold shadow-lg gap-2 ${copied ? "bg-green-600 hover:bg-green-700" : ""}`}
+                className={`px-6 py-3 rounded-xl font-semibold shadow-lg gap-2 ${copied ? "bg-success hover:bg-success/90" : ""}`}
               >
                 {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied!" : "Copy Link"}
@@ -267,9 +269,9 @@ export function TransactionSuccess({
               </button>
               <button
                 onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`)}
-                className="flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-xl hover:bg-muted hover:border-green-600 transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-xl hover:border-primary hover:bg-muted transition-all"
               >
-                <MessageSquare className="h-5 w-5 text-green-600" />
+                <MessageSquare className="h-5 w-5 text-primary" />
                 <span className="text-sm font-semibold text-foreground">WhatsApp</span>
               </button>
               <button
@@ -289,12 +291,12 @@ export function TransactionSuccess({
             </div>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <div className={cn("rounded-xl border p-4", TONE.warning.surface)}>
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className={cn("mt-0.5 h-5 w-5 flex-shrink-0", TONE.warning.icon)} />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-1">Security Notice</p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-400">Never share this link publicly. Only send it directly to the buyer through a secure channel. The buyer must review and pay through this link for the transaction to proceed.</p>
+                <p className="mb-1 text-sm font-semibold text-foreground">Security Notice</p>
+                <p className="text-xs text-muted-foreground">Never share this link publicly. Only send it directly to the buyer through a secure channel. The buyer must review and pay through this link for the transaction to proceed.</p>
               </div>
             </div>
           </div>
@@ -312,7 +314,7 @@ export function TransactionSuccess({
           </div>
 
           <div className="relative">
-            <div className="absolute left-8 top-16 bottom-16 w-0.5 bg-gradient-to-b from-primary via-green-600 to-muted hidden md:block" />
+            <div className="absolute bottom-16 left-8 top-16 hidden w-0.5 bg-gradient-to-b from-primary to-muted md:block" />
 
             <div className="space-y-6">
               {/* Step 1 */}
@@ -355,8 +357,8 @@ export function TransactionSuccess({
 
               {/* Step 3 */}
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg relative z-rail">
-                  <span className="text-2xl font-bold text-white">3</span>
+                <div className="relative z-rail flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-primary shadow-lg">
+                  <span className="text-2xl font-bold text-primary-foreground">3</span>
                 </div>
                 <div className="flex-1 bg-card border-2 border-border rounded-2xl p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
@@ -364,9 +366,9 @@ export function TransactionSuccess({
                     <h3 className="text-lg font-bold text-foreground">Buyer Pays Through SafeDeal</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">The buyer completes secure payment directly through the SafeDeal platform. You'll receive instant notification when payment is received.</p>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 dark:bg-yellow-900/20 dark:border-yellow-800">
-                    <p className="text-xs text-yellow-900 dark:text-yellow-300 flex items-start gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                  <div className={cn("rounded-lg border p-3", TONE.warning.surface)}>
+                    <p className="flex items-start gap-2 text-xs text-foreground">
+                      <AlertTriangle className={cn("mt-0.5 h-3.5 w-3.5 flex-shrink-0", TONE.warning.icon)} />
                       <span><strong>Critical:</strong> Payment must go through SafeDeal's secure link. Payments outside this system are not protected.</span>
                     </p>
                   </div>
@@ -387,7 +389,7 @@ export function TransactionSuccess({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-card rounded-lg p-3 border border-border">
                       <p className="text-xs text-muted-foreground mb-1">You'll receive</p>
-                      <p className="text-base font-bold text-green-600">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</p>
+                      <p className="text-base font-bold text-foreground">{sellerNet != null ? fmt(sellerNet) : MISSING_MONEY}</p>
                     </div>
                     <div className="bg-card rounded-lg p-3 border border-border">
                       <p className="text-xs text-muted-foreground mb-1">After buyer confirms</p>
@@ -400,10 +402,10 @@ export function TransactionSuccess({
           </div>
 
           {/* Protection active note */}
-          <div className="mt-8 bg-gradient-to-br from-green-50 to-sky-50 dark:from-green-950/20 dark:to-sky-950/20 border-2 border-green-200 dark:border-green-800 rounded-2xl p-6">
+          <div className="mt-8 rounded-2xl border-2 border-border bg-muted/40 p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="h-5 w-5 text-white" />
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary">
+                <Shield className="h-5 w-5 text-primary-foreground" />
               </div>
               <div className="flex-1">
                 <h4 className="text-lg font-bold text-foreground mb-2">SafeDeal Protection Active After Payment</h4>
@@ -414,7 +416,7 @@ export function TransactionSuccess({
         </section>
 
         {/* ── Next Action Card ── */}
-        <div className="bg-gradient-to-br from-primary/5 to-green-50 dark:from-primary/10 dark:to-green-950/20 rounded-2xl shadow-lg border-2 border-primary/20 p-6 lg:p-8">
+        <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 shadow-lg lg:p-8">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
               <Send className="h-6 w-6 text-primary-foreground" />
