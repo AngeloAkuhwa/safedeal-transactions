@@ -101,7 +101,18 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
           <span className="truncate text-lg font-bold text-foreground sm:text-xl">SafeDeal</span>
         </Link>
 
-        {/* Desktop nav */}
+        {/*
+          Desktop nav.
+
+          `inline-flex min-h-11 items-center` because these were 20px tall
+          boxes: "Saved" measured 42x20. This nav shows from md (768), and 768
+          to 1024 is a tablet, so a finger was being asked to hit 20px. The
+          render audit could not see it while it only ran phone widths, where
+          this nav is hidden.
+
+          The header row is a fixed-height flex row, so the taller hit area
+          sits inside it and centres. Nothing moves.
+        */}
         <nav className="hidden md:flex items-center gap-4 lg:gap-6 overflow-x-auto">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href || 
@@ -110,7 +121,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`whitespace-nowrap text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center whitespace-nowrap text-sm font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
