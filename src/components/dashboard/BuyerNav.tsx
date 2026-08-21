@@ -117,6 +117,16 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
           and gap-1 plus px-1.5 is 4 + 6 + 6, also 16. At lg, gap-6 is 24 and
           gap-3 plus px-1.5 is 12 + 6 + 6, also 24.
 
+          `shrink-0`, and NOT `min-w-11`, which was the third pass. A flex item
+          defaults to `min-width: auto`, and that is what had been stopping
+          these from shrinking below their own text. Setting an explicit
+          `min-w-11` replaced that floor with 44px, so the items became
+          shrinkable and "Dashboard" squashed from 73px to 52px with the glyphs
+          hanging out of the box. The audit caught it as glyph:1 at 834, which
+          is the one check static analysis cannot do. Padding alone already
+          clears 44 across for the narrowest label ("Saved" at 42 plus 12), so
+          the minimum was never needed; not shrinking is.
+
           The header row is a fixed-height flex row, so the taller hit area
           sits inside it and centres. Nothing moves.
         */}
@@ -128,7 +138,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap px-1.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
