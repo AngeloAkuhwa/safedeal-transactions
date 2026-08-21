@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 import { executeProviderRefund } from "../_shared/provider-refund.ts";
@@ -97,10 +97,10 @@ const ACTION_PERMS: Record<string, string[]> = {
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
 };
-async function gateAction(req: Request, action: string): Promise<{ admin: any; userId: string } | Response> {
+async function gateAction(req: Request, action: string, baseCtx?: any): Promise<{ admin: any; userId: string } | Response> {
   const perms = ACTION_PERMS[action] ?? ["transactions.update"];
   try {
-    const ctx = await requireAnyPermission(req, perms);
+    const ctx = await requireAnyPermission(req, perms, baseCtx);
     return { admin: ctx.adminClient, userId: ctx.userId };
   } catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
@@ -108,6 +108,7 @@ async function gateAction(req: Request, action: string): Promise<{ admin: any; u
     throw err;
   }
 }
+
 
 function badRequest(msg: string) {
   return json({ error: msg }, 400);
@@ -117,6 +118,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  // Stage (a): base authentication + admin check BEFORE any body handling so
+  // anonymous callers get 401 and authenticated non-admins get 403.
+  let baseCtx;
+  try {
+    baseCtx = await requireAdmin(req);
+  } catch (err) {
+    const resp = authErrorResponse(err, corsHeaders);
+    if (resp) return resp;
+    return json({ error: "auth_failed" }, 500);
+  }
+
+  // Stage (b): parse/validate the body.
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -130,9 +143,11 @@ Deno.serve(async (req) => {
     return badRequest("Refund must be handled from dispute or payout review");
   }
 
-  const gated = await gateAction(req, body.action);
+  // Stage (c): fine-grained per-action permission gate (unchanged).
+  const gated = await gateAction(req, body.action, baseCtx);
   if (gated instanceof Response) return gated;
   const { admin, userId } = gated;
+
   const txId = body.transactionId;
   const payload = (body.payload ?? {}) as Record<string, any>;
   const _meta = extractRequestMeta(req);

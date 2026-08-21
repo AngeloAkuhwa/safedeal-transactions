@@ -50,7 +50,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // Parse body first so we know which export_type we're gating.
+  // Authenticate FIRST so anonymous callers get 401 and non-admins 403 before
+  // any body parsing/validation can emit a 400.
+  let ctx;
+  try {
+    ctx = await requireAdmin(req);
+  } catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json({ error: "auth_failed" }, 500);
+  }
+
+  // Parse body so we know which export_type we're gating.
   let body: { export_type?: string; params?: Record<string, unknown> } = {};
   try {
     body = await req.json();
@@ -62,17 +73,16 @@ Deno.serve(async (req) => {
     return json({ error: "unsupported_export_type", detail: exportType }, 400);
   }
 
+  // Per-export-type permission gate (unchanged semantics).
   const requiredPerm = EXPORT_PERMS[exportType];
-  let ctx;
   try {
-    ctx = requiredPerm
-      ? await requirePermission(req, requiredPerm)
-      : await requireAdmin(req);
+    if (requiredPerm) ctx = await requirePermission(req, requiredPerm, ctx);
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
     return json({ error: "auth_failed" }, 500);
   }
+
 
   const rl = await enforceAdminRateLimit(ctx, "export_enqueue", 20, corsHeaders);
   if (rl) return rl;
