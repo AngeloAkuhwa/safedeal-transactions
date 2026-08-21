@@ -317,7 +317,6 @@ async function hydrateUser(admin: ReturnType<typeof requireAdmin> extends Promis
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try { ctx = await requirePermission(req, "users_and_access.manage_permissions"); }
@@ -326,6 +325,8 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   const rl = await enforceAdminRateLimit(ctx, "invite_internal_user", 20, corsHeaders);
   if (rl) return rl;

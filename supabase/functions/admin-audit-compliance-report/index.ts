@@ -23,7 +23,6 @@ function computeRange(range: string): { from: string; to: string } {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let ctx;
   try { ctx = await requirePermission(req, "audit_logs.export"); }
@@ -31,6 +30,8 @@ Deno.serve(async (req) => {
     const r = authErrorResponse(err, corsHeaders); if (r) return r;
     return json({ error: "auth_failed" }, 500);
   }
+
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let body: { range?: string; severity?: string; from?: string; to?: string } = {};
   try { body = await req.json(); } catch { /* accept empty body */ }

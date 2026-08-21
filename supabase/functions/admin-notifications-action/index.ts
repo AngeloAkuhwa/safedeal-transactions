@@ -23,7 +23,6 @@ type Channel = "in_app" | "email" | "sms";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try { ctx = await requirePermission(req, "platform_configuration.configure"); }
@@ -32,6 +31,8 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
   const admin = ctx.adminClient;
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action ?? "");

@@ -21,7 +21,6 @@ function json(status: number, body: Record<string, unknown>): Response {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try { ctx = await requirePermission(req, "flagged_users.view"); }
@@ -30,6 +29,8 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
   const admin = ctx.adminClient;
 
   const url = new URL(req.url);
