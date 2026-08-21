@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Eye, ExternalLink, Pencil, Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive, ImageIcon, AlignLeft, FileText, UserCheck, EyeOff, Clock, Bookmark, BarChart3, Package, CheckCircle2, Star } from "lucide-react";
+import { Eye, ExternalLink, Pencil, Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive, ImageIcon, AlignLeft, FileText, UserCheck, EyeOff, Clock, Bookmark, BarChart3, Package, CheckCircle2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/common/BackLink";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
@@ -180,14 +181,11 @@ const SellerProductPreview = () => {
         {/* Header */}
         <div className="relative z-rail flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl border border-border"
-              onClick={() => navigate(`/seller/storefront/${productId}`)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <BackLink
+              to={`/seller/storefront/${productId}`}
+              label="Back to product"
+              className="border border-border"
+            />
             {heroImage && (
               <div className="hidden sm:block w-10 h-10 rounded-lg border border-border overflow-hidden bg-muted">
                 <img src={heroImage.file_url} alt="" className="w-full h-full object-cover" />
