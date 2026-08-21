@@ -334,8 +334,8 @@ const BuyerCart = () => {
           </div>
 
           {!gate.loading && (cartMutationsBlocked || gateBlocked) && items.length > 0 && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5">
-              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/10 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">
                   {cartMutationsBlocked && gateBlocked
@@ -413,12 +413,12 @@ const BuyerCart = () => {
                   </div>
                 </div>
                 <div className="sd-metric rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Selected for Checkout</p>
-                    <p className="sd-kpi-value tabular-nums text-emerald-600">{selected.size}</p>
+                    <p className="sd-kpi-value tabular-nums">{selected.size}</p>
                   </div>
                 </div>
                 <div className="sd-metric rounded-xl border border-border bg-card p-3 flex items-center gap-3">
@@ -550,9 +550,9 @@ const BuyerCart = () => {
                                     variant="outline"
                                     className={`rounded-full text-xs gap-1 ${
                                       stock.variant === "success"
-                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                        ? "border-success/30 bg-success/10 text-foreground"
                                         : stock.variant === "warning"
-                                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                        ? "border-warning/30 bg-warning/10 text-foreground"
                                         : "bg-destructive/10 text-destructive border-destructive/20"
                                     }`}
                                   >
@@ -802,7 +802,7 @@ const BuyerCart = () => {
                         {checkingOut ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Checkout Selected Items`}
                       </Button>
                       {gateBlocked && (
-                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                        <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground">
                           <AlertTriangle className="h-3.5 w-3.5 inline mr-1.5" />
                           {gate.checkoutDisabledReason}
                         </div>
@@ -817,8 +817,8 @@ const BuyerCart = () => {
                         { icon: Clock, label: "Confirmation Window", desc: "Time to verify before release" },
                       ].map((t, i) => (
                         <div key={i} className="flex items-start gap-3">
-                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <t.icon className="h-4 w-4 text-emerald-500" />
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <t.icon className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{t.label}</p>

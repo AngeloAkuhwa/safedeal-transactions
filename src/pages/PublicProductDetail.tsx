@@ -191,8 +191,8 @@ const PublicProductDetail = () => {
   const stockStatus = availableQty === 0
     ? { label: "Out of Stock", cls: "bg-destructive/10 text-destructive border-destructive/20", dot: "bg-destructive" }
     : availableQty <= 5
-    ? { label: `Only ${availableQty} left`, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", dot: "bg-amber-500" }
-    : { label: "In Stock", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", dot: "bg-emerald-500" };
+    ? { label: `Only ${availableQty} left`, cls: "border-warning/30 bg-warning/10 text-foreground", dot: "bg-warning" }
+    : { label: "In Stock", cls: "border-success/30 bg-success/10 text-foreground", dot: "bg-success" };
 
   // Parse agreement terms into titled bullets
   const agreementBullets = product.agreement_terms
@@ -261,7 +261,7 @@ const PublicProductDetail = () => {
             className="h-11 w-11 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
             aria-label="Share on WhatsApp"
           >
-            <MessageCircle className="h-4 w-4 text-emerald-500" />
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </header>
@@ -372,8 +372,8 @@ const PublicProductDetail = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl border border-primary/10 bg-primary/5 p-2">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
                 <span className="text-xs font-medium text-foreground">{alwaysClaim("ESCROW_PROTECTED")}</span>
               </div>
               {sellerClaim && (
@@ -432,7 +432,7 @@ const PublicProductDetail = () => {
           ) : (
             <>
               {(!checkoutAllowed || !cartAllowed) && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground">
                   <AlertCircle className="h-3.5 w-3.5 inline mr-1.5" />
                   {!checkoutAllowed ? gate.checkoutDisabledReason : gate.cartDisabledReason}
                 </div>
@@ -441,7 +441,7 @@ const PublicProductDetail = () => {
               {checkoutAllowed && (
                 <Button
                   size="lg"
-                  className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
                   onClick={handleBuyNow}
                   disabled={availableQty === 0}
                   data-testid="buy-now-button"
@@ -458,7 +458,7 @@ const PublicProductDetail = () => {
                   className={
                     checkoutAllowed
                       ? `w-full gap-2 rounded-xl h-12 text-base font-semibold ${glassPanel} !rounded-xl`
-                      : "w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                      : "w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
                   }
                   onClick={handleCartCTA}
                   disabled={availableQty === 0 || addingToCart}
@@ -487,7 +487,7 @@ const PublicProductDetail = () => {
           <div className={`${glassPanel} p-4`}>
             <div className="flex items-center gap-3 mb-3">
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-white font-bold">
+                <AvatarFallback className="bg-primary font-bold text-primary-foreground">
                   {(seller.full_name || "S")[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -532,7 +532,7 @@ const PublicProductDetail = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {featureHighlights.map((fh: any, idx: number) => (
                   <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">{fh.title}</p>
                       <p className="text-xs text-muted-foreground">{fh.description}</p>
@@ -548,7 +548,7 @@ const PublicProductDetail = () => {
             <div className="mt-4 grid grid-cols-2 gap-3">
               {product.brand && (
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">Brand</p>
                     <p className="text-xs text-muted-foreground">{product.brand}</p>
@@ -557,7 +557,7 @@ const PublicProductDetail = () => {
               )}
               {product.model && (
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">Model</p>
                     <p className="text-xs text-muted-foreground">{product.model}</p>
@@ -617,8 +617,8 @@ const PublicProductDetail = () => {
               deliveryMethods.map((method: string) => (
                 <div key={method} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border">
                   {method === "hand_delivery" || method === "meetup" ? (
-                    <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-amber-600" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                   ) : (
                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">

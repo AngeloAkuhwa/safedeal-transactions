@@ -23,8 +23,8 @@ const formatPrice = (amount: number, currency: string) => formatMoney(amount, cu
 
 function getStockInfo(qty: number) {
   if (qty <= 0) return { label: "Out of Stock", cls: "bg-muted text-muted-foreground" };
-  if (qty <= 5) return { label: "Low Stock", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" };
-  return { label: "In Stock", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" };
+  if (qty <= 5) return { label: "Low Stock", cls: "border border-warning/30 bg-warning/10 text-foreground" };
+  return { label: "In Stock", cls: "border border-success/30 bg-success/10 text-foreground" };
 }
 
 export default function BuyerSavedProducts() {
@@ -237,7 +237,7 @@ export default function BuyerSavedProducts() {
                       {/* Seller row */}
                       <div className="mb-3 pb-3 border-b border-border flex items-center gap-2">
                         <Avatar className="h-7 w-7">
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-blue-400 text-xs font-bold text-primary-foreground">
+                          <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
                             {sellerInitial}
                           </AvatarFallback>
                         </Avatar>
@@ -259,7 +259,7 @@ export default function BuyerSavedProducts() {
                             "w-full h-11 rounded-xl text-sm font-semibold",
                             outOfStock
                               ? "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed"
-                              : "bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90 text-primary-foreground"
                           )}
                           disabled={outOfStock}
                           onClick={(e) => {

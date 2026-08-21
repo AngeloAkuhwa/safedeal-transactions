@@ -88,11 +88,22 @@ async function fetchCheckoutSession(sessionId: string) {
   return { session: body.session, items: body.items || [], productMap, sellerMap };
 }
 
-const GRADIENT_COLORS = [
-  "from-primary to-blue-600",
-  "from-emerald-500 to-teal-600",
-  "from-violet-500 to-purple-600",
-  "from-amber-500 to-orange-600",
+/**
+ * Avatar washes, one per seller group in a multi-seller cart.
+ *
+ * These were four gradients (primary-to-blue, emerald-to-teal, violet-to-purple,
+ * amber-to-orange): eight raw colours spent on telling sellers apart, next to
+ * an avatar that already prints the seller's name and initial. Three of the
+ * four were accents the palette does not have.
+ *
+ * Enough variation to see the groups are different, all of it inside the
+ * token system.
+ */
+const AVATAR_WASHES = [
+  "bg-primary/15 text-primary",
+  "bg-muted text-foreground",
+  "bg-primary/25 text-primary",
+  "bg-muted-foreground/15 text-foreground",
 ];
 
 const CartCheckoutReview = () => {
@@ -249,7 +260,7 @@ const CartCheckoutReview = () => {
               Back to Cart
             </button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Lock className="h-4 w-4 text-emerald-500" />
+              <Lock className="h-4 w-4 text-primary" />
               <span className="font-medium">Secure Checkout</span>
             </div>
           </header>
@@ -309,7 +320,7 @@ const CartCheckoutReview = () => {
                 const sellerName = seller?.full_name || "Unknown Seller";
                 const sellerInitial = sellerName.charAt(0).toUpperCase();
                 const phoneVerified = seller?.phone_verified ?? false;
-                const gradient = GRADIENT_COLORS[idx % GRADIENT_COLORS.length];
+                const avatarWash = AVATAR_WASHES[idx % AVATAR_WASHES.length];
 
                 const sellerSubtotal = sellerItems.reduce((sum: number, i: any) => sum + Number(i.line_total), 0);
                 // Guard the lookup: an absent vendor config means we do not yet
@@ -327,7 +338,7 @@ const CartCheckoutReview = () => {
                   <div key={sellerId} className={`${glassPanel} overflow-hidden`}>
                     <div className="p-5 flex items-start gap-4">
                       <Avatar className="h-11 w-11 shrink-0">
-                        <AvatarFallback className={`bg-gradient-to-br ${gradient} text-white font-bold text-base`}>
+                        <AvatarFallback className={`text-base font-bold ${avatarWash}`}>
                           {sellerInitial}
                         </AvatarFallback>
                       </Avatar>
@@ -467,9 +478,9 @@ const CartCheckoutReview = () => {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2.5">
+                <div className="space-y-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                    <ShieldCheck className="h-5 w-5 text-primary" />
                     <span className="font-semibold text-foreground text-sm">Order terms</span>
                   </div>
                   <ul className="space-y-2">
@@ -480,7 +491,7 @@ const CartCheckoutReview = () => {
                       "Dispute resolution support",
                     ].map((t, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                         <span>{t}</span>
                       </li>
                     ))}
@@ -489,7 +500,7 @@ const CartCheckoutReview = () => {
 
                 <Button
                   size="lg"
-                  className="w-full gap-2 rounded-xl h-12 text-base font-semibold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground shadow-lg shadow-primary/20"
+                  className="w-full gap-2 rounded-xl h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
                   onClick={handleConfirmPay}
                   disabled={isSubmitting || gateBlocked}
                   title={gateBlocked ? gate.disabledReason : undefined}
@@ -507,7 +518,7 @@ const CartCheckoutReview = () => {
                   aboveTabBar
                 />
                 {gateBlocked && (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+                  <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground">
                     <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                     <span>{gate.disabledReason}</span>
                   </div>
