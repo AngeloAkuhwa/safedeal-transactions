@@ -186,7 +186,7 @@ const StorefrontCheckout = () => {
           Back to Product
         </button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Lock className="h-4 w-4 text-emerald-500" />
+          <Lock className="h-4 w-4 text-primary" />
           <span className="font-medium">Secure Checkout</span>
         </div>
       </header>
@@ -228,8 +228,8 @@ const StorefrontCheckout = () => {
                     </Badge>
                   )}
                   {availableQuantity > 0 ? (
-                    <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <Badge variant="outline" className="rounded-full border-success/30 bg-success/10 text-xs text-foreground gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
                       {availableQuantity} in stock
                     </Badge>
                   ) : null}
@@ -354,7 +354,7 @@ const StorefrontCheckout = () => {
                 </div>
               )}
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
+                <Badge variant="outline" className="rounded-full border-success/30 bg-success/10 text-xs text-foreground gap-1">
                   <ShieldCheck className="h-3 w-3" />
                   {alwaysClaim("ESCROW_PROTECTED")}
                 </Badge>
@@ -389,7 +389,7 @@ const StorefrontCheckout = () => {
                 <ul className="space-y-2">
                   {agreementBullets.map((term: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{term}</span>
                     </li>
                   ))}
@@ -447,9 +447,9 @@ const StorefrontCheckout = () => {
             </div>
 
             {/* SafeDeal Protection card */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
+            <div className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-5">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-emerald-500" />
+                <Shield className="h-5 w-5 text-primary" />
                  <h3 className="font-semibold text-foreground">Payment and dispute terms</h3>
               </div>
               <ul className="space-y-2.5">
@@ -461,7 +461,7 @@ const StorefrontCheckout = () => {
                   REFUND_BULLET,
                 ].filter((t): t is string => Boolean(t)).map((text, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <span>{text}</span>
                   </li>
                 ))}
@@ -470,14 +470,14 @@ const StorefrontCheckout = () => {
 
             {/* CTA */}
             {gateBlocked && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+              <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <span>{gate.disabledReason}</span>
               </div>
             )}
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
               onClick={handleConfirm}
               disabled={isSubmitting || gateBlocked}
               title={gateBlocked ? gate.disabledReason : undefined}

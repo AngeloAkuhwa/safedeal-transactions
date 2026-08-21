@@ -49,8 +49,8 @@ function relativeTime(dateStr?: string) {
 }
 
 const visibilityConfig: Record<string, { label: string; bg: string; text: string }> = {
-  public: { label: "Public", bg: "bg-blue-500/20", text: "text-blue-600 dark:text-blue-400" },
-  buyer_specific: { label: "Private", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
+  public: { label: "Public", bg: "bg-primary/15", text: "text-primary" },
+  buyer_specific: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
   private_draft: { label: "Draft", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
@@ -64,8 +64,8 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
   const visibility = visibilityConfig[product.visibility_type || "public"] || visibilityConfig.public;
 
   const stockLabel = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
-  const stockDot = isOutOfStock ? "bg-gray-400" : isLowStock ? "bg-amber-400" : "bg-emerald-400";
-  const stockText = isOutOfStock ? "text-gray-500 dark:text-gray-400" : isLowStock ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+  const stockDot = isOutOfStock ? "bg-muted-foreground" : isLowStock ? "bg-warning" : "bg-success";
+  const stockText = isOutOfStock ? "text-muted-foreground" : "text-foreground";
 
   return (
     <div role="button" tabIndex={0} onKeyDown={keyActivate}

@@ -743,7 +743,7 @@ export default function BuyerPaymentSummary() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm text-muted-foreground">{FEE_NAME}</span>
                     {isFeeCapped && (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
+                      <Badge variant="outline" className="h-4 border-warning/30 bg-warning/10 px-1.5 py-0 text-xs font-medium text-foreground">capped</Badge>
                     )}
                   </div>
                   <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
@@ -1096,7 +1096,10 @@ export default function BuyerPaymentSummary() {
 
       {/* Processing Overlay */}
       {isProcessing && (
-        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        // bg-black/80 deliberately, not a token: this is the same scrim
+        // DialogOverlay uses, and an overlay has to go dark in both themes.
+        // bg-foreground would invert it in dark mode.
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="bg-card rounded-3xl shadow-2xl p-12 max-w-md w-full text-center animate-in slide-in-from-bottom-4">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-foreground mb-3">Processing Payment</h2>
@@ -1113,7 +1116,10 @@ export default function BuyerPaymentSummary() {
 
       {/* Success Modal */}
       {showSuccess && (
-        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        // bg-black/80 deliberately, not a token: this is the same scrim
+        // DialogOverlay uses, and an overlay has to go dark in both themes.
+        // bg-foreground would invert it in dark mode.
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="bg-card rounded-3xl shadow-2xl p-8 sm:p-12 max-w-lg w-full animate-in slide-in-from-bottom-4">
             <div className="text-center">
               <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1211,11 +1217,11 @@ export default function BuyerPaymentSummary() {
                 </div>
 
                 {/* Money Status Summary */}
-                <div className="rounded-xl overflow-hidden border border-amber-200 dark:border-amber-800 mb-4">
-                  <div className="bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
+                <div className="mb-4 overflow-hidden rounded-xl border border-warning/30">
+                  <div className="bg-warning/10 px-3 py-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
                   </div>
-                  <div className="grid grid-cols-2 divide-x divide-amber-200 dark:divide-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
+                  <div className="grid grid-cols-2 divide-x divide-warning/30 bg-warning/5">
                     <div className="flex flex-col items-center gap-1.5 py-3 px-2">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-warning/15 text-warning border border-warning/30">
