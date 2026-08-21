@@ -23,7 +23,6 @@ function maskEmail(email?: string | null): string | null {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let ctx;
   try { ctx = await requirePermission(req, "transactions.export"); }
@@ -32,6 +31,8 @@ Deno.serve(async (req) => {
     if (resp) return resp;
     throw err;
   }
+
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const userId = ctx.userId;
   const admin = ctx.adminClient;
 

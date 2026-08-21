@@ -28,7 +28,6 @@ const LEVEL_RANK: Record<string, number> = { full: 4, high: 3, standard: 2, limi
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try {
@@ -38,6 +37,8 @@ Deno.serve(async (req) => {
     if (resp) return resp;
     throw err;
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   const admin = ctx.adminClient;
   const { ip, userAgent } = extractRequestMeta(req);

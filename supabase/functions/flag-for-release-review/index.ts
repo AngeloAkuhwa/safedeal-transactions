@@ -44,7 +44,6 @@ function json(status: number, body: Record<string, unknown>): Response {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try { ctx = await requirePermission(req, "release_review.flag"); }
@@ -54,6 +53,8 @@ Deno.serve(async (req) => {
     console.error("flag-for-release-review auth error", err);
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let raw: unknown;
   try { raw = await req.json(); } catch { return json(400, { error: "invalid_json" }); }

@@ -28,7 +28,6 @@ function isoDay(d: Date): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try {
@@ -39,6 +38,8 @@ Deno.serve(async (req) => {
     console.error("[admin-escrow-overview] auth", err);
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
   const admin = ctx.adminClient;
   const url = new URL(req.url);
 

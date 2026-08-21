@@ -27,6 +27,17 @@ const REQUIRES_NOTE: Record<Action, boolean> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Identify the caller before disclosing the method contract or reading the
+  // body: an anonymous request must not be able to probe this surface.
+  let baseCtx;
+  try { baseCtx = await requireAdmin(req); }
+  catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json(500, { error: "auth_failed" });
+  }
+
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   // Coarse gate before the body is touched — `invalid_json` was a 400 an
@@ -60,6 +71,7 @@ Deno.serve(async (req) => {
     if (r) return r;
     return json(500, { error: "auth_failed" });
   }
+
   const admin = ctx.adminClient;
 
   const user_id = body.user_id as string;
