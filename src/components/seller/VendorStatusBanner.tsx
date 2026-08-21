@@ -41,18 +41,34 @@ export function VendorStatusBanner() {
   const isSuspended = row.status === "suspended";
   const Icon = isSuspended ? AlertOctagon : PauseCircle;
   const title = isSuspended ? "Your seller account is suspended" : "Your seller account is disabled";
+
+  // Tone is carried by the surface and the icon; the words are `text-foreground`.
+  //
+  // The disabled branch used to be `bg-amber-500/10 text-amber-300`, three raw
+  // Tailwind colours outside the token system, and `amber-300` is a light shade
+  // fixed in both themes, so on the near-white app background it landed around
+  // 1.4:1. That is not a styling preference, it is unreadable, on the one banner
+  // that exists to tell a seller their account has stopped taking checkouts.
+  // Tinting the copy with `--warning` instead would only reach ~2:1.
+  //
+  // So the colour moves to where it can be saturated without costing legibility
+  // (the border, the wash and the glyph) and the text runs at full contrast.
+  // Applied to the suspended branch too: `text-destructive` on `bg-destructive/10`
+  // was about 3.3:1, also short of the 4.5:1 this size needs.
   const tone = isSuspended
-    ? "border-destructive/40 bg-destructive/10 text-destructive"
-    : "border-amber-500/40 bg-amber-500/10 text-amber-300";
+    ? { surface: "border-destructive/40 bg-destructive/10", icon: "text-destructive" }
+    : { surface: "border-warning/40 bg-warning/10", icon: "text-warning" };
 
   return (
-    <div className={`border-b ${tone}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 flex items-start gap-2.5 text-sm">
-        <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+    <div className={`border-b ${tone.surface}`}>
+      <div className="mx-auto flex max-w-7xl items-start gap-2.5 px-4 py-2.5 text-sm text-foreground sm:px-6 lg:px-8">
+        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tone.icon}`} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-tight">{title}</p>
-          {row.reason && <p className="text-xs opacity-90 mt-0.5 break-words">{row.reason}</p>}
-          <p className="text-xs opacity-75 mt-1">
+          {row.reason && (
+            <p className="mt-0.5 break-words text-xs text-muted-foreground">{row.reason}</p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
             New checkouts on your products are blocked. Contact support to resolve this.
           </p>
         </div>
