@@ -97,7 +97,7 @@ const ACTION_PERMS: Record<string, string[]> = {
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
 };
-async function gateAction(req: Request, action: string, baseCtx?: any): Promise<{ admin: any; userId: string } | Response> {
+async function gateAction(req: Request, action: string, baseCtx?: AuthContext): Promise<{ admin: any; userId: string } | Response> {
   const perms = ACTION_PERMS[action] ?? ["transactions.update"];
   try {
     const ctx = await requireAnyPermission(req, perms, baseCtx);
