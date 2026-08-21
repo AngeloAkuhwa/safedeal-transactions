@@ -13,9 +13,15 @@ import path from "node:path";
  *
  * What is NOT safe is writing these values into a `.env` file: Vite runs
  * dotenv-expand over it, so a password containing `$` is silently rewritten
- * before anything uses it — `$Kumaor627$$###` survives as `$$###` quoted and
- * `$$` unquoted, and sign-in then fails with a credential nobody typed wrong.
- * Secrets reach this process as environment variables and stay there.
+ * before anything uses it. A literal `$name` is read as an undefined variable
+ * and `$$` as a process id, so the value that reaches sign-in is not the value
+ * that was set — and the failure looks like a credential someone typed wrong.
+ * Prefer passwords with no `$`, and let secrets reach this process as
+ * environment variables rather than through a file.
+ *
+ * No credential is quoted here on purpose. An illustrative example of a real
+ * password is still that password: it survives in git history long after the
+ * account is rotated, and history is the one place a rotation cannot reach.
  */
 const env = (key: string): string | undefined =>
   (import.meta.env?.[key] as string | undefined) ??
