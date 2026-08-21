@@ -12,11 +12,6 @@ const KEYS = ["security.session_timeout_minutes", "security.two_factor_admin"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "GET" && req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
   try {
     const { adminClient } = await requireUser(req);
     const { data, error } = await adminClient
@@ -44,6 +39,12 @@ Deno.serve(async (req) => {
     console.error("[security-config] unexpected", err);
     return new Response(JSON.stringify({ error: "internal_error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (req.method !== "GET" && req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

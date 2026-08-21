@@ -47,7 +47,6 @@ const HEARTBEAT_EVERY_MS = 30_000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -83,6 +82,8 @@ Deno.serve(async (req) => {
       console.error("[reconcile-escrow] auth error", err);
       return json(500, { error: "auth_failed" });
     }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
   }
 
   let body: Record<string, unknown> = {};

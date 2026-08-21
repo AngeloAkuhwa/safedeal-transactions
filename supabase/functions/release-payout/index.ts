@@ -26,7 +26,6 @@ function json(status: number, body: Record<string, unknown>): Response {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
   try {
@@ -37,6 +36,8 @@ Deno.serve(async (req) => {
     console.error("release-funds auth error", err);
     return json(500, { error: "auth_failed" });
   }
+
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   const rl = await enforceAdminRateLimit(ctx, "release_payout", 60, corsHeaders);
   if (rl) return rl;
