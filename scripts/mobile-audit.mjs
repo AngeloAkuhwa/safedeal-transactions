@@ -209,12 +209,26 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
           const carriesControl = !!el.querySelector('a,button,input,select,textarea,[role="button"],[role="link"]') ||
             el.matches('a,button,input,select,textarea,[role="button"],[role="link"]');
           if (r.right > cr.right + 0.5 && (carriesText || carriesControl)) {
+            // Name the clipper, not just the casualty.
+            //
+            // The first version of this finding reported the clipped text and
+            // the x it was cut at, and that was not enough to act on: a run
+            // said `"Low Stock" lost=57px clippedAt=1473` at a 1440 viewport,
+            // which tells you something is 33px off-screen but not what. The
+            // clipper is the element you actually have to change, so it goes
+            // in the record. `clipperW` distinguishes the two shapes this
+            // takes: a box that is itself too wide, and a box the right size
+            // whose contents will not fit.
             out.clipped.push({
               cls: cls(el),
               text: label(el),
               right: Math.round(r.right),
               clippedAt: Math.round(cr.right),
               lost: Math.round(r.right - cr.right),
+              clipperTag: clipper.tagName.toLowerCase(),
+              clipperCls: cls(clipper),
+              clipperW: Math.round(cr.width),
+              clipperLeft: Math.round(cr.left),
             });
           }
         } else {
@@ -625,7 +639,12 @@ async function main() {
     };
     const details = [
       example("overflow", (o) => `"${o.text}" right=${o.right} cls=${o.cls}`),
-      example("clipped", (o) => `"${o.text}" lost=${o.lost}px clippedAt=${o.clippedAt}`),
+      example(
+        "clipped",
+        (o) =>
+          `"${o.text}" lost=${o.lost}px by <${o.clipperTag} class="${o.clipperCls}"> ` +
+          `at x=${o.clipperLeft}..${o.clippedAt} (w=${o.clipperW})`,
+      ),
       example("glyph", (o) => `"${o.text}" box=${o.box}`),
       example("tiny", (o) => `"${o.text}" ${o.px}px`),
       example("small", (o) => `"${o.text}" ${o.w}x${o.h}`),
