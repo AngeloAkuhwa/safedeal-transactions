@@ -64,7 +64,6 @@ function prettyEventData(d: any): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let ctx;
   // Dispute review flows (AdminDisputeDetail) proxy through this endpoint. Accept
@@ -77,6 +76,10 @@ Deno.serve(async (req) => {
     if (resp) return resp;
     throw err;
   }
+
+  // Method contract is disclosed only to identified callers.
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
   const admin = ctx.adminClient;
 
   let body: { transaction_id?: string; transactionId?: string };
