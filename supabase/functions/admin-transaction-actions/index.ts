@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requireAdmin, requirePermission, requireAnyPermission, authErrorResponse, type AuthContext } from "../_shared/auth.ts";
+import { requireAdmin, requireAnyPermission, authErrorResponse, type AuthContext } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 import { executeProviderRefund } from "../_shared/provider-refund.ts";
