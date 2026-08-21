@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/sonner";
 import { useVendorPlan } from "@/hooks/useVendorPlan";
 import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PRODUCT_VISIBILITY, VISIBILITY_ORDER } from "@/lib/product-visibility";
 
 /**
  * The verification claim is driven by `identity_verified` only: the declared
@@ -188,7 +189,7 @@ const SellerStorefront = () => {
           </div>
           <Button
             onClick={() => navigate("/seller/storefront/new")}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-0 rounded-xl"
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl"
           >
             <Plus className="h-4 w-4" />
             Add Product
@@ -227,9 +228,13 @@ const SellerStorefront = () => {
                     className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none min-h-11"
                   >
                     <option value="all">All Visibility</option>
-                    <option value="public">Public</option>
-                    <option value="buyer_specific">Private</option>
-                    <option value="private_draft">Draft</option>
+                    {/* Labels come from the shared map. When these were typed
+                        by hand, "Private" here selected buyer_specific while
+                        the badge printed "Private" for private_draft, so the
+                        filter and the badge meant opposite things. */}
+                    {VISIBILITY_ORDER.map((v) => (
+                      <option key={v} value={v}>{PRODUCT_VISIBILITY[v].label}</option>
+                    ))}
                   </select>
                   <select
                     value={categoryFilter}
@@ -264,8 +269,8 @@ const SellerStorefront = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
                     {/* Store Status */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500/10 ring-2 ring-emerald-500/20">
-                        <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
+                        <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Store Status</p>
@@ -280,8 +285,8 @@ const SellerStorefront = () => {
 
                     {/* Seller Rating */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-amber-500/10 ring-2 ring-amber-500/20">
-                        <Star className="h-5 w-5 text-amber-500" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
+                        <Star className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Seller Rating</p>
@@ -295,8 +300,8 @@ const SellerStorefront = () => {
 
                     {/* Published Products */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-500/10 ring-2 ring-blue-500/20">
-                        <Package className="h-5 w-5 text-blue-500" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
+                        <Package className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Published Products</p>

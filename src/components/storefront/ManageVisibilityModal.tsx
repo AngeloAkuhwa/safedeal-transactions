@@ -49,7 +49,7 @@ export function ManageVisibilityModal({
           <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Archive className="h-5 w-5 text-amber-500" />
+                <Archive className="h-5 w-5 text-warning" />
                 Manage Product Visibility
               </h3>
               <DialogPrimitive.Close className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all">
@@ -94,9 +94,9 @@ export function ManageVisibilityModal({
             {/* Actions */}
             <div className="space-y-4">
               {/* Warning banner */}
-              <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4">
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
                 <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground mb-1">Choose an action</p>
                     <p className="text-xs text-muted-foreground">
@@ -110,8 +110,8 @@ export function ManageVisibilityModal({
                 {/* Unpublish */}
                 <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-all">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                      <EyeOff className="h-5 w-5 text-amber-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 flex-shrink-0">
+                      <EyeOff className="h-5 w-5 text-warning" />
                     </div>
                     <div className="flex-1">
                       <h5 className="font-semibold text-foreground mb-1">Unpublish Product</h5>
@@ -121,7 +121,7 @@ export function ManageVisibilityModal({
                       <button
                         disabled={isPending}
                         onClick={() => onUnpublish(product.id)}
-                        className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-all disabled:opacity-50 min-h-11"
+                        className="rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground transition-all hover:bg-warning/90 disabled:opacity-50 min-h-11"
                       >
                         Unpublish Product
                       </button>
@@ -143,7 +143,7 @@ export function ManageVisibilityModal({
                       <button
                         disabled={isPending}
                         onClick={() => onArchive(product.id)}
-                        className="px-4 py-2 bg-destructive text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-all disabled:opacity-50 min-h-11"
+                        className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-red-600 transition-all disabled:opacity-50 min-h-11"
                       >
                         Archive Product
                       </button>

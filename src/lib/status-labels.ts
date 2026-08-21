@@ -325,20 +325,21 @@ export function resolveProductStatusLabel(status: string): LabelEntry {
   );
 }
 
-export type ProductVisibility = "public" | "private" | "unlisted";
-
-export const PRODUCT_VISIBILITY_LABELS: Record<ProductVisibility, LabelEntry> = {
-  public: { label: "Public", tone: "success" },
-  private: { label: "Private", tone: "info" },
-  unlisted: { label: "Unlisted", tone: "muted" },
-};
-
-export function resolveProductVisibilityLabel(visibility: string): LabelEntry {
-  return (
-    PRODUCT_VISIBILITY_LABELS[visibility as ProductVisibility] ??
-    ({ label: String(visibility).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
-  );
-}
+/*
+ * There was a PRODUCT_VISIBILITY_LABELS here, over
+ * `"public" | "private" | "unlisted"`. Two of those three values do not exist:
+ * the `product_visibility_type` enum is
+ * `"public" | "buyer_specific" | "private_draft"`, so the map could only ever
+ * have matched `public` and would have fallen through to the raw string for
+ * every other product. Nothing imported it, which is the only reason it never
+ * printed "buyer specific" at a seller.
+ *
+ * It also exported a second type named ProductVisibility with a different
+ * union from the real one, which is a live footgun for the next person to
+ * import the wrong ProductVisibility of the two.
+ *
+ * Visibility labels live in `@/lib/product-visibility` and nowhere else.
+ */
 
 /* ============================================================
  * ESCROW STATE  (DB enum: escrow_state)

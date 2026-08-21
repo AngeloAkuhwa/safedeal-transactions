@@ -11,6 +11,7 @@ import {
 } from "@/lib/status-labels";
 import { ProductImage } from "@/components/common/ProductImage";
 import { keyActivate } from "@/lib/a11y";
+import { visibilityOf, visibilityChip } from "@/lib/product-visibility";
 
 interface SellerProductCardProps {
   product: {
@@ -48,12 +49,6 @@ function relativeTime(dateStr?: string) {
   return `${months}mo ago`;
 }
 
-const visibilityConfig: Record<string, { label: string; bg: string; text: string }> = {
-  public: { label: "Public", bg: "bg-primary/15", text: "text-primary" },
-  buyer_specific: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
-  private_draft: { label: "Draft", bg: "bg-muted", text: "text-muted-foreground" },
-};
-
 export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock, onDuplicate }: SellerProductCardProps) {
   const available = getAvailableQuantity(product);
   const reserved = Number(product.reserved_quantity ?? 0);
@@ -61,7 +56,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
   const isLowStock = available >= 1 && available <= 5;
   const statusEntry = resolveProductStatusLabel(product.status || "draft");
   const statusClass = TONE_CLASSNAMES[statusEntry.tone];
-  const visibility = visibilityConfig[product.visibility_type || "public"] || visibilityConfig.public;
+  const visibility = visibilityOf(product.visibility_type);
 
   const stockLabel = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
   const stockDot = isOutOfStock ? "bg-muted-foreground" : isLowStock ? "bg-warning" : "bg-success";
@@ -92,7 +87,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass} backdrop-blur-sm`}>
             {statusEntry.label}
           </span>
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${visibility.bg} ${visibility.text} backdrop-blur-sm`}>
+          <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold backdrop-blur-sm ${visibilityChip(product.visibility_type)}`}>
             {visibility.label}
           </span>
         </div>

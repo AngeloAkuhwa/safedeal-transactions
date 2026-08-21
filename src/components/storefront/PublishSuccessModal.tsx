@@ -86,12 +86,12 @@ export function PublishSuccessModal({
         <DialogDescription className="sr-only">Your product is now live on your storefront</DialogDescription>
 
         {/* Green gradient header */}
-        <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-8 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
-            <Check className="h-8 w-8 text-white" strokeWidth={3} />
+        <div className="bg-success px-6 py-8 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-success-foreground/20 backdrop-blur-sm flex items-center justify-center mb-4">
+            <Check className="h-8 w-8 text-success-foreground" strokeWidth={3} />
           </div>
-          <h2 className="text-xl font-bold text-white">Product Published Successfully!</h2>
-          <p className="text-sm text-white/80 mt-1">Your product is now live on your storefront</p>
+          <h2 className="text-xl font-bold text-success-foreground">Product Published Successfully!</h2>
+          <p className="mt-1 text-sm text-success-foreground/80">Your product is now live on your storefront</p>
         </div>
 
         <div className="p-6 space-y-5">
@@ -117,7 +117,7 @@ export function PublishSuccessModal({
                 </span>
               </div>
               <div className="flex items-center gap-1.5 mt-2">
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                <Badge variant="outline" className="border-success/30 bg-success/10 text-foreground text-xs">
                   Published
                 </Badge>
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
@@ -162,7 +162,7 @@ export function PublishSuccessModal({
             className="w-full gap-1.5 justify-center"
             onClick={handleWhatsApp}
           >
-            <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+            <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
             Share on WhatsApp
           </Button>
 
