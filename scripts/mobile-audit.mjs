@@ -146,6 +146,18 @@ const WIDTHS = process.argv.some((a) => a.startsWith("--widths"))
 const OUT = arg("out", "/tmp/mobile-audit");
 const WITH_AUTH = process.argv.includes("--auth");
 
+/**
+ * A filename actions/upload-artifact will accept.
+ *
+ * One audited route carries a query string, and `path.replace(/\//g, "_")`
+ * left the `?` in place. The upload step rejects `? : " < > | *` outright, so
+ * the whole screenshot artifact failed to upload. That only ever happens on a
+ * failing run, because the upload step runs on failure, which is exactly when
+ * the screenshots are the thing you need. Latent until the first real failure,
+ * then it takes the evidence with it.
+ */
+const safeName = (p) => p.replace(/[/\\?:"<>|*\s]+/g, "_");
+
 /** Runs in the page. Keep it dependency-free and self-contained. */
 function measure({ VW, scope, minTarget = 44, checkProse = false }) {
   const out = { docW: document.documentElement.scrollWidth, overflow: [], clipped: [], glyph: [], tiny: [], small: [], squashed: [], prose: [] };
@@ -565,7 +577,7 @@ async function main() {
           for (const row of await measureRoute(page, width)) {
             report.push({ who, route: path, width, ...row });
           }
-          await page.screenshot({ path: `${OUT}/${who}${path.replace(/\//g, "_")}-${width}.png`, fullPage: true });
+          await page.screenshot({ path: `${OUT}/${who}${safeName(path)}-${width}.png`, fullPage: true });
         }
         await ctx.close();
       }
@@ -602,8 +614,27 @@ async function main() {
     if (row.errors && row.errors.length) flags.push(`ERR:${row.errors.length}`);
     if (flags.length) failures += 1;
     const where = row.dialog ? `${row.route}  [dialog: ${row.dialog.slice(0, 28)}]` : row.route;
+    // Say WHAT was found, not just how many. The counts alone sent someone to
+    // report.json, and on the run that first failed, report.json was in the
+    // artifact whose upload had just failed on an invalid filename. A summary
+    // that cannot explain itself is a summary you cannot act on.
+    const example = (key, fmt) => {
+      const rows = row[key];
+      if (!rows || !rows.length) return null;
+      return `      ${key}: ${rows.slice(0, 3).map(fmt).join(" | ")}`;
+    };
+    const details = [
+      example("overflow", (o) => `"${o.text}" right=${o.right} cls=${o.cls}`),
+      example("clipped", (o) => `"${o.text}" lost=${o.lost}px clippedAt=${o.clippedAt}`),
+      example("glyph", (o) => `"${o.text}" box=${o.box}`),
+      example("tiny", (o) => `"${o.text}" ${o.px}px`),
+      example("small", (o) => `"${o.text}" ${o.w}x${o.h}`),
+      example("squashed", (o) => `${o.src} ${o.w}x${o.h}`),
+      example("prose", (o) => `~${o.chars} chars in ${o.box}px: "${o.text}"`),
+    ].filter(Boolean);
     const cls6 = CLASS_FOR_WIDTH(row.width).name.padEnd(7);
     console.log(`${row.who.padEnd(7)} ${cls6} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`);
+    if (flags.length) for (const d of details) console.log(d);
   }
   console.log(`\nscreenshots: ${OUT}\nreport:      ${OUT}/report.json`);
   process.exit(failures ? 1 : 0);
