@@ -318,8 +318,7 @@ const BuyerCart = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="sd-page-title flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-primary" />
+              <h1 className="sd-page-title">
                 My Cart
                 {items.length > 0 && (
                   <Badge variant="outline" className="text-xs">{items.length} item{items.length !== 1 ? "s" : ""}</Badge>

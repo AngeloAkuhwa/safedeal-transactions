@@ -1,11 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
-  Heart, Share2, Star, Minus, Plus, BookmarkPlus,
-  CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
-  AlertCircle, ShoppingCart, Store, MessageCircle,
-} from "lucide-react";
+import { Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock, Heart, Share2, Minus, Plus, BookmarkPlus, CheckCircle2, ChevronRight, CircleDot, User, AlertCircle, ShoppingCart, Store, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -517,8 +512,7 @@ const PublicProductDetail = () => {
       <div className="max-w-4xl space-y-6">
         {/* Product Description */}
         <div className={`${glassPanel} p-5`}>
-          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold text-foreground mb-4">
             Product Description
           </h2>
           <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
@@ -571,8 +565,7 @@ const PublicProductDetail = () => {
         {/* Product Agreement */}
         {agreementBullets.length > 0 && (
           <div className={`${glassPanel} p-5 border-2 border-primary/20`}>
-            <h2 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold text-foreground mb-3">
               Product Agreement Details
             </h2>
             <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 mb-4">
@@ -608,8 +601,7 @@ const PublicProductDetail = () => {
 
         {/* Delivery & Fulfillment */}
         <div className={`${glassPanel} p-5`}>
-          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold text-foreground mb-4">
             Delivery & Fulfillment
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
@@ -659,8 +651,7 @@ const PublicProductDetail = () => {
         {/* Customer Reviews: real data only. No review system exists yet, so we
             render an honest empty state instead of fabricated ratings. */}
         <div className={`${glassPanel} p-5`}>
-          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <Star className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-xl font-bold text-foreground mb-4">
             Customer Reviews
           </h2>
           <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">

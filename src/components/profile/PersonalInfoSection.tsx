@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { User, CheckCircle, Upload, Trash2, Loader2, MapPin, Navigation } from "lucide-react";
+import { CheckCircle, Upload, Trash2, Loader2, MapPin, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -252,8 +252,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <User className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl">
           Personal Information
         </CardTitle>
       </CardHeader>
