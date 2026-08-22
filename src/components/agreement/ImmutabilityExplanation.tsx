@@ -21,9 +21,7 @@ export function ImmutabilityExplanation() {
         <div className="grid sm:grid-cols-2 gap-6 mb-8">
           <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-5 border border-primary-foreground/20">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
-                <Ban className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <Ban className="h-5 w-5 text-primary-foreground" />
               <h3 className="text-lg font-bold">Cannot Be Changed</h3>
             </div>
             <ul className="space-y-2 text-sm text-primary-foreground/80">
@@ -43,9 +41,7 @@ export function ImmutabilityExplanation() {
 
           <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-5 border border-primary-foreground/20">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
-                <Shield className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <Shield className="h-5 w-5 text-primary-foreground" />
               <h3 className="text-lg font-bold">Protection Activated</h3>
             </div>
             <ul className="space-y-2 text-sm text-primary-foreground/80">

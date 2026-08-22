@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { AlertTriangle, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +25,7 @@ export function SellerDisputeActionPanel({ items }: Props) {
   return (
     <Card className="rounded-2xl border-warning/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-warning" />
+        <CardTitle className="text-base">
           Action Needed
           {items.length > 0 && (
             <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs ml-auto">

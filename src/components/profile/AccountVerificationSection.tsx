@@ -53,8 +53,7 @@ export function AccountVerificationSection({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl">
             Account Verification
           </CardTitle>
         </CardHeader>
@@ -174,8 +173,7 @@ export function AccountVerificationSection({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl">
             Account Verification
           </CardTitle>
           <Badge variant="outline" className={`${config.bg} ${config.color}`}>

@@ -48,8 +48,7 @@ export function ManageVisibilityModal({
           <VisuallyHidden.Root><DialogTitle>Manage Product Visibility</DialogTitle></VisuallyHidden.Root>
           <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Archive className="h-5 w-5 text-warning" />
+              <h3 className="text-lg font-semibold text-foreground">
                 Manage Product Visibility
               </h3>
               <DialogPrimitive.Close className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all">
@@ -110,9 +109,7 @@ export function ManageVisibilityModal({
                 {/* Unpublish */}
                 <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-all">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 flex-shrink-0">
-                      <EyeOff className="h-5 w-5 text-warning" />
-                    </div>
+                    <EyeOff className="flex-shrink-0 h-5 w-5 text-warning" />
                     <div className="flex-1">
                       <h5 className="font-semibold text-foreground mb-1">Unpublish Product</h5>
                       <p className="text-xs text-muted-foreground mb-3">
@@ -132,9 +129,7 @@ export function ManageVisibilityModal({
                 {/* Archive */}
                 <div className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-all">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                      <Archive className="h-5 w-5 text-destructive" />
-                    </div>
+                    <Archive className="flex-shrink-0 h-5 w-5 text-destructive" />
                     <div className="flex-1">
                       <h5 className="font-semibold text-foreground mb-1">Archive Product</h5>
                       <p className="text-xs text-muted-foreground mb-3">

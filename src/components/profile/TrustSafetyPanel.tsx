@@ -1,4 +1,4 @@
-import { Shield, CheckCircle, Lock, Eye, FileText } from "lucide-react";
+import { CheckCircle, Lock, Eye, FileText } from "lucide-react";
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,7 @@ export function TrustSafetyPanel() {
   return (
     <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Shield className="h-5 w-5 text-primary" />
+        <CardTitle className="text-lg">
           Trust & Safety
         </CardTitle>
       </CardHeader>

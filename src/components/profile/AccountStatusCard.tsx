@@ -1,4 +1,4 @@
-import { UserCheck, AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AccountMeta, SellerVerification } from "@/services/seller-profile.service";
@@ -28,8 +28,7 @@ export function AccountStatusCard({ accountMeta, verification }: Props) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <UserCheck className="h-4 w-4 text-primary" />
+        <CardTitle className="text-base">
           Account Status
         </CardTitle>
       </CardHeader>

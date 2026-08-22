@@ -21,9 +21,7 @@ export function PossibleOutcomesPanel({ status }: PossibleOutcomesPanelProps) {
     <Card className="bg-muted/30 border-border">
       <CardContent className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
-            <Gavel className="h-5 w-5 text-warning" />
-          </div>
+          <Gavel className="h-5 w-5 text-warning" />
           <h3 className="text-lg font-bold text-foreground">Possible Outcomes</h3>
         </div>
 

@@ -1,31 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Shield,
-  Clock,
-  CheckCircle,
-  Package,
-  Truck,
-  MapPin,
-  AlertTriangle,
-  FileText,
-  MessageSquare,
-  Printer,
-  HelpCircle,
-  Flag,
-  MoreHorizontal,
-  Star,
-  BadgeCheck,
-  Image as ImageIcon,
-  Scale,
-  ChevronRight,
-  RefreshCw,
-  Layers,
-  Tag,
-  Lock,
-} from "lucide-react";
+import { ArrowLeft, Shield, Clock, CheckCircle, Package, Truck, MapPin, AlertTriangle, FileText, MessageSquare, Printer, HelpCircle, Flag, MoreHorizontal, Star, BadgeCheck, Scale, ChevronRight, RefreshCw, Layers, Tag, Lock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -429,8 +405,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Item Details ── */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6">
                 Item Details
               </h2>
               <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
@@ -471,8 +446,7 @@ const BuyerTransactionDetail = () => {
             {/* ── Delivery Details ── */}
             {delivery_terms && (
               <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-primary" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6">
                   Delivery Details
                 </h2>
                 <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
@@ -530,8 +504,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Transaction Timeline ── */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6">
                 Transaction Timeline
               </h2>
               <TransactionTimeline
@@ -546,8 +519,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Buyer Protection ── */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6">
                 Buyer Protection
               </h2>
               <div className="space-y-4">
@@ -587,8 +559,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Contact Seller ── */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4">
                 Contact Seller
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
@@ -602,8 +573,7 @@ const BuyerTransactionDetail = () => {
             {/* ── Dispute Card ── */}
             {dispute && (
               <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/20 p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-destructive" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6">
                   Dispute
                 </h2>
                 <div className="text-sm space-y-3 mb-4">
@@ -658,8 +628,7 @@ const BuyerTransactionDetail = () => {
             {/* ── Seller Information (desktop, scrolls normally) ── */}
             {seller && (
               <div data-testid="seller-card-desktop" className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
-                  <BadgeCheck className="h-5 w-5 text-primary" />
+                <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4">
                   Seller Information
                 </h3>
                 <div className="flex items-center gap-4 mb-3 sm:mb-4">
@@ -703,8 +672,7 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Payment Summary (desktop, scrolls normally) ── */}
             <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4">
                 Payment Summary
               </h3>
               <div className="space-y-3 sm:space-y-4">
@@ -735,8 +703,7 @@ const BuyerTransactionDetail = () => {
             <div className="lg:hidden space-y-6">
               {seller && (
                 <div data-testid="seller-card-mobile" className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                  <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                    <BadgeCheck className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-bold text-foreground mb-4">
                     Seller Information
                   </h3>
                   <div className="flex items-center gap-4 mb-4">
@@ -774,8 +741,7 @@ const BuyerTransactionDetail = () => {
                 </div>
               )}
               <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-bold text-foreground mb-4">
                   Payment Summary
                 </h3>
                 <div className="space-y-3">

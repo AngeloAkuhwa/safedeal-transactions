@@ -30,9 +30,7 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
     <div className="bg-gradient-to-br from-warning to-warning/80 rounded-2xl shadow-xl p-6 text-warning-foreground">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning-foreground/20 backdrop-blur-sm">
-            <Clock className="h-6 w-6" />
-          </div>
+          <Clock className="shrink-0 h-6 w-6" />
           <div>
             <h2 className="text-lg font-bold mb-1">Verification Countdown</h2>
             <p className="text-sm opacity-80 mb-1">

@@ -2,12 +2,7 @@ import { useState } from "react";
 import { formatMoney } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import {
-  RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
-  Search, Filter, Download, Clock, CheckCircle2,
-  CreditCard, Banknote, Send, RotateCcw,
-  Eye, FileText, AlertCircle, ChevronLeft, ChevronRight, Info,
-} from "lucide-react";
+import { RefreshCw, Wallet, Shield, AlertTriangle, Search, Filter, Download, Clock, CheckCircle2, CreditCard, Banknote, Send, RotateCcw, Eye, FileText, AlertCircle, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -446,8 +441,7 @@ const SellerPayouts = () => {
             {/* Upcoming Releases */}
             <Card className="rounded-lg">
               <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                  <TrendingUp className="h-4 w-4 text-success" />
+                <CardTitle className="text-sm font-semibold">
                   Upcoming Releases
                 </CardTitle>
               </CardHeader>
@@ -485,8 +479,7 @@ const SellerPayouts = () => {
             {blocked_funds.length > 0 && (
               <Card className="rounded-lg border-warning/30">
                 <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
+                  <CardTitle className="text-sm font-semibold">
                     Blocked / Delayed Funds
                   </CardTitle>
                 </CardHeader>

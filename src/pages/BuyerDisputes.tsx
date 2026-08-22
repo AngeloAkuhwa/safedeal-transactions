@@ -116,9 +116,7 @@ const BuyerDisputes = () => {
         <section className="sd-page mb-4 sd-fade-in-stagger sd-delay-2">
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4">
-              <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                <Shield className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <Shield className="flex-shrink-0 h-4 w-4 text-primary-foreground" />
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-foreground mb-1">How SafeDeal Protects You</h3>
                 <ul className="space-y-1 text-xs text-muted-foreground">
@@ -160,9 +158,7 @@ const BuyerDisputes = () => {
           {/* Error */}
           {isError && !isLoading && (
             <div className="rounded-xl border bg-card p-8 text-center">
-              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
-                <RefreshCw className="h-5 w-5 text-destructive" />
-              </div>
+              <RefreshCw className="mx-auto h-5 w-5 text-destructive" />
               <h2 className="text-base font-semibold text-foreground mb-1">
                 Unable to load disputes
               </h2>

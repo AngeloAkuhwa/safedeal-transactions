@@ -33,9 +33,7 @@ export function NextActionPanel({ label, description, children, className }: Nex
   return (
     <div className={cn("rounded-2xl border border-warning/35 bg-warning/10 p-5 shadow-sm", className)}>
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/20">
-          <AlertTriangle className="h-5 w-5 text-warning" />
-        </div>
+        <AlertTriangle className="shrink-0 h-5 w-5 text-warning" />
         <h2 className="text-base font-bold text-foreground">{label}</h2>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">{description}</p>

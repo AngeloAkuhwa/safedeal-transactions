@@ -13,9 +13,7 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
   if (variant === "no-filter-match") {
     return (
       <div className="sd-card p-8 text-center">
-        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </div>
+        <Search className="mx-auto h-5 w-5 text-muted-foreground" />
         <h2 className="text-base font-semibold text-foreground mb-1">
           No disputes match your filters
         </h2>
@@ -33,9 +31,7 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
 
   return (
     <div className="sd-card p-8 text-center">
-      <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
-        <Scale className="h-5 w-5 text-success" />
-      </div>
+      <Scale className="mx-auto h-5 w-5 text-success" />
       <h2 className="text-base font-semibold text-foreground mb-1">
         No Disputes Yet
       </h2>

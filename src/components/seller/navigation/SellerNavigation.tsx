@@ -64,9 +64,7 @@ function Brand() {
       to="/"
       className="flex items-center gap-2.5 min-h-11 transition-opacity hover:opacity-80"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-        <Shield className="h-5 w-5 text-primary-foreground" />
-      </div>
+      <Shield className="h-5 w-5 text-primary-foreground" />
       <span className="text-lg font-bold text-foreground">SafeDeal</span>
     </Link>
   );

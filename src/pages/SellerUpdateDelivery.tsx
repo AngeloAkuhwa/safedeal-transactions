@@ -650,9 +650,7 @@ export default function SellerUpdateDelivery() {
         {/* What Happens Next */}
         <div className="space-y-5 rounded-2xl border bg-muted/40 p-6 md:p-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <Info className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <Info className="h-6 w-6 text-primary-foreground" />
             <div>
               <h2 className="text-lg font-semibold">What Happens Next?</h2>
               <p className="text-sm text-muted-foreground">After you submit delivery confirmation</p>

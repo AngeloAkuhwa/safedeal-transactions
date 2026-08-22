@@ -23,9 +23,7 @@ export function DisputeResolutionSection({ outcome, currencyCode }: DisputeResol
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-success" />
-            </div>
+            <CheckCircle className="h-5 w-5 text-success" />
             <h3 className="text-lg font-bold text-foreground">Final Resolution</h3>
           </div>
           <Badge variant="outline" className={TONE_CLASSNAMES[outcomeEntry.tone]}>

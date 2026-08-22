@@ -47,9 +47,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
             min-content width and takes the card 236px past a 320px screen. */}
         <div className="min-w-0 flex-1 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <LinkIcon className="h-5 w-5" />
-            </div>
+            <LinkIcon className="shrink-0 h-5 w-5" />
             <div className="min-w-0">
               <h3 className="text-base font-bold text-foreground">Your Public Storefront</h3>
               <p className="text-xs text-muted-foreground">

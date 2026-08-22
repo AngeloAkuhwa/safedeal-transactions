@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
-import {
-  Loader2, ShieldCheck, Upload, Phone, UserCheck, ChevronRight,
-  FileText, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock,
-} from "lucide-react";
+import { Loader2, ShieldCheck, Upload, UserCheck, ChevronRight, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,9 +65,7 @@ const BuyerVerification = () => {
             <span className="text-foreground font-medium">Verification</span>
           </nav>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-            </div>
+            <ShieldCheck className="h-4 w-4 text-primary" />
             <div>
               <h1 className="sd-page-title">Identity Verification</h1>
               <p className="sd-page-sub">
@@ -121,8 +116,7 @@ const BuyerVerification = () => {
         {/* What happens next */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">
               How It Works
             </CardTitle>
           </CardHeader>
