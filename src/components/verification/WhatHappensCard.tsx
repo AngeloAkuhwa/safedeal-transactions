@@ -14,9 +14,7 @@ export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
 
       <div className="space-y-4">
         <div className="flex items-start gap-4">
-          <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <Clock className="h-4 w-4 text-warning" />
-          </div>
+          <Clock className="shrink-0 mt-0.5 h-4 w-4 text-warning" />
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-1">
               SafeDeal reviews if you don't act in time
@@ -30,9 +28,7 @@ export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
         </div>
 
         <div className="flex items-start gap-4">
-          <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </div>
+          <AlertTriangle className="shrink-0 mt-0.5 h-4 w-4 text-destructive" />
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-1">
               You keep your right to dispute

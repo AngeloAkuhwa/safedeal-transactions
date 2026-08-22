@@ -104,25 +104,19 @@ export function PurchaseAuthModal({
           {/* Value propositions */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <FileCheck2 className="h-4 w-4 text-primary" />
-              </div>
+              <FileCheck2 className="shrink-0 h-4 w-4 text-primary" />
               <span className="text-sm text-foreground">
                 Review the seller's item and delivery terms
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Lock className="h-4 w-4 text-primary" />
-              </div>
+              <Lock className="shrink-0 h-4 w-4 text-primary" />
               <span className="text-sm text-foreground">
                 Pay through the SafeDeal checkout
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </div>
+              <Package className="shrink-0 h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-foreground">
                 Keep your order details in one account
               </span>

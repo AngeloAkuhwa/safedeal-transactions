@@ -190,9 +190,7 @@ export function SellerResponseForm({
     <Card className="border-primary/20" id={isFollowUp ? "respond-followup" : "respond"}>
       <CardHeader className="bg-primary/5 border-b border-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-            <Send className="h-5 w-5 text-primary" />
-          </div>
+          <Send className="h-5 w-5 text-primary" />
           <div>
             <h3 className="text-lg font-bold text-foreground">
               {isFollowUp ? "Submit Follow-up Response" : "Submit Your Response"}

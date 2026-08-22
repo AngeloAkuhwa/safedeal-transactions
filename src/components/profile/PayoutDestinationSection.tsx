@@ -126,9 +126,7 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
             </>
           ) : (
             <div className="text-center py-6 space-y-3">
-              <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-muted-foreground" />
-              </div>
+              <Wallet className="mx-auto h-6 w-6 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-foreground">No payout account configured</p>
                 <p className="text-xs text-muted-foreground mt-1">

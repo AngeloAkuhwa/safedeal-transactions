@@ -114,9 +114,7 @@ export function RiderLinkCard({
     <Card className="rounded-2xl shadow-md p-5 lg:p-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-          </div>
+          <ShieldCheck className="shrink-0 h-5 w-5 text-primary" />
           <div>
             <h3 className="text-base font-bold text-foreground">Rider Confirmation Link</h3>
             <p className="text-xs text-muted-foreground">

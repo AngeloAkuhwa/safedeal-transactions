@@ -28,9 +28,7 @@ export function AgreementHero({ isLocked = true }: AgreementHeroProps) {
 
           <div className="bg-card rounded-2xl shadow-xl border-2 border-warning/20 p-6 max-w-2xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center">
-                <Info className="h-6 w-6 text-warning" />
-              </div>
+              <Info className="h-6 w-6 text-warning" />
               <h3 className="text-xl font-bold text-foreground">Agreement Not Yet Final</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -66,9 +64,7 @@ export function AgreementHero({ isLocked = true }: AgreementHeroProps) {
 
         <div className="bg-card rounded-2xl shadow-xl border-2 border-primary/20 p-6 max-w-2xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6 text-primary" />
-            </div>
+            <ShieldCheck className="h-6 w-6 text-primary" />
             <h3 className="text-xl font-bold text-foreground">Anti-Fraud Protection Active</h3>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">

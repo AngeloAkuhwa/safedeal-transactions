@@ -29,9 +29,7 @@ export function SellerTrustBanner() {
           above quietly ate it. Centre only once this is actually a row. */}
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/20 backdrop-blur-sm">
-            <Shield className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <Shield className="shrink-0 h-6 w-6 text-primary-foreground" />
           <div>
             <h3 className="text-lg font-bold text-primary-foreground">Transaction terms in one place</h3>
             <p className="text-sm text-primary-foreground/80">

@@ -82,9 +82,7 @@ const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) =
 
         {sent ? (
           <div className="flex flex-col items-center py-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-3">
-              <Mail className="h-6 w-6 text-primary" />
-            </div>
+            <Mail className="h-6 w-6 text-primary" />
             <p className="text-sm text-muted-foreground text-center">
               If an account exists with that email, you'll receive a reset link shortly.
             </p>

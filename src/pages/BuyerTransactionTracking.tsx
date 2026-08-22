@@ -445,9 +445,7 @@ const BuyerTransactionTracking = () => {
                   <div className="space-y-0">
                     {[...status_history].reverse().map((entry, i) => (
                       <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
-                        <div className="relative z-rail h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shrink-0">
-                          <CheckCircle className="h-3.5 w-3.5 text-primary" />
-                        </div>
+                        <CheckCircle className="shrink-0 h-3.5 w-3.5 text-primary" />
                         <div className="flex-1 min-w-0 pt-0.5">
                           <p className="text-sm font-semibold text-foreground capitalize">
                             {entry.new_status.replace(/_/g, " ")}

@@ -84,9 +84,7 @@ export default function DeliveryConfirm() {
     <div className="min-h-[100dvh] bg-gradient-to-b from-background to-muted/30 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-6 sm:p-8 space-y-6 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-          </div>
+          <ShieldCheck className="h-5 w-5 text-primary" />
           <div>
             <h1 className="text-lg font-bold text-foreground">SafeDeal Delivery</h1>
             <p className="text-xs text-muted-foreground">Confirm with buyer's one-time code</p>
@@ -199,9 +197,7 @@ export default function DeliveryConfirm() {
         {stage === "confirmed" && (
           <div className="space-y-4">
             <div className="rounded-xl border-2 border-success/30 bg-success/5 p-6 text-center space-y-3">
-              <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-success" />
-              </div>
+              <CheckCircle2 className="mx-auto h-6 w-6 text-success" />
               <p className="text-base font-bold text-foreground">Delivery confirmed</p>
               <p className="text-sm text-muted-foreground">
                 The buyer now has time to inspect the item before funds are released. Thanks for delivering with SafeDeal.

@@ -52,9 +52,7 @@ export function AnimatedTransactionCard() {
       {/* Header */}
       <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Shield className="h-5 w-5 text-primary" />
-          </div>
+          <Shield className="h-5 w-5 text-primary" />
           <div>
             <p className="text-sm font-bold text-foreground">How a SafeDeal transaction works</p>
             <p className="text-xs text-muted-foreground">Example flow · not a real transaction</p>

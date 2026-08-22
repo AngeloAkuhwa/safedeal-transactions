@@ -100,9 +100,7 @@ export function TransactionTable({ transactions, isLoading, audience = "seller" 
                 {/* Item Details */}
                 <TableCell className="py-4 px-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </div>
+                    <Package className="shrink-0 h-4 w-4 text-muted-foreground" />
                     <div className="space-y-0.5 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{tx.item_title}</p>
                       <p className="text-xs text-muted-foreground">

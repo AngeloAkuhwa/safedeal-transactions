@@ -228,9 +228,7 @@ const BuyerNotifications = () => {
           {/* Error */}
           {isError && !isLoading && (
             <div className="rounded-xl border bg-card p-8 text-center">
-              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
-                <RefreshCw className="h-5 w-5 text-destructive" />
-              </div>
+              <RefreshCw className="mx-auto h-5 w-5 text-destructive" />
               <h2 className="text-base font-semibold text-foreground mb-1">
                 Unable to load notifications
               </h2>
