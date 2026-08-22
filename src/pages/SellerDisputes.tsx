@@ -122,7 +122,7 @@ const SellerDisputes = () => {
       />
 
       {/* Compact header */}
-      <div className="bg-gradient-to-br from-sky-50/60 via-background to-amber-50/60 dark:from-sky-950/15 dark:via-background dark:to-amber-950/15 border-b border-border/60">
+      <div className="bg-muted/30 border-b border-border/60">
         <div className="sd-page py-3 sm:py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
           <h1 className="sd-page-title animate-fade-in">Disputes</h1>

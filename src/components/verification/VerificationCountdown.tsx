@@ -30,7 +30,7 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
     <div className="bg-gradient-to-br from-warning to-warning/80 rounded-2xl shadow-xl p-6 text-warning-foreground">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning-foreground/20 backdrop-blur-sm">
             <Clock className="h-6 w-6" />
           </div>
           <div>
@@ -48,7 +48,7 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+        <div className="rounded-xl border border-warning-foreground/30 bg-warning-foreground/10 p-4 backdrop-blur-sm">
           <div className="text-center">
             <div className="text-3xl font-bold mb-1 tabular-nums">{timerStr}</div>
             <div className="flex justify-center gap-6 text-xs opacity-80">

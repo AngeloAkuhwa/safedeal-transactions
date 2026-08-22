@@ -26,6 +26,7 @@ import { viewFromRow } from "@/services/payment-flow.service";
 import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import { FEE_NAME, FEE_CAPTION, REFUND_BULLET } from "@/lib/payment/fee-policy";
 import { ProductImage } from "@/components/common/ProductImage";
+import { avatarWash } from "@/lib/avatar-wash";
 
 /**
  * Money in this screen speaks the checkout session's own currency. NEVER
@@ -88,23 +89,6 @@ async function fetchCheckoutSession(sessionId: string) {
   return { session: body.session, items: body.items || [], productMap, sellerMap };
 }
 
-/**
- * Avatar washes, one per seller group in a multi-seller cart.
- *
- * These were four gradients (primary-to-blue, emerald-to-teal, violet-to-purple,
- * amber-to-orange): eight raw colours spent on telling sellers apart, next to
- * an avatar that already prints the seller's name and initial. Three of the
- * four were accents the palette does not have.
- *
- * Enough variation to see the groups are different, all of it inside the
- * token system.
- */
-const AVATAR_WASHES = [
-  "bg-primary/15 text-primary",
-  "bg-muted text-foreground",
-  "bg-primary/25 text-primary",
-  "bg-muted-foreground/15 text-foreground",
-];
 
 const CartCheckoutReview = () => {
   const [searchParams] = useSearchParams();
@@ -320,7 +304,7 @@ const CartCheckoutReview = () => {
                 const sellerName = seller?.full_name || "Unknown Seller";
                 const sellerInitial = sellerName.charAt(0).toUpperCase();
                 const phoneVerified = seller?.phone_verified ?? false;
-                const avatarWash = AVATAR_WASHES[idx % AVATAR_WASHES.length];
+                const wash = avatarWash(sellerName);
 
                 const sellerSubtotal = sellerItems.reduce((sum: number, i: any) => sum + Number(i.line_total), 0);
                 // Guard the lookup: an absent vendor config means we do not yet
@@ -338,7 +322,7 @@ const CartCheckoutReview = () => {
                   <div key={sellerId} className={`${glassPanel} overflow-hidden`}>
                     <div className="p-5 flex items-start gap-4">
                       <Avatar className="h-11 w-11 shrink-0">
-                        <AvatarFallback className={`text-base font-bold ${avatarWash}`}>
+                        <AvatarFallback className={`text-base font-bold ${wash}`}>
                           {sellerInitial}
                         </AvatarFallback>
                       </Avatar>

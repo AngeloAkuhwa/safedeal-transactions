@@ -19,15 +19,15 @@ function ChangeIcon({ type }: { type: InventoryLogEntry["change_type"] }) {
   const cls = "h-3.5 w-3.5";
   switch (type) {
     case "restock":
-      return <ArrowUpRight className={`${cls} text-emerald-500`} />;
+      return <ArrowUpRight className={`${cls} text-success`} />;
     case "sold":
-      return <ShoppingCart className={`${cls} text-blue-500`} />;
+      return <ShoppingCart className={`${cls} text-muted-foreground`} />;
     case "reserve":
-      return <ArrowDownRight className={`${cls} text-amber-500`} />;
+      return <ArrowDownRight className={`${cls} text-muted-foreground`} />;
     case "release":
       return <RotateCw className={`${cls} text-muted-foreground`} />;
     case "manual_adjustment":
-      return <Settings2 className={`${cls} text-violet-500`} />;
+      return <Settings2 className={`${cls} text-muted-foreground`} />;
   }
 }
 
@@ -82,7 +82,7 @@ export function InventoryLogTable({ productId }: InventoryLogTableProps) {
                       {CHANGE_LABEL[log.change_type]}{" "}
                       <span
                         className={`ml-1 text-xs font-semibold ${
-                          log.quantity_delta > 0 ? "text-emerald-500" : "text-destructive"
+                          log.quantity_delta > 0 ? "text-success" : "text-destructive"
                         }`}
                       >
                         {log.quantity_delta > 0 ? "+" : ""}

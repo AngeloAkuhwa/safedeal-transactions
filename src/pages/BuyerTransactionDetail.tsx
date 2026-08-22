@@ -36,6 +36,7 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { MessageThread } from "@/components/transactions/MessageThread";
 import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NextActionPanel } from "@/components/transactions/NextActionPanel";
 
 /* ───── Timeline step definitions ───── */
 const timelineSteps = [
@@ -105,30 +106,20 @@ function NextActionCard({
   onPrint: () => void;
 }) {
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-6 text-warning-foreground shadow-lg">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-          <AlertTriangle className="h-5 w-5" />
-        </div>
-        <h2 className="text-lg font-bold">{nextAction.label}</h2>
-      </div>
-
-      <Separator className="bg-white/20 mb-4" />
-
-      <p className="text-sm opacity-90 mb-4">{nextAction.description}</p>
+    <NextActionPanel label={nextAction.label} description={nextAction.description} className="p-6">
 
       {txStatus === "delivered_awaiting_verification" && countdown && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6 text-center">
-          <p className="text-sm font-semibold mb-2">Verification Countdown</p>
-          <p className="text-2xl sm:text-3xl font-bold tabular-nums">{countdown}</p>
-          <p className="text-xs opacity-80 mt-1">SafeDeal reviews the transaction if no action is taken</p>
+        <div className="mb-6 rounded-xl border border-warning/25 bg-background/60 p-4 text-center backdrop-blur-sm">
+          <p className="mb-2 text-sm font-semibold text-foreground">Verification Countdown</p>
+          <p className="text-2xl font-bold tabular-nums text-foreground sm:text-3xl">{countdown}</p>
+          <p className="mt-1 text-xs text-muted-foreground">SafeDeal reviews the transaction if no action is taken</p>
         </div>
       )}
 
       <div className="space-y-2">
         {txStatus === "awaiting_payment" && (
           <Button
-            className="w-full bg-white hover:bg-white/90 text-warning font-bold py-4 h-auto"
+            className="h-auto w-full py-4 font-bold"
             onClick={() => navigate(shareToken ? `/t/${shareToken}` : `/dashboard/transactions/${txId}/agreement`)}
           >
             <FileText className="h-4 w-4" /> Review Agreement & Pay
@@ -137,13 +128,14 @@ function NextActionCard({
         {txStatus === "delivered_awaiting_verification" && (
           <>
             <Button
-              className="w-full bg-white hover:bg-white/90 text-warning font-bold py-4 h-auto"
+              className="h-auto w-full py-4 font-bold"
               onClick={() => navigate(`/dashboard/transactions/${txId}/verify`)}
             >
               <CheckCircle className="h-4 w-4" /> Verify Item Received
             </Button>
             <Button
-              className="w-full bg-white/10 hover:bg-white/20 text-warning-foreground font-semibold h-11"
+              variant="outline"
+              className="h-11 w-full border-warning/40 bg-background/60 font-semibold"
               onClick={() => navigate(`/dashboard/transactions/${txId}/verify`)}
             >
               <Scale className="h-4 w-4" /> Raise Dispute
@@ -152,7 +144,7 @@ function NextActionCard({
         )}
         {nextAction.action === "view_dispute" && dispute && (
           <Button
-            className="w-full bg-white hover:bg-white/90 text-warning font-bold h-11"
+            className="h-11 w-full font-bold"
             onClick={() => navigate(`/dashboard/disputes/${dispute.id}`)}
           >
             <Scale className="h-4 w-4" /> View Dispute
@@ -161,31 +153,31 @@ function NextActionCard({
       </div>
 
       {(txStatus === "delivered_awaiting_verification" || txStatus === "completed") && (
-        <div className="mt-6 pt-6 border-t border-white/20">
-          <p className="text-xs font-semibold opacity-80 mb-3">Other Actions</p>
+        <div className="mt-6 border-t border-warning/25 pt-6">
+          <p className="mb-3 text-xs font-semibold text-muted-foreground">Other Actions</p>
           <div className="space-y-1.5">
             <button
               onClick={onPrint}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
+              className="flex min-h-11 w-full items-center gap-2.5 rounded-lg bg-background/60 px-4 py-2 text-left text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-background/90"
             >
               <Printer className="h-4 w-4" /> Print receipt
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "transaction"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
+              className="flex min-h-11 w-full items-center gap-2.5 rounded-lg bg-background/60 px-4 py-2 text-left text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-background/90"
             >
               <HelpCircle className="h-4 w-4" /> Contact Support
             </button>
             <button
               onClick={() => navigate(supportLink(txCode, "report_issue"))}
-              className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left min-h-11"
+              className="flex min-h-11 w-full items-center gap-2.5 rounded-lg bg-background/60 px-4 py-2 text-left text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-background/90"
             >
               <Flag className="h-4 w-4" /> Report Issue
             </button>
           </div>
         </div>
       )}
-    </div>
+    </NextActionPanel>
   );
 }
 
