@@ -75,7 +75,7 @@ const SellerDashboard = () => {
       />
 
       {/* Compact header strip (analytics-grade) */}
-      <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
+      <div className="bg-muted/30 border-b border-border/60">
         <SellerDashboardHero sellerName={data.seller.full_name} identityVerified={data.seller.identity_verified} />
       </div>
 

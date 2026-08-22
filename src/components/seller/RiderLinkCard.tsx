@@ -134,7 +134,8 @@ export function RiderLinkCard({
 
       <div className="grid sm:grid-cols-[auto,1fr] gap-4 items-start">
         {/* QR */}
-        <div className="bg-white p-3 rounded-xl border self-start mx-auto sm:mx-0">
+        {/* bg-white literally: a QR code needs a light quiet zone to scan. */}
+        <div className="self-start rounded-xl border bg-white p-3 mx-auto sm:mx-0">
           <QRCodeSVG value={riderUrl} size={132} level="M" />
           <p className="text-xs text-center text-muted-foreground mt-1 flex items-center justify-center gap-1">
             <Smartphone className="h-3 w-3" />

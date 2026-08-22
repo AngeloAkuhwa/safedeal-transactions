@@ -296,9 +296,9 @@ export function DispatchForm({
               {state.dispatchEvidence.map((f) => (
                 <div key={f.file_id} className="flex items-center gap-3 bg-muted/50 border rounded-xl p-3">
                   {f.mime_type.startsWith("video/") ? (
-                    <FileVideo className="h-5 w-5 text-purple-500 shrink-0" />
+                    <FileVideo className="h-5 w-5 shrink-0 text-muted-foreground" />
                   ) : (
-                    <ImageIcon className="h-5 w-5 text-green-500 shrink-0" />
+                    <ImageIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{f.original_name}</p>
@@ -339,8 +339,8 @@ export function DispatchForm({
                 className="hidden"
                 onChange={handleFileSelect}
               />
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <Upload className="h-5 w-5 text-primary" />
               </div>
               <p className="text-xs font-medium">Upload courier receipt or package photo</p>
               <p className="text-xs text-muted-foreground mt-1">Optional but recommended for dispute protection</p>
