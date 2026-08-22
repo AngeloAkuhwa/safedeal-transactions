@@ -38,12 +38,21 @@ vi.mock("@/hooks/useBuyerIdentity", () => ({
   useBuyerIdentity: () => ({ buyerName: "Test Buyer", avatarUrl: null }),
 }));
 
+/**
+ * Who the page thinks is looking. Flipped per test so the guest arrival can be
+ * rendered rather than only reasoned about.
+ */
+const SIGNED_IN = { access_token: "t", user: { id: "u1", email: "b@example.com" } };
+let session: typeof SIGNED_IN | null = SIGNED_IN;
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
-      getSession: async () => ({
-        data: { session: { access_token: "t", user: { id: "u1", email: "b@example.com" } } },
-      }),
+      getSession: async () => ({ data: { session } }),
+      // useCheckoutIdentity subscribes so a buyer who signs in on another tab
+      // does not have to reload. The mock has to offer it or the page throws
+      // on mount, which is exactly what happened when this was left out.
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     from: () => ({
       select: () => ({
@@ -98,7 +107,10 @@ function renderPage() {
 }
 
 describe("BuyerPaymentSummary pricing guard", () => {
-  beforeEach(() => reviewMock.mockReset());
+  beforeEach(() => {
+    reviewMock.mockReset();
+    session = SIGNED_IN;
+  });
 
   it("renders a payable screen for a complete snapshot", async () => {
     reviewMock.mockResolvedValue({ ...base, pricing: completePricing });
@@ -116,5 +128,44 @@ describe("BuyerPaymentSummary pricing guard", () => {
       expect(screen.getByText(/can't show the amount/i)).toBeTruthy();
     }, { timeout: 5000 });
     expect(screen.queryByText(/₦0\.00/)).toBeNull();
+  });
+});
+
+/**
+ * The source-scanning guard in guest-pay.contract.test.ts proves no redirect
+ * is wired up. This proves the buyer actually gets a page: the item, the
+ * amount, and a button that says what pressing it will do.
+ */
+describe("BuyerPaymentSummary without an account", () => {
+  beforeEach(() => {
+    reviewMock.mockReset();
+    session = null;
+  });
+
+  it("shows the item and the amount instead of bouncing to sign-in", async () => {
+    reviewMock.mockResolvedValue({ ...base, pricing: completePricing });
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Sign up to pay/i).length).toBeGreaterThan(0);
+    }, { timeout: 5000 });
+
+    // The whole point: they can see what they would be paying for.
+    expect(screen.queryByText(/redirected/)).toBeNull();
+    expect(screen.getAllByText(/Item/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/51,850/).length).toBeGreaterThan(0);
+  });
+
+  it("does not make the terms checkbox gate the sign-up button", async () => {
+    reviewMock.mockResolvedValue({ ...base, pricing: completePricing });
+    renderPage();
+
+    const button = await waitFor(
+      () => screen.getAllByRole("button", { name: /Sign up to pay/i })[0],
+      { timeout: 5000 },
+    );
+    // Agreeing to escrow terms before having an account is the wrong order,
+    // so the button that only starts a sign-up must not wait on the tick.
+    expect((button as HTMLButtonElement).disabled).toBe(false);
   });
 });
