@@ -23,7 +23,7 @@ export function AssignmentHistoryDrawer({
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>Assignment &amp; status changes</SheetDescription>
         </SheetHeader>
-        <div className="mt-6 space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="mt-6 space-y-2 max-h-[70dvh] overflow-y-auto pr-1">
           {entries.length === 0 && (
             <div className="rounded-xl border border-dashed border-border/60 bg-background/40 p-6 text-center text-sm text-muted-foreground">
               No history yet.

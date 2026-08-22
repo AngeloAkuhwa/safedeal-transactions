@@ -522,7 +522,7 @@ function TimelineList({ detail }: { detail: TaskDetail }) {
     );
   }
   return (
-    <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+    <div className="space-y-2 max-h-[55dvh] overflow-y-auto pr-1">
       {rows.map(e => (
         <div key={e.key} className="rounded-xl border border-border/60 bg-card/40 p-3">
           <div className="flex items-center justify-between text-xs text-muted-foreground">

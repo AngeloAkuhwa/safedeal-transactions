@@ -154,7 +154,7 @@ export function AgentPerformanceFilters({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="max-h-[70vh] w-80 space-y-4 overflow-y-auto bg-popover">
+        <PopoverContent align="end" className="max-h-[70dvh] w-80 space-y-4 overflow-y-auto bg-popover">
           <div className="space-y-1.5">
             <Label className="text-xs">Search agent (name, user ID or email)</Label>
             <div className="relative">

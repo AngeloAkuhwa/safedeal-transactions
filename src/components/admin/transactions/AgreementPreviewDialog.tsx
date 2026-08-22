@@ -37,7 +37,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-3xl max-h-[85vh] overflow-hidden p-0"
+        className="max-w-3xl max-h-[85dvh] overflow-hidden p-0"
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
@@ -50,7 +50,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
             </span>
           </div>
         </DialogHeader>
-        <div className="relative overflow-y-auto max-h-[70vh] select-none">
+        <div className="relative overflow-y-auto max-h-[70dvh] select-none">
           {/* Watermark */}
           <div
             aria-hidden

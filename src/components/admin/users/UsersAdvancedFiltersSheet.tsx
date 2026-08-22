@@ -25,7 +25,7 @@ export function UsersAdvancedFiltersSheet(props: Props) {
             <Filter className="h-3.5 w-3.5" /> Filters
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="bg-slate-950 border-slate-800 text-slate-200 max-h-[85vh] overflow-y-auto">
+        <SheetContent side="bottom" className="bg-slate-950 border-slate-800 text-slate-200 max-h-[85dvh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="text-white">Filters</SheetTitle>
           </SheetHeader>
