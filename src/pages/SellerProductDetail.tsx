@@ -31,6 +31,7 @@ import {
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PRODUCT_VISIBILITY, VISIBILITY_ORDER, visibilityIconClass } from "@/lib/product-visibility";
 
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "—";
@@ -203,13 +204,15 @@ const SellerProductDetail = () => {
   const isOutOfStock = availableQty === 0;
   const isLowStock = availableQty >= 1 && availableQty <= 5;
 
-  const stockColor = isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-500" : "text-emerald-500";
+  const stockColor = isOutOfStock ? "text-destructive" : isLowStock ? "text-warning" : "text-success";
 
-  const visibilityOptions = [
-    { value: "public", label: "Public", description: "Visible to everyone on your storefront", icon: Globe, color: "text-blue-500" },
-    { value: "buyer_specific", label: "Buyer Specific", description: "Only visible to specific buyers you share with", icon: Users, color: "text-amber-500" },
-    { value: "private_draft", label: "Private Draft", description: "Hidden from all buyers, only you can see", icon: Lock, color: "text-muted-foreground" },
-  ];
+  const visibilityOptions = VISIBILITY_ORDER.map((value) => ({
+    value,
+    label: PRODUCT_VISIBILITY[value].label,
+    description: PRODUCT_VISIBILITY[value].description,
+    icon: PRODUCT_VISIBILITY[value].icon,
+    color: visibilityIconClass(value),
+  }));
 
   // Read-only guard for private-offer products
   if (isPrivateOffer) {
@@ -222,7 +225,7 @@ const SellerProductDetail = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-base font-bold text-foreground sm:text-xl">{product.title}</h1>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                <span className="inline rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-foreground-flex items-center gap-1">
                   <Lock className="h-3 w-3" /> Private
                 </span>
               </div>
@@ -230,9 +233,9 @@ const SellerProductDetail = () => {
             </div>
           </div>
           <div className="max-w-3xl flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-            <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:mb-6 sm:p-6">
+            <div className="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 sm:mb-6 sm:p-6">
               <div className="flex items-start gap-3">
-                <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <Lock className="mt-0.5 h-5 w-5 text-warning" />
                 <div>
                   <h2 className="text-base font-semibold text-foreground mb-1">This is a private offer product</h2>
                   <p className="text-sm text-muted-foreground">
@@ -318,7 +321,7 @@ const SellerProductDetail = () => {
               size="sm"
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="min-h-11 flex-1 gap-1.5 border-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 sm:min-h-0 sm:flex-none"
+              className="min-h-11 flex-1 gap-1.5 border-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:min-h-0 sm:flex-none"
             >
               {updateMutation.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -469,9 +472,9 @@ const SellerProductDetail = () => {
                         className="mt-1.5 px-4 py-3 rounded-lg bg-muted/50 cursor-not-allowed"
                       />
                       <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
-                        Reserved: <span className="font-semibold text-amber-500">{product.reserved_quantity || 0}</span>
+                        Reserved: <span className="font-semibold text-foreground">{product.reserved_quantity || 0}</span>
                         <span>·</span>
-                        Available: <span className="font-semibold text-emerald-500">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
+                        Available: <span className="font-semibold text-foreground">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" aria-label="Explain available stock" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs">?</span></button>

@@ -124,8 +124,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       value: metrics.awaiting_seller_confirmation_count ?? 0,
       icon: CheckCircle2,
       href: "/seller/transactions?filter=awaiting-seller-confirmation",
-      tone: "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800",
-      iconClass: "text-amber-600 dark:text-amber-400",
+      tone: "border-warning/30 bg-warning/10 text-foreground hover:bg-warning/15",
+      iconClass: "text-warning",
     },
     {
       key: "awaiting_release",
@@ -133,7 +133,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       value: metrics.awaiting_release_count ?? 0,
       icon: Clock,
       href: "/seller/payouts?status=pending",
-      tone: "bg-sky-50 text-sky-900 border-sky-300 hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-100 dark:border-sky-800",
+      tone: "border-primary/30 bg-primary/10 text-foreground hover:bg-primary/15",
       iconClass: "text-primary",
     },
     {
@@ -142,8 +142,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       value: metrics.open_disputes_count ?? 0,
       icon: Scale,
       href: "/seller/disputes",
-      tone: "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800",
-      iconClass: "text-amber-600 dark:text-amber-400",
+      tone: "border-warning/30 bg-warning/10 text-foreground hover:bg-warning/15",
+      iconClass: "text-warning",
     },
     {
       key: "payout_failed",

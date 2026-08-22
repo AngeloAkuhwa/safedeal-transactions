@@ -204,7 +204,7 @@ const SellerTransactionDetail = () => {
       />
 
       {/* Breadcrumb + Header */}
-      <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
+      <div className="bg-muted/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -407,7 +407,7 @@ const SellerTransactionDetail = () => {
                 <div className="border-t border-border pt-2 mt-2">
                   <div className="flex justify-between text-sm">
                     <span className="font-bold text-foreground">Your Net Amount</span>
-                    <span className="font-bold text-green-600">{fmt(pricing.seller_net_amount, currency)}</span>
+                    <span className="font-bold text-foreground">{fmt(pricing.seller_net_amount, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm mt-1">
                     <span className="text-muted-foreground">Total Buyer Paid</span>
@@ -416,7 +416,7 @@ const SellerTransactionDetail = () => {
                 </div>
                 {escrow?.state === "held" && (
                   <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                    <Shield className="h-3 w-3 text-green-600" />
+                    <Shield className="h-3 w-3 text-primary" />
                     Funds are held securely until buyer confirms delivery
                   </p>
                 )}
@@ -486,7 +486,7 @@ const SellerTransactionDetail = () => {
             </div>
             {agreement ? (
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-2 text-sm font-semibold">
+                <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-4 py-2 text-sm text-foreground font-semibold">
                   <Lock className="h-4 w-4" />
                   Agreement Locked
                 </div>
@@ -498,7 +498,7 @@ const SellerTransactionDetail = () => {
                   <ul className="space-y-1.5">
                     {["Item description and images", "Agreed payment amount", "Delivery terms and timeline", "Verification window details"].map((t) => (
                       <li key={t} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                        <CheckCircle className="h-3.5 w-3.5 flex-shrink-0 text-success" />
                         {t}
                       </li>
                     ))}
@@ -516,7 +516,7 @@ const SellerTransactionDetail = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full px-4 py-2 text-sm font-semibold">
+                <div className="inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-foreground font-semibold">
                   <Clock className="h-4 w-4" />
                   Not Yet Locked
                 </div>
@@ -536,17 +536,17 @@ const SellerTransactionDetail = () => {
           </div>
 
           <div className="relative">
-            <div className="absolute left-5 top-8 bottom-8 w-0.5 bg-gradient-to-b from-primary via-green-600 to-muted hidden md:block" />
+            <div className="absolute left-5 top-8 bottom-8 w-0.5 bg-gradient-to-b from-primary to-muted hidden md:block" />
 
             <div className="space-y-4">
               {timeline.map((step) => (
                 <div key={step.key} className="flex items-start gap-4">
                   <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative z-rail ${
-                    step.status === "completed" ? "bg-green-600" :
+                    step.status === "completed" ? "bg-success" :
                     step.status === "current" ? "bg-primary" : "bg-muted"
                   }`}>
                     {step.status === "completed" ? (
-                      <CheckCircle className="h-5 w-5 text-white" />
+                      <CheckCircle className="h-5 w-5 text-success-foreground" />
                     ) : step.status === "current" ? (
                       <div className="w-3 h-3 bg-primary-foreground rounded-full sd-live-dot" />
                     ) : (
@@ -579,7 +579,7 @@ const SellerTransactionDetail = () => {
         </Card>
 
         {/* Next Action Panel */}
-        <div className="bg-gradient-to-br from-primary/5 to-green-50 dark:from-primary/10 dark:to-green-950/20 rounded-2xl shadow-lg border-2 border-primary/20 p-6 lg:p-8">
+        <div className="bg-primary/5 rounded-2xl shadow-lg border-2 border-primary/20 p-6 lg:p-8">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
               <Send className="h-6 w-6 text-primary-foreground" />

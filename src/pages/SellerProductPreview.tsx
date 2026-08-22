@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { formatMoney } from "@/lib/format";
 import { PageSkeleton } from "@/components/common/PageSkeleton";
+import { visibilityOf, visibilityIconClass } from "@/lib/product-visibility";
 
 const formatPrice = (amount: number) => formatMoney(amount, "NGN");
 
@@ -60,12 +61,6 @@ function formatDeliveryLabel(value: string) {
   };
   return map[value] || value;
 }
-
-const visibilityMap: Record<string, { label: string; icon: typeof Globe; color: string; description: string }> = {
-  public: { label: "Public", icon: Globe, color: "text-blue-500", description: "Visible to everyone on your storefront" },
-  buyer_specific: { label: "Buyer Specific", icon: Users, color: "text-amber-500", description: "Only visible to specific buyers" },
-  private_draft: { label: "Private Draft", icon: Lock, color: "text-muted-foreground", description: "Hidden from all buyers" },
-};
 
 const SellerProductPreview = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -137,7 +132,7 @@ const SellerProductPreview = () => {
   const heroImage = media[0];
   const thumbnails = media.slice(1);
   const deliveryMethods = parseDeliveryMethods(product.delivery_method);
-  const vis = visibilityMap[product.visibility_type] || visibilityMap.public;
+  const vis = visibilityOf(product.visibility_type);
   const VisIcon = vis.icon;
 
   const isOutOfStock = product.stock_quantity === 0;
@@ -146,8 +141,8 @@ const SellerProductPreview = () => {
   const stockBadgeClass = isOutOfStock
     ? "bg-destructive/10 text-destructive border-destructive/20"
     : isLowStock
-    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+    ? "border-warning/30 bg-warning/10 text-foreground"
+    : "border-success/30 bg-success/10 text-foreground";
 
   const storeSlug = (dashData?.seller as any)?.store_slug || product.store_slug;
   const publicUrl = storeSlug && product.slug ? `/store/${storeSlug}/${product.slug}` : null;
@@ -210,7 +205,7 @@ const SellerProductPreview = () => {
             <Button
               size="sm"
               onClick={() => navigate(`/seller/storefront/${productId}`)}
-              className="gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-0"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit Product
@@ -379,7 +374,7 @@ const SellerProductPreview = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-base font-semibold text-foreground">{sellerName}</p>
                         {sellerVerificationClaim({ identityVerified }) && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-foreground">
                             <CheckCircle2 className="h-3 w-3" />
                             {sellerVerificationClaim({ identityVerified })}
                           </span>
@@ -394,7 +389,7 @@ const SellerProductPreview = () => {
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Rating</p>
                           <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                            <Star className="h-4 w-4 fill-primary text-primary" />
                             <p className="text-sm font-semibold text-foreground">—</p>
                           </div>
                         </div>
@@ -437,7 +432,7 @@ const SellerProductPreview = () => {
                   <div className="pt-3 border-t border-border">
                     <p className="text-xs text-muted-foreground mb-2">Visibility</p>
                     <div className="flex items-center gap-2">
-                      <VisIcon className={`h-4 w-4 ${vis.color}`} />
+                      <VisIcon className={`h-4 w-4 ${visibilityIconClass(product.visibility_type)}`} />
                       <div>
                         <p className="text-sm font-medium text-foreground">{vis.label}</p>
                         <p className="text-xs text-muted-foreground">{vis.description}</p>
@@ -498,7 +493,7 @@ const SellerProductPreview = () => {
                 <div className="p-6 space-y-2">
                   <Button
                     size="sm"
-                    className="w-full justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-0"
+                    className="w-full justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={() => navigate(`/seller/storefront/${productId}`)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -527,7 +522,7 @@ const SellerProductPreview = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-center gap-2 text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+                    className="w-full justify-center gap-2 text-foreground"
                     onClick={() => setVisibilityModalOpen(true)}
                   >
                     <EyeOff className="h-3.5 w-3.5" />

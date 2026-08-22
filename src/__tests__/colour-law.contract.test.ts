@@ -89,7 +89,7 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
 const BUDGET = {
   admin: 4053,
   ui: 7,
-  customer: 270,
+  customer: 105,
 };
 
 /** Literal hex, anywhere in a component. Same rule: it only goes down. */

@@ -168,7 +168,7 @@ const SellerTransactions = () => {
       />
 
       {/* Compact header strip */}
-      <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
+      <div className="border-b border-border/60 bg-muted/30">
         <div className="sd-page py-3 sm:py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
@@ -289,7 +289,7 @@ const SellerTransactions = () => {
       <div className="sd-page -mt-1 mb-2">
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { key: "awaiting-seller-confirmation", label: "Awaiting Your Confirmation", count: summary.awaiting_seller_confirmation_count ?? 0, tone: "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100" },
+            { key: "awaiting-seller-confirmation", label: "Awaiting Your Confirmation", count: summary.awaiting_seller_confirmation_count ?? 0, tone: "border-warning/30 bg-warning/10 text-foreground hover:bg-warning/15" },
             { key: "awaiting-delivery", label: "In Fulfillment", count: summary.in_fulfillment_count ?? 0, tone: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15" },
             { key: "disputed", label: "Disputed", count: summary.disputed_count ?? 0, tone: "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10" },
             { key: "completed", label: "Released", count: summary.completed ?? 0, tone: "border-success/30 bg-success/10 text-success hover:bg-success/15" },

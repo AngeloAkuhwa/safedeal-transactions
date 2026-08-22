@@ -29,6 +29,7 @@ import { toast } from "@/components/ui/sonner";
 import { createProduct, getProductCategories } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { uploadProductFile } from "@/services/create-transaction.service";
+import { PRODUCT_VISIBILITY, VISIBILITY_ORDER, visibilityIconClass } from "@/lib/product-visibility";
 
 const DELIVERY_OPTIONS = [
   { value: "pickup", label: "Pickup" },
@@ -356,11 +357,13 @@ const SellerProductCreate = () => {
     );
   };
 
-  const visibilityOptions = [
-    { value: "public", label: "Public", description: "Visible on your storefront", icon: Globe, color: "text-primary" },
-    { value: "buyer_specific", label: "Buyer Specific", description: "Only visible to selected buyers", icon: Users, color: "text-warning" },
-    { value: "private_draft", label: "Private Draft", description: "Only you can see it", icon: Lock, color: "text-muted-foreground" },
-  ];
+  const visibilityOptions = VISIBILITY_ORDER.map((value) => ({
+    value,
+    label: PRODUCT_VISIBILITY[value].label,
+    description: PRODUCT_VISIBILITY[value].description,
+    icon: PRODUCT_VISIBILITY[value].icon,
+    color: visibilityIconClass(value),
+  }));
 
   return (
     <SidebarProvider>
