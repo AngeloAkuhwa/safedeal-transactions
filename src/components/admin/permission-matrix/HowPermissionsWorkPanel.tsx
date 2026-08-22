@@ -58,7 +58,16 @@ export function HowPermissionsWorkPanel() {
         <p className="text-xs text-muted-foreground">6 access states · role-based · override-capable</p>
       ) : (
         <div className="space-y-5">
-          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          {/*
+            `max-w-prose` (65ch), not `max-w-3xl` (768px).
+
+            This paragraph was already capped, which is why it looked handled.
+            A pixel cap is not a reading measure: at 14px, 768px still runs
+            about 110 characters per line against a comfortable 45 to 75, and
+            the render audit measured exactly that at 1920. `ch` caps the thing
+            that actually matters, and stays right if the type scale changes.
+          */}
+          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
             This workspace controls all security and access permissions across the SafeDeal platform. Configure what each role can access, what actions they can perform, and create user-specific overrides when needed. All changes are audited; privileged actions require Super Admin approval.
           </p>
           <div className="flex items-start gap-2 rounded-xl bg-amber-500/[0.06] p-3 text-xs text-amber-200/90">

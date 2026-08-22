@@ -42,14 +42,22 @@
  * silently skipped rather than reported clean.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
+import {
+  VIEWPORT_CLASSES,
+  classForWidth as CLASS_FOR_WIDTH,
+  contextOptsFor,
+  PUBLIC_ROUTES,
+  AUTH_ROUTES,
+  signIn,
+} from "./audit-shared.mjs";
 
-// Playwright is not a project dependency — it is a local tool. Import it
+// Playwright is not a project dependency. It is a local tool. Import it
 // dynamically so a missing install produces an instruction rather than a
 // MODULE_NOT_FOUND stack trace.
 let chromium;
 async function loadChromium() {
   // Playwright is a local tool, not a project dependency. Try the project
-  // first, then a global install, and only then explain what to do — a
+  // first, then a global install, and only then explain what to do. A
   // MODULE_NOT_FOUND stack trace is not an instruction.
   try {
     return (await import("playwright")).chromium;
@@ -71,7 +79,7 @@ async function loadChromium() {
 /**
  * Playwright pins one Chromium build per release and refuses to start against
  * any other. A sandbox that ships its own Chromium therefore breaks the audit
- * on a version mismatch — "Executable doesn't exist at .../chromium-1234" when
+ * on a version mismatch: "Executable doesn't exist at .../chromium-1234" when
  * .../chromium-1194 is sitting right there and works fine for measuring layout.
  * Re-downloading is not an option on an egress allowlist, so find what is
  * already installed instead. PLAYWRIGHT_CHROMIUM_PATH overrides.
@@ -110,7 +118,7 @@ async function resolveExecutable() {
  * passed explicitly, AND Chromium has to be capped at TLS 1.2. Its TLS 1.3
  * ClientHello is reset by the proxy after ~12s, which reads as a network
  * outage rather than a handshake rejection. This caps only the audit browser's
- * own connections — it says nothing about what the app negotiates in
+ * own connections: it says nothing about what the app negotiates in
  * production.
  */
 function proxyConfig() {
@@ -127,66 +135,32 @@ const arg = (name, fallback) => {
   return i === -1 ? fallback : process.argv[i + 1];
 };
 const BASE = arg("base", "http://127.0.0.1:5199");
-const WIDTHS = String(arg("widths", "320,360,390,414")).split(",").map(Number);
+const CLASSES = String(arg("classes", VIEWPORT_CLASSES.map((c) => c.name).join(",")))
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const WIDTHS = process.argv.some((a) => a.startsWith("--widths"))
+  ? String(arg("widths", "")).split(",").map(Number).filter(Boolean)
+  : VIEWPORT_CLASSES.filter((c) => CLASSES.includes(c.name)).flatMap((c) => c.widths);
 const OUT = arg("out", "/tmp/mobile-audit");
 const WITH_AUTH = process.argv.includes("--auth");
 
-const PUBLIC_ROUTES = [
-  { name: "landing", path: "/" },
-  { name: "marketplace", path: "/marketplace" },
-  { name: "pricing", path: "/pricing" },
-  { name: "auth", path: "/auth" },
-];
-
-// `/seller/storefront` lost 278px of content at every width while three
-// sibling pages sharing its exact shell were never audited at all. A route
-// list that covers one page of a shell and not the others is how the same
-// defect gets fixed once and shipped three more times.
-const SEED_PRODUCT_ID = process.env.E2E_PRODUCT_ID || "0e2e0003-0000-4000-8000-000000000001";
-
-const AUTH_ROUTES = {
-  buyer: [
-    "/dashboard",
-    "/dashboard/marketplace",
-    "/dashboard/cart",
-    "/dashboard/saved",
-    "/dashboard/transactions",
-    // Checkout is where the money is agreed. Both entry points, audited.
-    "/dashboard/cart/checkout",
-    `/store/${process.env.E2E_STORE_SLUG || "claude-e2e-store"}/${process.env.E2E_PRODUCT_SLUG || "claude-e2e-test-listing-16in-pro-laptop"}/checkout?qty=1`,
-  ],
-  seller: [
-    "/seller",
-    "/seller/storefront",
-    "/seller/storefront/new",
-    `/seller/storefront/${SEED_PRODUCT_ID}`,
-    `/seller/storefront/${SEED_PRODUCT_ID}/preview`,
-    "/seller/transactions",
-    "/seller/payouts",
-  ],
-  // One admin route was never going to be enough. The static touch-target
-  // scanner cannot compute a width for 1,186 elements and silently counts each
-  // as a pass, so the width axis is only ever really checked by rendering.
-  // These are the admin surfaces that carry the controls it cannot see:
-  // permission toggles, sortable table headers, and dense data tables.
-  admin: [
-    "/admin",
-    "/admin/transactions",
-    "/admin/disputes",
-    "/admin/users",
-    "/admin/payouts",
-    "/admin/escrow",
-    "/admin/flagged-users",
-    "/admin/access-control",
-    "/admin/permission-matrix",
-    "/admin/settings",
-    "/admin/audit-logs",
-  ],
-};
+/**
+ * A filename actions/upload-artifact will accept.
+ *
+ * One audited route carries a query string, and `path.replace(/\//g, "_")`
+ * left the `?` in place. The upload step rejects `? : " < > | *` outright, so
+ * the whole screenshot artifact failed to upload. That only ever happens on a
+ * failing run, because the upload step runs on failure, which is exactly when
+ * the screenshots are the thing you need. Latent until the first real failure,
+ * then it takes the evidence with it.
+ */
+const safeName = (p) => p.replace(/[/\\?:"<>|*\s]+/g, "_");
 
 /** Runs in the page. Keep it dependency-free and self-contained. */
-function measure({ VW, scope }) {
-  const out = { docW: document.documentElement.scrollWidth, overflow: [], clipped: [], glyph: [], tiny: [], small: [], squashed: [] };
+function measure({ VW, scope, minTarget = 44, checkProse = false }) {
+  const out = { docW: document.documentElement.scrollWidth, overflow: [], clipped: [], glyph: [], tiny: [], small: [], squashed: [], prose: [] };
   const cls = (e) => (e.className || "").toString().slice(0, 60);
   const label = (e) => (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 30);
   const visible = (e) => {
@@ -235,12 +209,45 @@ function measure({ VW, scope }) {
           const carriesControl = !!el.querySelector('a,button,input,select,textarea,[role="button"],[role="link"]') ||
             el.matches('a,button,input,select,textarea,[role="button"],[role="link"]');
           if (r.right > cr.right + 0.5 && (carriesText || carriesControl)) {
+            // Name the clipper, not just the casualty.
+            //
+            // The first version of this finding reported the clipped text and
+            // the x it was cut at, and that was not enough to act on: a run
+            // said `"Low Stock" lost=57px clippedAt=1473` at a 1440 viewport,
+            // which tells you something is 33px off-screen but not what. The
+            // clipper is the element you actually have to change, so it goes
+            // in the record. `clipperW` distinguishes the two shapes this
+            // takes: a box that is itself too wide, and a box the right size
+            // whose contents will not fit.
             out.clipped.push({
               cls: cls(el),
               text: label(el),
               right: Math.round(r.right),
               clippedAt: Math.round(cr.right),
               lost: Math.round(r.right - cr.right),
+              clipperTag: clipper.tagName.toLowerCase(),
+              clipperCls: cls(clipper),
+              clipperW: Math.round(cr.width),
+              clipperLeft: Math.round(cr.left),
+              // Where the clipper lives.
+              //
+              // Naming the clipper was not enough on its own. One run reported
+              // a clipper with w=0 sitting 33px past the viewport, which says
+              // the box collapsed but not what collapsed it, and the grid it
+              // appeared to belong to measured correctly in isolation. A box
+              // with no width is always a fact about its ancestors, so the
+              // ancestors come with the finding.
+              chain: (() => {
+                const out = [];
+                for (let a = clipper.parentElement, i = 0; a && i < 6; a = a.parentElement, i++) {
+                  const ab = a.getBoundingClientRect();
+                  out.push(
+                    `${a.tagName.toLowerCase()}.${(a.className || "").toString().slice(0, 34)}` +
+                      `[w=${Math.round(ab.width)} x=${Math.round(ab.left)}]`,
+                  );
+                }
+                return out;
+              })(),
             });
           }
         } else {
@@ -270,8 +277,8 @@ function measure({ VW, scope }) {
         if (glyphW > r.width + 1.5) {
           // Overflowing the box is only a defect if something actually cuts
           // the glyphs off. Asking `closest('[class*=overflow-hidden]')`
-          // answers a different question — whether any ancestor anywhere up
-          // the tree clips — and a paragraph two subpixels wider than its own
+          // answers a different question: whether any ancestor anywhere up
+          // the tree clips: and a paragraph two subpixels wider than its own
           // box inside a page-level `overflow-hidden` is not clipped by
           // anything. Find the real edge and compare against it.
           let edge = null;
@@ -285,8 +292,8 @@ function measure({ VW, scope }) {
             }
           }
           // Escaping the box hurts in two different ways, and only one of them
-          // is clipping. `₦1,250,000.00` in a 78px box was never cut off — its
-          // card is wider than the glyphs — it ran straight into the
+          // is clipping. `₦1,250,000.00` in a 78px box was never cut off. Its
+          // card is wider than the glyphs: it ran straight into the
           // add-to-cart button next to it. Reporting that as clipping sent the
           // last pass looking for an `overflow-hidden` that was not the
           // problem, so name the two separately.
@@ -300,7 +307,7 @@ function measure({ VW, scope }) {
               if (sr.width === 0 || sr.height === 0) continue;
               const overlapX = Math.min(gr.right, sr.right) - Math.max(gr.left, sr.left);
               const overlapY = Math.min(gr.bottom, sr.bottom) - Math.max(gr.top, sr.top);
-              // The box itself must not already overlap — that would be a
+              // The box itself must not already overlap. That would be a
               // deliberate stack, not glyphs spilling into a neighbour.
               const boxOverlapX = Math.min(r.right, sr.right) - Math.max(r.left, sr.left);
               if (overlapX > 1 && overlapY > 1 && boxOverlapX <= 1) {
@@ -331,7 +338,7 @@ function measure({ VW, scope }) {
     if (el.matches('a,button,input,select,textarea,[role="button"],[role="link"]')) {
       if (c.position === "absolute" && c.clip !== "auto") continue;
       // WCAG 2.5.5 exempts a link inline in a sentence: it cannot be enlarged
-      // without breaking the line it sits in. Detect it structurally — an
+      // without breaking the line it sits in. Detect it structurally. An
       // inline-display anchor whose parent holds text either side of it —
       // rather than by guessing from class names.
       if (el.tagName === "A" && c.display.startsWith("inline") && el.parentElement) {
@@ -341,7 +348,7 @@ function measure({ VW, scope }) {
       }
       // An absolutely-positioned pseudo-element is the real pointer target, and
       // it is not always a small nudge outwards. `after:absolute after:inset-0`
-      // — the "stretched link" idiom behind every clickable card — makes a
+      //: the "stretched link" idiom behind every clickable card. Makes a
       // 141x35 title into a 171x353 target covering the whole card. Resolving
       // the pseudo against its containing block catches both that and the
       // negative-inset nudge; measuring the element's own box catches neither,
@@ -370,8 +377,39 @@ function measure({ VW, scope }) {
         hitW = Math.max(hitW, pr.right - pr.left);
         hitH = Math.max(hitH, pr.bottom - pr.top);
       }
-      if (hitW < 44 || hitH < 44) {
+      if (hitW < minTarget || hitH < minTarget) {
         out.small.push({ text: label(el), w: Math.round(hitW), h: Math.round(hitH), cls: cls(el) });
+      }
+    }
+
+    // A line that runs the full width of a large display is measured, not
+    // judged by eye. Width divided by font size approximates characters per
+    // line at roughly half an em per character, so 45 is about 90 characters:
+    // past the comfortable 45 to 75 range by enough that it is not a taste
+    // argument. Only bodies of text qualify, and only leaves, so a heading, a
+    // nav row, a table cell or a wrapper that happens to contain a paragraph
+    // cannot be reported as one.
+    // Only an element that holds the text ITSELF counts. Summing
+    // `textContent` and excusing containers whose children are individually
+    // short does not work: a centred wrapper holding a heading and two
+    // `max-w-xl` paragraphs has over 200 characters, no child over 120, and
+    // the full width of its container, so it reported as a 137-character line
+    // while every actual line on screen was comfortably inside 65. Direct
+    // text nodes are what wrap into lines, so they are what gets measured.
+    if (checkProse && fontPx) {
+      const ownText = Array.from(el.childNodes)
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent)
+        .join("")
+        .trim();
+      const isBlock = c.display === "block" || c.display === "flow-root";
+      if (ownText.length >= 200 && isBlock && r.width / fontPx > 45) {
+        out.prose.push({
+          cls: cls(el),
+          text: ownText.slice(0, 40),
+          chars: Math.round(r.width / fontPx * 2),
+          box: Math.round(r.width),
+        });
       }
     }
 
@@ -397,33 +435,28 @@ function measure({ VW, scope }) {
     tiny: dedupe(out.tiny, "tiny"),
     small: dedupe(out.small, "small"),
     squashed: dedupe(out.squashed, "squashed"),
+    prose: dedupe(out.prose, "prose"),
     totals,
   };
 }
 
 // One place for viewport + the proxy's self-signed MITM certificate, so the
 // public sweep and the signed-in sweep can never drift apart.
-const contextOpts = (width) => ({
-  viewport: { width, height: 860 },
-  deviceScaleFactor: 2,
-  isMobile: true,
-  hasTouch: true,
-  ignoreHTTPSErrors: true,
-});
+const contextOpts = contextOptsFor;
 
 /**
  * A modal that opens by itself makes every measurement behind it a lie.
  *
  * The dashboard raises a "Turn on two-factor authentication" dialog on load,
- * and Radix marks the page inert while it is up — `document.body` gets
+ * and Radix marks the page inert while it is up. `document.body` gets
  * `pointer-events: none`, which every element behind the overlay inherits.
  * The touch-target pass then sees a stretched link whose overlay expands
  * nothing and reports the card title as a violation, and the wishlist button
  * whose `before:-inset-2` hit area is real reports as 32x32. Both are
  * artefacts of the page being dead, not defects.
  *
- * It is also intermittent — it appeared on three of five buyer routes and on
- * /admin at one width out of four — so it produces findings that cannot be
+ * It is also intermittent: it appeared on three of five buyer routes and on
+ * /admin at one width out of four: so it produces findings that cannot be
  * reproduced by looking at the page.
  *
  * So: measure the dialog on its own terms (its buttons are real and were
@@ -480,8 +513,8 @@ async function dismissDialog(page) {
  *
  * Dismissing a dialog starts an exit animation, and a fixed sleep afterwards is
  * a guess. Measuring during it produced a phantom sub-44px finding that moved
- * between elements and widths on every run — "Open Release Queue" one time,
- * "View Users" the next — and vanished when the element was measured directly.
+ * between elements and widths on every run. "Open Release Queue" one time,
+ * "View Users" the next: and vanished when the element was measured directly.
  * A detector that reports a different defect each run teaches people to rerun
  * until it passes, which is worse than not running it.
  */
@@ -496,15 +529,17 @@ async function settle(page) {
 
 async function measureRoute(page, width) {
   const rows = [];
+  const vp = CLASS_FOR_WIDTH(width);
+  const opts = { minTarget: vp.minTarget, checkProse: vp.prose };
   const blocker = await blockingDialog(page);
   if (blocker) {
     // Settle BEFORE measuring the dialog, not only after dismissing it. Radix
     // enters with `zoom-in-95`, so a dialog caught mid-entrance measures at 95%
-    // of its real size — a 44px button reads as 41.8px and a 270px one as 257px.
+    // of its real size: a 44px button reads as 41.8px and a 270px one as 257px.
     // That produced three "sub-44px" findings that were all exactly 44px when
     // the dialog was measured at rest.
     await settle(page);
-    const dlg = await page.evaluate(measure, { VW: width, scope: '[role="dialog"],[role="alertdialog"]' });
+    const dlg = await page.evaluate(measure, { VW: width, scope: '[role="dialog"],[role="alertdialog"]', ...opts });
     rows.push({ dialog: blocker.title, ...dlg, horizScroll: false });
     const cleared = await dismissDialog(page);
     if (!cleared) {
@@ -513,53 +548,9 @@ async function measureRoute(page, width) {
     }
     await settle(page);
   }
-  const found = await page.evaluate(measure, { VW: width, scope: null });
+  const found = await page.evaluate(measure, { VW: width, scope: null, ...opts });
   rows.push({ ...found, horizScroll: found.docW > width + 1 });
   return rows;
-}
-
-async function signIn(page, email, password) {
-  // A sign-in that fails must say WHY. Without this, every failure looks the
-  // same — "LOGIN FAILED" — whether the password is wrong, the account is
-  // unconfirmed, or the app is pointed at a Supabase project where the
-  // account does not exist. Capture the token response itself: its status and
-  // its error body are the only things that distinguish those three.
-  let tokenStatus = null;
-  let tokenBody = "";
-  let tokenHost = "";
-  const onResponse = async (res) => {
-    if (!/\/auth\/v1\/token\b/.test(res.url())) return;
-    tokenStatus = res.status();
-    tokenHost = new URL(res.url()).host;
-    if (tokenStatus >= 400) {
-      try { tokenBody = (await res.text()).slice(0, 300); } catch { /* body already consumed */ }
-    }
-  };
-  page.on("response", onResponse);
-  await page.goto(`${BASE}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
-  await page.waitForTimeout(2000);
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(6000);
-  page.off("response", onResponse);
-  const ok = !/\/auth\b/.test(page.url());
-  if (!ok) {
-    const why =
-      tokenStatus === null
-        ? "the browser never reached /auth/v1/token — the form did not submit, or Supabase is unreachable from this browser"
-        : `POST /auth/v1/token -> ${tokenStatus} from ${tokenHost}${tokenBody ? ` :: ${tokenBody}` : ""}`;
-    console.error(`signIn[${email}] failed: ${why}`);
-    if (tokenStatus === 400) {
-      console.error(
-        `  400 on the password grant means ${tokenHost} rejected this credential.\n` +
-          `  Check, in this order: (a) is ${tokenHost} the project that holds the seeded\n` +
-          `  accounts, (b) does the password in E2E_<ROLE>_PASSWORD match the one set on the\n` +
-          `  account, (c) is the account email-confirmed.`,
-      );
-    }
-  }
-  return ok;
 }
 
 async function main() {
@@ -606,7 +597,7 @@ async function main() {
       for (const width of WIDTHS) {
         const ctx = await browser.newContext({ ...contextOpts(width) });
         const page = await ctx.newPage();
-        const ok = await signIn(page, email, password);
+        const ok = await signIn(page, BASE, email, password);
         if (!ok) {
           // Loud, not silent: a failed sign-in must never read as "clean".
           report.push({ who, route: "(login)", width, loginFailed: true });
@@ -619,7 +610,7 @@ async function main() {
           for (const row of await measureRoute(page, width)) {
             report.push({ who, route: path, width, ...row });
           }
-          await page.screenshot({ path: `${OUT}/${who}${path.replace(/\//g, "_")}-${width}.png`, fullPage: true });
+          await page.screenshot({ path: `${OUT}/${who}${safeName(path)}-${width}.png`, fullPage: true });
         }
         await ctx.close();
       }
@@ -629,13 +620,25 @@ async function main() {
   await browser.close();
   writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 1));
 
+  // Every failing line, gathered as it is printed, so the end of the log can
+  // repeat them.
+  const failed = [];
+
   let failures = 0;
   for (const row of report) {
-    if (row.skipped) { console.log(`${row.who.padEnd(7)}  SKIPPED — ${row.skipped}`); failures += 1; continue; }
-    if (row.loginFailed) { console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)}  LOGIN FAILED`); failures += 1; continue; }
+    if (row.skipped) {
+      const line = `${row.who.padEnd(7)}  SKIPPED. ${row.skipped}`;
+      console.log(line); failed.push([line]); failures += 1; continue;
+    }
+    if (row.loginFailed) {
+      const line = `${row.who.padEnd(7)} ${String(row.width).padStart(4)}  LOGIN FAILED`;
+      console.log(line); failed.push([line]); failures += 1; continue;
+    }
     if (row.inert) {
       // Never let an unmeasurable page fall through as clean.
-      console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE — a modal held the page inert: "${row.inert}"`);
+      const line = `${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${row.route.padEnd(26)} UNMEASURABLE. A modal held the page inert: "${row.inert}"`;
+      console.log(line);
+      failed.push([line]);
       failures += 1;
       continue;
     }
@@ -650,14 +653,63 @@ async function main() {
     if (row.clipped.length) flags.push(`clipped:${n("clipped")}`);
     if (row.glyph.length) flags.push(`glyph:${n("glyph")}`);
     if (row.tiny.length) flags.push(`tiny:${n("tiny")}`);
-    if (row.small.length) flags.push(`tap<44:${n("small")}`);
+    if (row.small.length) flags.push(`tap<${CLASS_FOR_WIDTH(row.width).minTarget}:${n("small")}`);
     if (row.squashed.length) flags.push(`squashed:${n("squashed")}`);
+    if (row.prose && row.prose.length) flags.push(`longline:${n("prose")}`);
     if (row.errors && row.errors.length) flags.push(`ERR:${row.errors.length}`);
     if (flags.length) failures += 1;
     const where = row.dialog ? `${row.route}  [dialog: ${row.dialog.slice(0, 28)}]` : row.route;
-    console.log(`${row.who.padEnd(7)} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`);
+    // Say WHAT was found, not just how many. The counts alone sent someone to
+    // report.json, and on the run that first failed, report.json was in the
+    // artifact whose upload had just failed on an invalid filename. A summary
+    // that cannot explain itself is a summary you cannot act on.
+    const example = (key, fmt) => {
+      const rows = row[key];
+      if (!rows || !rows.length) return null;
+      return `      ${key}: ${rows.slice(0, 3).map(fmt).join(" | ")}`;
+    };
+    const details = [
+      example("overflow", (o) => `"${o.text}" right=${o.right} cls=${o.cls}`),
+      example(
+        "clipped",
+        (o) =>
+          `"${o.text}" lost=${o.lost}px by <${o.clipperTag} class="${o.clipperCls}"> ` +
+          `at x=${o.clipperLeft}..${o.clippedAt} (w=${o.clipperW})` +
+          (o.chain && o.chain.length ? `\n        inside: ${o.chain.join("\n             < ")}` : ""),
+      ),
+      example("glyph", (o) => `"${o.text}" box=${o.box}`),
+      example("tiny", (o) => `"${o.text}" ${o.px}px`),
+      example("small", (o) => `"${o.text}" ${o.w}x${o.h}`),
+      example("squashed", (o) => `${o.src} ${o.w}x${o.h}`),
+      example("prose", (o) => `~${o.chars} chars in ${o.box}px: "${o.text}"`),
+    ].filter(Boolean);
+    const cls6 = CLASS_FOR_WIDTH(row.width).name.padEnd(7);
+    const line = `${row.who.padEnd(7)} ${cls6} ${String(row.width).padStart(4)} ${where.padEnd(26)} ${flags.length ? flags.join(" ") : "clean"}`;
+    console.log(line);
+    if (flags.length) {
+      for (const d of details) console.log(d);
+      failed.push([line, ...details]);
+    }
   }
   console.log(`\nscreenshots: ${OUT}\nreport:      ${OUT}/report.json`);
+
+  // Repeat the failures at the end.
+  //
+  // A full sweep prints 236 rows and CI shows you the tail, so a single red
+  // line in the public section is invisible below two hundred clean ones. On
+  // the run that motivated this, working out which route had failed took
+  // three separate fetches of the same log, and the answer was on line 32.
+  //
+  // The per-row output above stays exactly as it is: it is the record of what
+  // was checked, and "clean" on every route is the thing worth being able to
+  // read. This is the part you need when it is not clean.
+  if (failed.length) {
+    const rows = failed.length === 1 ? "1 row" : `${failed.length} rows`;
+    console.log(`\n${"=".repeat(64)}\nFAILED: ${rows} of ${report.length}\n${"=".repeat(64)}`);
+    for (const block of failed) for (const l of block) console.log(l);
+    console.log("");
+  }
+
   process.exit(failures ? 1 : 0);
 }
 

@@ -113,9 +113,27 @@ At each width, verify against the real rendered page, not the source:
 * spacing, radius and element widths look deliberate at that width rather than
   stretched or squeezed from another one.
 
-`scripts/mobile-audit.mjs` currently covers the four mobile widths only.
-Extending it to the tablet, desktop and large columns is open work. Until it is
-done, those widths are verified by hand and the PR must say so.
+`scripts/mobile-audit.mjs` measures all eleven widths and is the gate. CI runs a
+seven-width subset (all four phone widths plus 834, 1440 and 1920) to keep the
+job near seventeen minutes rather than twenty-seven; run the full sweep locally
+with no `--widths` argument.
+
+### Show the work after every UI change
+
+Finishing a UI change includes showing what it looks like. Run
+
+```
+npx vite build && npx vite preview --host 127.0.0.1 --port 5199 &
+node scripts/ui-preview.mjs            # add --auth for signed-in routes
+```
+
+and publish the resulting `ui-preview.html` as an artifact so the change can be
+looked at rather than described. It renders one width per viewport class, with
+each frame drawn in proportion to its real viewport.
+
+This never blocks the work. If the preview cannot be produced, say so and carry
+on; it is a deliverable alongside the change, not a gate in front of it. The
+audit is the gate.
 
 ### Mobile should feel like an application, not a website
 

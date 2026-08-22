@@ -113,13 +113,31 @@ export default function BuyerMarketplace() {
   }, [categories]);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background lg:h-[100dvh] lg:flex-row lg:overflow-hidden">
+    /*
+     * A column at every width, with the row nested inside it.
+     *
+     * This was `lg:flex-row`, which turned every direct child into a row item
+     * from 1024px up. PublicPageHeader's root is `w-full`, so as a row item it
+     * claimed the entire container width and the sibling content column, which
+     * carries `min-w-0`, collapsed to nothing. Measured at 1920: header 1920
+     * wide, main 0 wide at x=1920, product cards 0x0 at x=1953.
+     *
+     * The whole public marketplace grid had zero width on desktop and large
+     * screens. Signed in it was fine, because BuyerSidebar renders instead and
+     * a sidebar is a legitimate row item, which is why the audit reported
+     * /marketplace red and /dashboard/marketplace clean on the same component.
+     *
+     * `min-h-0` on the row is not decoration: inside a fixed-height column a
+     * flex item will not shrink below its content height without it, and the
+     * inner `lg:overflow-y-auto` scroller stops working.
+     */
+    <div className="flex min-h-[100dvh] flex-col bg-background lg:h-[100dvh] lg:overflow-hidden">
       {/* Signed out, this page had no chrome at all. No logo, no route back to
           the site, no way to sign up. A visitor arriving on a shared product
           link could browse and then had nowhere to go. */}
       {!isAuthenticated && <PublicPageHeader current="marketplace" />}
 
-      <div className="flex flex-1 lg:overflow-hidden">
+      <div className="flex min-h-0 flex-1 lg:overflow-hidden">
       {isAuthenticated && <BuyerSidebar />}
 
       <main className="relative min-w-0 flex-1 lg:overflow-y-auto">

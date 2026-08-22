@@ -101,8 +101,36 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
           <span className="truncate text-lg font-bold text-foreground sm:text-xl">SafeDeal</span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-6 overflow-x-auto">
+        {/*
+          Desktop nav.
+
+          `inline-flex min-h-11 items-center` because these were 20px tall
+          boxes: "Saved" measured 42x20. This nav shows from md (768), and 768
+          to 1024 is a tablet, so a finger was being asked to hit 20px. The
+          render audit could not see it while it only ran phone widths, where
+          this nav is hidden.
+
+          Width needed the same treatment on the second pass: raising the
+          height left "Saved" at 42x44 and "Profile" at 43x44, both still under
+          44 across. The padding is paid for out of the gap rather than added
+          on top, so the rhythm is unchanged: gap-4 is 16px between text edges,
+          and gap-1 plus px-1.5 is 4 + 6 + 6, also 16. At lg, gap-6 is 24 and
+          gap-3 plus px-1.5 is 12 + 6 + 6, also 24.
+
+          `shrink-0`, and NOT `min-w-11`, which was the third pass. A flex item
+          defaults to `min-width: auto`, and that is what had been stopping
+          these from shrinking below their own text. Setting an explicit
+          `min-w-11` replaced that floor with 44px, so the items became
+          shrinkable and "Dashboard" squashed from 73px to 52px with the glyphs
+          hanging out of the box. The audit caught it as glyph:1 at 834, which
+          is the one check static analysis cannot do. Padding alone already
+          clears 44 across for the narrowest label ("Saved" at 42 plus 12), so
+          the minimum was never needed; not shrinking is.
+
+          The header row is a fixed-height flex row, so the taller hit area
+          sits inside it and centres. Nothing moves.
+        */}
+        <nav className="hidden md:flex items-center gap-1 lg:gap-3 overflow-x-auto">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href || 
               (link.href !== "/dashboard" && location.pathname.startsWith(link.href));
@@ -110,7 +138,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`whitespace-nowrap text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap px-1.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"

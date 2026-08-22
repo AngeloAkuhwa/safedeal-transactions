@@ -126,28 +126,43 @@ jobs:
           VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
         run: |
           set -o pipefail
-          bun run test 2>&1 | tee /tmp/test.log
+          # Emit JSON alongside the readable output so the contract check below
+          # can read THIS run's results instead of running the suite again.
+          bun run test -- --reporter=default --reporter=json \
+            --outputFile=/tmp/suite.json 2>&1 | tee /tmp/test.log
 
-      # Grepping the human-readable log for the word "skipped" is a guess about
-      # a reporter's formatting. Count the results instead — a skip and a
-      # failure are both stopping conditions, and the reason is printed.
+      # The role-enforcement contract has to have RUN, not merely not-failed.
+      # A missing credential makes it skip in beforeAll, and a skip prints in
+      # grey next to a green tick.
+      #
+      # This reads the JSON from the suite above rather than running that file
+      # a second time, which is what it used to do. Those 102 assertions are
+      # live HTTP probes against deployed edge functions, so re-running them
+      # meant 204 calls to the same functions inside two minutes, and the
+      # second pass kept failing on a different function each time: a 5s
+      # timeout on admin-user-detail-export in one run, an error on
+      # admin-reveal-user-field in the next, while the first pass went 102/102
+      # both times. The tests were not flaky. Asking the same endpoints
+      # everything twice in a row was.
+      #
+      # Reading the first run's results is also strictly more honest: it
+      # reports on the run whose result the build is actually gated on.
       - name: The role-enforcement contract must actually run
-        env:
-          VITE_TEST_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
-          VITE_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
-          VITE_TEST_BUYER_EMAIL: claude.e2e.buyer@safedeal.test
-          VITE_TEST_BUYER_PASSWORD: ${{ secrets.E2E_BUYER_PASSWORD }}
         run: |
-          npx vitest run src/__tests__/admin-auth.contract.test.ts \
-            --reporter=json --outputFile=/tmp/contract.json || true
           node -e '
-            const r = require("/tmp/contract.json");
-            const total = r.numTotalTests ?? 0;
-            const passed = r.numPassedTests ?? 0;
-            const failed = r.numFailedTests ?? 0;
-            const notRun = total - passed - failed; // skipped + pending + todo
-            console.log(`passed ${passed}/${total}, failed ${failed}, not-run ${notRun}`);
-            if (total === 0) {
+            const r = require("/tmp/suite.json");
+            const file = (r.testResults || []).find((f) =>
+              String(f.name || "").includes("admin-auth.contract.test.ts"));
+            if (!file) {
+              console.log("::error::admin-auth.contract.test.ts is not in the suite report — it did not run");
+              process.exit(1);
+            }
+            const results = file.assertionResults || [];
+            const passed = results.filter((t) => t.status === "passed").length;
+            const failed = results.filter((t) => t.status === "failed").length;
+            const notRun = results.length - passed - failed;
+            console.log(`passed ${passed}/${results.length}, failed ${failed}, not-run ${notRun}`);
+            if (!results.length) {
               console.log("::error::role enforcement produced no tests — it did not run");
               process.exit(1);
             }
@@ -155,19 +170,17 @@ jobs:
               console.log(`::error::${notRun} role-enforcement tests were skipped — a bad or missing E2E credential makes the suite skip in beforeAll, which is not a pass`);
               process.exit(1);
             }
-            if (failed > 0 || r.success !== true) {
-              for (const f of r.testResults || []) {
-                for (const t of f.assertionResults || []) {
-                  if (t.status === "failed") {
-                    console.log(`::error::${t.fullName}: ${((t.failureMessages||[]).join(" ").split("\n")[0])}`);
-                  }
+            if (failed > 0) {
+              for (const t of results) {
+                if (t.status === "failed") {
+                  console.log(`::error::${t.fullName}: ${((t.failureMessages||[]).join(" ").split("\n")[0])}`);
                 }
               }
               process.exit(1);
             }
             const fs = require("fs");
-            const expected = fs.readdirSync("supabase/functions").filter(n => n.startsWith("admin-")).length;
-            console.log(`admin authorization contract verified: ${passed}/${total} across ${expected} admin functions`);
+            const expected = fs.readdirSync("supabase/functions").filter((n) => n.startsWith("admin-")).length;
+            console.log(`admin authorization contract verified: ${passed}/${results.length} across ${expected} admin functions`);
           '
 
   audit:
@@ -273,7 +286,23 @@ jobs:
           E2E_SELLER_PASSWORD: ${{ secrets.E2E_SELLER_PASSWORD }}
           E2E_ADMIN_EMAIL: claude.e2e.admin@safedeal.test
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
-        run: node scripts/mobile-audit.mjs --auth --out audit-out
+        # Seven widths, not the full eleven, and the seven are named rather
+        # than left to the default so the runtime is a decision instead of a
+        # side effect.
+        #
+        # All four phone widths, because that is the priority market and 320 is
+        # the hardest case. Then one width per remaining class: 834 covers the
+        # tablet range, 1440 the desktop range, 1920 the large one. The full
+        # eleven is ~29 routes x 11 widths and lands around 27 minutes with
+        # auth, which is too slow to sit in front of every PR; this set is
+        # about 17.
+        #
+        # The widths dropped here (360 is kept, 768 / 1024 / 1280 / 2560 are
+        # not) are the interior of each class, where a defect that exists at
+        # one is almost always visible at its neighbour. Run the full sweep
+        # locally with `node scripts/mobile-audit.mjs`, which defaults to all
+        # eleven.
+        run: node scripts/mobile-audit.mjs --auth --widths 320,360,390,414,834,1440,1920 --out audit-out
 
       - name: Keep the screenshots when it fails
         if: failure()

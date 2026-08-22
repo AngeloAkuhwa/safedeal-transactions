@@ -22,8 +22,10 @@
  * pretending the question is settled. If the answer becomes "replace it",
  * widen the pattern below and sweep in one commit.
  *
- * Scope is src/ and supabase/functions/. Comments count: the rule says
- * anywhere, and a comment is still writing someone reads. The edge functions
+ * Scope is src/, supabase/functions/ and scripts/. Comments count: the rule
+ * says anywhere, and a comment is still writing someone reads. scripts/ was
+ * missed by the first sweep and had 32 of them, which is the argument for the
+ * guard naming its roots explicitly rather than assuming src/ is the codebase. The edge functions
  * are in scope because `src/lib/admin-mappers.ts` and
  * `supabase/functions/_shared/admin-mappers.ts` are asserted to be byte
  * identical, so sweeping one and not the other breaks that mirror. It did,
@@ -34,7 +36,11 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(__dirname, "../..");
-const ROOTS = [path.join(ROOT, "src"), path.join(ROOT, "supabase/functions")];
+const ROOTS = [
+  path.join(ROOT, "src"),
+  path.join(ROOT, "supabase/functions"),
+  path.join(ROOT, "scripts"),
+];
 
 /**
  * The shell, which the tree walk above cannot reach.
@@ -60,7 +66,7 @@ function walk(dir: string, out: string[]): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
-    else if (/\.tsx?$/.test(entry.name) && entry.name !== SELF) out.push(full);
+    else if (/\.(tsx?|mjs)$/.test(entry.name) && entry.name !== SELF) out.push(full);
   }
   return out;
 }

@@ -70,14 +70,45 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-7 md:flex" aria-label="Main navigation">
+        {/*
+          Desktop nav.
+
+          `inline-flex min-h-11 items-center` rather than a bare inline link:
+          these were 20px tall boxes, so "FAQ" was a 27x20 target. This nav
+          appears from `md` (768px) upward, and 768 to 1024 is a tablet, which
+          is a touch device, so a finger was being asked to hit 20px. The render
+          audit could not see it while it only ran phone widths, where the nav
+          is hidden.
+
+          Width needed the same treatment: "FAQ" was a 27px-wide box. The
+          padding is paid for out of the gap rather than added on top, so the
+          rhythm is untouched. gap-7 is 28px between text edges; gap-2 plus
+          px-2.5 is 8 + 10 + 10, also 28. The target grows, the design does
+          not move.
+
+          whitespace-nowrap because "How It Works" wrapped to two lines at
+          768, which is what made it a 44px-wide target rather than a 90px one.
+
+          Which exposed the real problem: with nothing wrapping, five links
+          plus the logo plus Log In and Sign Up need more than 768px, and
+          Sign Up was clipped 62px past the edge. The wrapping had been hiding
+          an overfull header rather than solving it. So the full nav now starts
+          at lg (1024) instead of md (768), and 768 to 1023 uses the same sheet
+          the phone does. A tablet is a touch device, so the sheet is the
+          honest affordance there anyway, and its links already carry 44px
+          targets.
+
+          The header row is a fixed h-14/sm:h-16/lg:h-20 flex row, so the 44px
+          hit area sits inside it and centres; text size and baseline are
+          unchanged.
+        */}
+        <nav className="hidden items-center gap-2 lg:flex" aria-label="Main navigation">
           {navLinks.map((link) =>
             link.href.startsWith("#") ? (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
               >
                 {link.label}
               </a>
@@ -85,7 +116,7 @@ export function Header() {
               <Link
                 key={link.href}
                 to={link.href}
-                className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap px-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
               >
                 {link.label}
               </Link>
@@ -93,7 +124,7 @@ export function Header() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle />
           {user ? (
             <>
@@ -118,7 +149,7 @@ export function Header() {
         </div>
 
         {/* Mobile menu */}
-        <div className="flex items-center gap-1.5 md:hidden">
+        <div className="flex items-center gap-1.5 lg:hidden">
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>

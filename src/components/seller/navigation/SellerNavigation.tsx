@@ -232,7 +232,21 @@ export function SellerNavigation({
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Brand />
 
-        <nav className="hidden items-center gap-1 md:flex">
+        {/*
+          The full nav starts at lg (1024), not md (768).
+
+          Eight links plus the wordmark plus the theme toggle, bell, avatar and
+          sign-out need more than 768px. At 834 the right-hand group was pushed
+          past the edge and clipped: the render audit measured "Profile" losing
+          30px and the identity block losing 231px. Below lg the same sheet the
+          phone uses carries all eight links at 44px each, which is the honest
+          affordance on a touch device anyway.
+
+          This predates the navigation unification: the previous SellerNav
+          showed the same eight links from md. It was invisible because the
+          audit only ever ran 320 to 414, where this nav is hidden.
+        */}
+        <nav className="hidden items-center gap-1 lg:flex">
           {SELLER_NAV_LINKS.map((link) => {
             const isActive = isSellerLinkActive(location.pathname, link.href);
             return (
@@ -282,7 +296,7 @@ export function SellerNavigation({
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden"
             aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -293,7 +307,7 @@ export function SellerNavigation({
       </div>
 
       {mobileOpen && (
-        <div className="space-y-1 border-t bg-card px-4 py-4 md:hidden">
+        <div className="space-y-1 border-t bg-card px-4 py-4 lg:hidden">
           {SELLER_NAV_LINKS.map((link) => {
             const isActive = isSellerLinkActive(location.pathname, link.href);
             return (

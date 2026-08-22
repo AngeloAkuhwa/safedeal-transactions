@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prove the E2E credentials authenticate — before anything expensive runs.
+ * Prove the E2E credentials authenticate. Before anything expensive runs.
  *
  * Why this exists: a password grant that comes back 400 has three completely
  * different causes, and every one of them surfaces downstream as the same
@@ -21,7 +21,7 @@
  *     against a different project than every local run.
  *   - The password is read from `process.env` and JSON-encoded here. It is
  *     never interpolated into a shell word, a YAML scalar or a dotenv line, so
- *     characters that a shell or dotenv would expand — `$`, `#`, backticks —
+ *     characters that a shell or dotenv would expand. `$`, `#`, backticks —
  *     cannot alter it or truncate it on the way to the auth endpoint.
  */
 import { readFileSync } from "node:fs";
@@ -40,7 +40,7 @@ const dot = envFromDotenv();
 const URL_ = process.env.VITE_SUPABASE_URL || dot.VITE_SUPABASE_URL;
 const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || dot.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!URL_ || !KEY) {
-  console.error("::error::No Supabase URL/anon key — expected them in the repo's .env");
+  console.error("::error::No Supabase URL/anon key: expected them in the repo's .env");
   process.exit(1);
 }
 console.log(`project: ${new global.URL(URL_).host}`);
@@ -54,7 +54,7 @@ for (const role of roles) {
   const email = process.env[`E2E_${R}_EMAIL`] || `claude.e2e.${role}@safedeal.test`;
   const password = process.env[`E2E_${R}_PASSWORD`];
   if (!password) {
-    console.error(`::error::E2E_${R}_PASSWORD is empty — set it in Settings → Secrets and variables → Actions`);
+    console.error(`::error::E2E_${R}_PASSWORD is empty: set it in Settings → Secrets and variables → Actions`);
     bad += 1;
     continue;
   }
@@ -74,9 +74,9 @@ for (const role of roles) {
     code === "email_not_confirmed"
       ? "the account exists but its email is not confirmed"
       : res.status === 400
-        ? `this project does not accept that password for ${email} — either E2E_${R}_PASSWORD holds a different string than the account's password (secrets are write-only, so it cannot be read back: re-enter it), or the account was seeded in a different project`
+        ? `this project does not accept that password for ${email}: either E2E_${R}_PASSWORD holds a different string than the account's password (secrets are write-only, so it cannot be read back: re-enter it), or the account was seeded in a different project`
         : `unexpected status from the auth endpoint`;
-  console.error(`::error::${role} sign-in failed: HTTP ${res.status} ${body.slice(0, 200)} — ${hint}`);
+  console.error(`::error::${role} sign-in failed: HTTP ${res.status} ${body.slice(0, 200)}. ${hint}`);
   console.error(`         password length as CI received it: ${password.length}`);
   bad += 1;
 }
