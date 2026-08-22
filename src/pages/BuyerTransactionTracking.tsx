@@ -92,7 +92,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       <img
         src={src}
         alt={alt}
-        className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+        className="max-w-full max-h-[85dvh] object-contain rounded-lg shadow-2xl"
       />
     </div>
   );

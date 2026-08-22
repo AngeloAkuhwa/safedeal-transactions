@@ -112,7 +112,7 @@ export function TwoFactorDialog({ open, onOpenChange, onChanged }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={closeAndCleanUp}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Two-Factor Authentication</DialogTitle>
           <DialogDescription>

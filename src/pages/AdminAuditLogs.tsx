@@ -265,7 +265,7 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
                     <Copy className="h-3 w-3 mr-1.5" /> Copy JSON
                   </Button>
                 </div>
-                <pre className="bg-muted border border-border rounded-lg p-4 text-xs text-foreground/90 overflow-x-auto max-h-[50vh]">{payload}</pre>
+                <pre className="bg-muted border border-border rounded-lg p-4 text-xs text-foreground/90 overflow-x-auto max-h-[50dvh]">{payload}</pre>
               </div>
             </div>
             <div className="p-4 border-t border-border flex flex-wrap gap-2">

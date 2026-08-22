@@ -369,3 +369,49 @@
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The glass surface, when there is no glass
+
+   137 places use `backdrop-blur` over a translucent background: the seller
+   header's `bg-card/85`, the landing header, sticky toolbars, cards. The blur
+   is what makes them legible, because it destroys the detail of whatever
+   scrolls underneath before it reaches the text.
+
+   Without `backdrop-filter` there is no blur, and the translucency alone is
+   the whole problem: `bg-card/60` over a photograph is a photograph with words
+   on it. Firefox shipped `backdrop-filter` off by default until 103 and it can
+   still be turned off, and it is dropped by some in-app browsers and low-power
+   modes.
+
+   Selected on the presence of BOTH a blur class and a translucent tint class,
+   rather than on a list of opacity values. The first version of this block
+   enumerated /40 /60 /80 /85 /90 /95, which looked complete because those are
+   the values that appear beside `backdrop-blur` in a className string today. A
+   test that forced the rule on found `bg-card/50` sitting untouched on the
+   landing page. Enumerating means every new tint silently escapes the
+   fallback; matching the pair cannot.
+
+   Scrims are deliberately not covered: `bg-black/80` behind a lightbox is
+   meant to be a translucent dark veil, blur or no blur, and forcing it opaque
+   would hide the image it is dimming. Foreground-on-coloured-surface tints
+   (`bg-primary-foreground/20` and friends) are also left alone, because they
+   sit on a solid parent and never had anything to see through.
+--------------------------------------------------------------------------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [class*="backdrop-blur"][class*="bg-card/"] {
+    background-color: hsl(var(--card));
+  }
+
+  [class*="backdrop-blur"][class*="bg-background/"] {
+    background-color: hsl(var(--background));
+  }
+
+  [class*="backdrop-blur"][class*="bg-muted/"] {
+    background-color: hsl(var(--muted));
+  }
+
+  [class*="backdrop-blur"][class*="bg-popover/"] {
+    background-color: hsl(var(--popover));
+  }
+}

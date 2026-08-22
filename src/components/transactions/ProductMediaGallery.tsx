@@ -235,13 +235,13 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
                 poster={active.poster ?? undefined}
                 controls
                 autoPlay
-                className="w-full max-h-[85vh] object-contain bg-background"
+                className="w-full max-h-[85dvh] object-contain bg-background"
               />
             ) : (
               <img
                 src={active.url}
                 alt={title}
-                className="w-full max-h-[85vh] object-contain"
+                className="w-full max-h-[85dvh] object-contain"
               />
             )}
 

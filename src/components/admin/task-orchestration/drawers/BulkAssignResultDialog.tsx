@@ -22,7 +22,7 @@ export function BulkAssignResultDialog({
             {ok.length} of {results.length} assigned. {fail.length ? `${fail.length} failed. See reasons below.` : "All succeeded."}
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[50vh] space-y-1.5 overflow-y-auto pr-1">
+        <div className="max-h-[50dvh] space-y-1.5 overflow-y-auto pr-1">
           {results.map(r => {
             const code = taskCodeById?.[r.task_id] ?? r.task_id.slice(0, 8);
             return (
