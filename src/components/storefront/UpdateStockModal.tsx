@@ -28,8 +28,8 @@ interface UpdateStockModalProps {
 
 function getStockStatus(qty: number) {
   if (qty === 0) return { label: "Out of Stock", color: "text-destructive", bg: "bg-destructive/10", dot: "bg-destructive" };
-  if (qty <= 5) return { label: "Low Stock", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", dot: "bg-amber-400" };
-  return { label: "In Stock", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", dot: "bg-emerald-400" };
+  if (qty <= 5) return { label: "Low Stock", color: "text-foreground", bg: "bg-warning/10", dot: "bg-warning" };
+  return { label: "In Stock", color: "text-foreground", bg: "bg-success/10", dot: "bg-success" };
 }
 
 export function UpdateStockModal({ open, onOpenChange, product, onSave, isPending }: UpdateStockModalProps) {

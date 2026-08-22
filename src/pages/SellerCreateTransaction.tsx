@@ -381,7 +381,7 @@ const SellerCreateTransaction = () => {
       <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
+      <div className="bg-muted/40">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-sm font-medium text-muted-foreground mb-1">Private Offer</p>
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Create Private Offer</h1>
@@ -576,7 +576,7 @@ const SellerCreateTransaction = () => {
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 truncate">
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 text-xs text-white truncate">
                               {p.original_name}
                             </div>
                           </div>

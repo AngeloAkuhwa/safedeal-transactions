@@ -138,7 +138,7 @@ export function ManageVisibilityModal({
                       <button
                         disabled={isPending}
                         onClick={() => onArchive(product.id)}
-                        className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-red-600 transition-all disabled:opacity-50 min-h-11"
+                        className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-all disabled:opacity-50 min-h-11"
                       >
                         Archive Product
                       </button>

@@ -5,6 +5,7 @@ import { Heart, ShoppingCart, Bell, ShieldCheck, PackageOpen, Star } from "lucid
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { avatarWash } from "@/lib/avatar-wash";
 import { useToggleSave, useAuthState, useSavedProductIds } from "@/hooks/useSavedProducts";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { toast } from "@/components/ui/sonner";
@@ -24,20 +25,6 @@ interface Props {
 
 const formatPrice = (amount: number, currency: string) =>
   formatMoney(amount, currency);
-
-const avatarColors = [
-  "from-primary to-blue-400",
-  "from-emerald-500 to-teal-400",
-  "from-violet-500 to-purple-400",
-  "from-orange-500 to-amber-400",
-  "from-rose-500 to-pink-400",
-];
-
-function getAvatarColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return avatarColors[Math.abs(hash) % avatarColors.length];
-}
 
 export function MarketplaceProductCard({ product, categoryName, onClick }: Props) {
   const navigate = useNavigate();
@@ -168,8 +155,8 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
             >
               <div
                 className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white",
-                  getAvatarColor(seller.full_name)
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  avatarWash(seller.full_name)
                 )}
               >
                 {sellerInitial}

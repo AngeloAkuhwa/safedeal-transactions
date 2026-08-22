@@ -14,7 +14,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       description: "Start a new protected deal with a buyer",
       href: "/seller/transactions/new",
       iconBg: "bg-success/10 group-hover:bg-success",
-      iconColor: "text-success group-hover:text-white",
+      iconColor: "text-success group-hover:text-primary-foreground",
     },
     {
       icon: Store,
@@ -22,7 +22,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       description: "Create a new product listing for your storefront",
       href: "/seller/storefront/new",
       iconBg: "bg-primary/10 group-hover:bg-primary",
-      iconColor: "text-primary group-hover:text-white",
+      iconColor: "text-primary group-hover:text-primary-foreground",
     },
     {
       icon: FileText,
@@ -30,7 +30,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       description: `${draftCount} draft${draftCount !== 1 ? "s" : ""} saved and ready to send`,
       href: "/seller/transactions?filter=draft",
       iconBg: "bg-primary/10 group-hover:bg-primary",
-      iconColor: "text-primary group-hover:text-white",
+      iconColor: "text-primary group-hover:text-primary-foreground",
     },
     {
       icon: BarChart3,
@@ -38,7 +38,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       description: "View your sales performance and trends",
       href: "/seller/analytics",
       iconBg: "bg-warning/10 group-hover:bg-warning",
-      iconColor: "text-warning group-hover:text-white",
+      iconColor: "text-warning group-hover:text-primary-foreground",
     },
     {
       icon: Settings,
@@ -46,7 +46,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       description: "Manage your profile and preferences",
       href: "/seller/profile",
       iconBg: "bg-muted group-hover:bg-foreground",
-      iconColor: "text-muted-foreground group-hover:text-white",
+      iconColor: "text-muted-foreground group-hover:text-primary-foreground",
     },
   ];
 

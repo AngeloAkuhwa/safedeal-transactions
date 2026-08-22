@@ -3,6 +3,7 @@ import { formatMoney } from "@/lib/format";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { NextActionPanel } from "@/components/transactions/NextActionPanel";
 import { ArrowLeft, Shield, Clock, CheckCircle, Package, Truck, MapPin, AlertTriangle, FileText, ExternalLink, X, RefreshCw, Scale, Image as ImageIcon, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -74,7 +75,10 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       aria-modal="true"
       aria-label={alt || "Image preview"}
       tabIndex={-1}
-      className="fixed inset-0 z-modal bg-black/90 flex items-center justify-center p-4"
+      // bg-black/90 and text-white deliberately, not tokens: a fullscreen
+      // image lightbox has to go dark in both themes, and bg-foreground would
+      // invert it. Same reasoning as DialogOverlay, which is also bg-black.
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/90 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
     >
@@ -303,17 +307,10 @@ const BuyerTransactionTracking = () => {
 
             {/* Next Action */}
             {next_action && (
-              <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-5 text-warning-foreground shadow-lg">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                  <h2 className="text-base font-bold">{next_action.label}</h2>
-                </div>
-                <p className="text-sm opacity-90 mb-4">{next_action.description}</p>
+              <NextActionPanel label={next_action.label} description={next_action.description}>
                 {tx.status === "delivered_awaiting_verification" && (
                   <Button
-                    className="w-full bg-white hover:bg-white/90 text-warning font-bold py-3 h-auto"
+                    className="h-auto w-full py-3 font-bold"
                     onClick={() => navigate(`/dashboard/transactions/${tx.id}/verify`)}
                   >
                     <CheckCircle className="h-4 w-4" /> Verify Item Received
@@ -321,13 +318,13 @@ const BuyerTransactionTracking = () => {
                 )}
                 {next_action.action === "view_dispute" && dispute && (
                   <Button
-                    className="w-full bg-white hover:bg-white/90 text-warning font-bold h-11"
+                    className="h-11 w-full font-bold"
                     onClick={() => navigate(`/dashboard/disputes/${dispute.id}`)}
                   >
                     <Scale className="h-4 w-4" /> View Dispute
                   </Button>
                 )}
-              </div>
+              </NextActionPanel>
             )}
 
             {/* Delivery Tracking Card */}

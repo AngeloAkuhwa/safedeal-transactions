@@ -43,7 +43,7 @@ export function VerificationActions({
             onClick={() => setConfirmOpen(true)}
             className="group w-full bg-gradient-to-br from-success to-success/80 text-success-foreground font-bold py-5 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-2.5 border-2 border-transparent hover:border-success/40"
           >
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-current/20 backdrop-blur-sm transition-transform group-hover:scale-110">
               <CheckCircle className="h-6 w-6" />
             </div>
             <div className="text-center">
@@ -72,7 +72,7 @@ export function VerificationActions({
             onClick={() => setDisputeOpen(!disputeOpen)}
             className="group w-full bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground font-bold py-5 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-2.5 border-2 border-transparent hover:border-destructive/40"
           >
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-current/20 backdrop-blur-sm transition-transform group-hover:scale-110">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div className="text-center">

@@ -17,21 +17,21 @@ export function MediaRequirementsPanel({ config }: { config: MediaConfig }) {
       </div>
       <ul className="text-xs text-muted-foreground space-y-1">
         <li className="flex gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           At least {config.imageMinDimensionPx}×{config.imageMinDimensionPx} px
           (aim for {config.imageRecommendedMinPx} px on the longest side)
         </li>
         <li className="flex gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           Up to {mb(config.imageMaxBytes)} each · {formats}
         </li>
         <li className="flex gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           {config.productMinImagesToPublish}–{config.productMaxImages} photos to publish
           (drafts save with any number)
         </li>
         <li className="flex gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           {config.imageAutoNormaliseRatio
             ? `Any shape is fine: we'll pad odd shapes to ${config.imageAllowedRatios[0]} with a white border and show you first`
             : `Shape must be ${config.imageAllowedRatios.join(", ")}`}
@@ -45,7 +45,7 @@ export function MediaRequirementsPanel({ config }: { config: MediaConfig }) {
         </p>
       </div>
       <p className="text-xs text-muted-foreground flex gap-1.5">
-        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
         For clear photos: use a plain white background, centre the product and fill the frame; avoid text, prices or watermarks.
       </p>
     </div>
