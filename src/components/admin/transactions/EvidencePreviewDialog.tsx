@@ -53,7 +53,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-4xl max-h-[88vh] overflow-hidden p-0"
+        className="max-w-4xl max-h-[88dvh] overflow-hidden p-0"
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
@@ -68,7 +68,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
             </span>
           </div>
         </DialogHeader>
-        <div className="relative bg-black/40 max-h-[72vh] overflow-auto select-none">
+        <div className="relative bg-black/40 max-h-[72dvh] overflow-auto select-none">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -85,7 +85,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
                 src={url}
                 alt={item?.title ?? "evidence"}
                 draggable={false}
-                className="max-h-[68vh] max-w-full rounded shadow-lg pointer-events-none"
+                className="max-h-[68dvh] max-w-full rounded shadow-lg pointer-events-none"
               />
             ) : isVideo ? (
               <video
@@ -93,7 +93,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
                 controls
                 controlsList="nodownload noremoteplayback"
                 disablePictureInPicture
-                className="max-h-[68vh] max-w-full rounded shadow-lg"
+                className="max-h-[68dvh] max-w-full rounded shadow-lg"
               />
             ) : isPdf ? (
               iframeFailed ? (
@@ -114,7 +114,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
                   src={`${pdfUrl}#toolbar=0&navpanes=0`}
                   title="document"
                   onError={() => setIframeFailed(true)}
-                  className="w-full h-[68vh] rounded bg-white"
+                  className="w-full h-[68dvh] rounded bg-white"
                 />
               )
             ) : (

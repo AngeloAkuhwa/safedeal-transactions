@@ -17,7 +17,7 @@ export function FlaggedAdvancedFiltersSheet(props: Props) {
   const { open, onOpenChange, ...rest } = props;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="bg-slate-950 border-slate-800 text-white max-h-[90vh] overflow-y-auto">
+      <SheetContent side="bottom" className="bg-slate-950 border-slate-800 text-white max-h-[90dvh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-white">Filters</SheetTitle>
         </SheetHeader>

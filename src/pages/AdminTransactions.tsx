@@ -1169,7 +1169,7 @@ export default function AdminTransactions() {
 
       {/* Mobile filters sheet */}
       <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto bg-card">
+        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto bg-card">
           <SheetHeader>
             <SheetTitle>Filters</SheetTitle>
           </SheetHeader>

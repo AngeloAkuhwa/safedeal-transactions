@@ -96,7 +96,7 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldOff className="h-4 w-4 text-rose-400" />

@@ -105,7 +105,7 @@ export function AssignTaskDrawer({
                 className="h-11 bg-background/60 pl-7 text-xs"
               />
             </div>
-            <div className="mt-2 max-h-[46vh] space-y-1 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-1.5">
+            <div className="mt-2 max-h-[46dvh] space-y-1 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-1.5">
               {scored.length === 0 && (
                 <div className="p-6 text-center text-xs text-muted-foreground">No matching agents.</div>
               )}

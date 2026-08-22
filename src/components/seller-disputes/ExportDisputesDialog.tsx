@@ -106,7 +106,7 @@ export function ExportDisputesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl max-h-[85dvh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div>
             <DialogTitle className="text-xl font-bold text-foreground">Export Disputes</DialogTitle>

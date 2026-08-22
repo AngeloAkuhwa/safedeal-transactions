@@ -129,7 +129,7 @@ export function WorkloadTable({
           </article>
         ))}
       </div>
-      <div className="hidden max-h-[65vh] overflow-auto rounded-xl md:block">
+      <div className="hidden max-h-[65dvh] overflow-auto rounded-xl md:block">
         <table className="w-full min-w-[1240px]">
           <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>
           <thead className={THEAD}>

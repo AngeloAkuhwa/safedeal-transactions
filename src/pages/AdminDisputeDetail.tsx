@@ -196,7 +196,7 @@ export default function AdminDisputeDetail() {
   if (loading) {
     return (
       <AdminLayout title="Dispute" hideDefaultHeaders fullBleed>
-        <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+        <div className="flex h-[60dvh] items-center justify-center text-muted-foreground">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dispute…
         </div>
       </AdminLayout>
@@ -262,7 +262,7 @@ function ErrorPanel({ icon, title, message, onBack, onRetry }: {
   onBack: () => void; onRetry?: () => void;
 }) {
   return (
-    <div className="flex h-[60vh] items-center justify-center px-6">
+    <div className="flex h-[60dvh] items-center justify-center px-6">
       <Card className="max-w-md w-full">
         <div className="p-6 text-center">
           <div className="flex justify-center mb-3">{icon}</div>

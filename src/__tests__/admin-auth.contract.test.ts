@@ -17,7 +17,30 @@ import {
  */
 const d = hasTestCreds ? describe : describe.skip;
 
-d("admin edge functions: role enforcement contract", () => {
+/**
+ * Every assertion here is a real HTTP round trip to a deployed edge function,
+ * and there are over a hundred of them. Vitest's default per-test timeout is
+ * five seconds, which is generous for a unit test and tight for a cold start
+ * on a remote function that has not been called in a while.
+ *
+ * It bit twice in a row on one PR, on two different assertions, both timing
+ * out at exactly 5000ms while the rest of the suite passed and main was green.
+ * The diff on that PR was a viewport hook and a dialog component: nothing that
+ * could slow a remote endpoint down. Adding one more test file to the run was
+ * apparently enough to shift the parallel scheduling and tip a call that was
+ * already close to the edge.
+ *
+ * Twenty seconds is not a weaker assertion. The statuses checked below are
+ * unchanged, and a function that genuinely hangs still fails. What changes is
+ * that a slow network stops being reported as a broken contract, which is the
+ * failure mode that trains people to re-run a red build instead of reading it.
+ *
+ * Scoped to this describe rather than set globally: the other 1,200 tests are
+ * offline and should still fail fast when they hang.
+ */
+const LIVE_TIMEOUT_MS = 20_000;
+
+d("admin edge functions: role enforcement contract", { timeout: LIVE_TIMEOUT_MS }, () => {
   let buyerToken: string;
 
   beforeAll(async () => {

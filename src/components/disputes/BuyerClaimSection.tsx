@@ -102,7 +102,7 @@ function EvidenceViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-3xl max-h-[90dvh] overflow-auto">
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-sm truncate">
@@ -129,14 +129,14 @@ function EvidenceViewer({
             <img
               src={evidence.file_url}
               alt={evidence.file_name ?? "Evidence"}
-              className="max-w-full max-h-[70vh] rounded-lg object-contain"
+              className="max-w-full max-h-[70dvh] rounded-lg object-contain"
             />
           )}
           {isVideo && evidence.file_url && (
             <video
               src={evidence.file_url}
               controls
-              className="max-w-full max-h-[70vh] rounded-lg"
+              className="max-w-full max-h-[70dvh] rounded-lg"
             />
           )}
           {!isImage && !isVideo && evidence.file_url && (
