@@ -1,4 +1,5 @@
 import { Archive, EyeOff, Info, Package, X } from "lucide-react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -64,10 +65,11 @@ export function ManageVisibilityModal({
             <div className="flex items-start gap-4 p-4 bg-muted border border-border rounded-xl">
               <div className="w-20 h-20 rounded-lg bg-card border border-border flex-shrink-0 overflow-hidden">
                 {product.primary_image_url ? (
-                  <img
-                    src={product.primary_image_url}
+                  <ProductImage
+                    url={product.primary_image_url}
                     alt={product.title}
-                    className="w-full h-full object-cover"
+                    rendition="thumb"
+                    sizes="64px"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

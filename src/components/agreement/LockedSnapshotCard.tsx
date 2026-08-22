@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { ProductImage } from "@/components/common/ProductImage";
 import {
   Lock,
   Fingerprint,
@@ -76,10 +77,12 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                       className="flex gap-3 p-3 rounded-lg bg-background border border-border"
                     >
                       {b.primary_media_url ? (
-                        <img
-                          src={b.primary_media_url}
+                        <ProductImage
+                          url={b.primary_media_url}
                           alt={b.product_title}
-                          className="w-16 h-16 rounded object-cover flex-shrink-0"
+                          rendition="thumb"
+                          sizes="64px"
+                          className="h-16 w-16 flex-shrink-0 rounded"
                         />
                       ) : (
                         <div className="w-16 h-16 rounded bg-muted flex items-center justify-center flex-shrink-0">

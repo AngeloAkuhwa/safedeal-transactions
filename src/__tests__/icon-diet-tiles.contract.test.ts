@@ -31,6 +31,24 @@
  * icon. An earlier, looser className-only count of 128 swept in 44px `<button>`
  * controls (save, share, quantity plus and minus) and a product-image
  * container, which would have been a real regression if it had been acted on.
+ *
+ * "An icon" means a component imported from `lucide-react` in that same file,
+ * not merely a capitalised tag. The first version of this check took any
+ * capitalised child, and the day a raw `<img>` was replaced with
+ * `<ProductImage />` it flagged
+ *
+ *   <div className="w-10 h-10 rounded-lg border overflow-hidden bg-muted">
+ *     <ProductImage ... />
+ *   </div>
+ *
+ * as a decorative tile. It is not: the `bg-muted` is the placeholder behind a
+ * photo that has not loaded and the `overflow-hidden` is what clips the photo
+ * to the rounded corner. Deleting that wrapper would have removed both.
+ *
+ * That is the same mistake as `ArrowLeftRight` in the back-affordance guard
+ * and `<Link>` in the heading guard: matching on the shape of a tag instead of
+ * on what it is. The heading guard already resolves names from the import and
+ * this one now does too.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -56,14 +74,38 @@ const isCustomer = (rel: string) =>
 
 /**
  * A plain div, no hover state, equal width and height in the repeating range,
- * rounded, tinted, whose only child is one self-closing icon element.
+ * rounded, tinted, whose only child is one self-closing element. Whether that
+ * element is an ICON is decided separately, from the file's own imports.
  */
 const TILE = new RegExp(
   String.raw`<div\s+className="(?![^"]*hover:)(?=[^"]*\b[wh]-(8|9|10|11|12)\b)(?=[^"]*\b[hw]-\1\b)` +
     String.raw`(?=[^"]*rounded-)(?=[^"]*\bbg-(?:primary|success|warning|destructive|muted|accent)[\w/.-]*)` +
-    String.raw`[^"]*"\s*>\s*<[A-Z][A-Za-z0-9.]*\s[^>]*/>\s*</div>`,
+    String.raw`[^"]*"\s*>\s*<([A-Z][A-Za-z0-9.]*)\s[^>]*/>\s*</div>`,
   "gs",
 );
+
+/**
+ * The names this file imports from lucide-react, which is what "icon" means.
+ *
+ * The component name is capture group TWO, not one. Group one is the size,
+ * which has to be a real capture because the pattern backreferences it to
+ * require width and height to match. Reading `m[1]` here compared the icon
+ * name against "10" and never matched, so the check passed on every file
+ * including ones with real tiles in them. It was green and blind for exactly
+ * as long as it took to test it against a tile instead of against a clean
+ * tree, which is the whole argument for verifying a guard red rather than
+ * only verifying it green.
+ */
+function lucideNames(src: string): Set<string> {
+  const m = src.match(/import\s*\{([^}]*)\}\s*from\s*"lucide-react";/s);
+  if (!m) return new Set();
+  return new Set(
+    m[1]
+      .split(",")
+      .map((n) => n.trim().split(/\s+as\s+/).pop()!.trim())
+      .filter(Boolean),
+  );
+}
 
 /** `{/* … *\/}` as a unit first, so stripping cannot leave a bare `{}`. */
 const stripComments = (s: string) => s.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "");
@@ -81,10 +123,15 @@ describe("small icons do not get a box", () => {
     for (const file of files) {
       const rel = path.relative(ROOT, file);
       if (!isCustomer(rel)) continue;
-      const src = stripComments(fs.readFileSync(file, "utf8"));
+      const raw = fs.readFileSync(file, "utf8");
+      const icons = lucideNames(raw);
+      if (!icons.size) continue;
+      const src = stripComments(raw);
       for (const m of src.matchAll(TILE)) {
+        const name = m[2];
+        if (!icons.has(name)) continue;
         const line = src.slice(0, m.index ?? 0).split("\n").length;
-        offenders.push(`${rel}:${line}`);
+        offenders.push(`${rel}:${line}  <${name} />`);
       }
     }
 

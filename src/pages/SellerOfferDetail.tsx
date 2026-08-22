@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format as formatDate } from "date-fns";
@@ -198,7 +199,7 @@ export default function SellerOfferDetail() {
                 <div key={it.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border">
                   <div className="h-12 w-12 rounded-md bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
                     {it.primary_media_url
-                      ? <img src={it.primary_media_url} alt="" className="w-full h-full object-cover" />
+                      ? <ProductImage url={it.primary_media_url} alt="" rendition="thumb" sizes="80px" />
                       : <Package className="h-5 w-5 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 min-w-0">
