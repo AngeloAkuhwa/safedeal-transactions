@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, MessageSquare } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -140,8 +140,7 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
   return (
     <Card id="messages" className="rounded-2xl shadow-lg overflow-hidden">
       <div className="p-4 sm:p-6 border-b border-border bg-muted/30">
-        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-bold text-foreground">
           Messages
         </h3>
         <p className="text-xs text-muted-foreground mt-1">

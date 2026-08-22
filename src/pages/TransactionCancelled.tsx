@@ -1,7 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router";
-import {
-  Ban, ShieldCheck, Info, Lightbulb, Home, Headphones, Clock, Shield,
-} from "lucide-react";
+import { Ban, ShieldCheck, Lightbulb, Home, Headphones, Clock, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -97,8 +95,7 @@ export default function TransactionCancelled() {
 
             {/* Status Summary */}
             <div>
-              <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground mb-4">
                 Status Summary
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -125,8 +122,7 @@ export default function TransactionCancelled() {
 
             {/* Cancellation Reason */}
             <div>
-              <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <Info className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-bold text-foreground mb-4">
                 Cancellation Reason
               </h2>
 

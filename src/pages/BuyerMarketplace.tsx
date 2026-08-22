@@ -19,7 +19,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock, SlidersHorizontal } from "lucide-react";
+import { Search, PackageOpen, Shield, Lock, Clock, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input as PriceInput } from "@/components/ui/input";
@@ -149,8 +149,7 @@ export default function BuyerMarketplace() {
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="sd-page-title flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-primary" />
+              <h1 className="sd-page-title">
                 Marketplace
               </h1>
               <p className="sd-page-sub">

@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
-import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +15,7 @@ export function SellerDisputeBlockedPanel({ items }: Props) {
   return (
     <Card className="rounded-2xl border-destructive/20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Lock className="h-4 w-4 text-destructive" />
+        <CardTitle className="text-base">
           Blocked by Dispute
           <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs ml-auto">
             {items.length}

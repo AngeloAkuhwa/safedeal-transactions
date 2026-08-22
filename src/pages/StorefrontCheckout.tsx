@@ -1,10 +1,7 @@
 import { useParams, useSearchParams, useNavigate, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
-import {
-  ArrowLeft, Lock, ShieldCheck, Truck, Clock, Package, Star,
-  CheckCircle2, Loader2, AlertCircle, Shield, FileText, MapPin,
-} from "lucide-react";
+import { ArrowLeft, Lock, ShieldCheck, Truck, Package, CheckCircle2, Loader2, AlertCircle, Shield, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAvailableQuantity } from "@/lib/inventory";
@@ -202,8 +199,7 @@ const StorefrontCheckout = () => {
         <div className="lg:col-span-2 space-y-5">
           {/* Order Summary */}
           <div className={`${glassPanel} p-5`}>
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Order Summary
             </h2>
             <div className="flex gap-4">
@@ -246,8 +242,7 @@ const StorefrontCheckout = () => {
 
           {/* Seller Information */}
           <div className={`${glassPanel} p-5`}>
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Seller Information
             </h2>
             <div className="flex items-center gap-4">
@@ -275,8 +270,7 @@ const StorefrontCheckout = () => {
 
           {/* Delivery Method */}
           <div className={`${glassPanel} p-5`}>
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Truck className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Delivery Method
             </h2>
             <div className="space-y-3">
@@ -378,8 +372,7 @@ const StorefrontCheckout = () => {
           {/* Purchase Agreement */}
           {agreementBullets.length > 0 && (
             <div className={`${glassPanel} p-5`}>
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground mb-4">
                 Purchase Agreement
               </h2>
               <div className="rounded-xl border-l-4 border-primary bg-primary/5 p-4">

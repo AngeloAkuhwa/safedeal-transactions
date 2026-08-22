@@ -72,8 +72,7 @@ export function SellerVerificationSection({ verification, permissions, isLoading
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl">
             Account Verification
           </CardTitle>
         </CardHeader>
@@ -101,8 +100,7 @@ export function SellerVerificationSection({ verification, permissions, isLoading
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <ShieldCheck className="h-5 w-5 text-primary" />
+        <CardTitle className="text-xl">
           Account Verification
         </CardTitle>
       </CardHeader>

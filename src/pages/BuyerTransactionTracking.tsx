@@ -3,7 +3,7 @@ import { formatMoney } from "@/lib/format";
 import { alwaysClaim } from "@/lib/trust/trust-claims";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Shield, Clock, CheckCircle, Package, Truck, MapPin, AlertTriangle, FileText, HelpCircle, ExternalLink, X, BadgeCheck, Star, Lock, RefreshCw, Scale, Image as ImageIcon, ChevronRight } from "lucide-react";
+import { ArrowLeft, Shield, Clock, CheckCircle, Package, Truck, MapPin, AlertTriangle, FileText, ExternalLink, X, RefreshCw, Scale, Image as ImageIcon, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -211,8 +211,7 @@ const BuyerTransactionTracking = () => {
 
         {/* ── 8-step Progress Timeline ── */}
         <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 mb-6">
-          <h2 className="text-base sm:text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text-base sm:text-lg font-bold text-foreground mb-6">
             Order Progress
           </h2>
           <div className="overflow-x-auto pb-2">
@@ -334,8 +333,7 @@ const BuyerTransactionTracking = () => {
             {/* Delivery Tracking Card */}
             {(delivery_tracking || delivery_terms) && (
               <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-primary" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4">
                   Delivery Tracking
                 </h2>
                 <div className="space-y-4">
@@ -402,8 +400,7 @@ const BuyerTransactionTracking = () => {
             {/* Delivery Evidence */}
             {delivery_proof_files.length > 0 && (
               <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5 text-primary" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4">
                   Delivery Evidence
                 </h2>
                 <p className="text-xs text-muted-foreground mb-4">
@@ -436,8 +433,7 @@ const BuyerTransactionTracking = () => {
 
             {/* Transaction Timeline / Audit Log */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-5">
                 Transaction History
               </h2>
               {status_history.length === 0 ? (
@@ -486,8 +482,7 @@ const BuyerTransactionTracking = () => {
 
             {/* Item Summary */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-5">
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                <Package className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground mb-3">
                 Item Summary
               </h3>
               <div className="h-32 rounded-xl bg-muted flex items-center justify-center mb-3 overflow-hidden">
@@ -506,8 +501,7 @@ const BuyerTransactionTracking = () => {
             {/* Seller Info */}
             {seller && (
               <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-5">
-                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                  <BadgeCheck className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold text-foreground mb-3">
                   Seller
                 </h3>
                 <div className="flex items-center gap-3 mb-3">
@@ -528,8 +522,7 @@ const BuyerTransactionTracking = () => {
 
             {/* Payment Summary */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-5">
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                <Lock className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground mb-3">
                 Payment
               </h3>
               <div className="space-y-2">
@@ -558,8 +551,7 @@ const BuyerTransactionTracking = () => {
 
             {/* Help Card */}
             <div className="bg-muted/50 rounded-2xl border border-border p-4 sm:p-5">
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground mb-2">
                 Need Help?
               </h3>
               <p className="text-xs text-muted-foreground mb-3">

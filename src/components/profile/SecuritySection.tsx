@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Lock, KeyRound, Smartphone, Monitor, Bell, ChevronRight } from "lucide-react";
+import { KeyRound, Smartphone, Monitor, Bell, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,8 +99,7 @@ export function SecuritySection() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Lock className="h-5 w-5 text-destructive" />
+          <CardTitle className="text-xl">
             Security Settings
           </CardTitle>
         </CardHeader>

@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { supportLink } from "@/lib/support/support-copy";
-import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -8,8 +7,7 @@ export function DangerZoneSection() {
   return (
     <Card className="border-destructive/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
+        <CardTitle className="text-xl">
           Danger Zone
         </CardTitle>
       </CardHeader>
