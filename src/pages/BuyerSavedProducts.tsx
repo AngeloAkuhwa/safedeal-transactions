@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { useNavigate } from "react-router";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { useSavedProducts, useToggleSave } from "@/hooks/useSavedProducts";
@@ -185,11 +186,13 @@ export default function BuyerSavedProducts() {
                     {/* Image */}
                     <div className="relative aspect-square overflow-hidden bg-muted">
                       {item.primary_image_url ? (
-                        <img
-                          src={item.primary_image_url}
+                        <ProductImage
+                          url={item.primary_image_url}
                           alt={item.title}
+                          rendition="card"
+                          sizes="(max-width: 640px) 50vw, 300px"
                           className={cn(
-                            "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+                            "transition-transform duration-300 group-hover:scale-105",
                             outOfStock && "grayscale"
                           )}
                           loading="lazy"

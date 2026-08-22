@@ -1,5 +1,6 @@
 // SellerProductDetail page
 import { useParams, useNavigate } from "react-router";
+import { ProductImage } from "@/components/common/ProductImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
@@ -416,7 +417,7 @@ const SellerProductDetail = () => {
                             <video src={m.file_url} className="w-full h-full object-cover"></video>
                           )}
                           {m.media_type !== "video" && (
-                            <img src={m.file_url} alt={title} className="w-full h-full object-cover" />
+                            <ProductImage url={m.file_url} alt={title} rendition="card" sizes="(max-width: 640px) 25vw, 160px" />
                           )}
                           {idx === 0 && (
                             <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-xs font-semibold rounded">

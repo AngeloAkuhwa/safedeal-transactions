@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Lock, Clock, ChevronDown, ChevronUp, Package, ArrowRight, AlertTriangle } from "lucide-react";
@@ -102,7 +103,7 @@ function OfferCard({ offer, muted }: { offer: BuyerOffer; muted?: boolean }) {
     <Card className={`overflow-hidden hover:shadow-md transition-shadow ${muted ? "opacity-70" : ""}`}>
       {product?.primary_image_url ? (
         <div className="aspect-video bg-muted">
-          <img src={product.primary_image_url} alt={product.title} className="w-full h-full object-cover" />
+          <ProductImage url={product.primary_image_url} alt={product.title} rendition="thumb" sizes="80px" />
         </div>
       ) : (
         <div className="aspect-video bg-muted flex items-center justify-center">

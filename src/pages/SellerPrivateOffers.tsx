@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Lock, Search, Plus, Package } from "lucide-react";
@@ -187,7 +188,7 @@ function OfferRow({ offer }: { offer: SellerOffer }) {
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-md bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
             {firstItem?.primary_media_url
-              ? <img src={firstItem.primary_media_url} alt="" className="w-full h-full object-cover" />
+              ? <ProductImage url={firstItem.primary_media_url} alt="" rendition="thumb" sizes="80px" />
               : <Package className="h-4 w-4 text-muted-foreground" />}
           </div>
           <div className="min-w-0">

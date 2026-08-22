@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Boxes, Minus, Plus, Package, Info } from "lucide-react";
@@ -63,7 +64,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
             <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
               {product.primary_image_url ? (
-                <img src={product.primary_image_url} alt={product.title} className="h-full w-full object-cover" />
+                <ProductImage url={product.primary_image_url} alt={product.title} rendition="thumb" sizes="64px" />
               ) : (
                 <div className="h-full w-full flex items-center justify-center">
                   <Package className="h-6 w-6 text-muted-foreground/30" />

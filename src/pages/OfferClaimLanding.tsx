@@ -1,6 +1,7 @@
 // Thin resolver: validates token, redirects into the existing buyer flow.
 // Renders only loading + error states. The happy path always navigates away.
 import { useEffect, useState } from "react";
+import { ProductImage } from "@/components/common/ProductImage";
 import { useNavigate, useParams } from "react-router";
 import { Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -237,7 +238,7 @@ function AnonymousPreview({
                 <div key={it.id} className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex items-center justify-center shrink-0">
                     {it.primary_media_url ? (
-                      <img src={it.primary_media_url} alt={it.product_title} className="w-full h-full object-cover" />
+                      <ProductImage url={it.primary_media_url} alt={it.product_title} rendition="card" sizes="(max-width: 640px) 33vw, 200px" />
                     ) : (
                       <Package className="h-5 w-5 text-muted-foreground" />
                     )}

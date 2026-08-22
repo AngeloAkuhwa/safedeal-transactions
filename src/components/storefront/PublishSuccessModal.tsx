@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ProductImage } from "@/components/common/ProductImage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Eye, Store, Copy, Share2, Globe, Package, ArrowLeft, MessageCircle } from "lucide-react";
@@ -99,7 +100,7 @@ export function PublishSuccessModal({
           <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/50">
             <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
               {product.primary_image_url ? (
-                <img src={product.primary_image_url} alt={product.title} className="w-full h-full object-cover" />
+                <ProductImage url={product.primary_image_url} alt={product.title} rendition="thumb" sizes="80px" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Package className="h-6 w-6 text-muted-foreground/40" />
