@@ -415,3 +415,35 @@
     background-color: hsl(var(--popover));
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Scrolling stays where it started
+
+   87 scrollable regions in this app and not one of them set
+   `overscroll-behavior`. The default is `auto`, which means scroll chaining:
+   reach the end of an inner list and the gesture keeps going, scrolling
+   whatever is behind it.
+
+   That is the single clearest "this is a website" tell on a phone. Flick
+   through the items in a sheet, hit the bottom, and the page behind the sheet
+   starts moving. On iOS the whole document rubber-bands underneath a modal
+   that is supposed to be holding your attention. Nothing is broken, it just
+   feels like a web page wearing an app's clothes, which is exactly the thing
+   the mobile pass is trying to fix.
+
+   `contain` rather than `none`: the region keeps its own bounce at the
+   boundary, which is the feedback that tells a finger it has reached the end.
+   Only the chain to the ancestor is cut.
+
+   Applied to the utilities rather than to `body`, deliberately. Setting it on
+   the document would also disable pull-to-refresh, which is a browser
+   affordance this app has no business taking away.
+--------------------------------------------------------------------------- */
+.overflow-auto,
+.overflow-scroll,
+.overflow-x-auto,
+.overflow-x-scroll,
+.overflow-y-auto,
+.overflow-y-scroll {
+  overscroll-behavior: contain;
+}
