@@ -137,9 +137,7 @@ const AcceptInvite = () => {
 
         {status === "invalid" && (
           <div className="flex flex-col items-center py-6 text-center">
-            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-            </div>
+            <AlertTriangle className="h-6 w-6 text-destructive" />
             <h1 className="text-lg font-semibold text-foreground mb-1">
               Invitation link invalid or expired
             </h1>
@@ -155,9 +153,7 @@ const AcceptInvite = () => {
 
         {status === "ready" && (
           <>
-            <div className="flex items-center justify-center h-11 w-11 rounded-full bg-primary/10 mx-auto mb-4">
-              <MailCheck className="h-5 w-5 text-primary" />
-            </div>
+            <MailCheck className="mx-auto h-5 w-5 text-primary" />
             <h1 className="text-2xl font-bold text-foreground text-center mb-1">
               Welcome to SafeDeal
             </h1>

@@ -79,9 +79,7 @@ const PublicStorefront = () => {
       <header className="sticky top-0 z-sticky border-b bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-11">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <Shield className="h-4 w-4 text-primary-foreground" />
             <span className="text-base font-bold text-foreground">SafeDeal</span>
           </Link>
           <Button size="sm" variant="outline" asChild>

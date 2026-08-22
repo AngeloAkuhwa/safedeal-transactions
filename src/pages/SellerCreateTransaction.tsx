@@ -478,9 +478,7 @@ const SellerCreateTransaction = () => {
             <CardContent className="p-6 space-y-6">
               {/* Step header */}
               <div className="flex items-center gap-4 pb-4 mb-2 border-b border-border">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
+                <User className="h-6 w-6 text-primary" />
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">Buyer Information</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Enter the buyer's contact details to get started</p>

@@ -65,9 +65,7 @@ const BuyerVerification = () => {
             <span className="text-foreground font-medium">Verification</span>
           </nav>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-            </div>
+            <ShieldCheck className="h-4 w-4 text-primary" />
             <div>
               <h1 className="sd-page-title">Identity Verification</h1>
               <p className="sd-page-sub">

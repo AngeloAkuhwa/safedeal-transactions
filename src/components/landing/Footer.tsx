@@ -21,9 +21,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Shield className="h-[18px] w-[18px] text-primary-foreground" />
-              </div>
+              <Shield className="h-[18px] w-[18px] text-primary-foreground" />
               <span className="text-lg font-bold text-foreground">SafeDeal</span>
             </div>
             <p className="mb-4 max-w-sm text-[13px] text-muted-foreground">

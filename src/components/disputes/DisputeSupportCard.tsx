@@ -8,9 +8,7 @@ export function DisputeSupportCard({ reference }: { reference?: string | null } 
   return (
     <Card className="bg-primary/5 border-primary/20">
       <CardContent className="p-6 text-center space-y-3">
-        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-          <LifeBuoy className="h-6 w-6 text-primary" />
-        </div>
+        <LifeBuoy className="mx-auto h-6 w-6 text-primary" />
         <h3 className="text-base font-bold text-foreground">Need Assistance?</h3>
         <p className="text-sm text-muted-foreground">
           Our support team is available to help you understand the dispute process.

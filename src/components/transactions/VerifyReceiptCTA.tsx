@@ -18,9 +18,7 @@ export function VerifyReceiptCTA({ transactionId, deadlineAt, deliveredAt }: Ver
 
       <div className="bg-card rounded-2xl shadow-lg border-2 border-primary/30 p-5 sm:p-6">
         <div className="flex items-start gap-3 mb-4">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-5 w-5 text-primary" />
-          </div>
+          <AlertTriangle className="shrink-0 h-5 w-5 text-primary" />
           <div>
             <h2 className="text-base sm:text-lg font-bold text-foreground mb-1">Did you get what you ordered?</h2>
             <p className="text-sm text-muted-foreground">

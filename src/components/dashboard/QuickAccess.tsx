@@ -16,9 +16,7 @@ export function QuickAccess({ metrics }: QuickAccessProps) {
         <CardContent className="p-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <Scale className="h-4 w-4 text-destructive" />
-              </div>
+              <Scale className="h-4 w-4 text-destructive" />
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Disputes</h3>
                 <p className="text-xs text-muted-foreground">Manage your open disputes</p>
@@ -46,9 +44,7 @@ export function QuickAccess({ metrics }: QuickAccessProps) {
         <CardContent className="p-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-primary" />
-              </div>
+              <MapPin className="h-4 w-4 text-primary" />
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Track Purchases</h3>
                 <p className="text-xs text-muted-foreground">Monitor your order status</p>

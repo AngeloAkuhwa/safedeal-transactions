@@ -135,9 +135,7 @@ const BuyerProfileSettings = () => {
       {/* Compact header */}
       <section className="border-b bg-card/50">
         <div className="sd-page sd-page-y flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <UserCog className="h-4 w-4 text-primary" />
-          </div>
+          <UserCog className="h-4 w-4 text-primary" />
           <div>
             <h1 className="sd-page-title">Profile & Settings</h1>
             <p className="sd-page-sub">

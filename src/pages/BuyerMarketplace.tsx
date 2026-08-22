@@ -327,9 +327,7 @@ export default function BuyerMarketplace() {
           {/* Trust footer */}
           <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-5">
             <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
+              <Shield className="shrink-0 h-6 w-6 text-primary" />
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-foreground">
                   SafeDeal checkout

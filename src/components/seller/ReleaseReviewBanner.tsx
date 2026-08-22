@@ -18,9 +18,7 @@ export function ReleaseReviewBanner({ reason }: ReleaseReviewBannerProps) {
     return (
       <Card className="rounded-2xl border-l-4 border-warning bg-warning/5 p-5">
         <div className="flex items-start gap-4">
-          <div className="h-11 w-11 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
-            <AlertCircle className="h-5 w-5 text-warning" />
-          </div>
+          <AlertCircle className="shrink-0 h-5 w-5 text-warning" />
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-semibold text-foreground mb-1">
               Add a payout account to receive your funds
@@ -46,9 +44,7 @@ export function ReleaseReviewBanner({ reason }: ReleaseReviewBannerProps) {
   return (
     <Card className="rounded-2xl border-l-4 border-primary bg-primary/5 p-5">
       <div className="flex items-start gap-4">
-        <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-          <ShieldCheck className="h-5 w-5 text-primary" />
-        </div>
+        <ShieldCheck className="shrink-0 h-5 w-5 text-primary" />
         <div className="flex-1 min-w-0">
           <h3 className="text-base font-semibold text-foreground mb-1">
             SafeDeal is reviewing this transaction

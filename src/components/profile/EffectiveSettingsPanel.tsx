@@ -68,9 +68,7 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
   return (
     <section className="sd-card">
       <div className="sd-card-pad border-b border-border flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Settings2 className="h-4 w-4 text-primary" />
-        </div>
+        <Settings2 className="h-4 w-4 text-primary" />
         <div>
           <h3 className="h-card font-semibold">Your effective settings</h3>
           <p className="text-xs text-muted-foreground">Values that currently apply to your transactions (read-only).</p>

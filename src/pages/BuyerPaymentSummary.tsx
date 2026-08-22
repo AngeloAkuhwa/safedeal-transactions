@@ -54,9 +54,7 @@ function PaymentHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Shield className="h-5 w-5 text-primary-foreground" />
             <span className="text-2xl font-bold text-foreground">SafeDeal</span>
           </div>
         </div>
@@ -417,9 +415,7 @@ export default function BuyerPaymentSummary() {
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="max-w-md w-full text-center space-y-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-            </div>
+            <AlertTriangle className="mx-auto h-6 w-6 text-destructive" />
             <h1 className="text-xl font-bold text-foreground">We can't show the amount for this payment</h1>
             <p className="text-sm text-muted-foreground">
               The priced agreement for transaction {data.transaction.transaction_code} is incomplete, so we cannot
@@ -548,9 +544,7 @@ export default function BuyerPaymentSummary() {
             {/* Escrow Protection - Gradient Hero Card */}
             <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl shadow-lg p-6 text-primary-foreground">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-primary-foreground/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Shield className="h-6 w-6" />
-                </div>
+                <Shield className="h-6 w-6" />
                 <div>
                   <h2 className="text-xl font-bold">Payment setup</h2>
                   <p className="text-primary-foreground/70 text-sm">Creating secure escrow transaction</p>

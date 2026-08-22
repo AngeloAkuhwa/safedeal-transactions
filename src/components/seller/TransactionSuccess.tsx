@@ -117,9 +117,7 @@ export function TransactionSuccess({
         {/* ── Important Reminder Banner ── */}
         <div className="bg-gradient-to-r from-primary to-primary/90 rounded-2xl shadow-lg p-6 lg:p-8">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary-foreground/20 backdrop-blur-sm">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <Shield className="flex-shrink-0 h-6 w-6 text-primary-foreground" />
             <div className="flex-1">
               <h3 className="mb-2 text-xl font-bold text-primary-foreground">Transaction starts when the buyer pays</h3>
               <p className="text-primary-foreground/90 text-sm leading-relaxed">
@@ -221,9 +219,7 @@ export function TransactionSuccess({
         {/* ── Share Secure Link ── */}
         <Card className="rounded-2xl shadow-lg p-6 lg:p-8">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Share2 className="h-5 w-5 text-primary" />
-            </div>
+            <Share2 className="h-5 w-5 text-primary" />
             <div>
               <h2 className="text-2xl font-bold text-foreground">Share Private Offer Link</h2>
               <p className="text-sm text-muted-foreground">Send this unique offer link to the buyer through a private channel</p>
@@ -404,9 +400,7 @@ export function TransactionSuccess({
           {/* Protection active note */}
           <div className="mt-8 rounded-2xl border-2 border-border bg-muted/40 p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary">
-                <Shield className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <Shield className="flex-shrink-0 h-5 w-5 text-primary-foreground" />
               <div className="flex-1">
                 <h4 className="text-lg font-bold text-foreground mb-2">SafeDeal Protection Active After Payment</h4>
                 <p className="text-sm text-muted-foreground">Once the buyer pays through the link, the agreement locks and the transaction moves to fulfillment. Release remains subject to the recorded delivery, dispute, and payment states.</p>

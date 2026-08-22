@@ -53,9 +53,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
-              <Boxes className="h-4 w-4 text-primary" />
-            </div>
+            <Boxes className="h-4 w-4 text-primary" />
             <DialogTitle>Update Stock</DialogTitle>
           </div>
         </DialogHeader>
