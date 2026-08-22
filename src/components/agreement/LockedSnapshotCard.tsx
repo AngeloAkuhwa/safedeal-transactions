@@ -41,9 +41,7 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
         <div className="bg-gradient-to-r from-foreground to-foreground/90 px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-warning rounded-xl flex items-center justify-center">
-                <Lock className="h-6 w-6 text-warning-foreground" />
-              </div>
+              <Lock className="h-6 w-6 text-warning-foreground" />
               <div>
                 <h2 className="text-xl font-bold text-background">Locked Agreement Snapshot</h2>
                 <p className="text-background/60 text-sm">Immutable transaction record</p>

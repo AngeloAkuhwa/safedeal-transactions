@@ -615,9 +615,7 @@ const SellerTransactionDetail = () => {
               onClick={() => navigate(`/seller/transactions/${transactionId}/delivery`)}
               className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
             >
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Truck className="h-5 w-5 text-primary" />
-              </div>
+              <Truck className="h-5 w-5 text-primary" />
               <span className="text-xs font-semibold text-foreground">Update Delivery Status</span>
             </button>
           )}
@@ -628,9 +626,7 @@ const SellerTransactionDetail = () => {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
             >
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <ExternalLink className="h-5 w-5 text-primary" />
-              </div>
+              <ExternalLink className="h-5 w-5 text-primary" />
               <span className="text-xs font-semibold text-foreground">View Tracking</span>
             </a>
           )}
@@ -639,9 +635,7 @@ const SellerTransactionDetail = () => {
               onClick={handleCopyLink}
               className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
             >
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Copy className="h-5 w-5 text-primary" />
-              </div>
+              <Copy className="h-5 w-5 text-primary" />
               <span className="text-xs font-semibold text-foreground">Copy Buyer Link</span>
             </button>
           )}
@@ -649,9 +643,7 @@ const SellerTransactionDetail = () => {
             onClick={() => navigate(supportLink(tx.transaction_code, "transaction"))}
             className="flex flex-col items-center gap-2 p-4 border border-border rounded-2xl hover:bg-muted transition-colors"
           >
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Headphones className="h-5 w-5 text-primary" />
-            </div>
+            <Headphones className="h-5 w-5 text-primary" />
             <span className="text-xs font-semibold text-foreground">Contact Support</span>
           </button>
         </div>

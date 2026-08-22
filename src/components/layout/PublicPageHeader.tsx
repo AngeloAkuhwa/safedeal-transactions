@@ -27,9 +27,7 @@ export function PublicPageHeader({ current }: { current?: "marketplace" | "prici
     <header className="safe-top sticky top-0 z-sticky w-full border-b border-border/80 bg-background/85 shadow-sm backdrop-blur-md">
       <div className="sd-page flex h-14 items-center justify-between gap-3 sm:h-16">
         <Link to="/" className="flex min-h-11 items-center gap-2.5" aria-label="SafeDeal home">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md sm:h-10 sm:w-10">
-            <Shield className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" aria-hidden />
-          </div>
+          <Shield className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" aria-hidden />
           <span className="text-lg font-bold tracking-tight text-foreground sm:text-xl">SafeDeal</span>
         </Link>
 

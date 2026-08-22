@@ -339,9 +339,7 @@ export function DispatchForm({
                 className="hidden"
                 onChange={handleFileSelect}
               />
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Upload className="h-5 w-5 text-primary" />
-              </div>
+              <Upload className="mx-auto h-5 w-5 text-primary" />
               <p className="text-xs font-medium">Upload courier receipt or package photo</p>
               <p className="text-xs text-muted-foreground mt-1">Optional but recommended for dispute protection</p>
             </div>

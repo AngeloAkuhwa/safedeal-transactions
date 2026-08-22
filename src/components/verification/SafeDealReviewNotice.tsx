@@ -16,9 +16,7 @@ export function SafeDealReviewNotice({ deadlineAt, windowHours }: SafeDealReview
   return (
     <div className="bg-warning/5 border-2 border-warning/30 rounded-2xl shadow-lg p-5 lg:p-6">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center shrink-0">
-          <Clock className="h-5 w-5 text-warning" />
-        </div>
+        <Clock className="shrink-0 h-5 w-5 text-warning" />
         <div className="flex-1">
           <h3 className="text-base font-bold text-foreground mb-1.5">SafeDeal Review Notice</h3>
           <p className="text-sm text-muted-foreground mb-4">

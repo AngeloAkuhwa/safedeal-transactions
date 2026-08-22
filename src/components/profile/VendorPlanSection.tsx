@@ -103,9 +103,7 @@ export function VendorPlanSection() {
   return (
     <div className="rounded-xl border border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-          <Rocket className="h-4 w-4 text-primary" />
-        </div>
+        <Rocket className="h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-foreground">Plan & showcase slots</h2>
           <p className="text-xs text-muted-foreground">

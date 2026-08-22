@@ -79,9 +79,7 @@ export function SellerConfirmCompletionCard({
   return (
     <Card className="rounded-2xl shadow-md border-l-4 border-primary bg-primary/5 p-5 sm:p-6">
       <div className="flex items-start gap-4">
-        <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-        </div>
+        <ShieldCheck className="shrink-0 h-6 w-6 text-primary" />
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">

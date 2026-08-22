@@ -103,9 +103,7 @@ export function BuyerSidebar() {
       {/* Logo + collapse toggle */}
       <div className="flex items-center justify-between px-3 py-5">
         <div className={cn("flex items-center gap-2", isCollapsed && "justify-center w-full")}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
-            <Shield className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <Shield className="shrink-0 h-5 w-5 text-primary-foreground" />
           {!isCollapsed && (
             <span className="text-lg font-bold text-sidebar-foreground">SafeDeal</span>
           )}

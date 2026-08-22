@@ -269,9 +269,7 @@ const SellerStorefront = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
                     {/* Store Status */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
-                        <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-                      </div>
+                      <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">Store Status</p>
                         <div className="flex items-center gap-1.5">
@@ -285,9 +283,7 @@ const SellerStorefront = () => {
 
                     {/* Seller Rating */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
-                        <Star className="h-5 w-5 text-muted-foreground" />
-                      </div>
+                      <Star className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">Seller Rating</p>
                         <p className="text-sm font-semibold text-foreground">
@@ -300,9 +296,7 @@ const SellerStorefront = () => {
 
                     {/* Published Products */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted">
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                      </div>
+                      <Package className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">Published Products</p>
                         <p className="text-sm font-semibold text-foreground">

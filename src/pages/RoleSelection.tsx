@@ -169,9 +169,7 @@ const RoleSelection = () => {
               <div className="h-1.5 bg-primary w-full" />
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <ShoppingBag className="h-6 w-6 text-primary" />
-                  </div>
+                  <ShoppingBag className="h-6 w-6 text-primary" />
                   <div>
                     <h2 className="text-xl font-bold text-foreground">Buyer</h2>
                     <p className="text-xs text-muted-foreground">Secure purchases</p>
@@ -211,9 +209,7 @@ const RoleSelection = () => {
               <div className="h-1.5 bg-success w-full" />
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                    <Store className="h-6 w-6 text-success" />
-                  </div>
+                  <Store className="h-6 w-6 text-success" />
                   <div>
                     <h2 className="text-xl font-bold text-foreground">Seller</h2>
                     <p className="text-xs text-muted-foreground">Protected transactions</p>
@@ -292,9 +288,7 @@ const RoleSelection = () => {
 
         <section className="max-w-5xl mx-auto px-4 pb-12">
           <div className="rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-              <Lock className="h-5 w-5 text-success" />
-            </div>
+            <Lock className="shrink-0 h-5 w-5 text-success" />
             <div className="text-center sm:text-left flex-1">
               <h4 className="text-sm font-semibold text-foreground">Your information is secure</h4>
               <p className="text-xs text-muted-foreground mt-0.5">

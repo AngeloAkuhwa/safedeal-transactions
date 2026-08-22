@@ -604,9 +604,7 @@ function SellerIdentityCard({ data }: { data: ReviewData }) {
         {/* Trust profile grid */}
         <div className="bg-success/5 rounded-xl p-5 border-2 border-success/20 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-success rounded-lg flex items-center justify-center">
-              <ShieldCheck className="h-4 w-4 text-success-foreground" />
-            </div>
+            <ShieldCheck className="h-4 w-4 text-success-foreground" />
             <h4 className="text-base font-bold text-foreground">{alwaysClaim("SELLER_TRUST_PROFILE_HEADING")}</h4>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -733,27 +731,21 @@ function DeliveryCard({ data }: { data: ReviewData }) {
         </div>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-              <Truck className="h-5 w-5 text-primary" />
-            </div>
+            <Truck className="shrink-0 h-5 w-5 text-primary" />
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Delivery Method</p>
               <p className="text-lg font-bold text-foreground capitalize">{delivery.delivery_method.replace(/_/g, " ")}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center shrink-0">
-              <CalendarDays className="h-5 w-5 text-warning" />
-            </div>
+            <CalendarDays className="shrink-0 h-5 w-5 text-warning" />
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Expected Delivery</p>
               <p className="text-lg font-bold text-foreground">{formattedDate}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5 text-success" />
-            </div>
+            <Clock className="shrink-0 h-5 w-5 text-success" />
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase">Verification Window</p>
               <p className="text-lg font-bold text-foreground">{delivery.verification_window_hours} Hours</p>
@@ -829,9 +821,7 @@ function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; curren
   return (
     <div className="bg-success rounded-2xl shadow-2xl p-6 text-success-foreground border-2 border-success/40">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-10 h-10 bg-success-foreground/20 rounded-lg flex items-center justify-center">
-          <Shield className="h-5 w-5" />
-        </div>
+        <Shield className="h-5 w-5" />
         <h3 className="text-xl font-bold">{alwaysClaim("ESCROW_PROTECTION_HEADING")}</h3>
       </div>
       <div className="space-y-4 mb-6">
@@ -871,9 +861,7 @@ function FraudWarningCard() {
        colour is kept in reserve for states that genuinely are destructive. */
     <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning/15">
-          <AlertTriangle className="h-6 w-6 text-warning" />
-        </div>
+        <AlertTriangle className="shrink-0 h-6 w-6 text-warning" />
         <div className="min-w-0">
           <h3 className="mb-1 text-lg font-bold text-foreground">Only ever pay inside SafeDeal</h3>
           <p className="text-sm text-muted-foreground">Paying the seller directly leaves you unprotected</p>

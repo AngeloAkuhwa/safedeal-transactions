@@ -130,9 +130,7 @@ const SellerProfileSettings = () => {
       {/* Compact header */}
       <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border/60">
         <div className="sd-page py-3 sm:py-4 flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <UserCog className="h-4 w-4 text-primary" />
-          </div>
+          <UserCog className="shrink-0 h-4 w-4 text-primary" />
           <div className="min-w-0">
             <h1 className="sd-page-title">Profile & Settings</h1>
             <p className="sd-page-sub">

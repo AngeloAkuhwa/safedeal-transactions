@@ -11,9 +11,7 @@ export function NotificationEmptyState({ variant, onClearFilters }: Notification
   if (variant === "no-filter-match") {
     return (
       <div className="sd-card p-8 text-center">
-        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </div>
+        <Search className="mx-auto h-5 w-5 text-muted-foreground" />
         <h2 className="text-base font-semibold text-foreground mb-1">No matching notifications</h2>
         <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
           Try adjusting your filters or search to find what you're looking for.
@@ -29,9 +27,7 @@ export function NotificationEmptyState({ variant, onClearFilters }: Notification
 
   return (
     <div className="sd-card p-8 text-center">
-      <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
-        <BellOff className="h-5 w-5 text-success" />
-      </div>
+      <BellOff className="mx-auto h-5 w-5 text-success" />
       <h2 className="text-base font-semibold text-foreground mb-1">You're all caught up!</h2>
       <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
         Transaction updates, delivery alerts, and verification reminders will appear here.
