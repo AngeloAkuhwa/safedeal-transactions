@@ -229,6 +229,25 @@ function measure({ VW, scope, minTarget = 44, checkProse = false }) {
               clipperCls: cls(clipper),
               clipperW: Math.round(cr.width),
               clipperLeft: Math.round(cr.left),
+              // Where the clipper lives.
+              //
+              // Naming the clipper was not enough on its own. One run reported
+              // a clipper with w=0 sitting 33px past the viewport, which says
+              // the box collapsed but not what collapsed it, and the grid it
+              // appeared to belong to measured correctly in isolation. A box
+              // with no width is always a fact about its ancestors, so the
+              // ancestors come with the finding.
+              chain: (() => {
+                const out = [];
+                for (let a = clipper.parentElement, i = 0; a && i < 6; a = a.parentElement, i++) {
+                  const ab = a.getBoundingClientRect();
+                  out.push(
+                    `${a.tagName.toLowerCase()}.${(a.className || "").toString().slice(0, 34)}` +
+                      `[w=${Math.round(ab.width)} x=${Math.round(ab.left)}]`,
+                  );
+                }
+                return out;
+              })(),
             });
           }
         } else {
@@ -655,7 +674,8 @@ async function main() {
         "clipped",
         (o) =>
           `"${o.text}" lost=${o.lost}px by <${o.clipperTag} class="${o.clipperCls}"> ` +
-          `at x=${o.clipperLeft}..${o.clippedAt} (w=${o.clipperW})`,
+          `at x=${o.clipperLeft}..${o.clippedAt} (w=${o.clipperW})` +
+          (o.chain && o.chain.length ? `\n        inside: ${o.chain.join("\n             < ")}` : ""),
       ),
       example("glyph", (o) => `"${o.text}" box=${o.box}`),
       example("tiny", (o) => `"${o.text}" ${o.px}px`),
