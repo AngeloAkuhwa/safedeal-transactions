@@ -71,7 +71,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
               onClick={handleCopy}
               className="gap-1.5 shrink-0"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
@@ -104,7 +104,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
               onClick={handleWhatsApp}
               className="gap-1.5"
             >
-              <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
               WhatsApp
             </Button>
           </div>
@@ -112,7 +112,10 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
 
         {/* QR code */}
         <div className="flex w-full flex-col items-center gap-2 lg:w-auto">
-          <div className="bg-white rounded-2xl p-3">
+          {/* bg-white literally, not a token. A QR code is read by a camera
+              looking for dark modules on a light field, so the quiet zone has
+              to stay white in dark mode too. Theming this breaks scanning. */}
+          <div className="rounded-2xl bg-white p-3">
             <QRCodeSVG
               value={storeUrl}
               size={120}

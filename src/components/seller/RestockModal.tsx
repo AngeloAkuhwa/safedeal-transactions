@@ -71,11 +71,11 @@ export function RestockModal({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Reserved</p>
-              <p className="text-lg font-semibold text-amber-500">{currentReserved}</p>
+              <p className="text-lg font-semibold text-foreground">{currentReserved}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Available</p>
-              <p className="text-lg font-semibold text-emerald-500">{available}</p>
+              <p className="text-lg font-semibold text-foreground">{available}</p>
             </div>
           </div>
 

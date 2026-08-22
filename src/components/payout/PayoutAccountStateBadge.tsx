@@ -41,9 +41,9 @@ const COPY: Record<
 
 const TONE_CLASS: Record<"success" | "warning" | "muted", string> = {
   success:
-    "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100",
+    "border-success/30 bg-success/10 text-foreground hover:bg-success/15",
   warning:
-    "bg-amber-100 text-amber-900 border-amber-200 hover:bg-amber-100",
+    "border-warning/30 bg-warning/10 text-foreground hover:bg-warning/15",
   muted:
     "bg-muted text-muted-foreground border-border hover:bg-muted",
 };
