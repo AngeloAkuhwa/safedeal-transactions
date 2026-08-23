@@ -1,13 +1,7 @@
 import { Link, useLocation } from "react-router";
-import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  BellRing,
-  User,
-  Store,
-  type LucideIcon,
-} from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { BUYER_NAV_LINKS } from "@/components/buyer-navigation/links";
+import { SELLER_NAV_LINKS } from "@/components/seller/navigation/links";
 
 /**
  * Persistent mobile (<md) bottom tab bar for the authenticated buyer and
@@ -32,13 +26,15 @@ const BUYER_TABS: Tab[] = BUYER_NAV_LINKS.filter((l) => l.tabLabel).map((l) => (
   icon: l.icon,
 }));
 
-const SELLER_TABS: Tab[] = [
-  { label: "Home", href: "/seller", icon: LayoutDashboard },
-  { label: "Store", href: "/seller/storefront", icon: Store },
-  { label: "Deals", href: "/seller/transactions", icon: ArrowLeftRight },
-  { label: "Alerts", href: "/seller/notifications", icon: BellRing },
-  { label: "Profile", href: "/seller/profile", icon: User },
-];
+// Derived the same way as BUYER_TABS and for the same reason: this bar held
+// the seller's five destinations as its own list, one file away from the
+// buyer copy the audit caught in #47, and it had drifted the same way
+// (BellRing where the single copy settles on Bell).
+const SELLER_TABS: Tab[] = SELLER_NAV_LINKS.filter((l) => l.tabLabel).map((l) => ({
+  label: l.tabLabel!,
+  href: l.href,
+  icon: l.icon,
+}));
 
 export function getTabsForPath(pathname: string): Tab[] | null {
   if (pathname.startsWith("/admin")) return null;

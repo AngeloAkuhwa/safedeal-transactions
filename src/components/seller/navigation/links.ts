@@ -1,4 +1,5 @@
 import {
+  Bell,
   LayoutDashboard,
   Store,
   ArrowLeftRight,
@@ -14,6 +15,22 @@ export interface SellerNavLink {
   label: string;
   href: string;
   icon: LucideIcon;
+  /**
+   * Notifications is header chrome (the bell with the live unread count),
+   * not a row in the text nav, so its entry exists for the tab bar and the
+   * active rule without adding a duplicate row to the presentations that
+   * already surface it another way.
+   */
+  chromeOnly?: boolean;
+  /**
+   * Present on the five primary destinations, absent otherwise. The phone
+   * tab bar renders exactly the entries that carry one, under this shorter
+   * label. The subset is data here rather than a second list in the tab
+   * bar, which is where the buyer side's copy had already drifted onto its
+   * own bell icon before the audit caught it (#47). The seller tab list in
+   * MobileTabBar was the same defect one file over.
+   */
+  tabLabel?: string;
 }
 
 /**
@@ -31,14 +48,15 @@ export interface SellerNavLink {
  * so a link added here appears in both or in neither.
  */
 export const SELLER_NAV_LINKS: readonly SellerNavLink[] = [
-  { label: "Dashboard", href: "/seller", icon: LayoutDashboard },
-  { label: "Storefront", href: "/seller/storefront", icon: Store },
-  { label: "Transactions", href: "/seller/transactions", icon: ArrowLeftRight },
+  { label: "Dashboard", href: "/seller", icon: LayoutDashboard, tabLabel: "Home" },
+  { label: "Storefront", href: "/seller/storefront", icon: Store, tabLabel: "Store" },
+  { label: "Transactions", href: "/seller/transactions", icon: ArrowLeftRight, tabLabel: "Deals" },
   { label: "Analytics", href: "/seller/analytics", icon: BarChart3 },
   { label: "Private Offers", href: "/seller/offers", icon: Lock },
   { label: "Payouts", href: "/seller/payouts", icon: Wallet },
   { label: "Disputes", href: "/seller/disputes", icon: Scale },
-  { label: "Profile", href: "/seller/profile", icon: User },
+  { label: "Notifications", href: "/seller/notifications", icon: Bell, chromeOnly: true, tabLabel: "Alerts" },
+  { label: "Profile", href: "/seller/profile", icon: User, tabLabel: "Profile" },
 ] as const;
 
 /**

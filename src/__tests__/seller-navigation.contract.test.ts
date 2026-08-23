@@ -77,9 +77,20 @@ describe("seller navigation is defined once", () => {
       if (rel.includes("__tests__")) continue;
 
       const src = read(file);
-      const declarations = src.matchAll(/(?:const|let)\s+\w*[Nn]av\w*\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]/g);
+      // Any const/let array, not only ones named *nav*. The first version
+      // matched on the name and missed SELLER_TABS in MobileTabBar for
+      // exactly that reason: a copy does not have to call itself a nav to
+      // be one, and it had already drifted onto its own bell icon.
+      const declarations = src.matchAll(/(?:const|let)\s+\w+\s*(?::[^=]+)?=\s*\[([\s\S]*?)\]/g);
       for (const m of declarations) {
-        const hrefs = [...m[1].matchAll(/["'`](\/seller[^"'`]*)["'`]/g)].map((h) => h[1]);
+        // Content lists are allowed to point at seller routes: the dashboard
+        // declares quick-action cards and metric tiles whose entries carry a
+        // description or a value and whose hrefs are deep links with query
+        // strings. A navigation copy is bare destinations: label plus a
+        // plain seller path. Count only plain paths, and skip declarations
+        // that are visibly content rather than chrome.
+        if (/\b(?:description|value)\s*:/.test(m[1])) continue;
+        const hrefs = [...m[1].matchAll(/["'`](\/seller[^"'`?]*)["'`]/g)].map((h) => h[1]);
         if (hrefs.length >= 2) offenders.push(`${rel} declares ${hrefs.length} seller links`);
       }
     }
