@@ -1,13 +1,13 @@
 import { Link, useLocation } from "react-router";
 import {
   LayoutDashboard,
-  ShoppingBag,
   ArrowLeftRight,
   BellRing,
   User,
   Store,
   type LucideIcon,
 } from "lucide-react";
+import { BUYER_NAV_LINKS } from "@/components/buyer-navigation/links";
 
 /**
  * Persistent mobile (<md) bottom tab bar for the authenticated buyer and
@@ -21,13 +21,16 @@ interface Tab {
   icon: LucideIcon;
 }
 
-const BUYER_TABS: Tab[] = [
-  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Market", href: "/dashboard/marketplace", icon: ShoppingBag },
-  { label: "Deals", href: "/dashboard/transactions", icon: ArrowLeftRight },
-  { label: "Alerts", href: "/dashboard/notifications", icon: BellRing },
-  { label: "Profile", href: "/dashboard/profile", icon: User },
-];
+// Derived, not declared: the five primary destinations are the entries of
+// the canonical buyer list that carry a tabLabel. This bar had its own copy
+// and it had already drifted onto its own bell icon before the audit caught
+// it; deriving keeps hrefs and icons attached to the single source while the
+// short labels stay explicit data there.
+const BUYER_TABS: Tab[] = BUYER_NAV_LINKS.filter((l) => l.tabLabel).map((l) => ({
+  label: l.tabLabel!,
+  href: l.href,
+  icon: l.icon,
+}));
 
 const SELLER_TABS: Tab[] = [
   { label: "Home", href: "/seller", icon: LayoutDashboard },
