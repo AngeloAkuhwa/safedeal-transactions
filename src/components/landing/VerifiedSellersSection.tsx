@@ -54,7 +54,7 @@ export function VerifiedSellersSection() {
             If your customers find you in DMs, SafeDeal gives both sides one place to record and close the deal.
           </p>
           <p className="mx-auto mt-3 max-w-xl text-left text-sm font-semibold text-foreground sm:text-center">
-            Your own store link, free forever. We only earn when you get paid.
+            Your own store link, free forever. No listing fees, no setup fees: just protected payments.
           </p>
         </div>
 

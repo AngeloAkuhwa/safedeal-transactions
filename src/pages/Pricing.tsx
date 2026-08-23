@@ -12,7 +12,7 @@ import {
 } from "@/services/vendor-plan.service";
 import { usePublicPricing } from "@/hooks/usePublicPricing";
 
-const TITLE = "Pricing: Free forever, paid to grow | SafeDeal";
+const TITLE = "Pricing: Start selling for free | SafeDeal";
 
 const PLAN_ICONS: Record<string, typeof Shield> = {
   verified: Shield,
@@ -65,11 +65,11 @@ export default function Pricing() {
             <span className="text-xs font-semibold text-primary">Pricing</span>
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Free forever, paid to grow
+            Start selling for free
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">
-            Opening a store, listing products and taking protected payments costs nothing.
-            We only earn when you get paid safely.
+            Open your store, list your products and take protected payments at no cost.
+            Upgrade only when you want more room to grow.
           </p>
         </header>
 
@@ -198,7 +198,7 @@ export default function Pricing() {
         </section>
 
         <section className="mt-12 rounded-2xl border bg-muted/30 p-6 text-center">
-          <p className="text-base font-semibold">We only earn when you get paid safely.</p>
+          <p className="text-base font-semibold">Everything you need to sell safely, from day one.</p>
           <p className="mt-2 text-sm text-muted-foreground">
             No listing fees. No setup fees. Cancel a paid plan anytime. It simply runs to the end of
             the period you paid for, then returns to the free Verified plan.
