@@ -51,7 +51,7 @@ declare global {
 function PaymentHeader() {
   return (
     <header className="bg-card border-b sticky top-0 z-sticky">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sd-page">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary-foreground" />
@@ -465,7 +465,7 @@ export default function BuyerPaymentSummary() {
       {/* Context-aware Lock Banner */}
       {paymentBlocked && (
         <section className="bg-destructive/10 border-b border-destructive/20 py-4">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="sd-page">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-destructive shrink-0" />
@@ -508,7 +508,7 @@ export default function BuyerPaymentSummary() {
 
       {/* Trust banner */}
       <section className="bg-gradient-to-r from-success to-success/90 py-3">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="sd-page">
           <div className="flex items-center justify-center gap-3 text-success-foreground">
             <ShieldCheck className="h-5 w-5" />
             <p className="text-sm font-semibold">Your payment will be held securely until you confirm the item received</p>

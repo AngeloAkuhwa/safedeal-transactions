@@ -234,10 +234,17 @@
 /* ===== SafeDeal seller density system ===== */
 @layer utilities {
   /* Analytics-grade page chrome (dense, premium fintech) */
-  .sd-page        { @apply mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8; }
-  .sd-page-y      { @apply py-3 sm:py-4; }
+  /* The app shell breathes with the same lungs as the landing page. These
+     used to step at breakpoints (px-4 sm:px-6 lg:px-8) while container-x
+     below flowed with a clamp, which is exactly the "one system, not two"
+     drift the master plan names: the same viewport got two different
+     gutters depending on which half of the product drew it. The clamp here
+     is character for character the one in container-x, and a contract test
+     fails if they ever diverge. */
+  .sd-page        { @apply mx-auto w-full max-w-[1400px]; padding-inline: clamp(1rem, 2.5vw, 1.75rem); }
+  .sd-page-y      { padding-block: clamp(0.75rem, 1.2vw, 1rem); }
   .sd-section-y   { @apply space-y-3 sm:space-y-3.5; }
-  .sd-page-title  { @apply text-lg sm:text-xl font-bold tracking-tight text-foreground; }
+  .sd-page-title  { @apply font-bold tracking-tight text-foreground; font-size: clamp(1.125rem, 0.4vw + 1rem, 1.25rem); }
   .sd-page-sub    { @apply text-xs text-muted-foreground mt-0.5; }
   .sd-card        { @apply rounded-lg border bg-card shadow-sm hover:shadow-md transition-shadow; }
   .sd-card-pad    { @apply p-2.5 sm:p-3; }

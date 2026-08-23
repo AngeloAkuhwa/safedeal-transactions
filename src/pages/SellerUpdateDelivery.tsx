@@ -269,7 +269,7 @@ export default function SellerUpdateDelivery() {
     <div className="min-h-[100dvh] bg-background flex flex-col">
       <SellerNav sellerName={dashData?.seller?.full_name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8">
+      <main className="flex-1 w-full sd-page py-8 md:py-12 space-y-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <button onClick={() => navigate("/seller/transactions")} className="hover:text-foreground transition-colors min-h-11 inline-flex items-center">
