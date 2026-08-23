@@ -36,7 +36,6 @@ export interface ReviewData {
     /** Rate actually charged, observed from the snapshot. Null when unknown. */
     service_fee_rate: number | null;
     total_amount: number | null;
-    seller_payout_amount?: number | null;
     /** Persisted cap flag from `transaction_pricing`: never re-derived client side. */
     is_total_service_fee_capped?: boolean;
     /** Server-stated floor flag; null when unknown. Never re-derived client side. */
