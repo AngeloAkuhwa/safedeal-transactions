@@ -70,9 +70,11 @@ export function buildPublicPricingCopy(
       `Total Service Fee never exceeds ${ceilingText}.`,
     perDealLine: `${headline} per completed deal: capped at ${capText}`,
     refundLine: REFUND_SENTENCE,
+    // The meta description follows the voice contract too: the merchant's
+    // outcome leads, and the fee appears as a plain number, once.
     metaDescription:
-      `SafeDeal is free to start: open a store, list products and get paid safely. ` +
-      `We only earn when you get paid safely. ${headline} per completed deal, capped at ${capText}.`,
+      `Start selling for free on SafeDeal: open a store, list products and get paid safely. ` +
+      `${headline} per completed deal, capped at ${capText}. No listing or setup fees.`,
     photoSlotsAddon: {
       price: formatNaira(sachets.photo_slots.amount_naira),
       label: `+${sachets.photo_slots.slots} photo slots`,

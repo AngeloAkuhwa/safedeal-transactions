@@ -292,7 +292,7 @@ export function VendorPlanSection() {
         )}
 
         <p className="text-xs text-muted-foreground">
-          We only earn when you get paid safely. Plans are optional. Selling on SafeDeal is free.
+          Selling on SafeDeal is free, and plans are optional. Upgrade for more showcase room and a lower fee whenever it suits you.
         </p>
       </div>
     </div>
