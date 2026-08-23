@@ -31,7 +31,16 @@ export interface ResponsiveDialogProps {
   children?: React.ReactNode;
   /** Actions. Stacked full width in the sheet, right-aligned in the dialog. */
   footer?: React.ReactNode;
-  /** Extra classes for the content surface in both presentations. */
+  /**
+   * Extra classes for the content surface in both presentations.
+   *
+   * Sizing classes must be qualified `md:` or above. The dialog is centred by
+   * a translate, so narrowing it is harmless; the sheet is `inset-x-0`, so a
+   * bare `max-w-md` leaves a 448px panel against the left edge of the phone.
+   * `sm:` is 640px and this component swaps at 768, so `sm:` is the wrong
+   * prefix even though it is the reflex one. Enforced by
+   * `src/__tests__/responsive-dialog-width.contract.test.ts`.
+   */
   className?: string;
 }
 
@@ -88,9 +97,24 @@ export function ResponsiveDialog({
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
           {/* The body scrolls, the header and footer stay put, which is the
-              behaviour that makes a sheet feel native rather than like a page. */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">{children}</div>
-          {footer && <DrawerFooter className="pt-4">{footer}</DrawerFooter>}
+              behaviour that makes a sheet feel native rather than like a page.
+
+              `safe-bottom` when there is no footer, because then the body's
+              last child is the last thing in the sheet and the sheet is
+              `bottom-0`. Measured without it: the submit button of the reset
+              password sheet ended 1px above the bottom of a 390x844 screen,
+              which is under the home indicator on a phone that has one and
+              inside the gesture strip on Android. The footer branch already
+              carries `p-4` from DrawerFooter, so it only needs the inset. */}
+          <div
+            className={cn(
+              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4",
+              !footer && "safe-bottom",
+            )}
+          >
+            {children}
+          </div>
+          {footer && <DrawerFooter className="pt-4 safe-bottom">{footer}</DrawerFooter>}
         </DrawerContent>
       </Drawer>
     );

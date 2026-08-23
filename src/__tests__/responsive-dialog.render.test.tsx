@@ -75,6 +75,25 @@ describe("ResponsiveDialog", () => {
     expect(screen.getAllByText("Update stock").length).toBe(1);
   });
 
+  it("keeps the last control off the bottom edge of the phone", async () => {
+    // A sheet is `bottom-0`, so whatever is last inside it ends at the last
+    // pixel of the screen unless something says otherwise. Measured in
+    // Chromium at 390x844 before the fix, the reset password sheet's submit
+    // button ended at y=843 of 844: under the home indicator on a phone that
+    // has one, inside the gesture strip on Android, and awkward on anything.
+    //
+    // jsdom has no layout, so this cannot re-measure. What it can do is assert
+    // the class that does the work is still there, which is what a regression
+    // would remove. `.safe-bottom` is `max(1rem, env(safe-area-inset-bottom))`.
+    setViewport(390);
+    const { container } = render(<Harness width={390} />);
+    await waitFor(() => expect(screen.getByText("Update stock")).toBeTruthy());
+
+    const surface = document.querySelector('[role="dialog"]') ?? container;
+    const padded = surface.querySelector(".safe-bottom");
+    expect(padded).not.toBeNull();
+  });
+
   it("renders nothing while the viewport is undecided", async () => {
     // The state the naive implementation cannot represent: it collapses
     // undefined to false and commits to the desktop Dialog. This asserts that

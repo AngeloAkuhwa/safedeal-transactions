@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, FileCheck2, Package } from "lucide-react";
 import { formatMoney } from "@/lib/format";
@@ -51,106 +51,102 @@ export function PurchaseAuthModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 rounded-2xl overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle className="text-lg font-bold text-foreground">
-            Complete Your Purchase
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="px-6 py-5 space-y-5">
-          {/* Product preview card */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
-            <div className="h-16 w-16 rounded-lg bg-muted-foreground/10 flex items-center justify-center overflow-hidden shrink-0">
-              {product.image ? (
-                /* Was a bare <img>: no srcset, no Cloudinary transform, the
-                   full master download for a 64px box. */
-                <ProductImage url={product.image} alt={product.name} rendition="card" sizes="64px" />
-              ) : (
-                <Package className="h-6 w-6 text-muted-foreground/40" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground truncate">
-                {product.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Sold by {sellerName}
-              </p>
-              <p className="text-sm font-bold text-foreground mt-0.5">
-                {formatMoney(product.price, product.currency)}
-              </p>
-            </div>
-          </div>
-
-          {/* The fee belongs wherever the buyer decides to commit, and this
-              modal is one of those moments: it is the gate between "I want
-              this" and signing up to buy it. The product page already
-              discloses it; this was the one commit surface still showing a
-              bare price. */}
-          {feeDisclosure && (
-            <p className="text-xs leading-relaxed text-muted-foreground">{feeDisclosure}</p>
-          )}
-
-          {/* CTA text */}
-          <div className="text-center space-y-1">
-            <h3 className="text-base font-semibold text-foreground">
-              Create a free SafeDeal account to complete your purchase
-            </h3>
-            <p className="text-xs text-muted-foreground">Sign in or create an account to continue.</p>
-          </div>
-
-          {/* Value propositions */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <FileCheck2 className="shrink-0 h-4 w-4 text-primary" />
-              <span className="text-sm text-foreground">
-                Review the seller's item and delivery terms
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Lock className="shrink-0 h-4 w-4 text-primary" />
-              <span className="text-sm text-foreground">
-                Pay through the SafeDeal checkout
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Package className="shrink-0 h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">
-                Keep your order details in one account
-              </span>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="space-y-2.5">
-            <Button
-              className="w-full rounded-xl h-11 font-semibold"
-              onClick={() => navigateToAuth("signup")}
-            >
-              Create Account
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full rounded-xl h-11 font-semibold"
-              onClick={() => navigateToAuth("login")}
-            >
-              Log In
-            </Button>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 pb-5 text-center">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      // md:, not sm:. The sheet presentation runs below 768 and is edge to
+      // edge by design, so an unqualified max-width would pin it to 448px
+      // against the left edge of the phone.
+      className="md:max-w-md"
+      title="Complete Your Purchase"
+      description="Sign in or create an account to continue."
+      footer={
+        <div className="w-full space-y-2.5">
+          <Button
+            className="w-full rounded-xl h-11 font-semibold"
+            onClick={() => navigateToAuth("signup")}
+          >
+            Create Account
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full rounded-xl h-11 font-semibold"
+            onClick={() => navigateToAuth("login")}
+          >
+            Log In
+          </Button>
           <button
             onClick={() => onOpenChange(false)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11 inline-flex items-center"
+            className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11 inline-flex items-center justify-center"
           >
             Continue browsing
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <div className="space-y-5">
+        {/* Product preview card */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
+          <div className="h-16 w-16 rounded-lg bg-muted-foreground/10 flex items-center justify-center overflow-hidden shrink-0">
+            {product.image ? (
+              /* Was a bare <img>: no srcset, no Cloudinary transform, the
+                 full master download for a 64px box. */
+              <ProductImage url={product.image} alt={product.name} rendition="card" sizes="64px" />
+            ) : (
+              <Package className="h-6 w-6 text-muted-foreground/40" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {product.name}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sold by {sellerName}
+            </p>
+            <p className="text-sm font-bold text-foreground mt-0.5">
+              {formatMoney(product.price, product.currency)}
+            </p>
+          </div>
+      </div>
+
+      {/* The fee belongs wherever the buyer decides to commit, and this
+          modal is one of those moments: it is the gate between "I want
+          this" and signing up to buy it. The product page already
+          discloses it; this was the one commit surface still showing a
+          bare price. */}
+      {feeDisclosure && (
+        <p className="text-xs leading-relaxed text-muted-foreground">{feeDisclosure}</p>
+      )}
+
+      {/* The reason to sign up, once. It used to be a centred heading here
+          plus a near identical line under the title; the description slot
+          now carries the second half. */}
+      <p className="text-sm font-semibold text-foreground">
+        Create a free SafeDeal account to complete your purchase
+      </p>
+
+      {/* Value propositions */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <FileCheck2 className="shrink-0 h-4 w-4 text-primary" />
+          <span className="text-sm text-foreground">
+            Review the seller's item and delivery terms
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Lock className="shrink-0 h-4 w-4 text-primary" />
+          <span className="text-sm text-foreground">
+            Pay through the SafeDeal checkout
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Package className="shrink-0 h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-foreground">
+            Keep your order details in one account
+          </span>
+        </div>
+      </div>
+      </div>
+    </ResponsiveDialog>
   );
 }
