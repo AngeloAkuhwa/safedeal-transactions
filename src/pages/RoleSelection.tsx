@@ -248,9 +248,7 @@ const RoleSelection = () => {
             {infoCards.map((card) => (
               <Card key={card.title} className="text-center">
                 <CardContent className="p-6">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                    <card.icon className="h-5 w-5 text-primary" />
-                  </div>
+                  <card.icon className="mx-auto mb-3 h-5 w-5 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
                   <p className="text-xs text-muted-foreground">{card.description}</p>
                 </CardContent>

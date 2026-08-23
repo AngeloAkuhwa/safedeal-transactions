@@ -292,9 +292,7 @@ export default function BuyerTransactionReview() {
           <section className="py-4 bg-muted border-b">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-6">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${fundsHeld ? "bg-success/10" : "bg-warning/10"}`}>
-                  {fundsHeld ? <Lock className="h-5 w-5 text-success" /> : <Hourglass className="h-5 w-5 text-warning" />}
-                </div>
+                {fundsHeld ? <Lock className="h-5 w-5 shrink-0 text-success" /> : <Hourglass className="h-5 w-5 shrink-0 text-warning" />}
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Transaction Status</p>
                   <p className="text-sm font-bold text-foreground">{txStatusLabel}</p>
@@ -302,9 +300,7 @@ export default function BuyerTransactionReview() {
               </div>
               <div className="hidden sm:block w-px h-10 bg-border" />
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${fundsHeld ? "bg-success/10" : "bg-muted"}`}>
-                  {fundsHeld ? <Lock className="h-5 w-5 text-success" /> : <LockOpen className="h-5 w-5 text-muted-foreground" />}
-                </div>
+                {fundsHeld ? <Lock className="h-5 w-5 shrink-0 text-success" /> : <LockOpen className="h-5 w-5 shrink-0 text-muted-foreground" />}
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Money Status</p>
                   <p className={`text-sm font-bold ${fundsHeld ? "text-success" : "text-muted-foreground"}`}>{moneyLabel}</p>
