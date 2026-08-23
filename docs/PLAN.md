@@ -86,14 +86,14 @@ Done. Status values: `pending`, `in progress`, `blocked: <on what>`, `done
 
 | # | item | status |
 |---|---|---|
-| 0.1 | Merge #47 (buyer nav), #48 (hygiene), #45 (colour law `.ts`) when green; edge parse after each | in progress |
-| 0.2 | Rebuild main, full eleven-width audit, republish the preview artifact with the audit before/afters | pending |
+| 0.1 | Merge #47 (buyer nav), #48 (hygiene), #45 (colour law `.ts`) when green; edge parse after each | done (#45, #47, #48) |
+| 0.2 | Rebuild main, full eleven-width audit, republish the preview artifact with the audit before/afters | done (44 rows clean) |
 
 ### Phase 1: audit tail (small, independent, no user input needed)
 
 | # | item | why | guard | status |
 |---|---|---|---|---|
-| 1.1 | Seller tab list in `MobileTabBar` derives from `seller/navigation/links.ts` (same fix as buyer side in #47); extend the seller contract to see the tab bar | the last duplicated destination list in the app | extend `seller-navigation.contract` | pending |
+| 1.1 | Seller tab list in `MobileTabBar` derives from `seller/navigation/links.ts` (same fix as buyer side in #47); extend the seller contract to see the tab bar | the last duplicated destination list in the app | extend `seller-navigation.contract` | done (#50) |
 | 1.2 | Sweep the residual raw colours the widened lens can still see shrinking (admin ratchet only goes down opportunistically; no dedicated PR) | ratchet hygiene | `colour-law.contract` | standing |
 
 ### Phase 2: the design system arc (strict order; each gates the next)

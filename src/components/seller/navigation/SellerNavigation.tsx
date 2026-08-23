@@ -140,7 +140,7 @@ export function SellerNavigation({
         <VendorStatusBanner />
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-          {SELLER_NAV_LINKS.map((link) => {
+          {SELLER_NAV_LINKS.filter((l) => !l.chromeOnly).map((link) => {
             const isActive = isSellerLinkActive(location.pathname, link.href);
             return (
               <Link
@@ -245,7 +245,7 @@ export function SellerNavigation({
           audit only ever ran 320 to 414, where this nav is hidden.
         */}
         <nav className="hidden items-center gap-1 lg:flex">
-          {SELLER_NAV_LINKS.map((link) => {
+          {SELLER_NAV_LINKS.filter((l) => !l.chromeOnly).map((link) => {
             const isActive = isSellerLinkActive(location.pathname, link.href);
             return (
               <Link
@@ -306,7 +306,7 @@ export function SellerNavigation({
 
       {mobileOpen && (
         <div className="space-y-1 border-t bg-card px-4 py-4 lg:hidden">
-          {SELLER_NAV_LINKS.map((link) => {
+          {SELLER_NAV_LINKS.filter((l) => !l.chromeOnly).map((link) => {
             const isActive = isSellerLinkActive(location.pathname, link.href);
             return (
               <Link
