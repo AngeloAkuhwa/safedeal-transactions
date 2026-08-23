@@ -423,7 +423,7 @@ export default function BuyerPaymentSummary() {
               Nothing has been charged.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-              <Button variant="outline" onClick={() => navigate("/buyer/transactions")}>
+              <Button variant="outline" onClick={() => navigate("/dashboard/transactions")}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> My transactions
               </Button>
               <Button onClick={() => navigate("/contact")}>
