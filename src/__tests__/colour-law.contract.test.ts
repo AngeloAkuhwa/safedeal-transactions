@@ -73,27 +73,71 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
-    else if (entry.name.endsWith(".tsx")) out.push(full);
+    // .ts as well as .tsx. The original walk read .tsx only, and an audit
+    // found what that missed: alertConfig.ts carried 43 raw palette
+    // utilities (a complete hand-built amber accent and a sky accent) that
+    // rendered on the customer-facing seller alert surfaces while every
+    // colour gate reported green. A className is a className wherever the
+    // string lives; the file extension was never the right scope.
+    else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
   }
   return out;
 }
 
+/**
+ * Files that live outside the admin path but whose every importer is under
+ * components/admin or pages/Admin*. Verified by hand when each was added;
+ * they count against the admin budget because that is the only surface that
+ * renders them. Add a file here only after checking its importers the same
+ * way.
+ */
+const ADMIN_SURFACE_TS = new Set([
+  "src/services/permission-approval-rules.ts",
+  "src/services/admin-access-control.service.ts",
+]);
+
 const isAdmin = (rel: string) =>
-  rel.startsWith("src/components/admin/") || /^src\/pages\/Admin/.test(rel);
+  rel.startsWith("src/components/admin/") ||
+  /^src\/pages\/Admin/.test(rel) ||
+  rel.startsWith("src/services/admin-") ||
+  rel.startsWith("src/lib/admin-") ||
+  ADMIN_SURFACE_TS.has(rel);
 const isUi = (rel: string) => rel.startsWith("src/components/ui/");
 
 /**
  * The counts on the day this landed. Lower them as areas are converted; never
  * raise them. A rise means a component was written outside the token system.
+ *
+ * Re-anchored once when the walk widened from .tsx to .ts as well: the same
+ * code, seen through a wider lens, so the floor moved to what the wider lens
+ * measures. admin absorbed the .ts helper files under components/admin plus
+ * the two verified admin-surface services above. customer stayed at 12: the
+ * only customer .ts offender the wider walk found (alertConfig.ts, 43 raw
+ * utilities) was converted to the tone system in the same change rather than
+ * budgeted for.
  */
 const BUDGET = {
-  admin: 4053,
-  ui: 7,
+  admin: 4278,
+  ui: 4,
   customer: 12,
 };
 
-/** Literal hex, anywhere in a component. Same rule: it only goes down. */
-const HEX_BUDGET = 107;
+/*
+ * ui dropped 7 to 4 in the same change: the destructive toast close button's
+ * red-* utilities became destructive tokens. The remaining four are the
+ * bg-black/80 overlay scrims in dialog, alert-dialog, sheet and drawer: a
+ * dimming layer is deliberately black in both themes, because its job is to
+ * darken whatever is behind it, and a theme-following scrim would lighten in
+ * dark mode and stop dimming.
+ */
+/**
+ * Literal hex, anywhere in a component. Same rule: it only goes down.
+ * Re-anchored with the .ts widening for exactly two hexes, each checked:
+ * image-quality.ts flattens transparency onto "#ffffff" before JPEG encode
+ * (JPEG has no alpha, and the paper-white flatten has no dark mode to
+ * follow), and admin-consistency.ts styles a devtools console.log line.
+ */
+const HEX_BUDGET = 109;
 
 describe("the colour law ratchets", () => {
   const files = walk(path.join(ROOT, "src"));
