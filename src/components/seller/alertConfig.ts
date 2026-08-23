@@ -68,14 +68,20 @@ export const toneClasses: Record<Tone, {
   // --warning is 38 92% 50% and cannot reach 4.5:1 as body text on the light
   // background, which is exactly why the old amber palette hand-tuned nine
   // light/dark pairs and still shipped amber-800/90 body copy.
+  // The action button is the accent, not the tone. --warning is 38 92% 50%
+  // and cannot carry compliant button text in either direction: white on it
+  // is roughly 2:1, and the old amber-600 with white was little better. The
+  // colour law's own escape applies: the wash, hairline, glyph and chip say
+  // "warning", and the action itself is an action, in the one accent, at
+  // full contrast. Rendered and looked at before this shape was kept.
   warning: {
     container: "bg-warning/10 border-warning/35",
     icon: "text-warning",
     title: "text-foreground",
     body: "text-muted-foreground",
-    primaryBtn: "bg-warning text-warning-foreground hover:bg-warning/90",
+    primaryBtn: "bg-primary text-primary-foreground hover:bg-primary/90",
     secondaryBtn: "border border-warning/40 text-foreground hover:bg-warning/10",
-    countBadge: "bg-warning text-warning-foreground",
+    countBadge: "bg-warning/15 text-foreground",
     dueChip: "bg-warning/10 text-foreground border border-warning/30",
     groupHeader: "text-foreground",
   },
