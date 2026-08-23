@@ -5,6 +5,14 @@ the project runs on. Follow it unless the user overrides it in the moment.
 
 ## The loop
 
+**Plan first, always.** `docs/PLAN.md` is the single source of truth for what
+is done, what is next, and in what order. Read it before touching code. No
+fix starts until it exists there with its dependencies, its guard, and its
+do-not-break list. The PR that finishes an item updates PLAN.md in the same
+PR. This exists because session-local state produced circular work: things
+got re-derived, re-litigated and occasionally re-broken. The plan file is
+the memory.
+
 Branch, PR, self-review against the codebase, merge. Nothing goes to `main`
 directly.
 
