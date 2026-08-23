@@ -2,21 +2,15 @@ import { useNavigate, useLocation } from "react-router";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useQuery } from "@tanstack/react-query";
 import {
-  LayoutDashboard,
-  ShoppingBag,
-  ArrowLeftRight,
-  Heart,
-  AlertTriangle,
-  Bell,
   Settings,
   HelpCircle,
   Shield,
   Menu,
   X,
-  ShoppingCart,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { BUYER_NAV_LINKS, isBuyerLinkActive } from "@/components/buyer-navigation/links";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,15 +20,15 @@ import { getCartItems } from "@/services/cart.service";
 import { supportLink } from "@/lib/support/support-copy";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Marketplace", icon: ShoppingBag, path: "/dashboard/marketplace" },
-  { label: "Cart", icon: ShoppingCart, path: "/dashboard/cart", showBadge: true },
-  { label: "Saved", icon: Heart, path: "/dashboard/saved" },
-  { label: "Transactions", icon: ArrowLeftRight, path: "/dashboard/transactions" },
-  { label: "Disputes", icon: AlertTriangle, path: "/dashboard/disputes" },
-  { label: "Notifications", icon: Bell, path: "/dashboard/notifications" },
-];
+// One list for every buyer presentation; see links.ts for why. The audit
+// that produced this found Private Offers missing here entirely: from the
+// six shopping pages the destination did not exist in the chrome.
+const navItems = BUYER_NAV_LINKS.filter((l) => l.sidebar).map((l) => ({
+  label: l.label,
+  icon: l.icon,
+  path: l.href,
+  showBadge: l.showCartBadge === true,
+}));
 
 export function BuyerSidebar() {
   const navigate = useNavigate();
@@ -152,7 +146,7 @@ export function BuyerSidebar() {
       <nav className="flex-1 space-y-1 px-2 mt-2">
         <TooltipProvider delayDuration={0}>
           {navItems.map((item) => {
-            const active = location.pathname === item.path;
+            const active = isBuyerLinkActive(location.pathname, item.path);
             const button = (
               <button
                 key={item.path}
@@ -170,7 +164,7 @@ export function BuyerSidebar() {
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!isCollapsed && item.label}
-                {(item as any).showBadge && cartCount > 0 && (
+                {item.showBadge && cartCount > 0 && (
                   isCollapsed ? (
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
                   ) : (
@@ -190,7 +184,7 @@ export function BuyerSidebar() {
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs">
                     {item.label}
-                    {(item as any).showBadge && cartCount > 0 && ` (${cartCount})`}
+                    {item.showBadge && cartCount > 0 && ` (${cartCount})`}
                   </TooltipContent>
                 </Tooltip>
               );

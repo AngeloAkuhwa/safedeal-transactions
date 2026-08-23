@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
-import {
-  Shield, Bell, LogOut, Menu, X,
-  LayoutDashboard, ArrowLeftRight, Scale, BellRing, User, ShoppingBag, Lock,
-  ShoppingCart, Heart,
-} from "lucide-react";
+import { Shield, Bell, LogOut, Menu, X, ShoppingCart } from "lucide-react";
+import { BUYER_NAV_LINKS, isBuyerLinkActive } from "@/components/buyer-navigation/links";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,16 +19,8 @@ interface BuyerNavProps {
   avatarUrl: string | null;
 }
 
-const navLinks = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Marketplace", href: "/dashboard/marketplace", icon: ShoppingBag },
-  { label: "Saved", href: "/dashboard/saved", icon: Heart },
-  { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
-  { label: "Private Offers", href: "/dashboard/offers", icon: Lock },
-  { label: "Disputes", href: "/dashboard/disputes", icon: Scale },
-  { label: "Notifications", href: "/dashboard/notifications", icon: BellRing },
-  { label: "Profile", href: "/dashboard/profile", icon: User },
-];
+// One list for every buyer presentation; see links.ts for why.
+const navLinks = BUYER_NAV_LINKS.filter((l) => l.header);
 
 export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   const navigate = useNavigate();
@@ -132,8 +121,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
         */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-3 overflow-x-auto">
           {navLinks.map((link) => {
-            const isActive = location.pathname === link.href || 
-              (link.href !== "/dashboard" && location.pathname.startsWith(link.href));
+            const isActive = isBuyerLinkActive(location.pathname, link.href);
             return (
               <Link
                 key={link.href}
