@@ -4,19 +4,23 @@ import {
 } from "lucide-react";
 import type { SellerAlert } from "@/services/seller-dashboard.service";
 
-export type Tone = "destructive" | "amber" | "sky";
+// The vocabulary matches src/lib/tone.ts: danger, warning, info. The old
+// names were "destructive" | "amber" | "sky", and the last two were the
+// tell: they named colours, not meanings, because each carried a complete
+// hand-built palette that duplicated what the tone system already provides.
+export type Tone = "danger" | "warning" | "info";
 
 export const baseToneByType: Record<string, Tone> = {
-  payout_failed: "destructive",
-  dispute_response_required: "amber",
-  payout_account_required: "destructive",
-  payout_account_unverified: "amber",
-  delivery_proof_required: "amber",
-  awaiting_seller_confirmation: "amber",
-  identity_verification_required: "amber",
-  low_stock_warning: "amber",
-  out_of_stock_published: "sky",
-  awaiting_release: "sky",
+  payout_failed: "danger",
+  dispute_response_required: "warning",
+  payout_account_required: "danger",
+  payout_account_unverified: "warning",
+  delivery_proof_required: "warning",
+  awaiting_seller_confirmation: "warning",
+  identity_verification_required: "warning",
+  low_stock_warning: "warning",
+  out_of_stock_published: "info",
+  awaiting_release: "info",
 };
 
 export const iconByType: Record<string, typeof AlertTriangle> = {
@@ -33,8 +37,8 @@ export const iconByType: Record<string, typeof AlertTriangle> = {
 };
 
 export function resolveTone(alert: SellerAlert): Tone {
-  if (alert.severity === "critical") return "destructive";
-  return baseToneByType[alert.type] ?? "amber";
+  if (alert.severity === "critical") return "danger";
+  return baseToneByType[alert.type] ?? "warning";
 }
 
 export const toneClasses: Record<Tone, {
@@ -48,7 +52,7 @@ export const toneClasses: Record<Tone, {
   dueChip: string;
   groupHeader: string;
 }> = {
-  destructive: {
+  danger: {
     container: "bg-destructive/5 border-destructive/40",
     icon: "text-destructive",
     title: "text-foreground",
@@ -59,26 +63,31 @@ export const toneClasses: Record<Tone, {
     dueChip: "bg-destructive/10 text-destructive border border-destructive/30",
     groupHeader: "text-destructive",
   },
-  amber: {
-    container: "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800",
-    icon: "text-amber-600 dark:text-amber-400",
-    title: "text-amber-900 dark:text-amber-100",
-    body: "text-amber-800/90 dark:text-amber-200/80",
-    primaryBtn: "bg-amber-600 text-white hover:bg-amber-700",
-    secondaryBtn: "border border-amber-400 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/30",
-    countBadge: "bg-amber-600 text-white",
-    dueChip: "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-100",
-    groupHeader: "text-amber-700 dark:text-amber-300",
+  // Colour carries the wash, the hairline, the glyph and the solid button;
+  // the words run at full contrast. That is the tone system's contrast rule:
+  // --warning is 38 92% 50% and cannot reach 4.5:1 as body text on the light
+  // background, which is exactly why the old amber palette hand-tuned nine
+  // light/dark pairs and still shipped amber-800/90 body copy.
+  warning: {
+    container: "bg-warning/10 border-warning/35",
+    icon: "text-warning",
+    title: "text-foreground",
+    body: "text-muted-foreground",
+    primaryBtn: "bg-warning text-warning-foreground hover:bg-warning/90",
+    secondaryBtn: "border border-warning/40 text-foreground hover:bg-warning/10",
+    countBadge: "bg-warning text-warning-foreground",
+    dueChip: "bg-warning/10 text-foreground border border-warning/30",
+    groupHeader: "text-foreground",
   },
-  sky: {
-    container: "bg-sky-50 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800",
+  info: {
+    container: "bg-primary/10 border-primary/35",
     icon: "text-primary",
-    title: "text-sky-900 dark:text-sky-100",
-    body: "text-sky-800/90 dark:text-sky-200/80",
+    title: "text-foreground",
+    body: "text-muted-foreground",
     primaryBtn: "bg-primary text-primary-foreground hover:bg-primary/90",
-    secondaryBtn: "border border-sky-300 text-sky-800 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/30",
+    secondaryBtn: "border border-primary/35 text-foreground hover:bg-primary/10",
     countBadge: "bg-primary text-primary-foreground",
-    dueChip: "bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-900/40 dark:text-sky-100",
+    dueChip: "bg-primary/10 text-foreground border border-primary/30",
     groupHeader: "text-primary",
   },
 };

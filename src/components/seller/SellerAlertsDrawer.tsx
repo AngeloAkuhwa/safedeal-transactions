@@ -73,8 +73,8 @@ export function SellerAlertsDrawer({ open, onOpenChange, alerts, userId }: Selle
           {SEVERITY_ORDER.map((group) => {
             const items = visibleBySeverity[group.key];
             if (items.length === 0) return null;
-            const headerTone = group.key === "critical" ? "destructive"
-              : group.key === "action_required" ? "amber" : "sky";
+            const headerTone = group.key === "critical" ? "danger"
+              : group.key === "action_required" ? "warning" : "info";
             return (
               <section key={group.key}>
                 <h3 className={`mb-3 text-xs font-bold uppercase tracking-wide ${toneClasses[headerTone].groupHeader}`}>
