@@ -8,10 +8,10 @@ export function CTASection() {
     <section className="section-y border-t bg-muted/30">
       <div ref={ref} className="container-x mx-auto max-w-3xl text-center">
         <h2 className="h-section mb-2 font-bold text-foreground">
-          Ready to shop or sell with protection?
+          Your store could be live in minutes
         </h2>
         <p className="body-lead mx-auto mb-6 max-w-xl text-left text-muted-foreground sm:text-center">
-          Browse listings or create your own deal in minutes.
+          Free to open, protected from the very first sale.
         </p>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-5">

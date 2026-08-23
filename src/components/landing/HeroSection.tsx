@@ -15,12 +15,12 @@ export function HeroSection() {
             </p>
 
             <h1 className="h-display animate-fade-in mb-3 text-balance font-extrabold text-foreground">
-              Clear terms for every <span className="text-primary">online deal.</span>
+              Turn your DMs into a <span className="text-primary">real store.</span>
             </h1>
 
             <p className="body-lead animate-fade-in mx-auto mb-6 max-w-lg text-left text-muted-foreground sm:text-center lg:mx-0 lg:text-left [animation-delay:80ms]">
-              SafeDeal holds the buyer&apos;s payment until the item is delivered and confirmed. So
-              both sides can review the item, delivery, and payment terms. Free for sellers.
+              Open a free store, set your terms, and SafeDeal holds the buyer&apos;s payment until
+              delivery is confirmed. So buyers who found you in a DM can pay like they know you.
             </p>
 
             <div className="animate-fade-in [animation-delay:140ms]">
