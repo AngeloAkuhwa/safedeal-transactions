@@ -95,7 +95,7 @@ export function BuyerProductCard({
   return (
     <div
       className={cn(
-        "pcard group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm transition-all hover:shadow-lg cursor-pointer",
+        "pcard group relative flex h-full flex-col overflow-hidden rounded-2xl border border-transparent dark:border-border bg-card/60 backdrop-blur-sm shadow-[var(--shadow-card)] transition-all hover:shadow-lg cursor-pointer",
         outOfStock && "opacity-80",
         className,
       )}

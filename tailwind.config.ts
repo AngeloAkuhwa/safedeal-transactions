@@ -78,10 +78,21 @@ export default {
             ring: "hsl(var(--sidebar-ring))",
           },
         },
+      /**
+       * Every step derives from the one token. Before this, only sm/md/lg
+       * did: rounded-xl and rounded-2xl were Tailwind's fixed 12px and 16px,
+       * which made rounded-lg and rounded-xl render IDENTICALLY (both 12px
+       * with --radius at 0.75rem) across 800+ call sites, and meant the
+       * radius could never be tuned in one place. The offsets keep today's
+       * look nearly unchanged (xl moves 12 to 14px, 2xl stays 16px); the
+       * point is that there is now exactly one knob.
+       */
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 2px)",
+        "2xl": "calc(var(--radius) + 4px)",
       },
       keyframes: {
         "accordion-down": {
