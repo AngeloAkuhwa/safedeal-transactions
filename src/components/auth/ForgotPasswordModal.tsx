@@ -6,13 +6,7 @@ import { Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import {
   Form,
   FormControl,
@@ -69,52 +63,57 @@ const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) =
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Reset your password</DialogTitle>
-          <DialogDescription>
-            {sent
-              ? "Check your email for a password reset link."
-              : "Enter your email and we'll send you a link to reset your password."}
-          </DialogDescription>
-        </DialogHeader>
-
-        {sent ? (
-          <div className="flex flex-col items-center py-4">
-            <Mail className="h-6 w-6 text-primary" />
-            <p className="text-sm text-muted-foreground text-center">
-              If an account exists with that email, you'll receive a reset link shortly.
-            </p>
-            <Button className="mt-4" variant="outline" onClick={() => handleClose(false)}>
-              Close
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleClose}
+      // md:, not sm:. Below 768 this is an edge to edge sheet, and an
+      // unqualified max-width would pin it to 448px against the left edge.
+      className="md:max-w-md"
+      title="Reset your password"
+      description={
+        sent
+          ? "Check your email for a password reset link."
+          : "Enter your email and we'll send you a link to reset your password."
+      }
+    >
+      {/* The submit button stays inside the form rather than moving to the
+          footer slot: outside the <form> element `type="submit"` stops
+          submitting, and pressing return in the email field would be the only
+          way left to send the link. */}
+      {sent ? (
+        <div className="flex flex-col items-center gap-3 py-4">
+          <Mail className="h-6 w-6 text-primary" />
+          <p className="text-sm text-muted-foreground text-center">
+            If an account exists with that email, you'll receive a reset link shortly.
+          </p>
+          <Button className="w-full md:w-auto" variant="outline" onClick={() => handleClose(false)}>
+            Close
+          </Button>
+        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="name@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Send Reset Link
             </Button>
-          </div>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="name@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                Send Reset Link
-              </Button>
-            </form>
-          </Form>
-        )}
-      </DialogContent>
-    </Dialog>
+          </form>
+        </Form>
+      )}
+    </ResponsiveDialog>
   );
 };
 

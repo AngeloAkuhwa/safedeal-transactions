@@ -31,7 +31,16 @@ export interface ResponsiveDialogProps {
   children?: React.ReactNode;
   /** Actions. Stacked full width in the sheet, right-aligned in the dialog. */
   footer?: React.ReactNode;
-  /** Extra classes for the content surface in both presentations. */
+  /**
+   * Extra classes for the content surface in both presentations.
+   *
+   * Sizing classes must be qualified `md:` or above. The dialog is centred by
+   * a translate, so narrowing it is harmless; the sheet is `inset-x-0`, so a
+   * bare `max-w-md` leaves a 448px panel against the left edge of the phone.
+   * `sm:` is 640px and this component swaps at 768, so `sm:` is the wrong
+   * prefix even though it is the reflex one. Enforced by
+   * `src/__tests__/responsive-dialog-width.contract.test.ts`.
+   */
   className?: string;
 }
 

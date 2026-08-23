@@ -1,12 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { X, Paperclip, Send, Loader2, FileText } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
@@ -153,114 +147,112 @@ export function ContactSellerModal({
   const isValid = message.trim().length >= 10;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg w-full">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-            Send Message to {sellerName}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Messages are delivered securely through SafeDeal. Do not share payment details outside the platform.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-1">
-          {/* Textarea */}
-          <div>
-            <Textarea
-              placeholder="Describe your question or concern clearly… (min. 10 characters)"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[120px] resize-none text-sm"
-              disabled={isSending}
-            />
-            <p className={cn(
-              "text-xs mt-1 text-right transition-colors",
-              message.trim().length < 10 && message.length > 0
-                ? "text-destructive"
-                : "text-muted-foreground"
-            )}>
-              {message.trim().length} / min. 10 chars
-            </p>
-          </div>
-
-          {/* Drop zone */}
-          <div role="button" tabIndex={0} onKeyDown={keyActivate}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
-              isDragging
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/40"
-            )}
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleClose}
+      title={`Send Message to ${sellerName}`}
+      description="Messages are delivered securely through SafeDeal. Do not share payment details outside the platform."
+      footer={
+        <>
+          {/* Cancel first in the DOM so it lands left of the send button in the
+              dialog and above it in the sheet, which puts the action the buyer
+              actually came for nearest the thumb. */}
+          <Button
+            variant="outline"
+            className="w-full font-semibold rounded-xl md:w-auto"
+            onClick={handleClose}
+            disabled={isSending}
           >
-            <Paperclip className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              Drag & drop or <span className="text-primary font-semibold">browse</span>: images & PDFs, up to 10MB each
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf"
-              className="hidden"
-              onChange={(e) => e.target.files && addFiles(e.target.files)}
-            />
-          </div>
-
-          {/* File chips */}
-          {files.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {files.map((af) => (
-                <div
-                  key={af.id}
-                  className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5 text-xs font-medium text-foreground max-w-[200px]"
-                >
-                  {af.preview ? (
-                    <img src={af.preview} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
-                  ) : (
-                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="truncate">{af.file.name}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeFile(af.id); }}
-                    className="ml-1 shrink-0 text-muted-foreground hover:text-destructive transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
-                    aria-label="Remove file"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <Button
-              variant="outline"
-              className="flex-1 font-semibold rounded-xl"
-              onClick={handleClose}
-              disabled={isSending}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 font-bold rounded-xl"
-              onClick={handleSend}
-              disabled={!isValid || isSending}
-            >
-              {isSending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
-              ) : (
-                <><Send className="h-4 w-4" /> Send Message</>
-              )}
-            </Button>
-          </div>
+            Cancel
+          </Button>
+          <Button
+            className="w-full font-bold rounded-xl md:w-auto"
+            onClick={handleSend}
+            disabled={!isValid || isSending}
+          >
+            {isSending ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
+            ) : (
+              <><Send className="h-4 w-4" /> Send Message</>
+            )}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Textarea */}
+        <div>
+          <Textarea
+            placeholder="Describe your question or concern clearly… (min. 10 characters)"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-[120px] resize-none text-sm"
+            disabled={isSending}
+          />
+          <p className={cn(
+            "text-xs mt-1 text-right transition-colors",
+            message.trim().length < 10 && message.length > 0
+              ? "text-destructive"
+              : "text-muted-foreground"
+          )}>
+            {message.trim().length} / min. 10 chars
+          </p>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {/* Drop zone */}
+        <div role="button" tabIndex={0} onKeyDown={keyActivate}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
+            isDragging
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50 hover:bg-muted/40"
+          )}
+        >
+          <Paperclip className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Drag & drop or <span className="text-primary font-semibold">browse</span>: images & PDFs, up to 10MB each
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => e.target.files && addFiles(e.target.files)}
+          />
+        </div>
+
+        {/* File chips */}
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {files.map((af) => (
+              <div
+                key={af.id}
+                className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5 text-xs font-medium text-foreground max-w-[200px]"
+              >
+                {af.preview ? (
+                  <img src={af.preview} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
+                ) : (
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <span className="truncate">{af.file.name}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); removeFile(af.id); }}
+                  className="ml-1 shrink-0 text-muted-foreground hover:text-destructive transition-colors relative inline-flex items-center justify-center before:absolute before:-inset-4 before:content-[''] min-h-11 min-w-11"
+                  aria-label="Remove file"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+    </ResponsiveDialog>
   );
 }
