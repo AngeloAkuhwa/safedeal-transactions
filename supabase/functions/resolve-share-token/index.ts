@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("transaction_pricing")
-          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version")
+          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, is_total_service_fee_capped, pricing_model_version")
           .eq("transaction_id", txId)
           .maybeSingle(),
         supabase
@@ -134,13 +134,16 @@ Deno.serve(async (req) => {
        */
       service_fee_rate: number | null;
       total_amount: number | null;
-      seller_payout_amount: number | null;
       is_total_service_fee_capped: boolean;
       /** Null when the snapshot does not record whether the fee floor bound. */
       is_floored: boolean | null;
       pricing_model_version: string | null;
     } | null = null;
 
+    // seller_payout_amount is deliberately absent from both the select and
+    // the response. This endpoint answers to a bare share token with no
+    // login, and the seller's cut is the seller's business: no buyer screen
+    // consumed it, so shipping it was one devtools tab from disclosure.
     if (pricingRaw) {
       // Money never falls back to zero: an absent column stays null and the
       // client blocks the screen instead of rendering a fabricated amount.
@@ -161,7 +164,6 @@ Deno.serve(async (req) => {
             ? serviceFee / itemAmount
             : null,
         total_amount: totalAmount,
-        seller_payout_amount: num((pricingRaw as any).seller_payout_amount),
         // Cap facts travel with the snapshot so the UI never guesses which
         // ceiling applied or how large it was.
         is_total_service_fee_capped: Boolean((pricingRaw as any).is_total_service_fee_capped),
@@ -182,7 +184,6 @@ Deno.serve(async (req) => {
         service_fee_amount: null,
         service_fee_rate: null,
         total_amount: null,
-        seller_payout_amount: null,
         is_total_service_fee_capped: false,
         is_floored: null,
         pricing_model_version: null,

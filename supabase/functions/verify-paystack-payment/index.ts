@@ -75,6 +75,18 @@ export async function processPaystackVerification(
     return { success: true, alreadyProcessed: true };
   }
 
+  // 3b. A superseded payment must never complete. initiate-paystack-payment
+  //     marks older pending rows "failed" ("Superseded by retry") before it
+  //     issues a fresh charge, but nothing here refused them: a buyer who
+  //     kept the older, cheaper Paystack link open could finish that charge
+  //     and this function would have marked the transaction paid at the old
+  //     price, because the only guards were payment.status === "succeeded"
+  //     above and the transaction's money_status, which a retry resets to
+  //     payment_pending.
+  if (payment.status !== "pending") {
+    return { success: false, error: `Payment is ${payment.status}, not payable` };
+  }
+
   const txId = payment.transaction_id;
 
   // 4. Check Paystack status
@@ -104,6 +116,31 @@ export async function processPaystackVerification(
     });
 
     return { success: false, error: psData.gateway_response || "Payment was not successful" };
+  }
+
+  // 4b. The amount Paystack actually collected must equal the amount this
+  //     payment row was initiated for. Until this check, "status: success"
+  //     alone marked the transaction paid: correct only for as long as every
+  //     reference's charge amount stayed exactly what initiate set, which is
+  //     an assumption about Paystack's behaviour and our own retry logic,
+  //     not something this function verified. Paystack reports kobo; the row
+  //     stores naira. Half a kobo of float tolerance, no more.
+  const paidAmount = koboToNairaSafe(psData.amount);
+  const expectedAmount = Number(payment.amount);
+  const paidCurrency = String(psData.currency || "").toUpperCase();
+  const expectedCurrency = String(payment.currency_code || "").toUpperCase();
+  if (
+    !Number.isFinite(expectedAmount) ||
+    Math.abs(paidAmount - expectedAmount) > 0.005 ||
+    (expectedCurrency !== "" && paidCurrency !== expectedCurrency)
+  ) {
+    // Deliberately NOT marked failed: the charge really happened, and a
+    // mismatch is an operator problem to reconcile, not a state to erase.
+    await supabase.from("payments").update({ raw_payload: psData }).eq("id", payment.id);
+    console.error(
+      `verify-paystack-payment: amount mismatch for ${verifiedRef}: paid ${paidAmount} ${paidCurrency}, expected ${expectedAmount} ${expectedCurrency}`,
+    );
+    return { success: false, error: "amount_mismatch" };
   }
 
   // 5. Payment succeeded. Fetch transaction and pricing
