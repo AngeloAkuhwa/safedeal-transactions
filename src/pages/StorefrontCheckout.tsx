@@ -286,9 +286,10 @@ const StorefrontCheckout = () => {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isActive ? "bg-primary/10" : "bg-muted"}`}>
-                        <Truck className={`h-5 w-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      </div>
+                      {/* The row's border, wash and trailing check already say
+                          "selected"; a fourth signal in a boxed icon was the
+                          tile pattern the icon diet removes. */}
+                      <Truck className={`h-5 w-5 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                       <div className="flex-1">
                         <p className="font-semibold text-foreground">{resolveDeliveryMethod(m)}</p>
                         {product.estimated_delivery_days && (

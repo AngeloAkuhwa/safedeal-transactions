@@ -673,7 +673,7 @@ const PublicProductDetail = () => {
       }}
       sellerName={seller.full_name}
       feeDisclosure={pricingCopy.feeDisclosure}
-      returnPath={location.pathname}
+      returnPath={location.pathname + location.search}
       quantity={quantity}
     />
   );
