@@ -61,20 +61,37 @@ describe("tap targets reach 44px without changing visual size", () => {
   });
 
   it("the heart lives in the media well and the cart control in the content block", () => {
-    const heart = src.indexOf("before:-inset-2");
-    const cart = src.indexOf("relative z-rail h-8 w-8 shrink-0 rounded-lg");
-    expect(heart).toBeGreaterThan(-1);
-    expect(cart).toBeGreaterThan(heart);
-    expect(src.slice(heart, cart)).toContain("</div>");
+    // Re-anchored when the two buyer cards became one. The marketplace file
+    // now passes the heart through the shared card's imageAction slot and the
+    // cart through its action slot; the shared card is what fixes where those
+    // slots render (imageAction inside the image div, action on the price
+    // row), so the placement is asserted there.
+    expect(src.indexOf("imageAction=")).toBeGreaterThan(-1);
+    expect(src.indexOf("action=")).toBeGreaterThan(src.indexOf("imageAction="));
+    const shared = read("src/components/product/BuyerProductCard.tsx");
+    const imageDiv = shared.indexOf('aspect-square');
+    const imageActionSlot = shared.indexOf("{imageAction &&");
+    const contentDiv = shared.indexOf("flex flex-1 flex-col");
+    const actionSlot = shared.indexOf("{action}");
+    expect(imageActionSlot).toBeGreaterThan(imageDiv);
+    expect(imageActionSlot).toBeLessThan(contentDiv);
+    expect(actionSlot).toBeGreaterThan(contentDiv);
   });
 
   it("the cart control is hidden (not disabled) when add-to-cart is off", () => {
-    expect(src).toContain("{!gate.loading && !cartBlocked && (");
+    // Same intent, new shape: the delegation passes the control as a slot,
+    // so the gate is a ternary that resolves to null rather than a guard
+    // around inline JSX. Null means no control in the tree at all, which is
+    // hidden, not disabled.
+    expect(src).toContain("!gate.loading && !cartBlocked ? (");
   });
 });
 
 describe("cards stretch to equal height", () => {
-  it("storefront ProductCard uses h-full flex flex-col", () => {
-    expect(read("src/components/storefront/ProductCard.tsx")).toContain("h-full flex flex-col");
+  it("the one buyer card fills its grid cell", () => {
+    // The guarantee moved with the markup: the shared card owns the root
+    // element now, and rewriting this assertion is what caught that the
+    // first draft of the shared card had dropped h-full entirely.
+    expect(read("src/components/product/BuyerProductCard.tsx")).toContain("h-full");
   });
 });

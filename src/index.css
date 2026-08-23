@@ -447,3 +447,23 @@
 .overflow-y-scroll {
   overscroll-behavior: contain;
 }
+
+/* The one product card sizes its price by its own box, not the window.
+   `pcard` establishes an inline-size container; the price then clamps in cqw,
+   so a seven figure naira amount fits a 160px grid cell and does not shout in
+   a 360px one. The base font-size is the fallback for engines without
+   container queries, and it is the old ceiling, so the failure mode is the
+   pre-container behaviour rather than anything new. */
+.pcard {
+  container-type: inline-size;
+}
+.pcard-price {
+  font-size: 1rem;
+}
+@container (width > 0px) {
+  .pcard-price {
+    /* 12px floor (the repo's legibility minimum), 16px ceiling, scaled by
+       the card's own width between them. */
+    font-size: clamp(0.75rem, 8cqw, 1rem);
+  }
+}
