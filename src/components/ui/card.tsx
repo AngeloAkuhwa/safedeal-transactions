@@ -3,7 +3,19 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+  /* Borderless in light: the hairline becomes a transparent 1px box (so no
+     layout shifts anywhere) and elevation comes from --shadow-card. Dark
+     keeps a real hairline because a shadow cannot separate a surface from a
+     near-black ground. Callers that set their own border colour still win:
+     their classes merge after these. */
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-xl border border-transparent bg-card text-card-foreground shadow-[var(--shadow-card)] dark:border-border",
+      className,
+    )}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
 
