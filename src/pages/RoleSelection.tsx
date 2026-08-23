@@ -13,6 +13,7 @@ import { getSession, signOut } from "@/services/auth.service";
 import { getUserRoles, assignRole, checkRoleExists } from "@/services/role.service";
 import type { SelectableRole } from "@/services/role.service";
 import { isInternalUser } from "@/lib/internal-role";
+import { isSafeRelativePath, takeRedirect } from "@/lib/safe-redirect";
 import { PageSkeleton } from "@/components/common/PageSkeleton";
 
 const buyerFeatures = [
@@ -40,15 +41,13 @@ const RoleSelection = () => {
   const [submitting, setSubmitting] = useState<SelectableRole | null>(null);
 
 
-  const isSafeRelativePath = (path: string | null | undefined): path is string =>
-    !!path && path.startsWith("/") && !path.startsWith("//");
-
+  // The validator lives in src/lib/safe-redirect.ts now. This file's local
+  // copy was the only one of three consumers that validated at all, which
+  // is how the audit found the other two.
   const getRedirectTarget = () => {
     const paramRedirect = searchParams.get("redirect");
     if (isSafeRelativePath(paramRedirect)) return paramRedirect;
-    const storedRedirect = sessionStorage.getItem("safedeal_redirect");
-    if (isSafeRelativePath(storedRedirect)) return storedRedirect;
-    return null;
+    return takeRedirect();
   };
 
   useEffect(() => {
@@ -68,7 +67,6 @@ const RoleSelection = () => {
         const roleNames = roles.map((r) => r.role);
         const redirectTarget = getRedirectTarget();
         if (redirectTarget) {
-          sessionStorage.removeItem("safedeal_redirect");
           navigate(redirectTarget, { replace: true });
         } else {
           // Route to correct dashboard based on roles
@@ -109,7 +107,6 @@ const RoleSelection = () => {
       const destination = role === "seller" ? "/seller" : "/dashboard";
       const redirectTarget = getRedirectTarget();
       if (redirectTarget) {
-        sessionStorage.removeItem("safedeal_redirect");
         navigate(redirectTarget, { replace: true });
       } else {
         navigate(destination, { replace: true });

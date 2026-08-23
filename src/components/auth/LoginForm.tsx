@@ -19,6 +19,7 @@ import {
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import { signIn } from "@/services/auth.service";
 import { invalidateOldSessions, createSession } from "@/services/session.service";
+import { takeRedirect } from "@/lib/safe-redirect";
 import { getUserRoles } from "@/services/role.service";
 import { getAal, listFactors, verifyFactor, consumeRecoveryCode } from "@/services/mfa.service";
 import { Label } from "@/components/ui/label";
@@ -55,9 +56,8 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
     const { data: roles } = await getUserRoles(userId);
     toast.success("Welcome back!");
     if (roles && roles.length > 0) {
-      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      const storedRedirect = takeRedirect();
       if (storedRedirect) {
-        sessionStorage.removeItem("safedeal_redirect");
         navigate(storedRedirect, { replace: true });
         return;
       }

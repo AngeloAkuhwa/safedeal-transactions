@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, FileCheck2, Package } from "lucide-react";
+import { storeRedirect } from "@/lib/safe-redirect";
 import { formatMoney } from "@/lib/format";
 import { ProductImage } from "@/components/common/ProductImage";
 
@@ -43,7 +44,7 @@ export function PurchaseAuthModal({
   const navigate = useNavigate();
 
   const navigateToAuth = (mode: "login" | "signup") => {
-    sessionStorage.setItem("safedeal_redirect", returnPath);
+    storeRedirect(returnPath);
     if (quantity && quantity > 1) {
       sessionStorage.setItem("safedeal_quantity", String(quantity));
     }

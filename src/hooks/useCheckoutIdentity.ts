@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { storeRedirect } from "@/lib/safe-redirect";
 
 export type CheckoutAuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
@@ -79,12 +80,12 @@ export function useCheckoutIdentity(shareToken: string | undefined) {
       if (authState === "anonymous") {
         // Both the query string and sessionStorage, because the auth flow
         // reads one and the post-role flow reads the other.
-        sessionStorage.setItem("safedeal_redirect", returnTo);
+        storeRedirect(returnTo);
         navigate(`/auth?redirect=${encodeURIComponent(returnTo)}`);
         return true;
       }
       if (authState === "needs-role") {
-        sessionStorage.setItem("safedeal_redirect", returnTo);
+        storeRedirect(returnTo);
         navigate(`/role-selection?redirect=${encodeURIComponent(returnTo)}`);
         return true;
       }
