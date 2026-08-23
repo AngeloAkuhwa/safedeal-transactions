@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router";
+import { storeRedirect, takeRedirect } from "@/lib/safe-redirect";
 import { getSession } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
 import { Shield, ArrowLeft } from "lucide-react";
@@ -25,9 +26,10 @@ const Auth = () => {
 
   // Persist redirect URL so it survives auth + role selection
   useEffect(() => {
-    if (redirectParam) {
-      sessionStorage.setItem("safedeal_redirect", redirectParam);
-    }
+    // storeRedirect refuses anything that is not an app-internal path, so
+    // an attacker-crafted ?redirect=https://evil.com is dropped here rather
+    // than parked in storage for a later consumer to trust.
+    storeRedirect(redirectParam);
   }, [redirectParam]);
 
   useEffect(() => {
@@ -39,9 +41,8 @@ const Auth = () => {
         setCheckingSession(false);
         return;
       }
-      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      const storedRedirect = takeRedirect();
       if (storedRedirect) {
-        sessionStorage.removeItem("safedeal_redirect");
         navigate(storedRedirect, { replace: true });
         return;
       }
