@@ -150,10 +150,12 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * its softer /10-/20 badge maps stay verbatim because converting them to
  * the badge triad would move pixels, which a mechanical batch never does);
  * 4092 to 4045 (batch 4, FlaggedUsersTable chrome and tone glyphs; its
- * orange-300 accents stay verbatim, matching neither elevated nor warning).
+ * orange-300 accents stay verbatim, matching neither elevated nor warning);
+ * 4045 to 4002 (batch 5, PayoutDetailDrawer text roles, surfaces and tone
+ * accents).
  */
 const BUDGET = {
-  admin: 4045,
+  admin: 4002,
   ui: 4,
   customer: 12,
 };

@@ -14,6 +14,7 @@ import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import { getPayoutPill, getPayoutCaption, getAccountPresentation } from "@/lib/payout-presentation";
+import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
   open: boolean;
@@ -27,8 +28,8 @@ interface Props {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-slate-400 text-sm">{label}</span>
-      <span className="text-white text-sm text-right">{value}</span>
+      <span className={`${ADMIN_GROUND.muted} text-sm`}>{label}</span>
+      <span className={`${ADMIN_GROUND.heading} text-sm text-right`}>{value}</span>
     </div>
   );
 }
@@ -58,13 +59,13 @@ function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-white text-sm font-medium leading-snug">{gate.label}</p>
+          <p className={`${ADMIN_GROUND.heading} text-sm font-medium leading-snug`}>{gate.label}</p>
           <span className={`text-xs uppercase tracking-wide font-semibold shrink-0 ${
             gate.pass ? "text-emerald-400" : "text-red-400"}`}>
             {gate.pass ? "Pass" : "Action needed"}
           </span>
         </div>
-        {gate.detail && <p className="text-slate-400 text-xs mt-1 leading-snug">{gate.detail}</p>}
+        {gate.detail && <p className={`${ADMIN_GROUND.muted} text-xs mt-1 leading-snug`}>{gate.detail}</p>}
       </div>
     </div>
   );
@@ -73,7 +74,7 @@ function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
 function SellerAvatar({ name, src }: { name?: string | null; src?: string | null }) {
   const initial = (name ?? "?").trim().charAt(0).toUpperCase() || "?";
   return src ? (
-    <img src={src} alt={name ?? "Seller"} className="w-12 h-12 rounded-full object-cover border border-slate-700" />
+    <img src={src} alt={name ?? "Seller"} className={`w-12 h-12 rounded-full object-cover border ${ADMIN_GROUND.borderSoft}`} />
   ) : (
     <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-base">
       {initial}
@@ -159,12 +160,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="sticky top-0 z-sticky bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
-          <h3 className="text-white text-lg font-semibold">Payout Details</h3>
+      <SheetContent side="right" className={`w-full sm:max-w-[480px] p-0 bg-slate-900 border-l ${ADMIN_GROUND.border} shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar`}>
+        <div className={`sticky top-0 z-sticky bg-slate-900 border-b ${ADMIN_GROUND.border} p-6 flex items-center justify-between`}>
+          <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Payout Details</h3>
           <button
             onClick={onClose}
-            className="w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all"
+            className={`w-11 h-11 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} rounded-lg flex items-center justify-center ${ADMIN_GROUND.body} hover:text-white transition-all`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -195,14 +196,14 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               {/* Hero amount card */}
               <div className="bg-slate-800 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-slate-400 text-sm">Payout ID</span>
-                  <span className="text-white font-semibold text-sm font-mono truncate max-w-[240px]">{detail.transaction?.code ?? p!.id}</span>
+                  <span className={`${ADMIN_GROUND.muted} text-sm`}>Payout ID</span>
+                  <span className={`${ADMIN_GROUND.heading} font-semibold text-sm font-mono truncate max-w-[240px]`}>{detail.transaction?.code ?? p!.id}</span>
                 </div>
                 <div className="flex items-center justify-center py-4">
                   <div className="text-center">
-                    <p className="text-slate-400 text-sm mb-2">Amount</p>
-                    <p className="text-white text-4xl font-bold">{formatMoneyOrDash(p!.amount, p!.currency)}</p>
-                    <p className="text-slate-400 text-sm mt-1">{detail.seller?.name ?? "Seller"}</p>
+                    <p className={`${ADMIN_GROUND.muted} text-sm mb-2`}>Amount</p>
+                    <p className={`${ADMIN_GROUND.heading} text-4xl font-bold`}>{formatMoneyOrDash(p!.amount, p!.currency)}</p>
+                    <p className={`${ADMIN_GROUND.muted} text-sm mt-1`}>{detail.seller?.name ?? "Seller"}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-center">
@@ -226,12 +227,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
               {/* Seller information */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Seller Information</h4>
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Seller Information</h4>
                 <div className="bg-slate-800 rounded-lg p-4 flex items-center gap-3">
                   <SellerAvatar name={detail.seller?.name} src={detail.seller?.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{detail.seller?.name ?? "Unknown seller"}</p>
-                    <p className="text-slate-400 text-xs truncate">{detail.seller?.email ?? "—"}</p>
+                    <p className={`${ADMIN_GROUND.heading} text-sm font-medium truncate`}>{detail.seller?.name ?? "Unknown seller"}</p>
+                    <p className={`${ADMIN_GROUND.muted} text-xs truncate`}>{detail.seller?.email ?? "—"}</p>
                   </div>
                 </div>
               </div>
@@ -239,12 +240,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               {/* Eligibility */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-white font-semibold text-sm">Eligibility Checklist</h4>
+                  <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Eligibility Checklist</h4>
                   <span className={`text-xs font-semibold ${detail.eligibility.eligible ? "text-emerald-400" : "text-amber-400"}`}>
                     {passed}/{total} ready
                   </span>
                 </div>
-                <p className="text-slate-400 text-xs">Live pre-release audit pulled from the database. Failing items must be cleared before release.</p>
+                <p className={`${ADMIN_GROUND.muted} text-xs`}>Live pre-release audit pulled from the database. Failing items must be cleared before release.</p>
                 <div className="space-y-2">
                   {gates.map((g) => <ChecklistItem key={g.key} gate={g} />)}
                 </div>
@@ -252,21 +253,21 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
               {/* Pricing */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Pricing breakdown</h4>
-                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Pricing breakdown</h4>
+                <div className={`${ADMIN_GROUND.raised} rounded-lg p-4 space-y-2`}>
                   <Row label="Item Total" value={formatMoneyOrDash(detail.pricing.item_total, detail.pricing.currency)} />
                   <Row label="Protection Fee" value={formatMoneyOrDash(detail.pricing.protection_fee, detail.pricing.currency)} />
                   <Row label="Payment Processing Fee" value={formatMoneyOrDash(detail.pricing.payment_processing_fee, detail.pricing.currency)} />
                   <div className="border-t border-slate-700 my-2" />
                   <Row label="Total Charged" value={
-                    <span className="font-semibold text-white">
+                    <span className={`font-semibold ${ADMIN_GROUND.heading}`}>
                       {formatMoneyOrDash(detail.pricing.total_charged, detail.pricing.currency)}
                     </span>
                   } />
-                  <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
+                  <Row label="Seller Payout" value={<span className={`font-semibold ${ADMIN_TONE.success.text}`}>{formatMoneyOrDash(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
                   {detail.pricing.release_amount_mismatch && (
                     <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
-                      <p className="text-amber-300 text-xs font-semibold">Release amount mismatch</p>
+                      <p className={`${ADMIN_TONE.warning.text} text-xs font-semibold`}>Release amount mismatch</p>
                       <p className="text-amber-200/80 text-xs mt-1">
                         Agreement snapshot says{" "}
                         {detail.pricing.seller_payout != null
@@ -285,12 +286,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
               {/* Account */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Seller payout account</h4>
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Seller payout account</h4>
                 {detail.payout_account ? (
                   (() => {
                     const ap = getAccountPresentation(detail.payout_account);
                     return (
-                  <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                  <div className={`${ADMIN_GROUND.raised} rounded-lg p-4 space-y-2`}>
                     <Row label="Bank" value={detail.payout_account.bank_name ?? "—"} />
                     <Row label="Account" value={detail.payout_account.masked_account ?? "—"} />
                     <Row label="Account name" value={detail.payout_account.account_name ?? "—"} />
@@ -301,19 +302,19 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     } />
                     <Row label="Recipient code" value={
                       ap.drawerRecipientPresent
-                        ? <span className="inline-flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" />present</span>
-                        : <span className="text-red-400">missing</span>
+                        ? <span className={`inline-flex items-center gap-1 ${ADMIN_TONE.success.text}`}><ShieldCheck className="h-3.5 w-3.5" />present</span>
+                        : <span className={ADMIN_TONE.danger.text}>missing</span>
                     } />
                   </div>
                     );
                   })()
-                ) : <p className="text-sm text-slate-400">No payout account on file.</p>}
+                ) : <p className={`text-sm ${ADMIN_GROUND.muted}`}>No payout account on file.</p>}
               </div>
 
               {/* Transaction details */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Transaction Details</h4>
-                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Transaction Details</h4>
+                <div className={`${ADMIN_GROUND.raised} rounded-lg p-4 space-y-2`}>
                   <Row label="Code" value={<span className="font-mono text-xs">{detail.transaction?.code ?? "—"}</span>} />
                   <Row label="Item" value={<span className="truncate max-w-[220px] inline-block">{detail.transaction?.item_title ?? "—"}</span>} />
                   <Row label="Status" value={detail.transaction?.status ?? "—"} />
@@ -324,20 +325,20 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
               {/* Payout history */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Payout History</h4>
-                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Payout History</h4>
+                <div className={`${ADMIN_GROUND.raised} rounded-lg p-4 space-y-2`}>
                   <Row label="Queued" value={fmtDateTime(p!.entered_queue_at)} />
                   <Row label="Initiated" value={fmtDateTime(p!.initiated_at)} />
                   <Row label="Released" value={fmtDateTime(p!.released_at)} />
                   <Row label="Attempts" value={String(p!.failed_attempt_count ?? 0)} />
-                  {p!.failure_reason && <Row label="Failure reason" value={<span className="text-red-400">{p!.failure_reason}</span>} />}
+                  {p!.failure_reason && <Row label="Failure reason" value={<span className={ADMIN_TONE.danger.text}>{p!.failure_reason}</span>} />}
                   {p!.provider_reference && <Row label="Provider ref" value={<span className="font-mono text-xs">{p!.provider_reference}</span>} />}
                 </div>
               </div>
 
               {/* Linked */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Linked records</h4>
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Linked records</h4>
                 <div className="flex flex-col gap-2">
                   {detail.transaction?.id && (
                     <button className={`${actionBtn} justify-between min-h-11`} onClick={() => navigate(`/admin/transactions/${detail.transaction!.id}`)}>
@@ -355,12 +356,12 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               {/* Complete Transaction Timeline */}
               <div className="space-y-3">
                 <div>
-                  <h4 className="text-white font-semibold text-sm">Complete Transaction Timeline</h4>
-                  <p className="text-slate-400 text-xs mt-0.5">All events, status changes, and interventions</p>
+                  <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Complete Transaction Timeline</h4>
+                  <p className={`${ADMIN_GROUND.muted} text-xs mt-0.5`}>All events, status changes, and interventions</p>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 max-h-96 overflow-y-auto no-scrollbar">
                   {timelineItems.length === 0 ? (
-                    <p className="text-xs text-slate-400">No events recorded.</p>
+                    <p className={`text-xs ${ADMIN_GROUND.muted}`}>No events recorded.</p>
                   ) : (
                     <AdminCaseTimeline
                       items={timelineItems as any}
@@ -373,7 +374,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
               {/* Actions */}
               <div className="space-y-3 pb-4">
-                <h4 className="text-white font-semibold text-sm">Actions</h4>
+                <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Actions</h4>
                 <div className="flex flex-col gap-2">
                   <button
                     className={
@@ -415,10 +416,10 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   )}
                 </div>
                 {!releaseEnabled && p!.status === "awaiting_release" && (
-                  <p className="text-xs text-slate-500 mt-1">Release is disabled: resolve the failing gate above before retrying.</p>
+                  <p className={`text-xs ${ADMIN_GROUND.faint} mt-1`}>Release is disabled: resolve the failing gate above before retrying.</p>
                 )}
                 {p!.status === "failed" && !retryEnabled && (
-                  <p className="text-xs text-slate-500 mt-1">Retry is disabled: the bank account must be updated or re-verified before retry.</p>
+                  <p className={`text-xs ${ADMIN_GROUND.faint} mt-1`}>Retry is disabled: the bank account must be updated or re-verified before retry.</p>
                 )}
               </div>
             </div>
