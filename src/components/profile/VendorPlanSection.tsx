@@ -107,7 +107,7 @@ export function VendorPlanSection() {
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-foreground">Plan & showcase slots</h2>
           <p className="text-xs text-muted-foreground">
-            Free forever to sell: upgrade only when you want to showcase more.
+            No monthly fee to sell: upgrade only when you want to showcase more.
           </p>
         </div>
         <Badge variant="secondary">{current?.name ?? state.current.plan_code}</Badge>
