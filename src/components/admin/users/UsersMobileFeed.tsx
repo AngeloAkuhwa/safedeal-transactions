@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PresenceDot } from "./PresenceDot";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -72,7 +73,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
     <div className="lg:hidden">
       <div className="p-4 space-y-4">
         {rows.length === 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
+          <div className={`${ADMIN_GROUND.panel} border rounded-2xl p-8 text-center ${ADMIN_GROUND.muted}`}>
             No users match these filters.
           </div>
         )}
@@ -95,7 +96,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/admin/users/${r.user_id}`); } }}
                 className="cursor-pointer active:bg-slate-800/40 transition-colors"
               >
-              <div className="p-4 border-b border-slate-800 flex items-center gap-4">
+              <div className={`p-4 border-b ${ADMIN_GROUND.border} flex items-center gap-4`}>
                 <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="relative min-h-11 inline-flex items-center">
                   {r.avatar_url
                     ? <img src={r.avatar_url} className={`w-14 h-14 rounded-full ring-2 ${ring}`} alt={r.full_name} />
@@ -109,10 +110,10 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="text-white font-bold truncate min-h-11 inline-flex items-center">{r.full_name || "Unnamed"}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className={`${ADMIN_GROUND.heading} font-bold truncate min-h-11 inline-flex items-center`}>{r.full_name || "Unnamed"}</button>
                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded border uppercase tracking-tight ${chip.cls}`}>{chip.label}</span>
                   </div>
-                  <p className="text-slate-500 text-xs truncate">
+                  <p className={`${ADMIN_GROUND.faint} text-xs truncate`}>
                     {r.handle} • {r.last_active_at ? `Active ${relative(r.last_active_at)}` : new Date(r.joined_at ?? Date.now()).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
@@ -123,7 +124,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 {isTrustedSeller ? (
                   <>
                     <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Verification</p>
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Verification</p>
                       <div className="flex gap-1.5">
                         <Mail className={`h-3 w-3 ${r.verification.email ? "text-emerald-400" : "text-slate-500"}`} />
                         <Phone className={`h-3 w-3 ${r.verification.phone ? "text-emerald-400" : "text-slate-500"}`} />
@@ -131,19 +132,19 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Volume</p>
-                      <p className="text-emerald-400 font-bold text-lg">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}</p>
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Volume</p>
+                      <p className={`${ADMIN_TONE.success.text} font-bold text-lg`}>{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}</p>
                     </div>
                   </>
                 ) : isBusinessUnverified ? (
                   <>
                     <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Type</p>
-                      <span className="text-purple-400 font-bold text-sm">Business Account</span>
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Type</p>
+                      <span className={`${ADMIN_TONE.special.text} font-bold text-sm`}>Business Account</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
-                      <p className="text-white font-bold text-sm">
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Disputes</p>
+                      <p className={`${ADMIN_GROUND.heading} font-bold text-sm`}>
                         {r.disputes.active > 0 ? `${r.disputes.active} In Progress` : r.disputes.total > 0 ? `${r.disputes.total} Total` : "Clean"}
                       </p>
                     </div>
@@ -151,10 +152,10 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 ) : (
                   <>
                     <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Transactions</p>
-                      <p className="text-white font-bold text-lg">
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Transactions</p>
+                      <p className={`${ADMIN_GROUND.heading} font-bold text-lg`}>
                         {r.transactions.count}{" "}
-                        <span className="text-xs font-normal text-slate-400">
+                        <span className={`text-xs font-normal ${ADMIN_GROUND.muted}`}>
                           ({r.transactions.resolved > 0
                             ? `${r.transactions.resolved} resolved`
                             : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"})
@@ -162,12 +163,12 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
+                      <p className={`text-xs ${ADMIN_GROUND.faint} uppercase font-bold mb-1 tracking-widest`}>Disputes</p>
                       {r.disputes.active > 0
-                        ? <p className="text-red-400 font-bold text-sm">Active disputes</p>
+                        ? <p className={`${ADMIN_TONE.danger.text} font-bold text-sm`}>Active disputes</p>
                         : r.disputes.total > 0
                           ? <p className="text-yellow-400 font-bold text-sm">In progress</p>
-                          : <p className="text-slate-400 font-bold text-sm">Clean record</p>}
+                          : <p className={`${ADMIN_GROUND.muted} font-bold text-sm`}>Clean record</p>}
                     </div>
                   </>
                 )}
@@ -223,7 +224,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
       {/* Pagination */}
       {rows.length > 0 && (
         <div className="px-4 py-4 flex items-center justify-between">
-          <span className="text-slate-500 text-xs font-medium">Showing {start}–{end} of {total.toLocaleString()} users</span>
+          <span className={`${ADMIN_GROUND.faint} text-xs font-medium`}>Showing {start}–{end} of {total.toLocaleString()} users</span>
           <div className="flex gap-2">
             <button
               disabled={page <= 1}
@@ -248,7 +249,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
       <Sheet open={!!overflowRow} onOpenChange={(o) => { if (!o) setOverflowRow(null); }}>
         <SheetContent side="bottom" className="bg-slate-950 border-slate-800 text-slate-200">
           <SheetHeader>
-            <SheetTitle className="text-white">{overflowRow?.full_name ?? "User"}</SheetTitle>
+            <SheetTitle className={ADMIN_GROUND.heading}>{overflowRow?.full_name ?? "User"}</SheetTitle>
           </SheetHeader>
           {overflowRow && (
             <div className="mt-4 grid grid-cols-1 gap-2">
@@ -276,13 +277,13 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               </button>
               <button
                 onClick={() => { setOverflowRow(null); toast({ title: "Impersonation coming soon" }); }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-200"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold ${ADMIN_GROUND.raised} text-slate-200`}
               >
                 <UserCog className="h-4 w-4" /> Start impersonation
               </button>
               <button
                 onClick={() => { setOverflowRow(null); toast({ title: "Per-user export coming soon" }); }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-slate-800 text-slate-200"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold ${ADMIN_GROUND.raised} text-slate-200`}
               >
                 <FileDown className="h-4 w-4" /> Export user
               </button>
