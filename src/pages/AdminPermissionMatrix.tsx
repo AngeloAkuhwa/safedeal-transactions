@@ -290,7 +290,8 @@ export default function AdminPermissionMatrix() {
           <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold ${securityLevel.tone}`}>
             <Shield className="h-3 w-3" /> Security level: {securityLevel.label}
           </span>
-          {(summaryQuery.data?.pending_total ?? 0) > 0 && (
+          {/* A count of pending approvals, not money. */}
+          {Number(summaryQuery.data?.pending_total) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-300">
               <ShieldAlert className="h-3 w-3" /> {summaryQuery.data?.pending_total} pending
             </span>

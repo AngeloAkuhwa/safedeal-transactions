@@ -50,7 +50,15 @@ import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 
-const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
+// formatMoney dashes a missing amount; the old `?? 0` here defeated that and
+// stamped ₦0.00 over every absent figure on the admin detail page.
+const ngn = (v: number | null | undefined) => formatMoney(v, "NGN");
+
+// Sum of the figures that are actually recorded. Absent ones contribute
+// nothing; they are never invented as 0, and a sum over nothing is 0, which
+// the > 0 gates below treat as "nothing to show".
+const sumRecorded = (...values: unknown[]) =>
+  values.map(Number).filter((n) => !Number.isNaN(n)).reduce((a, b) => a + b, 0);
 
 const fmtDate = (iso?: string | null) => {
   if (!iso) return "—";
@@ -338,14 +346,16 @@ export default function AdminTransactionDetail() {
       outcome: disputeOutcome
         ? {
             outcome_type: (disputeOutcome.outcome_type ?? disputeOutcome.type ?? "") as string,
-            refund_amount: disputeOutcome.refund_amount ?? disputeOutcome.refundAmount ?? 0,
-            release_amount: disputeOutcome.release_amount ?? disputeOutcome.releaseAmount ?? 0,
+            // Absent amounts stay absent: deriveDisputeDisplay now shows a
+            // split row only when its figure is actually recorded.
+            refund_amount: disputeOutcome.refund_amount ?? disputeOutcome.refundAmount ?? null,
+            release_amount: disputeOutcome.release_amount ?? disputeOutcome.releaseAmount ?? null,
           }
         : null,
       moneyStatus: tx?.moneyStatus ?? null,
       escrow: {
-        heldAmount: Number((data?.escrow as any)?.heldAmount ?? 0),
-        frozenAmount: Number((data?.escrow as any)?.frozenAmount ?? 0),
+        heldAmount: (data?.escrow as any)?.heldAmount ?? null,
+        frozenAmount: (data?.escrow as any)?.frozenAmount ?? null,
       },
     });
   }, [dispute, disputeOutcome, tx?.moneyStatus, data?.escrow]);
@@ -405,7 +415,9 @@ export default function AdminTransactionDetail() {
     if (active.isOverdue) out.push({ label: "Dispute response overdue", severity: "high" });
     if (active.isEscalated) out.push({ label: "Dispute escalated", severity: "high" });
     if (active.isInvestigationActive) out.push({ label: "Investigation open", severity: "medium" });
-    const total = Number(data.pricing?.buyerTotal ?? 0);
+    // NaN >= 500000 is false, so an absent total simply raises no flag; no
+    // zero is invented for money.
+    const total = Number(data.pricing?.buyerTotal);
     if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
     if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
     return out;
@@ -501,9 +513,11 @@ export default function AdminTransactionDetail() {
   // processing fee that belongs to SafeDeal, not the seller).
   const sellerPayoutAmount = useMemo(() => {
     const p: any = data?.pricing ?? {};
-    const net = Number(p.sellerNet ?? 0);
+    const net = Number(p.sellerNet);
     if (net > 0) return net;
-    return Number(p.itemTotal ?? 0);
+    // Absent pricing dashes downstream (ngn) instead of claiming ₦0.00.
+    const item = Number(p.itemTotal);
+    return Number.isNaN(item) ? null : item;
   }, [data?.pricing]);
 
   const liveDotCls =
@@ -1443,10 +1457,10 @@ export default function AdminTransactionDetail() {
                                 <span className="tabular-nums font-medium text-foreground">{ngn(p.amount)}</span>
                               </li>
                             ))}
-                            {(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0)) > 0 && (
+                            {sumRecorded((data?.escrow as any)?.heldAmount, (data?.escrow as any)?.frozenAmount) > 0 && (
                               <li className="flex justify-between gap-2 pt-1 mt-1 border-t border-border text-muted-foreground">
                                 <span>Remaining escrow</span>
-                                <span className="tabular-nums">{ngn(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0))}</span>
+                                <span className="tabular-nums">{ngn(sumRecorded((data?.escrow as any)?.heldAmount, (data?.escrow as any)?.frozenAmount))}</span>
                               </li>
                             )}
                           </ul>
@@ -1748,8 +1762,8 @@ export default function AdminTransactionDetail() {
         open={resolveDisputeOpen}
         onOpenChange={setResolveDisputeOpen}
         moneyStatus={tx?.moneyStatus ?? null}
-        heldAmount={Number((data as any)?.escrow?.heldAmount ?? 0)}
-        frozenAmount={Number((data as any)?.escrow?.frozenAmount ?? 0)}
+        heldAmount={(data as any)?.escrow?.heldAmount ?? null}
+        frozenAmount={(data as any)?.escrow?.frozenAmount ?? null}
         currencyCode={(data as any)?.pricing?.currencyCode ?? "NGN"}
         hasActiveInvestigation={!!(data as any)?.investigation && !["resolved","dismissed"].includes(((data as any)?.investigation?.status ?? ""))}
         onResolve={async (payload) => {

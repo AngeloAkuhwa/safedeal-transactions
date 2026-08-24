@@ -38,31 +38,45 @@ export function moneyStatusLabel(s?: string | null): string {
  * money_status. Falls back to ledger-derived freeze amount when the escrow
  * snapshot reports 0 but ledger shows a freeze entry equal to buyer total.
  */
+/** A number when the source actually recorded one; null renders as a dash. */
+function amountOrNull(v: unknown): number | null {
+  const n = Number(v);
+  return v === null || v === undefined || Number.isNaN(n) ? null : n;
+}
+
+/** First entry that is a recorded positive amount, else null: no zero is
+ * ever invented for display, because the tile this feeds is an amount an
+ * operator may act on. */
+function firstPositive(...values: (number | null)[]): number | null {
+  for (const v of values) if (v !== null && v > 0) return v;
+  return null;
+}
+
 export function activeEscrowDisplay(
   moneyStatus: string | null | undefined,
   escrow: any,
   buyerTotal: number | null,
-): { label: string; value: number } {
+): { label: string; value: number | null } {
   const ms = moneyStatus ?? "";
-  const held = Number(escrow?.heldAmount ?? 0);
-  const frozen = Number(escrow?.frozenAmount ?? 0);
-  const released = Number(escrow?.releasedAmount ?? 0);
-  const refunded = Number(escrow?.refundedAmount ?? 0);
+  const held = amountOrNull(escrow?.heldAmount);
+  const frozen = amountOrNull(escrow?.frozenAmount);
+  const released = amountOrNull(escrow?.releasedAmount);
+  const refunded = amountOrNull(escrow?.refundedAmount);
   if (ms === "funds_frozen") {
-    let v = frozen;
-    if (v === 0) {
+    let v = firstPositive(frozen);
+    if (v === null) {
       const ledger = (escrow?.ledger ?? []) as any[];
       const freezeEntry = ledger.find((e) =>
         /freeze|frozen|hold/.test((e.entryType ?? "").toLowerCase()),
       );
-      v = Number(freezeEntry?.amount ?? buyerTotal ?? held ?? 0);
+      v = firstPositive(amountOrNull(freezeEntry?.amount), buyerTotal, held);
     }
     return { label: "Funds Frozen in Escrow", value: v };
   }
   if (ms === "funds_held_in_escrow") return { label: "Held in Escrow", value: held };
   if (ms === "funds_released") return { label: "Released to Seller", value: released };
   if (ms === "refund_issued") return { label: "Refunded to Buyer", value: refunded };
-  if (ms === "refund_pending") return { label: "Refund Pending", value: held || frozen || (buyerTotal ?? 0) };
+  if (ms === "refund_pending") return { label: "Refund Pending", value: firstPositive(held, frozen, buyerTotal) };
   if (ms === "funds_pending_release" || ms === "funds_releasing") return { label: "Awaiting Release", value: held };
-  return { label: "Escrow", value: held || frozen };
+  return { label: "Escrow", value: firstPositive(held, frozen) };
 }

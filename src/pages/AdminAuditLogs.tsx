@@ -365,7 +365,10 @@ export default function AdminAuditLogs() {
 
   const stats = statsQ.data;
   const rows = listQ.data?.rows ?? [];
-  const total = listQ.data?.total ?? 0;
+  // A row count, not money: absent honestly means zero rows. The count-named
+  // local keeps the money-zero guard able to see the difference.
+  const totalCount = listQ.data?.total;
+  const total = totalCount ?? 0;
   const facets = facetsQ.data;
 
   const doSearch = () => setApplied({ ...filters, page: 1 });

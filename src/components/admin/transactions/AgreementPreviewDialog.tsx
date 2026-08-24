@@ -93,9 +93,11 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
                 </Section>
 
                 <Section title="Money">
-                  <Row label="Agreed Price" value={formatMoney(agreement.agreedPrice ?? 0, agreement.currency)} />
-                  <Row label="Protection Fee" value={formatMoney(agreement.protectionFee ?? 0, agreement.currency)} />
-                  <Row label="Total Charged" value={formatMoney(agreement.total ?? 0, agreement.currency)} bold />
+                  {/* This dialog renders a locked agreement snapshot: an
+                      absent figure dashes rather than claiming ₦0.00 terms. */}
+                  <Row label="Agreed Price" value={formatMoney(agreement.agreedPrice, agreement.currency)} />
+                  <Row label="Protection Fee" value={formatMoney(agreement.protectionFee, agreement.currency)} />
+                  <Row label="Total Charged" value={formatMoney(agreement.total, agreement.currency)} bold />
                 </Section>
 
                 <Section title="Delivery">

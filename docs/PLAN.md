@@ -28,6 +28,14 @@ circular. The diagnosis of the circles, so we do not repeat them:
    even when nothing regressed. Rule: the sequence below batches by surface
    and dependency, so a screen settles once.
 
+Merge authority, restated by the user 2026-08-24: standing permission to
+merge any PR that is green and does not break what already exists. The
+gates above are what "does not break" means in practice. UI previews are
+still published for every customer-visible change so the user can always
+see what shipped; they are a deliverable, no longer a merge gate. Edge
+function changes remain per-change: only ones that provably do not alter
+behaviour on healthy data proceed without asking.
+
 The loop for every piece of work, no exceptions:
 
 1. **Plan first.** The item exists in this file with its dependencies, its
@@ -122,7 +130,7 @@ Done. Status values: `pending`, `in progress`, `blocked: <on what>`, `done
 | 4.1 | **Guest pay backend half**: identity attachment on pay, RLS for anonymous reads. Frontend has been ready since #33; until this lands, an anonymous buyer can read the payment page but not pay. The single largest unfinished user-facing feature. | Lovable (out of scope here without direction) | blocked: Lovable |
 | 4.2 | **amount_mismatch operator surface**: #46 refuses mismatched charges and stores the payload; nothing yet shows an operator that it happened. Needs a product decision on where (admin reconciliation screen already exists). | here, after decision D4 | blocked: D4 |
 | 4.3 | Admin roadmap stubs (impersonation, per-user export, add-user): currently honest "coming soon" toasts. Build or remove per product priority. | decision D5 | blocked: D5 |
-| 4.4 | Currency formatting debt burn-down. Measuring reframed the item: the primitive already exists (`formatMoney` dashes missing amounts, currency is a required parameter) and the ratchets already guard it; the work is burning down the six shrink-only lists in `invented-defaults.contract` (186 entries at start). Batch 1 (#58): the 13 customer frontend files in `MONEY_ZERO_DEBT`, where `?? 0` on money could render an invented ₦0.00 to a buyer or seller; counts renamed count-shaped, gates made NaN-safe, one file's `\|\| "NGN"` fixed in passing (its `CURRENCY_DEBT` entry went stale and was removed; 186 to 172). Remaining batches: admin frontend files, then edge functions (each needs the user's per-change go-ahead), then the symbol and positional-NGN lists. | here | in progress (batch 1: #58) |
+| 4.4 | Currency formatting debt burn-down. Measuring reframed the item: the primitive already exists (`formatMoney` dashes missing amounts, currency is a required parameter) and the ratchets already guard it; the work is burning down the six shrink-only lists in `invented-defaults.contract` (186 entries at start). Batch 1 (#58): the 13 customer frontend files in `MONEY_ZERO_DEBT`, where `?? 0` on money could render an invented ₦0.00 to a buyer or seller; counts renamed count-shaped, gates made NaN-safe, one file's `\|\| "NGN"` fixed in passing (its `CURRENCY_DEBT` entry went stale and was removed; 186 to 172). Batch 2 (#59): the 11 admin frontend files in the same list; both admin detail pages' local `ngn` wrappers had re-imposed `?? 0` over the dashing formatter, and the escrow tile now shows only recorded figures (sums and fallback chains skip absent parts instead of inventing 0). Remaining batches: edge functions (each needs the user's per-change go-ahead), then the symbol and positional-NGN lists. | here | in progress (batches 1 to 2: #58, #59) |
 | 4.5 | Admin surface colour conversion (4,278 raw utilities, ratcheted). Last, per the user's stated priority order. | here | pending (last) |
 
 ### Decisions queue (user input needed; nothing blocks silently)
