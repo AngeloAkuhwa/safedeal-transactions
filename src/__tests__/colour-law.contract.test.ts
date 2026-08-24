@@ -148,10 +148,12 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * from ADMIN_TONE / ADMIN_SOLID / ADMIN_GROUND with identical class sets);
  * 4137 to 4092 (batch 3, UsersTable chrome, tone glyphs and solid CTAs;
  * its softer /10-/20 badge maps stay verbatim because converting them to
- * the badge triad would move pixels, which a mechanical batch never does).
+ * the badge triad would move pixels, which a mechanical batch never does);
+ * 4092 to 4045 (batch 4, FlaggedUsersTable chrome and tone glyphs; its
+ * orange-300 accents stay verbatim, matching neither elevated nor warning).
  */
 const BUDGET = {
-  admin: 4092,
+  admin: 4045,
   ui: 4,
   customer: 12,
 };
