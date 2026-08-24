@@ -9,26 +9,39 @@ import {
   STATUS_LABEL,
   accessDotClass,
 } from "@/services/admin-access-control.service";
+import { ADMIN_TONE, ADMIN_CATEGORY } from "@/components/admin/palette";
 
+/**
+ * Roles are categories, not judgements, so most map onto the categorical
+ * scale; the handful that intentionally reuse a tone hue (dispute roles on
+ * success-emerald, finance on caution-amber/orange) borrow the tone triad
+ * the palette already defines. dispute_agent keeps its deliberately fainter
+ * variant (wash 10, border 20): it is one step junior to dispute_manager
+ * and the pair reads as a pale/strong pair on the roster.
+ */
 const ROLE_STYLES: Record<InternalRoleKey, string> = {
-  super_admin:        "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  senior_admin:       "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  dispute_manager:    "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  super_admin:        ADMIN_TONE.special.badge,
+  senior_admin:       ADMIN_TONE.info.badge,
+  dispute_manager:    ADMIN_TONE.success.badge,
   dispute_agent:      "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  support_agent:      "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-  identity_officer:   "bg-sky-500/15 text-sky-300 border-sky-500/30",
-  finance_operator:   "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  finance_approver:   "bg-orange-500/15 text-orange-300 border-orange-500/30",
-  compliance_officer: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30",
-  auditor:            "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  support_agent:      ADMIN_CATEGORY.cyan,
+  identity_officer:   ADMIN_CATEGORY.sky,
+  finance_operator:   ADMIN_TONE.warning.badge,
+  finance_approver:   ADMIN_TONE.elevated.badge,
+  compliance_officer: ADMIN_CATEGORY.fuchsia,
+  auditor:            ADMIN_TONE.neutral.badge,
 };
 
+/**
+ * deactivated keeps its muted slate-400 text: it is the one status meant to
+ * recede rather than read, and the neutral tone's slate-300 would promote it.
+ */
 const STATUS_STYLES: Record<InternalUserStatus, string> = {
-  active: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  suspended: "bg-red-500/15 text-red-300 border-red-500/30",
-  pending_approval: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  invited: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
-  locked: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  active: ADMIN_TONE.success.badge,
+  suspended: ADMIN_TONE.danger.badge,
+  pending_approval: ADMIN_TONE.warning.badge,
+  invited: ADMIN_CATEGORY.indigo,
+  locked: ADMIN_TONE.elevated.badge,
   deactivated: "bg-slate-500/15 text-slate-400 border-slate-500/30",
 };
 

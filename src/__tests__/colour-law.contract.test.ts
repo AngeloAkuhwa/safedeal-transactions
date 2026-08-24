@@ -96,6 +96,30 @@ const ADMIN_SURFACE_TS = new Set([
   "src/services/admin-access-control.service.ts",
 ]);
 
+/**
+ * The one admin colour DEFINITION site (plan 4.5): the module call sites
+ * consume tones from by meaning. Its raw utilities are the vocabulary being
+ * defined, not a screen speaking colour inline, so it is excluded from the
+ * admin call-site budget the same way format.ts is allowed its Intl currency
+ * literals. Excluding it is safe against gaming: any NEW raw colour on a
+ * screen still lands in the budget, and this set is closed. A second entry
+ * here needs the same argument this one carries.
+ */
+const ADMIN_COLOUR_DEFINITION_FILES = new Set([
+  "src/components/admin/palette.ts",
+]);
+
+describe("the admin colour definition exemption cannot rot", () => {
+  it("every exempted file exists and still defines colour", () => {
+    for (const rel of ADMIN_COLOUR_DEFINITION_FILES) {
+      const full = path.join(ROOT, rel);
+      expect(fs.existsSync(full), `${rel} no longer exists; drop the exemption`).toBe(true);
+      const hits = (stripComments(fs.readFileSync(full, "utf8")).match(RAW_COLOUR) ?? []).length;
+      expect(hits, `${rel} defines no raw colour; drop the exemption`).toBeGreaterThan(0);
+    }
+  });
+});
+
 const isAdmin = (rel: string) =>
   rel.startsWith("src/components/admin/") ||
   /^src\/pages\/Admin/.test(rel) ||
@@ -116,8 +140,14 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * utilities) was converted to the tone system in the same change rather than
  * budgeted for.
  */
+/*
+ * admin re-anchored 4278 to 4236 in the 4.5 batch-1 conversion: badges.tsx
+ * shed its inline triads to the palette definition file (which is excluded
+ * above as the vocabulary's one definition site, so the budget now measures
+ * call sites only).
+ */
 const BUDGET = {
-  admin: 4278,
+  admin: 4236,
   ui: 4,
   customer: 12,
 };
@@ -152,6 +182,7 @@ describe("the colour law ratchets", () => {
   for (const file of files) {
     const rel = path.relative(ROOT, file);
     if (rel.includes("__tests__")) continue;
+    if (ADMIN_COLOUR_DEFINITION_FILES.has(rel)) continue;
     const hits = (stripComments(fs.readFileSync(file, "utf8")).match(RAW_COLOUR) ?? []).length;
     if (!hits) continue;
     const area = isAdmin(rel) ? "admin" : isUi(rel) ? "ui" : "customer";
