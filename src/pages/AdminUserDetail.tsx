@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -190,25 +191,25 @@ export default function AdminUserDetail() {
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
       <div className="bg-slate-950 text-slate-200 min-h-[100dvh] flex flex-col">
         {/* Sticky page header: pins to viewport while body scrolls under it */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-sticky shadow-md shadow-black/20">
+        <header className={`${ADMIN_GROUND.panel} border-b px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-sticky shadow-md shadow-black/20`}>
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
             <div className="flex items-center gap-3 lg:gap-4">
               <button
                 onClick={() => navigate(-1)}
                 aria-label="Back"
-                className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-all relative before:absolute before:-inset-2 before:content-['']"
+                className={`w-10 h-10 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} rounded-lg flex items-center justify-center transition-all relative before:absolute before:-inset-2 before:content-['']`}
               >
-                <ArrowLeft className="h-4 w-4 text-slate-300" />
+                <ArrowLeft className={`h-4 w-4 ${ADMIN_GROUND.body}`} />
               </button>
               <div>
-                <h2 className="text-white text-xl sm:text-2xl font-bold">User Investigation Hub</h2>
-                <p className="text-slate-400 text-sm mt-0.5">Complete user investigation and support center</p>
+                <h2 className={`${ADMIN_GROUND.heading} text-xl sm:text-2xl font-bold`}>User Investigation Hub</h2>
+                <p className={`${ADMIN_GROUND.muted} text-sm mt-0.5`}>Complete user investigation and support center</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button disabled={!data || !!exporting} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50 min-h-11">
+                  <button disabled={!data || !!exporting} className={`px-3 sm:px-4 py-2 sm:py-2.5 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.body} rounded-lg ${ADMIN_GROUND.raisedHover} transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border ${ADMIN_GROUND.borderSoft} disabled:opacity-50 min-h-11`}>
                     {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     Export <ChevronDown className="h-3.5 w-3.5" />
                   </button>
@@ -227,7 +228,7 @@ export default function AdminUserDetail() {
               <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50 min-h-11">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20 min-h-11">
+              <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className={`px-3 sm:px-4 py-2 sm:py-2.5 ${ADMIN_SOLID.info} rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20 min-h-11`}>
                 <Search className="h-4 w-4" /> View Transactions
               </button>
             </div>
@@ -235,7 +236,7 @@ export default function AdminUserDetail() {
 
           {/* User summary card */}
           {data && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 sm:p-6">
+            <div className={`bg-slate-800/50 border ${ADMIN_GROUND.borderSoft} rounded-xl p-4 sm:p-6`}>
               <div className="flex items-start justify-between gap-4 flex-col lg:flex-row">
                 <div className="flex items-start gap-4 sm:gap-5 min-w-0">
                   {data.user.avatar_url
@@ -243,7 +244,7 @@ export default function AdminUserDetail() {
                     : <span className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-slate-600 bg-slate-700 text-white text-2xl font-bold inline-flex items-center justify-center shrink-0">{(data.user.full_name || "?").slice(0, 1).toUpperCase()}</span>}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h3 className="text-white text-lg sm:text-xl font-bold truncate">{data.user.full_name || "Unnamed"}</h3>
+                      <h3 className={`${ADMIN_GROUND.heading} text-lg sm:text-xl font-bold truncate`}>{data.user.full_name || "Unnamed"}</h3>
                       {data.user.is_flagged && (
                         <span className="px-2.5 py-1 bg-red-500/20 border border-red-500/40 text-red-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
                           <Flag className="h-3 w-3" /> FLAGGED
@@ -260,30 +261,30 @@ export default function AdminUserDetail() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mb-3">
                       <div className="flex items-center gap-2 text-sm min-w-0">
-                        <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300 truncate">{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
+                        <Mail className={`h-3.5 w-3.5 ${ADMIN_GROUND.muted} shrink-0`} />
+                        <span className={`${ADMIN_GROUND.body} truncate`}>{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
                         {data.user.email && (
-                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Toggle email">
+                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className={`${ADMIN_TONE.info.text} hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center`} aria-label="Toggle email">
                             {revealingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedEmail !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300">{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
+                        <Phone className={`h-3.5 w-3.5 ${ADMIN_GROUND.muted} shrink-0`} />
+                        <span className={ADMIN_GROUND.body}>{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
                         {data.user.phone && (
-                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Toggle phone">
+                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className={`${ADMIN_TONE.info.text} hover:text-blue-300 text-xs disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center`} aria-label="Toggle phone">
                             {revealingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedPhone !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <IdCard className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300">User ID: {data.user.display_id}</span>
+                        <IdCard className={`h-3.5 w-3.5 ${ADMIN_GROUND.muted} shrink-0`} />
+                        <span className={ADMIN_GROUND.body}>User ID: {data.user.display_id}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300">Joined: {fmtDate(data.user.joined_at)}</span>
+                        <Calendar className={`h-3.5 w-3.5 ${ADMIN_GROUND.muted} shrink-0`} />
+                        <span className={ADMIN_GROUND.body}>Joined: {fmtDate(data.user.joined_at)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -312,7 +313,7 @@ export default function AdminUserDetail() {
                       <ShieldCheck className="h-4 w-4" /> Unsuspend
                     </button>
                   ) : (
-                    <button onClick={() => setPendingAction({ kind: "suspend" })} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
+                    <button onClick={() => setPendingAction({ kind: "suspend" })} className={`px-4 py-2 ${ADMIN_SOLID.danger} rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11`}>
                       <Ban className="h-4 w-4" /> Suspend
                     </button>
                   )}
@@ -328,14 +329,14 @@ export default function AdminUserDetail() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-72 rounded-xl bg-slate-800" />
+                  <Skeleton key={i} className={`h-72 rounded-xl ${ADMIN_GROUND.raised}`} />
                 ))}
               </div>
-              <Skeleton className="h-48 rounded-xl bg-slate-800" />
+              <Skeleton className={`h-48 rounded-xl ${ADMIN_GROUND.raised}`} />
             </div>
           )}
           {error && (
-            <div className="p-6 text-red-400 text-sm bg-slate-900 border border-red-500/30 rounded-xl">{(error as Error).message}</div>
+            <div className={`p-6 ${ADMIN_TONE.danger.text} text-sm bg-slate-900 border border-red-500/30 rounded-xl`}>{(error as Error).message}</div>
           )}
 
           {data && (
@@ -343,25 +344,25 @@ export default function AdminUserDetail() {
               {/* Row 1: 3 cards */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Profile Information */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-6 border-b border-slate-800">
-                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <UserCircle className="h-5 w-5 text-blue-400" /> Profile Information
+                <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                  <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
+                      <UserCircle className={`h-5 w-5 ${ADMIN_TONE.info.text}`} /> Profile Information
                     </h3>
                   </div>
                   <div className="p-6 space-y-4">
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Full Name</p>
-                      <p className="text-white font-medium">{data.user.full_name || "—"}</p>
+                      <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Full Name</p>
+                      <p className={`${ADMIN_GROUND.heading} font-medium`}>{data.user.full_name || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Location</p>
-                      <p className="text-white font-medium">
+                      <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Location</p>
+                      <p className={`${ADMIN_GROUND.heading} font-medium`}>
                         {[verif?.address_city, verif?.address_state, verif?.address_country].filter(Boolean).join(", ") || "—"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Account Status</p>
+                      <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Account Status</p>
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold border ${
                         data.user.is_suspended ? "bg-purple-500/20 border-purple-500/30 text-purple-400"
                         : data.user.is_flagged ? "bg-red-500/20 border-red-500/30 text-red-400"
@@ -372,10 +373,10 @@ export default function AdminUserDetail() {
                       </span>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Last Login</p>
-                      <p className="text-white font-medium">{extra?.last_login_at ? relative(extra.last_login_at) : "—"}</p>
+                      <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Last Login</p>
+                      <p className={`${ADMIN_GROUND.heading} font-medium`}>{extra?.last_login_at ? relative(extra.last_login_at) : "—"}</p>
                       {extra?.last_login_ip && (
-                        <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5">
+                        <p className={`${ADMIN_GROUND.faint} text-xs flex items-center gap-1 mt-0.5`}>
                           <MapPin className="h-3 w-3" />
                           IP: {String(extra.last_login_ip)}
                           {extra.last_login_city ? ` (${extra.last_login_city}${extra.last_login_state ? ", " + extra.last_login_state : ""})` : ""}
@@ -383,17 +384,17 @@ export default function AdminUserDetail() {
                       )}
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Last Active</p>
-                      <p className="text-white font-medium">{data.user.last_active_at ? relative(data.user.last_active_at) : "—"}</p>
+                      <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Last Active</p>
+                      <p className={`${ADMIN_GROUND.heading} font-medium`}>{data.user.last_active_at ? relative(data.user.last_active_at) : "—"}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Verification Status */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-6 border-b border-slate-800">
-                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-emerald-400" /> Verification Status
+                <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                  <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
+                      <ShieldCheck className={`h-5 w-5 ${ADMIN_TONE.success.text}`} /> Verification Status
                     </h3>
                   </div>
                   <div className="p-6 space-y-4">
@@ -421,42 +422,42 @@ export default function AdminUserDetail() {
                       ok={verif?.address_status === "provided"}
                       okLabel="Provided"
                     />
-                    <div className="pt-3 border-t border-slate-800">
-                      <p className="text-slate-400 text-xs mb-2">Verification Level</p>
+                    <div className={`pt-3 border-t ${ADMIN_GROUND.border}`}>
+                      <p className={`${ADMIN_GROUND.muted} text-xs mb-2`}>Verification Level</p>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`flex-1 h-2 ${ADMIN_GROUND.raised} rounded-full overflow-hidden`}>
                           <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500" style={{ width: `${verifPct}%` }} />
                         </div>
-                        <span className="text-white text-sm font-bold">Level {verif?.identity_level ?? 0}</span>
+                        <span className={`${ADMIN_GROUND.heading} text-sm font-bold`}>Level {verif?.identity_level ?? 0}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Payout Account */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-6 border-b border-slate-800">
-                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <Wallet className="h-5 w-5 text-purple-400" /> Payout Account
+                <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                  <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
+                      <Wallet className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Payout Account
                     </h3>
                   </div>
                   <div className="p-6 space-y-4">
                     {payout ? (
                       <>
                         <div>
-                          <p className="text-slate-400 text-xs font-semibold mb-1">Bank Name</p>
-                          <p className="text-white font-medium">{payout.bank_name ?? "—"}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Bank Name</p>
+                          <p className={`${ADMIN_GROUND.heading} font-medium`}>{payout.bank_name ?? "—"}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400 text-xs font-semibold mb-1">Account Name</p>
-                          <p className="text-white font-medium">{payout.account_name ?? "—"}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Account Name</p>
+                          <p className={`${ADMIN_GROUND.heading} font-medium`}>{payout.account_name ?? "—"}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400 text-xs font-semibold mb-1">Account Number</p>
-                          <p className="text-white font-medium font-mono">{payout.masked_account_number ?? "—"}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Account Number</p>
+                          <p className={`${ADMIN_GROUND.heading} font-medium font-mono`}>{payout.masked_account_number ?? "—"}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400 text-xs font-semibold mb-1">Status</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Status</p>
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold border ${
                             payout.status === "verified" ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                             : "bg-orange-500/20 border-orange-500/30 text-orange-400"
@@ -466,12 +467,12 @@ export default function AdminUserDetail() {
                           </span>
                         </div>
                         <div>
-                          <p className="text-slate-400 text-xs font-semibold mb-1">Added On</p>
-                          <p className="text-white font-medium">{fmtDate(payout.added_on)}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs font-semibold mb-1`}>Added On</p>
+                          <p className={`${ADMIN_GROUND.heading} font-medium`}>{fmtDate(payout.added_on)}</p>
                         </div>
                       </>
                     ) : (
-                      <div className="text-slate-500 text-sm text-center py-6">No payout account added yet.</div>
+                      <div className={`${ADMIN_GROUND.faint} text-sm text-center py-6`}>No payout account added yet.</div>
                     )}
                   </div>
                 </div>
@@ -483,17 +484,17 @@ export default function AdminUserDetail() {
                 const reason = vendorStatusQuery.data?.vendor_status_reason as string | null | undefined;
                 const changedAt = vendorStatusQuery.data?.vendor_status_changed_at as string | null | undefined;
                 const tone =
-                  vs === "active" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : vs === "disabled" ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                  : "bg-red-500/10 border-red-500/30 text-red-300";
+                  vs === "active" ? `${ADMIN_TONE.success.panel} text-emerald-300`
+                  : vs === "disabled" ? `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`
+                  : `${ADMIN_TONE.danger.panel} text-red-300`;
                 return (
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                    <div className="p-5 border-b border-slate-800 flex items-center justify-between flex-wrap gap-3">
+                  <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                    <div className={`p-5 border-b ${ADMIN_GROUND.border} flex items-center justify-between flex-wrap gap-3`}>
                       <div>
-                        <h3 className="text-white text-base font-semibold flex items-center gap-2">
-                          <Store className="h-5 w-5 text-purple-400" /> Vendor Commerce Status
+                        <h3 className={`${ADMIN_GROUND.heading} text-base font-semibold flex items-center gap-2`}>
+                          <Store className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Vendor Commerce Status
                         </h3>
-                        <p className="text-slate-400 text-xs mt-1">
+                        <p className={`${ADMIN_GROUND.muted} text-xs mt-1`}>
                           Controls whether this vendor's storefront, cart, and checkout are available to buyers.
                         </p>
                       </div>
@@ -513,21 +514,21 @@ export default function AdminUserDetail() {
                         <button
                           disabled={vs === "active"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "active" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg ${ADMIN_TONE.success.badge} border hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11`}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Set Active
                         </button>
                         <button
                           disabled={vs === "disabled"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "disabled" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg ${ADMIN_TONE.warning.badge} border hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11`}
                         >
                           <Ban className="h-3.5 w-3.5" /> Disable Vendor
                         </button>
                         <button
                           disabled={vs === "suspended"}
                           onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "suspended" }); }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11"
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg ${ADMIN_TONE.danger.badge} border hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 min-h-11`}
                         >
                           <AlertCircle className="h-3.5 w-3.5" /> Suspend Vendor
                         </button>
@@ -539,19 +540,19 @@ export default function AdminUserDetail() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
-                  icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
+                  icon={<ShoppingCart className={`h-6 w-6 ${ADMIN_TONE.info.text}`} />}
                   label="Total as Buyer"
                   value={stats ? formatMoneyOrDash(stats.as_buyer.volume, stats.currency_code) : "—"}
                   sub={stats ? `${stats.as_buyer.count} transactions` : ""}
                 />
                 <StatCard
-                  icon={<Store className="h-6 w-6 text-purple-400" />}
+                  icon={<Store className={`h-6 w-6 ${ADMIN_TONE.special.text}`} />}
                   label="Total as Seller"
                   value={stats ? formatMoneyOrDash(stats.as_seller.volume, stats.currency_code) : "—"}
                   sub={stats ? `${stats.as_seller.count} transactions` : ""}
                 />
                 <StatCard
-                  icon={<Scale className="h-6 w-6 text-orange-400" />}
+                  icon={<Scale className={`h-6 w-6 ${ADMIN_TONE.elevated.text}`} />}
                   label="Disputes"
                   value={stats ? `${stats.disputes.total} Total` : "—"}
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
@@ -563,15 +564,15 @@ export default function AdminUserDetail() {
               {/* Row 3: 2 cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Transactions */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <RotateCcw className="h-5 w-5 text-blue-400" /> Recent Transactions
+                <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                  <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
+                      <RotateCcw className={`h-5 w-5 ${ADMIN_TONE.info.text}`} /> Recent Transactions
                     </h3>
-                    <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium min-h-11 inline-flex items-center">View All</button>
+                    <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className={`${ADMIN_TONE.info.text} hover:text-blue-300 text-sm font-medium min-h-11 inline-flex items-center`}>View All</button>
                   </div>
                   <div className="divide-y divide-slate-800">
-                    {recent.length === 0 && <div className="p-8 text-center text-slate-500 text-sm">No recent transactions.</div>}
+                    {recent.length === 0 && <div className={`p-8 text-center ${ADMIN_GROUND.faint} text-sm`}>No recent transactions.</div>}
                     {recent.map((t) => {
                       const isBuyer = t.counterparty === "as_buyer";
                       const inDispute = String(t.status).toLowerCase().includes("dispute");
@@ -591,18 +592,18 @@ export default function AdminUserDetail() {
                                 <RowIcon className="h-4 w-4" />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-white font-medium truncate">{t.transaction_code}</p>
-                                <p className="text-slate-400 text-xs capitalize">{String(t.status).replace(/_/g, " ")}</p>
+                                <p className={`${ADMIN_GROUND.heading} font-medium truncate`}>{t.transaction_code}</p>
+                                <p className={`${ADMIN_GROUND.muted} text-xs capitalize`}>{String(t.status).replace(/_/g, " ")}</p>
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-white font-bold">{formatMoneyOrDash(t.amount, t.currency_code)}</p>
+                              <p className={`${ADMIN_GROUND.heading} font-bold`}>{formatMoneyOrDash(t.amount, t.currency_code)}</p>
                               <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize ${inDispute ? "bg-orange-500/20 text-orange-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                                 {String(t.status).replace(/_/g, " ")}
                               </span>
                             </div>
                           </div>
-                          <p className="text-slate-500 text-xs">{isBuyer ? "As Buyer" : "As Seller"} · {fmtDate(t.created_at)}</p>
+                          <p className={`${ADMIN_GROUND.faint} text-xs`}>{isBuyer ? "As Buyer" : "As Seller"} · {fmtDate(t.created_at)}</p>
                         </button>
                       );
                     })}
@@ -610,32 +611,32 @@ export default function AdminUserDetail() {
                 </div>
 
                 {/* Activity Log */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <ListChecks className="h-5 w-5 text-purple-400" /> Activity Log
+                <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                  <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
+                      <ListChecks className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Activity Log
                     </h3>
                   </div>
                   <div className="p-6 space-y-4">
-                    {timeline.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No admin activity recorded.</p>}
+                    {timeline.length === 0 && <p className={`${ADMIN_GROUND.faint} text-sm text-center py-6`}>No admin activity recorded.</p>}
                     {timeline.map((a) => {
                       const t = String(a.type ?? "");
                       const item = a as typeof a & { title?: string; context?: string | null; source?: string; severity?: string };
                       const title = item.title || t.replace(/_/g, " ");
                       const sev = item.severity ?? "neutral";
-                      const dot = sev === "high" ? "bg-red-400"
+                      const dot = sev === "high" ? ADMIN_TONE.danger.dot
                         : sev === "warning" ? "bg-yellow-400"
-                        : sev === "success" ? "bg-emerald-400"
-                        : sev === "info" ? "bg-blue-400"
+                        : sev === "success" ? ADMIN_TONE.success.dot
+                        : sev === "info" ? ADMIN_TONE.info.dot
                         : "bg-slate-500";
                       const src = item.source;
                       const srcMeta: Record<string, { label: string; cls: string }> = {
-                        admin_action: { label: "Admin", cls: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
+                        admin_action: { label: "Admin", cls: ADMIN_TONE.special.badge },
                         audit: { label: "Audit", cls: "bg-slate-700 text-slate-300 border-slate-600" },
                         transaction_event: { label: "System", cls: "bg-slate-700 text-slate-300 border-slate-600" },
-                        session: { label: "Security", cls: "bg-red-500/15 text-red-300 border-red-500/30" },
-                        payout: { label: "Account", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-                        identity: { label: "Account", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+                        session: { label: "Security", cls: ADMIN_TONE.danger.badge },
+                        payout: { label: "Account", cls: ADMIN_TONE.info.badge },
+                        identity: { label: "Account", cls: ADMIN_TONE.info.badge },
                       };
                       const srcInfo = src ? srcMeta[src] : null;
                       return (
@@ -643,16 +644,16 @@ export default function AdminUserDetail() {
                           <div className={`w-2 h-2 ${dot} rounded-full mt-1.5 shrink-0`} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-white text-sm font-medium">{title}</p>
+                              <p className={`${ADMIN_GROUND.heading} text-sm font-medium`}>{title}</p>
                               {srcInfo && (
                                 <span className={`px-1.5 py-0.5 rounded border text-xs font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
                                   {srcInfo.label}
                                 </span>
                               )}
                             </div>
-                            {item.context && <p className="text-slate-400 text-xs mt-0.5">{item.context}</p>}
-                            {a.note && <p className="text-slate-400 text-xs mt-0.5">{a.note}</p>}
-                            <p className="text-slate-500 text-xs mt-1">{relative(a.created_at)}</p>
+                            {item.context && <p className={`${ADMIN_GROUND.muted} text-xs mt-0.5`}>{item.context}</p>}
+                            {a.note && <p className={`${ADMIN_GROUND.muted} text-xs mt-0.5`}>{a.note}</p>}
+                            <p className={`${ADMIN_GROUND.faint} text-xs mt-1`}>{relative(a.created_at)}</p>
                           </div>
                         </div>
                       );
@@ -662,37 +663,37 @@ export default function AdminUserDetail() {
               </div>
 
               {/* Row 4: Admin Notes & Flags */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+              <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+                <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
+                  <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 min-h-11">
+                    <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className={`px-3 py-2 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} ${ADMIN_GROUND.body} rounded-lg text-xs font-medium border ${ADMIN_GROUND.borderSoft} min-h-11`}>
                       Open in Flagged Users
                     </button>
-                    <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
+                    <button onClick={() => setPendingAction({ kind: "add_note" })} className={`px-4 py-2 ${ADMIN_SOLID.info} rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11`}>
                       <Plus className="h-4 w-4" /> Add Note
                     </button>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
-                  {notes.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No notes or flags recorded.</p>}
+                  {notes.length === 0 && <p className={`${ADMIN_GROUND.faint} text-sm text-center py-6`}>No notes or flags recorded.</p>}
                   {notes.map((n) => {
                     const high = n.priority === "high";
                     return (
                       <div key={n.id} className={`rounded-lg p-4 border ${high ? "bg-red-500/10 border-red-500/30" : "bg-slate-800/40 border-slate-700"}`}>
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <div className="flex items-center gap-2">
-                            {high ? <Flag className="h-4 w-4 text-red-400" /> : <Info className="h-4 w-4 text-blue-400" />}
-                            <span className={`font-semibold text-sm ${high ? "text-red-400" : "text-blue-400"}`}>
+                            {high ? <Flag className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} /> : <Info className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />}
+                            <span className={`font-semibold text-sm ${high ? ADMIN_TONE.danger.text : ADMIN_TONE.info.text}`}>
                               {high ? "HIGH PRIORITY FLAG" : String(n.type).replace(/_/g, " ").toUpperCase()}
                             </span>
                           </div>
-                          <span className="text-slate-400 text-xs whitespace-nowrap">{fmtDateTime(n.created_at)}</span>
+                          <span className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{fmtDateTime(n.created_at)}</span>
                         </div>
-                        {n.note && <p className="text-white text-sm mb-2">{n.note}</p>}
-                        <p className="text-slate-400 text-xs">Added by: {n.admin_name}</p>
+                        {n.note && <p className={`${ADMIN_GROUND.heading} text-sm mb-2`}>{n.note}</p>}
+                        <p className={`${ADMIN_GROUND.muted} text-xs`}>Added by: {n.admin_name}</p>
                       </div>
                     );
                   })}
@@ -800,7 +801,7 @@ function VerifRow({
 }) {
   const tone = ok ? "emerald" : pending ? "orange" : "slate";
   const text = ok ? okLabel : pending ? (pendingLabel ?? "Pending") : "Not Verified";
-  const iconColor = ok ? "text-emerald-400" : pending ? "text-orange-400" : "text-slate-500";
+  const iconColor = ok ? ADMIN_TONE.success.text : pending ? ADMIN_TONE.elevated.text : ADMIN_GROUND.faint;
   const pillClass = tone === "emerald"
     ? "bg-emerald-500/20 text-emerald-400"
     : tone === "orange"
@@ -810,7 +811,7 @@ function VerifRow({
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span className={iconColor}>{icon}</span>
-        <span className="text-white text-sm font-medium">{label}</span>
+        <span className={`${ADMIN_GROUND.heading} text-sm font-medium`}>{label}</span>
       </div>
       <span className={`px-2.5 py-1 rounded text-xs font-bold ${pillClass}`}>{text}</span>
     </div>
@@ -830,12 +831,12 @@ function StatCard({
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (
-          <span className={`text-xs font-semibold ${pill.tone === "red" ? "text-red-400" : "text-emerald-400"}`}>{pill.text}</span>
+          <span className={`text-xs font-semibold ${pill.tone === "red" ? ADMIN_TONE.danger.text : ADMIN_TONE.success.text}`}>{pill.text}</span>
         )}
       </div>
-      <h3 className="text-slate-400 text-sm font-medium mb-1">{label}</h3>
-      <p className="text-white text-2xl font-bold">{value}</p>
-      {sub && <p className="text-slate-500 text-xs mt-1">{sub}</p>}
+      <h3 className={`${ADMIN_GROUND.muted} text-sm font-medium mb-1`}>{label}</h3>
+      <p className={`${ADMIN_GROUND.heading} text-2xl font-bold`}>{value}</p>
+      {sub && <p className={`${ADMIN_GROUND.faint} text-xs mt-1`}>{sub}</p>}
     </Comp>
   );
 }

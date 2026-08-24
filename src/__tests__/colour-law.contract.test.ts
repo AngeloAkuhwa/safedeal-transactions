@@ -163,10 +163,16 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * as inline strings, and those plus the danger and warning panels, tone
  * glyphs and dot ternaries now read from the palette; the yellow triad,
  * /40 borders, /20 wash pills, 500/600 solids and timeline icon triads
- * match no palette entry and stay verbatim).
+ * match no palette entry and stay verbatim); 3824 to 3664 (batch 10,
+ * AdminUserDetail: the largest single-file drop so far because the page
+ * is mostly ground chrome, and every slate panel, border, raised surface
+ * and text role plus the tone glyphs, badge-set pill buttons, activity
+ * badge map, dot ternaries and danger/info solid CTAs were exact palette
+ * sets; the /20 washes, yellow and orange solids, slate-950 shell and
+ * hover shades match no entry and stay verbatim).
  */
 const BUDGET = {
-  admin: 3824,
+  admin: 3664,
   ui: 4,
   customer: 12,
 };
