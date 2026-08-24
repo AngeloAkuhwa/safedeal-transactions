@@ -98,6 +98,8 @@ export const ADMIN_TONE: Record<AdminTone, AdminToneClasses> = {
 export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
   success: "bg-emerald-600 hover:bg-emerald-700 text-white",
   danger: "bg-red-600 hover:bg-red-700 text-white",
+  info: "bg-blue-600 hover:bg-blue-700 text-white",
+  special: "bg-purple-600 hover:bg-purple-700 text-white",
 };
 
 /**
