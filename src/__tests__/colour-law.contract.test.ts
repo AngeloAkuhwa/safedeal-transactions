@@ -152,10 +152,13 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * 4092 to 4045 (batch 4, FlaggedUsersTable chrome and tone glyphs; its
  * orange-300 accents stay verbatim, matching neither elevated nor warning);
  * 4045 to 4002 (batch 5, PayoutDetailDrawer text roles, surfaces and tone
- * accents); 4002 to 3971 (batch 6, EscrowRecordsTable chrome and glyphs).
+ * accents); 4002 to 3971 (batch 6, EscrowRecordsTable chrome and glyphs);
+ * 3971 to 3948 (batch 7, UsersMobileFeed text roles and panels; its solid
+ * CTAs stay verbatim because they lack the hover pair ADMIN_SOLID carries,
+ * so no palette entry is an identical set).
  */
 const BUDGET = {
-  admin: 3971,
+  admin: 3948,
   ui: 4,
   customer: 12,
 };
