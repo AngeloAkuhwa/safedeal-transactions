@@ -152,10 +152,10 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * 4092 to 4045 (batch 4, FlaggedUsersTable chrome and tone glyphs; its
  * orange-300 accents stay verbatim, matching neither elevated nor warning);
  * 4045 to 4002 (batch 5, PayoutDetailDrawer text roles, surfaces and tone
- * accents).
+ * accents); 4002 to 3971 (batch 6, EscrowRecordsTable chrome and glyphs).
  */
 const BUDGET = {
-  admin: 4002,
+  admin: 3971,
   ui: 4,
   customer: 12,
 };

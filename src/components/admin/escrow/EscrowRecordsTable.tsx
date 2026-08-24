@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import type { EscrowRecordRow } from "@/services/admin-escrow.service";
+import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 /**
  * Fallback for a state the UI does not know about. A dynamic key lookup must
@@ -61,10 +62,10 @@ function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: Escrow
   return (
     <div className="flex items-center justify-center gap-1.5">
       <button type="button" onClick={onOpenTx} title="View Transaction" className={`min-h-11 min-w-11 inline-flex items-center justify-center ${btn} bg-slate-800 hover:bg-blue-600 relative before:absolute before:-inset-1 before:content-['']`}>
-        <FileText className="h-4 w-4 text-slate-300 group-hover:text-white" />
+        <FileText className={`h-4 w-4 ${ADMIN_GROUND.body} group-hover:text-white`} />
       </button>
       <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`min-h-11 min-w-11 inline-flex items-center justify-center ${btn} bg-slate-800 hover:bg-emerald-600 relative before:absolute before:-inset-1 before:content-['']`}>
-        <Vault className="h-4 w-4 text-slate-300 group-hover:text-white" />
+        <Vault className={`h-4 w-4 ${ADMIN_GROUND.body} group-hover:text-white`} />
       </button>
       <button
         type="button"
@@ -90,12 +91,12 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl">
-      <div className="p-4 lg:p-6 border-b border-slate-800">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
+      <div className={`p-4 lg:p-6 border-b ${ADMIN_GROUND.border}`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h3 className="text-white text-base lg:text-lg font-semibold">Escrow Records</h3>
-            <p className="text-slate-400 text-xs lg:text-sm mt-1">
+            <h3 className={`${ADMIN_GROUND.heading} text-base lg:text-lg font-semibold`}>Escrow Records</h3>
+            <p className={`${ADMIN_GROUND.muted} text-xs lg:text-sm mt-1`}>
               {total.toLocaleString()} active escrow transactions • Showing {from}-{to}
             </p>
           </div>
@@ -108,7 +109,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
       {/* Desktop table */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-800 border-b border-slate-700">
+          <thead className={`${ADMIN_GROUND.raised} border-b ${ADMIN_GROUND.borderSoft}`}>
             <tr>
               {["Transaction","Buyer","Seller","Total Held","Frozen","Releasable","Released","State","Last Changed","Actions"].map((h, i) => (
                 <th key={h}
@@ -120,7 +121,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
           </thead>
           <tbody className="divide-y divide-slate-800">
             {rows.length === 0 ? (
-              <tr><td colSpan={10} className="p-12 text-center text-sm text-slate-500">No escrow records match these filters.</td></tr>
+              <tr><td colSpan={10} className={`p-12 text-center text-sm ${ADMIN_GROUND.faint}`}>No escrow records match these filters.</td></tr>
             ) : rows.map((r) => {
               const st = STATE_STYLES[r.state] ?? UNKNOWN_STATE_STYLE;
               return (
@@ -129,22 +130,22 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 ${st.dot} rounded-full`} />
                       <div className="min-w-0">
-                        <p className="text-white text-sm font-medium whitespace-nowrap">#{r.transaction_code}</p>
-                        <p className="text-slate-400 text-xs">{new Date(r.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}</p>
+                        <p className={`${ADMIN_GROUND.heading} text-sm font-medium whitespace-nowrap`}>#{r.transaction_code}</p>
+                        <p className={`${ADMIN_GROUND.muted} text-xs`}>{new Date(r.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}</p>
                       </div>
-                      {r.flagged && <Flag className="h-3 w-3 text-red-400" />}
+                      {r.flagged && <Flag className={`h-3 w-3 ${ADMIN_TONE.danger.text}`} />}
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
-                      <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.buyer.name}</p>
+                      <p className={`${ADMIN_GROUND.heading} text-sm font-medium truncate max-w-[160px]`}>{r.buyer.name}</p>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <Avatar name={r.seller.name} url={r.seller.avatar_url} />
-                      <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.seller.name}</p>
+                      <p className={`${ADMIN_GROUND.heading} text-sm font-medium truncate max-w-[160px]`}>{r.seller.name}</p>
                     </div>
                   </td>
                   <td className={`p-4 text-right text-sm font-medium whitespace-nowrap ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</td>
@@ -158,7 +159,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                     </span>
                     <StateSubLines row={r} />
                   </td>
-                  <td className="p-4 text-slate-400 text-xs whitespace-nowrap">{formatRelative(r.last_changed_at)}</td>
+                  <td className={`p-4 ${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{formatRelative(r.last_changed_at)}</td>
                   <td className="p-4">
                     <ActionButtons
                       row={r}
@@ -177,7 +178,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
       {/* Mobile / tablet cards */}
       <div className="lg:hidden p-3 space-y-3">
         {rows.length === 0 ? (
-          <p className="p-8 text-center text-sm text-slate-500">No escrow records match these filters.</p>
+          <p className={`p-8 text-center text-sm ${ADMIN_GROUND.faint}`}>No escrow records match these filters.</p>
         ) : rows.map((r) => {
           const st = STATE_STYLES[r.state] ?? UNKNOWN_STATE_STYLE;
           return (
@@ -190,8 +191,8 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={`w-2 h-2 ${st.dot} rounded-full`} />
-                  <span className="text-white text-sm font-semibold truncate">#{r.transaction_code}</span>
-                  {r.flagged && <Flag className="h-3 w-3 text-red-400 shrink-0" />}
+                  <span className={`${ADMIN_GROUND.heading} text-sm font-semibold truncate`}>#{r.transaction_code}</span>
+                  {r.flagged && <Flag className={`h-3 w-3 ${ADMIN_TONE.danger.text} shrink-0`} />}
                   {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
                 </div>
                 <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>{st.label}</span>
@@ -200,39 +201,39 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-xs uppercase">Buyer</p>
-                    <p className="text-white text-xs font-medium truncate">{r.buyer.name}</p>
+                    <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Buyer</p>
+                    <p className={`${ADMIN_GROUND.heading} text-xs font-medium truncate`}>{r.buyer.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar name={r.seller.name} url={r.seller.avatar_url} />
                   <div className="min-w-0">
-                    <p className="text-slate-500 text-xs uppercase">Seller</p>
-                    <p className="text-white text-xs font-medium truncate">{r.seller.name}</p>
+                    <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Seller</p>
+                    <p className={`${ADMIN_GROUND.heading} text-xs font-medium truncate`}>{r.seller.name}</p>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-xs uppercase">Held</p>
+                  <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Held</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoneyOrDash(r.total_held, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-xs uppercase">Frozen</p>
+                  <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Frozen</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.frozen, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-xs uppercase">Releasable</p>
+                  <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Releasable</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.releasable, r.currency_code)}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
-                  <p className="text-slate-500 text-xs uppercase">Released</p>
+                  <p className={`${ADMIN_GROUND.faint} text-xs uppercase`}>Released</p>
                   <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoneyOrDash(r.released, r.currency_code)}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3 text-xs">
-                <span className="text-slate-500">{formatRelative(r.last_changed_at)}</span>
-                <span className="text-emerald-400 inline-flex items-center gap-1 font-medium">
+                <span className={ADMIN_GROUND.faint}>{formatRelative(r.last_changed_at)}</span>
+                <span className={`${ADMIN_TONE.success.text} inline-flex items-center gap-1 font-medium`}>
                   Open <ExternalLink className="h-3 w-3" />
                 </span>
               </div>
@@ -243,8 +244,8 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
 
       {/* Pagination */}
       {total > pageSize && (
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between text-sm">
-          <span className="text-slate-400">Page {page} of {lastPage}</span>
+        <div className={`p-4 border-t ${ADMIN_GROUND.border} flex items-center justify-between text-sm`}>
+          <span className={ADMIN_GROUND.muted}>Page {page} of {lastPage}</span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}
               className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed min-h-11">Prev</button>
