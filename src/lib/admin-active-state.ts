@@ -69,7 +69,9 @@ export function deriveActiveState(input: ActiveStateInputs): ActiveState {
     return !!i.status && ACTIVE_INVESTIGATION_STATES.has(i.status);
   });
 
-  const frozenAmount = Number(input.escrow?.frozenAmount ?? 0);
+  // NaN > 0 is false: an absent figure never invents a frozen state, and no
+  // zero is invented for money.
+  const frozenAmount = Number(input.escrow?.frozenAmount);
   const isFrozen = input.moneyStatus === "funds_frozen" || frozenAmount > 0;
 
   const isEscalated = isDisputeActive && status === "escalated";

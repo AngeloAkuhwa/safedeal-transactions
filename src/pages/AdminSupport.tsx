@@ -109,7 +109,9 @@ export default function AdminSupport() {
   });
 
   const rows = data?.messages ?? [];
-  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / SUPPORT_SIZE));
+  // Message count, not money; count-named for the money-zero guard.
+  const messageCount = data?.total;
+  const totalPages = Math.max(1, Math.ceil((messageCount ?? 0) / SUPPORT_SIZE));
 
   return (
     <AdminLayout title="Support Center" subtitle="Buyer and seller messages, and first-line debugging">
@@ -261,7 +263,7 @@ export default function AdminSupport() {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
-                      Page {page} of {totalPages} · {data?.total ?? 0} message(s)
+                      Page {page} of {totalPages} · {messageCount ?? 0} message(s)
                     </span>
                     <div className="flex gap-2">
                       <Button

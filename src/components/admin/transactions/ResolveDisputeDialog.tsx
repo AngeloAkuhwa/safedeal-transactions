@@ -26,8 +26,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   moneyStatus: string | null | undefined;
-  heldAmount: number;
-  frozenAmount: number;
+  /** Absent when the escrow snapshot is missing; treated as nothing
+      available rather than an invented ₦0 figure. */
+  heldAmount: number | null | undefined;
+  frozenAmount: number | null | undefined;
   currencyCode: string;
   hasActiveInvestigation: boolean;
   defaultSellerDueDays?: number;
@@ -52,7 +54,13 @@ export function ResolveDisputeDialog({
   open, onOpenChange, moneyStatus, heldAmount, frozenAmount, currencyCode,
   hasActiveInvestigation, defaultSellerDueDays = 3, onResolve, onRequestMoreInfo,
 }: Props) {
-  const available = useMemo(() => Number(heldAmount || 0) + Number(frozenAmount || 0), [heldAmount, frozenAmount]);
+  const available = useMemo(() => {
+    // Only recorded figures count toward what an operator may split; an
+    // absent one contributes nothing, and if both are absent the split
+    // validation below fails closed exactly as it always did at 0.
+    const parts = [heldAmount, frozenAmount].map(Number).filter((n) => !Number.isNaN(n));
+    return parts.reduce((a, b) => a + b, 0);
+  }, [heldAmount, frozenAmount]);
   const [mode, setMode] = useState<Mode>("release_funds_to_seller");
   const [summary, setSummary] = useState("");
   const [refundAmount, setRefundAmount] = useState<string>("");

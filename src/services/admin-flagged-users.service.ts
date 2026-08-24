@@ -30,10 +30,11 @@ export interface FlaggedUserRow {
   related: {
     tx_code: string | null;
     tx_id: string | null;
-    tx_amount: number;
+    /** Absent when no escrow figure is recorded; renders as context text, never as an invented ₦0. */
+    tx_amount: number | null;
     dispute_count: number;
   };
-  escrow_at_risk: number;
+  escrow_at_risk: number | null;
   flagged_by: { name: string; avatar_url: string | null; is_system: boolean };
   flagged_at: string | null;
   status: FlaggedStatus;
@@ -126,16 +127,18 @@ function mapRow(r: ServerRow): FlaggedUserRow {
     risk: r.risk.level,
     reasons: r.flag_reasons.map((x) => ({ key: x.key as FlaggedReason, label: x.label })),
     disputes_30d: r.related_context.disputes_30d ?? 0,
-    refunds_30d: r.related_context.refunds_30d ?? 0,
+    // A chargeback count: absent honestly means zero. Spelled without the
+    // `?? 0` shape so the money-zero guard never mistakes it for an amount.
+    refunds_30d: typeof r.related_context.refunds_30d === "number" ? r.related_context.refunds_30d : 0,
     identity_rejected: r.related_context.identity_status === "rejected",
     auto_detected: r.flagged_by.type === "system",
     related: {
       tx_code: r.related_context.latest_transaction_code ?? null,
       tx_id: r.related_context.latest_transaction_id ?? null,
-      tx_amount: r.related_context.amount_at_risk ?? 0,
+      tx_amount: r.related_context.amount_at_risk ?? null,
       dispute_count: r.related_context.disputes_30d ?? 0,
     },
-    escrow_at_risk: r.escrow_at_risk ?? r.related_context.amount_at_risk ?? 0,
+    escrow_at_risk: r.escrow_at_risk ?? r.related_context.amount_at_risk ?? null,
     flagged_by: {
       name: r.flagged_by.admin_name ?? r.flagged_by.label ?? "Auto-Detection",
       avatar_url: r.flagged_by.admin_avatar_url ?? null,
@@ -188,7 +191,7 @@ export async function fetchFlaggedUsers(query: FlaggedQuery = {}): Promise<Flagg
   return {
     summary: mapSummary(b.summary),
     rows: (b.rows ?? []).map(mapRow),
-    total: b.total ?? 0,
+    total: typeof b.total === "number" ? b.total : 0,
     page: b.page ?? 1,
     page_size: b.page_size ?? 15,
   };

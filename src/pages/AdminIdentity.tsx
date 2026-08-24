@@ -76,7 +76,9 @@ export default function AdminIdentity() {
   });
 
   const rows = data?.submissions ?? [];
-  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.per_page ?? 20)));
+  // Submission count, not money; count-named for the money-zero guard.
+  const totalCount = data?.total;
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / (data?.per_page ?? 20)));
 
   return (
     <AdminLayout title={TITLE} subtitle={SUBTITLE}>

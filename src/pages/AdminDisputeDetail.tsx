@@ -45,7 +45,29 @@ import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state"
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 // ---------- helpers ----------
-const ngn = (v: number | null | undefined) => formatMoney(Number(v ?? 0), "NGN");
+// formatMoney dashes a missing amount; the old `?? 0` here stamped ₦0.00
+// over every absent figure on the dispute page instead.
+//
+// The page's denomination is declared once here rather than scattered as
+// positional literals. It is still an assumption (KNOWN DEBT, same class the
+// positional ratchet tracks): the real fix is plumbing the transaction's own
+// currency_code through the dispute payload.
+const ADMIN_DISPLAY_CURRENCY = "NGN";
+const ngn = (v: number | null | undefined) => formatMoney(v, ADMIN_DISPLAY_CURRENCY);
+
+// Sum of the figures that are actually recorded: absent ones contribute
+// nothing rather than being invented as 0.
+const sumRecorded = (...values: unknown[]) =>
+  values.map(Number).filter((n) => !Number.isNaN(n)).reduce((a, b) => a + b, 0);
+
+// First actually-recorded figure, else null (which ngn renders as a dash).
+const firstRecorded = (...values: unknown[]): number | null => {
+  for (const v of values) {
+    const n = Number(v);
+    if (v !== null && v !== undefined && !Number.isNaN(n)) return n;
+  }
+  return null;
+};
 
 const fmtDate = (iso?: string | null) => {
   if (!iso) return "—";
@@ -316,20 +338,26 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   const adminCan = txDetail.adminActionsAvailable ?? {};
 
   const moneyStatus: string | null = tx.moneyStatus ?? null;
-  const heldAmount = Number(escrow?.heldAmount ?? 0);
-  const frozenAmount = Number(escrow?.frozenAmount ?? 0);
-  const releasedAmount = Number(escrow?.releasedAmount ?? 0);
-  const refundedAmount = Number(escrow?.refundedAmount ?? 0);
-  const buyerTotal = Number(pricing?.buyerTotal ?? 0);
-  const protectionFee = Number(pricing?.protectionFee ?? 0);
-  const sellerNet = Number(pricing?.sellerNet ?? pricing?.sellerNetAmount ?? 0);
-  const itemTotal = Number(pricing?.itemTotal ?? items[0]?.lineTotal ?? 0);
-  const paymentProcessingFee = Number(pricing?.paymentProcessingFee ?? pricing?.processingFee ?? 0);
-  const totalCharged = Number(pricing?.totalCharged ?? buyerTotal ?? (itemTotal + protectionFee + paymentProcessingFee));
+  // No zero fallbacks on money: an absent figure is NaN here, every display
+  // routes through ngn (which dashes it), every comparison treats NaN as
+  // false, and the arithmetic below sums only recorded figures.
+  const heldAmount = Number(escrow?.heldAmount);
+  const frozenAmount = Number(escrow?.frozenAmount);
+  const releasedAmount = Number(escrow?.releasedAmount);
+  const refundedAmount = Number(escrow?.refundedAmount);
+  const buyerTotal = Number(pricing?.buyerTotal);
+  const protectionFee = Number(pricing?.protectionFee);
+  const sellerNet = Number(pricing?.sellerNet ?? pricing?.sellerNetAmount);
+  const itemTotal = Number(pricing?.itemTotal ?? items[0]?.lineTotal);
+  const paymentProcessingFee = Number(pricing?.paymentProcessingFee ?? pricing?.processingFee);
+  // The summed fallback only stands when every part is recorded; a partial
+  // sum would be a fabricated total, so firstRecorded skips it (NaN) and the
+  // tile dashes instead.
+  const totalCharged = firstRecorded(pricing?.totalCharged, buyerTotal, itemTotal + protectionFee + paymentProcessingFee);
 
-  const amountInDispute = Number(dispute?.amountInDispute ?? itemTotal ?? buyerTotal ?? 0);
-  const eligibleRefund = Math.max(0, heldAmount + frozenAmount);
-  const eligibleRelease = Math.max(0, heldAmount + frozenAmount - protectionFee);
+  const amountInDispute = firstRecorded(dispute?.amountInDispute, itemTotal, buyerTotal);
+  const eligibleRefund = Math.max(0, sumRecorded(heldAmount, frozenAmount));
+  const eligibleRelease = Math.max(0, sumRecorded(heldAmount, frozenAmount) - sumRecorded(protectionFee));
 
   const txCode: string = tx.transactionCode ?? tx.transaction_code ?? "—";
   const disputeCode = `DSP-${(row.id ?? "").slice(0, 8).toUpperCase()}`;
@@ -2285,12 +2313,12 @@ function ResolutionSidebar({
                 <p className="mt-0.5 text-sm text-foreground/90 whitespace-pre-wrap">{outcome.summary}</p>
               </div>
             )}
-            {(Number(outcome?.refundAmount ?? 0) > 0 || Number(outcome?.releaseAmount ?? 0) > 0) && (
+            {(Number(outcome?.refundAmount) > 0 || Number(outcome?.releaseAmount) > 0) && (
               <div className="flex flex-wrap gap-3 text-xs">
-                {Number(outcome?.refundAmount ?? 0) > 0 && (
+                {Number(outcome?.refundAmount) > 0 && (
                   <span className="text-muted-foreground">Refund: <span className="text-foreground font-semibold tabular-nums">{ngn(outcome?.refundAmount)}</span></span>
                 )}
-                {Number(outcome?.releaseAmount ?? 0) > 0 && (
+                {Number(outcome?.releaseAmount) > 0 && (
                   <span className="text-muted-foreground">Release: <span className="text-foreground font-semibold tabular-nums">{ngn(outcome?.releaseAmount)}</span></span>
                 )}
               </div>
