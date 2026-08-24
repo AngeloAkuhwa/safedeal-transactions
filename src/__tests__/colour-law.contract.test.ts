@@ -155,10 +155,13 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * accents); 4002 to 3971 (batch 6, EscrowRecordsTable chrome and glyphs);
  * 3971 to 3948 (batch 7, UsersMobileFeed text roles and panels; its solid
  * CTAs stay verbatim because they lack the hover pair ADMIN_SOLID carries,
- * so no palette entry is an identical set).
+ * so no palette entry is an identical set); 3948 to 3909 (batch 8,
+ * AdminNotifications: the recurring interactive chip triad earned a
+ * palette entry, and the queue's chips, warning solids, glyphs and dots
+ * now compose from it).
  */
 const BUDGET = {
-  admin: 3948,
+  admin: 3909,
   ui: 4,
   customer: 12,
 };
