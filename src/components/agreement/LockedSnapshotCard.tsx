@@ -167,7 +167,9 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border">
                     <div>
-                      <span className="text-sm text-muted-foreground">{FEE_NAME} ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      {/* A missing rate is omitted, not rendered as 0.0%: this
+                          card is a locked snapshot and must not invent terms. */}
+                      <span className="text-sm text-muted-foreground">{FEE_NAME}{typeof pricing.service_fee_rate === "number" ? ` (${(pricing.service_fee_rate * 100).toFixed(1)}%)` : ""}</span>
                       <p className="text-xs text-muted-foreground mt-0.5">{FEE_CAPTION}</p>
                     </div>
                     <span className="text-base font-semibold text-muted-foreground">

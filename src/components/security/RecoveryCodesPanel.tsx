@@ -63,7 +63,7 @@ export function RecoveryCodesPanel({ unused, total, onGenerated }: Props) {
           </p>
         </div>
         <Badge variant="outline" className="text-muted-foreground shrink-0">
-          {unused}/{total || 0} unused
+          {unused}/{total} unused
         </Badge>
       </div>
 

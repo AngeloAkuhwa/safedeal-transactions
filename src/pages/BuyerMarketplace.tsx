@@ -100,7 +100,10 @@ export default function BuyerMarketplace() {
 
   const products = data?.products || [];
   const categories = data?.categories || [];
-  const total = data?.total || 0;
+  // A count, not money: zero results really is zero. The count-named local
+  // keeps the money-zero guard able to see the difference.
+  const totalCount = data?.total;
+  const total = totalCount ?? 0;
   const pageSize = data?.page_size || 20;
   const totalPages = Math.ceil(total / pageSize);
 

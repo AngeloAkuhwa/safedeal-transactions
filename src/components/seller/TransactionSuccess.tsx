@@ -26,7 +26,8 @@ interface TransactionSuccessProps {
     item_description: string;
     item_quantity: number;
     item_condition: string;
-    price: number;
+    /** Absent when the pricing snapshot is missing; renders as a dash. */
+    price: number | null | undefined;
     currency_code: string;
     delivery_method: string;
     expected_delivery_date: string;
@@ -65,7 +66,7 @@ export function TransactionSuccess({
   // With no pricing snapshot there is no fee truth to show. Render "—"
   // rather than implying a 0% fee and a 100% payout.
   const sellerNet = pricing ? pricing.seller_net_amount : null;
-  const feePercent = pricing && form.price > 0
+  const feePercent = pricing && typeof form.price === "number" && form.price > 0
     ? `${((pricing.service_fee_amount / form.price) * 100).toFixed(1)}%`
     : MISSING_MONEY;
 
@@ -73,7 +74,7 @@ export function TransactionSuccess({
     ? new Date(form.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "—";
 
-  const fmt = (amount: number) => formatMoney(amount, form.currency_code);
+  const fmt = (amount: number | null | undefined) => formatMoney(amount, form.currency_code);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullUrl);

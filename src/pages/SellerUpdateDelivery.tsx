@@ -254,7 +254,8 @@ export default function SellerUpdateDelivery() {
   const pricing = data.pricing;
   // A currency is a claim about someone else's money: never invented here.
   const currency = pricing?.currency_code ?? null;
-  const itemAmount = pricing?.item_amount ?? 0;
+  // No zero fallback: fmt dashes a missing amount instead of claiming ₦0.00.
+  const itemAmount = pricing?.item_amount;
 
   const statusToStep: Record<string, number> = {
     payment_secured: 2,

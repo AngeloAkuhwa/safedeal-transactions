@@ -15,9 +15,12 @@ interface SellerMetricsCardsProps {
 }
 
 export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
-  const netPaidToBank = metrics.net_paid_to_bank ?? 0;
-  const netPendingBankTransfer = metrics.net_pending_bank_transfer ?? 0;
-  const fundsFrozenAmount = metrics.funds_frozen_amount ?? 0;
+  // Money aggregates carry no zero fallback: the server sends a real 0 for
+  // "none", so an absent field is an error and must dash, not claim ₦0.00.
+  // Number(x) > 0 keeps the gating behaviour (absent gates closed).
+  const netPaidToBank = metrics.net_paid_to_bank;
+  const netPendingBankTransfer = metrics.net_pending_bank_transfer;
+  const fundsFrozenAmount = metrics.funds_frozen_amount;
   const fundsFrozenCount = metrics.funds_frozen_count ?? 0;
   // Denomination of every aggregate below. Null when the seller has rows in
   // more than one currency (or none). We render `—` rather than pick one.
@@ -73,7 +76,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       badgeBg: "bg-primary/10 text-primary",
       breakdown: null as string | null,
     },
-    ...(fundsFrozenAmount > 0
+    ...(Number(fundsFrozenAmount) > 0
       ? [{
           label: "Funds Frozen",
           value: formatMoneyOrDash(fundsFrozenAmount, currency),
@@ -111,7 +114,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       badge: "Paid",
       badgeBg: "bg-success/10 text-success",
       breakdown:
-        netPendingBankTransfer > 0
+        Number(netPendingBankTransfer) > 0
           ? `${formatMoneyOrDash(netPaidToBank, currency)} paid to bank · ${formatMoneyOrDash(netPendingBankTransfer, currency)} pending bank transfer`
           : null,
     },
