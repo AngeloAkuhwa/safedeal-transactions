@@ -5,7 +5,7 @@ import { formatRelative } from "./relative";
 
 const SEVERITY_ROW: Record<AdminAlert["severity"], string> = {
   red: "bg-red-500/10 border-red-500/20 text-red-300",
-  yellow: "bg-yellow-500/10 border-yellow-500/20 text-yellow-200",
+  yellow: "bg-amber-500/10 border-amber-500/20 text-amber-200",
   blue: "bg-blue-500/10 border-blue-500/20 text-blue-300",
 };
 

@@ -13,7 +13,7 @@ interface Props {
 export function RiskAndPaymentHealth({ sla, payments }: Props) {
   const total = sla.due_soon + sla.overdue + sla.escalated + sla.under_review || 1;
   const segments = [
-    { key: "due_soon", label: "Due soon", value: sla.due_soon, color: "bg-yellow-400" },
+    { key: "due_soon", label: "Due soon", value: sla.due_soon, color: "bg-amber-400" },
     { key: "overdue", label: "Overdue", value: sla.overdue, color: "bg-orange-500" },
     { key: "escalated", label: "Escalated", value: sla.escalated, color: "bg-red-500" },
     { key: "under_review", label: "Under review", value: sla.under_review, color: "bg-blue-500" },

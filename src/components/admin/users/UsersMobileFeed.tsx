@@ -40,7 +40,7 @@ function statusChip(r: UserDirectoryRow) {
   if (r.status === "under_investigation") return { label: "Investigating", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
   if (r.status === "flagged") return { label: "Flagged", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
   if (r.status === "pending") {
-    return { label: r.verification.id ? "Pending" : "Pending ID", cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" };
+    return { label: r.verification.id ? "Pending" : "Pending ID", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
   }
   return { label: "Active Now", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
 }
@@ -48,7 +48,7 @@ function statusChip(r: UserDirectoryRow) {
 function ringClass(r: UserDirectoryRow) {
   if (r.is_flagged || r.status === "under_investigation" || r.is_suspended) return "ring-red-500/30";
   if (r.trust_badge === "trusted_seller") return "ring-emerald-500/30";
-  if (r.status === "pending") return "ring-yellow-500/30";
+  if (r.status === "pending") return "ring-amber-500/30";
   return "ring-slate-700";
 }
 
@@ -58,7 +58,7 @@ function cornerBadge(r: UserDirectoryRow) {
   if (r.trust_badge === "trusted_seller")
     return { wrap: "bg-emerald-600", icon: <Star className="h-2.5 w-2.5 text-white" /> };
   if (r.status === "pending")
-    return { wrap: "bg-yellow-600", icon: <Clock className="h-2.5 w-2.5 text-white" /> };
+    return { wrap: "bg-amber-600", icon: <Clock className="h-2.5 w-2.5 text-white" /> };
   return null;
 }
 
@@ -167,7 +167,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       {r.disputes.active > 0
                         ? <p className={`${ADMIN_TONE.danger.text} font-bold text-sm`}>Active disputes</p>
                         : r.disputes.total > 0
-                          ? <p className="text-yellow-400 font-bold text-sm">In progress</p>
+                          ? <p className="text-amber-400 font-bold text-sm">In progress</p>
                           : <p className={`${ADMIN_GROUND.muted} font-bold text-sm`}>Clean record</p>}
                     </div>
                   </>
@@ -256,7 +256,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               <button
                 onClick={() => { const r = overflowRow; setOverflowRow(null); onFlagToggle(r); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold ${
-                  overflowRow.is_flagged ? "bg-slate-800 text-slate-200" : "bg-yellow-600 text-white"
+                  overflowRow.is_flagged ? "bg-slate-800 text-slate-200" : "bg-amber-600 text-white"
                 }`}
               >
                 {overflowRow.is_flagged ? <FlagOff className="h-4 w-4" /> : <Flag className="h-4 w-4" />}

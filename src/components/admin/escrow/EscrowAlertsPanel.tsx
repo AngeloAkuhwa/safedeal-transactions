@@ -19,7 +19,7 @@ type Accent = {
 const RED: Accent     = { bg: "bg-red-500/20",     border: "border-red-500/30",     text: "text-red-400",     chipBg: "bg-red-500/20",     hoverBorder: "hover:border-red-500/50" };
 const ORANGE: Accent  = { bg: "bg-orange-500/20",  border: "border-orange-500/30",  text: "text-orange-400",  chipBg: "bg-orange-500/20",  hoverBorder: "hover:border-orange-500/50" };
 const PURPLE: Accent  = { bg: "bg-purple-500/20",  border: "border-purple-500/30",  text: "text-purple-400",  chipBg: "bg-purple-500/20",  hoverBorder: "hover:border-purple-500/50" };
-const YELLOW: Accent  = { bg: "bg-yellow-500/20",  border: "border-yellow-500/30",  text: "text-yellow-400",  chipBg: "bg-yellow-500/20",  hoverBorder: "hover:border-yellow-500/50" };
+const YELLOW: Accent  = { bg: "bg-amber-500/20",  border: "border-amber-500/30",  text: "text-amber-400",  chipBg: "bg-amber-500/20",  hoverBorder: "hover:border-amber-500/50" };
 
 type Item = {
   id: string;
@@ -144,7 +144,7 @@ export function EscrowAlertsPanel({
     rowIcon: <AlertCircle className="h-3 w-3" />,
     right: (
       <div className="text-right">
-        <p className="text-yellow-400 text-xs font-semibold">Δ {formatMoney(r.delta, "NGN")}</p>
+        <p className="text-amber-400 text-xs font-semibold">Δ {formatMoney(r.delta, "NGN")}</p>
         <p className="text-slate-500 text-xs">Verify reconciliation</p>
       </div>
     ),

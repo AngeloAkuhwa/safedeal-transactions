@@ -12,7 +12,7 @@ const ICONS: Record<AdminActivityItem["kind"], { icon: typeof LineChart; cls: st
   dispute_opened: { icon: AlertTriangle, cls: "bg-red-500/15 text-red-400" },
   dispute_resolved: { icon: CheckCircle2, cls: "bg-emerald-500/15 text-emerald-400" },
   payout_failed: { icon: XCircle, cls: "bg-red-500/15 text-red-400" },
-  refund_issued: { icon: Undo2, cls: "bg-yellow-500/15 text-yellow-400" },
+  refund_issued: { icon: Undo2, cls: "bg-amber-500/15 text-amber-400" },
 };
 
 interface Props { items: AdminActivityItem[] }

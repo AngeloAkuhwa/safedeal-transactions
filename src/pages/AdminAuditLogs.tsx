@@ -48,7 +48,7 @@ function actionIconFor(action: string) {
   if (/refund/.test(a)) return { Icon: Undo2, cls: "bg-orange-500/15 text-orange-400" };
   if (/payment|payout/.test(a)) return { Icon: Banknote, cls: "bg-emerald-500/15 text-emerald-400" };
   if (/dispute_resolve|resolve_dispute/.test(a)) return { Icon: Gavel, cls: "bg-emerald-500/15 text-emerald-400" };
-  if (/dispute/.test(a)) return { Icon: Scale, cls: "bg-yellow-500/15 text-yellow-400" };
+  if (/dispute/.test(a)) return { Icon: Scale, cls: "bg-amber-500/15 text-amber-400" };
   if (/transaction/.test(a)) return { Icon: Receipt, cls: "bg-blue-500/15 text-blue-400" };
   if (/logout|sign_out/.test(a)) return { Icon: LogOut, cls: "bg-muted text-muted-foreground" };
   if (/login|sign_in/.test(a)) return { Icon: LogIn, cls: "bg-muted text-muted-foreground" };
@@ -62,7 +62,7 @@ function severityPill(sev: AuditSeverity) {
   const map: Record<AuditSeverity, { cls: string; label: string; Icon: typeof CircleAlert; pulse?: boolean }> = {
     critical: { cls: "bg-red-500/15 border-red-500/30 text-red-400", label: "CRITICAL", Icon: CircleAlert, pulse: true },
     high:     { cls: "bg-orange-500/15 border-orange-500/30 text-orange-400", label: "HIGH", Icon: TriangleAlert },
-    medium:   { cls: "bg-yellow-500/15 border-yellow-500/30 text-yellow-400", label: "MEDIUM", Icon: TriangleAlert },
+    medium:   { cls: "bg-amber-500/15 border-amber-500/30 text-amber-400", label: "MEDIUM", Icon: TriangleAlert },
     low:      { cls: "bg-blue-500/15 border-blue-500/30 text-blue-400", label: "LOW", Icon: Info },
     info:     { cls: "bg-muted text-muted-foreground border-border", label: "Info", Icon: Info },
   };
@@ -72,7 +72,7 @@ function severityPill(sev: AuditSeverity) {
 function rowTint(sev: AuditSeverity) {
   if (sev === "critical") return "bg-red-500/5 border-l-4 border-red-500";
   if (sev === "high") return "bg-orange-500/5 border-l-4 border-orange-500";
-  if (sev === "medium") return "bg-yellow-500/5 border-l-4 border-yellow-500";
+  if (sev === "medium") return "bg-amber-500/5 border-l-4 border-amber-500";
   return "";
 }
 

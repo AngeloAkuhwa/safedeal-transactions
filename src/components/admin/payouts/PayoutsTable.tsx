@@ -205,7 +205,7 @@ function RowMenu({
   );
   const note = (
     <DropdownMenuItem className={itemCls} onClick={onAddNote}>
-      <FaNoteSticky className="text-yellow-400" /> Add Internal Note
+      <FaNoteSticky className="text-amber-400" /> Add Internal Note
     </DropdownMenuItem>
   );
   const block = (
@@ -257,7 +257,7 @@ function RowMenu({
         </DropdownMenuItem>
         <div className={`border-t ${ADMIN_GROUND.borderSoft} my-2`} />
         <DropdownMenuItem className={rowCls} onClick={onAddNote}>
-          <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
+          <span className={iconSlot}><FaNoteSticky className="text-amber-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
@@ -290,7 +290,7 @@ function RowMenu({
         </DropdownMenuItem>
         <div className={`border-t ${ADMIN_GROUND.borderSoft} my-2`} />
         <DropdownMenuItem className={rowCls} onClick={onAddNote}>
-          <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
+          <span className={iconSlot}><FaNoteSticky className="text-amber-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400 min-h-11`} onClick={onPause}>

@@ -43,7 +43,7 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
     lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Auto-release pending", className: "text-orange-400" });
   }
   if (row.state_mismatch) {
-    lines.push({ icon: <AlertTriangle className="h-3 w-3" />, text: "State mismatch", className: "text-yellow-400" });
+    lines.push({ icon: <AlertTriangle className="h-3 w-3" />, text: "State mismatch", className: "text-amber-400" });
   }
   if (!lines.length) return null;
   return (
@@ -193,7 +193,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                   <span className={`w-2 h-2 ${st.dot} rounded-full`} />
                   <span className={`${ADMIN_GROUND.heading} text-sm font-semibold truncate`}>#{r.transaction_code}</span>
                   {r.flagged && <Flag className={`h-3 w-3 ${ADMIN_TONE.danger.text} shrink-0`} />}
-                  {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
+                  {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />}
                 </div>
                 <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>{st.label}</span>
               </div>

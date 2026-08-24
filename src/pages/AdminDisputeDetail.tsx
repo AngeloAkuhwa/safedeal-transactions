@@ -150,7 +150,7 @@ function KV({ label, value, className }: { label: string; value: React.ReactNode
 
 const STATUS_TONE: Record<string, string> = {
   open: ADMIN_TONE.info.badge,
-  awaiting_seller_response: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  awaiting_seller_response: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   under_review: ADMIN_TONE.special.badge,
   escalated: ADMIN_TONE.elevated.badge,
   resolved: ADMIN_TONE.success.badge,
@@ -1091,8 +1091,8 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
             <div className="text-sm text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
           </div>
           {!isBuyer && sellerTier ? (
-            <span className="inline-flex items-center gap-1 text-sm text-yellow-400 shrink-0">
-              <Star className="h-4 w-4 fill-yellow-400" /> {titleCase(sellerTier)} Seller
+            <span className="inline-flex items-center gap-1 text-sm text-amber-400 shrink-0">
+              <Star className="h-4 w-4 fill-amber-400" /> {titleCase(sellerTier)} Seller
             </span>
           ) : ver.identity ? (
             <span className={`inline-flex items-center gap-1 text-sm ${ADMIN_TONE.success.text} shrink-0`}>
@@ -1253,26 +1253,26 @@ function moneyDotColor(v?: string | null) {
   if (v === "funds_released") return "bg-emerald-500";
   if (v === "funds_refunded" || v === "funds_partially_refunded") return "bg-emerald-500";
   if (v === "funds_pending_release") return "bg-orange-500";
-  if (v === "funds_held_in_escrow") return "bg-yellow-500";
+  if (v === "funds_held_in_escrow") return "bg-amber-500";
   return "bg-muted-foreground";
 }
 function moneyTextColor(v?: string | null) {
   if (v === "funds_frozen") return ADMIN_TONE.danger.text;
   if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return ADMIN_TONE.success.text;
   if (v === "funds_pending_release") return ADMIN_TONE.elevated.text;
-  if (v === "funds_held_in_escrow") return "text-yellow-400";
+  if (v === "funds_held_in_escrow") return "text-amber-400";
   return "text-foreground";
 }
 function payoutDotColor(payout: any, disputeActive: boolean) {
   if (disputeActive) return "bg-red-500";
   if (payout?.status === "completed") return "bg-emerald-500";
-  if (payout?.status === "pending") return "bg-yellow-500";
+  if (payout?.status === "pending") return "bg-amber-500";
   return "bg-muted-foreground";
 }
 function payoutTextColor(payout: any, disputeActive: boolean) {
   if (disputeActive) return ADMIN_TONE.danger.text;
   if (payout?.status === "completed") return ADMIN_TONE.success.text;
-  if (payout?.status === "pending") return "text-yellow-400";
+  if (payout?.status === "pending") return "text-amber-400";
   return "text-foreground";
 }
 
@@ -1409,13 +1409,13 @@ function CaseCommunicationSection(props: {
     emerald: `${ADMIN_TONE.success.panel} ${ADMIN_TONE.success.text}`,
     red: `${ADMIN_TONE.danger.panel} ${ADMIN_TONE.danger.text}`,
     orange: `${ADMIN_TONE.elevated.panel} ${ADMIN_TONE.elevated.text}`,
-    yellow: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
+    yellow: "bg-amber-500/10 border-amber-500/30 text-amber-400",
   };
   const chipMeta: Record<string, string> = {
     emerald: "text-emerald-400/60",
     red: "text-red-400/60",
     orange: "text-orange-400/60",
-    yellow: "text-yellow-400/60",
+    yellow: "text-amber-400/60",
   };
 
   // ---------- per-tab data ----------
@@ -1745,7 +1745,7 @@ function CaseCommunicationSection(props: {
             <div className="flex flex-wrap gap-2">
               <QuickActionChip disabled icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
               <QuickActionChip disabled icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
-              <QuickActionChip disabled icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-amber-500 hover:text-amber-400" title="Outbound messaging not yet wired" />
               <QuickActionChip disabled icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" title="Outbound messaging not yet wired" />
             </div>
           </div>
@@ -1833,10 +1833,10 @@ function MessageItem({ m }: { m: CommMessage }) {
       accentText: ADMIN_TONE.danger.text,
     },
     reminder: {
-      border: "border-yellow-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
-      badgeBg: "bg-yellow-500/20", badgeText: "text-yellow-400",
+      border: "border-amber-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-amber-500/20", badgeText: "text-amber-400",
       badgeIcon: <Bell className="w-3 h-3" />, badgeLabel: "Reminder",
-      accentText: "text-yellow-400",
+      accentText: "text-amber-400",
     },
     seller_reply: {
       border: "border-orange-500", bg: "bg-orange-500/5", body: "bg-slate-900/70 border border-orange-500/10",
@@ -2219,7 +2219,7 @@ function LinkedTile({ icon, title, subtitle, onClick, tone = "blue", showDot = f
     emerald: "bg-emerald-500/15 text-emerald-300",
     orange: "bg-orange-500/15 text-orange-300",
     purple: "bg-purple-500/15 text-purple-300",
-    yellow: "bg-yellow-500/15 text-yellow-300",
+    yellow: "bg-amber-500/15 text-amber-300",
   };
   return (
     <button
@@ -2431,7 +2431,7 @@ function ResolutionSidebar({
       {/* Investigation Actions */}
       <SidebarGroup title="Investigation Actions">
         <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote}
-          iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+          iconColor="text-amber-400" iconBg="bg-amber-500/10" />
         <SidebarBtn icon={<Edit3 />} label="Add Internal Note" onClick={onAddNote}
           iconColor={ADMIN_TONE.special.text} iconBg="bg-purple-500/10" />
         <SidebarBtn icon={<Search />} label="Open Investigation" disabled
@@ -2478,10 +2478,10 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
 }) {
   const toneCls = statusTone === "emerald" ? ADMIN_TONE.success.text
     : statusTone === "red" ? ADMIN_TONE.danger.text
-    : "text-yellow-400";
+    : "text-amber-400";
   const dotCls = statusTone === "emerald" ? ADMIN_TONE.success.dot
     : statusTone === "red" ? ADMIN_TONE.danger.dot
-    : "bg-yellow-400";
+    : "bg-amber-400";
   return (
     <div className="rounded-lg border border-[#253044] bg-[#0F172A]/60 p-3">
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -2602,8 +2602,8 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     next: overdue ? "Send reminder or escalate." : "Wait for seller response or send reminder.",
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
-      : "border-yellow-500/30 bg-yellow-500/10 text-yellow-100",
-    dotCls: overdue ? ADMIN_TONE.danger.dot : "bg-yellow-400",
+      : "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    dotCls: overdue ? ADMIN_TONE.danger.dot : "bg-amber-400",
     Icon: Clock,
   };
   return {

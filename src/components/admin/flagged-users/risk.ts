@@ -10,28 +10,28 @@ export const RISK_LABEL: Record<FlaggedRisk, string> = {
 export const RISK_BORDER: Record<FlaggedRisk, string> = {
   critical: "border-l-red-500",
   high: "border-l-orange-500",
-  medium: "border-l-yellow-500",
+  medium: "border-l-amber-500",
   low: "border-l-slate-600",
 };
 
 export const RISK_AVATAR_RING: Record<FlaggedRisk, string> = {
   critical: "border-red-500",
   high: "border-orange-500",
-  medium: "border-yellow-500",
+  medium: "border-amber-500",
   low: "border-slate-600",
 };
 
 export const RISK_PILL: Record<FlaggedRisk, string> = {
   critical: "bg-red-500/20 border-red-500/40 text-red-300",
   high: "bg-orange-500/20 border-orange-500/40 text-orange-300",
-  medium: "bg-yellow-500/20 border-yellow-500/40 text-yellow-200",
+  medium: "bg-amber-500/20 border-amber-500/40 text-amber-200",
   low: "bg-slate-700 border-slate-600 text-slate-300",
 };
 
 export const RISK_DOT: Record<FlaggedRisk, string> = {
   critical: "bg-red-400",
   high: "bg-orange-400",
-  medium: "bg-yellow-300",
+  medium: "bg-amber-300",
   low: "bg-slate-400",
 };
 

@@ -5,7 +5,7 @@ import { formatRelative } from "./relative";
 
 const COMPLIANCE_BADGE: Record<AuditSignal["compliance_status"], string> = {
   green: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  amber: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  amber: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   red: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 

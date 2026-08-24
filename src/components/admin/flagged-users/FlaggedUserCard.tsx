@@ -14,7 +14,7 @@ const REASON_PILL: Record<string, string> = {
   multiple_disputes: "bg-red-500/10 border-red-500/20 text-red-400",
   chargeback_pattern: "bg-red-500/10 border-red-500/20 text-red-400",
   identity_issues: "bg-orange-500/10 border-orange-500/20 text-orange-400",
-  suspicious_activity: "bg-yellow-500/10 border-yellow-500/20 text-yellow-300",
+  suspicious_activity: "bg-amber-500/10 border-amber-500/20 text-amber-300",
   fraud_detection: "bg-purple-500/10 border-purple-500/20 text-purple-300",
   stuck_frozen_escrow: "bg-purple-500/10 border-purple-500/20 text-purple-300",
   admin_flag: "bg-blue-500/10 border-blue-500/20 text-blue-300",
@@ -43,7 +43,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
             <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase border ${
               row.risk === "critical" ? "bg-red-500/20 border-red-500/40 text-red-300"
               : row.risk === "high" ? "bg-orange-500/20 border-orange-500/40 text-orange-300"
-              : row.risk === "medium" ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
+              : row.risk === "medium" ? "bg-amber-500/20 border-amber-500/40 text-amber-200"
               : "bg-slate-700 border-slate-600 text-slate-300"
             }`}>
               {RISK_LABEL[row.risk]} Risk
