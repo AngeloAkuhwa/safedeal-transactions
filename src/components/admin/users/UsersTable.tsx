@@ -35,7 +35,7 @@ const STATUS_CLASS: Record<string, string> = {
   active: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   flagged: "bg-red-500/10 border-red-500/20 text-red-400",
   suspended: "bg-purple-500/10 border-purple-500/20 text-purple-400",
-  pending: "bg-yellow-500/10 border-yellow-500/20 text-yellow-400",
+  pending: "bg-amber-500/10 border-amber-500/20 text-amber-400",
   under_investigation: "bg-orange-500/10 border-orange-500/20 text-orange-400",
 };
 
@@ -95,7 +95,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
             {rows.map((r) => {
               const ring = r.is_flagged || r.is_suspended ? "ring-red-500/30"
                 : r.trust_badge === "trusted_seller" ? "ring-emerald-500/30"
-                : r.status === "pending" ? "ring-yellow-500/30" : "ring-slate-700";
+                : r.status === "pending" ? "ring-amber-500/30" : "ring-slate-700";
               const init = (r.full_name || "?").slice(0, 1).toUpperCase();
               return (
                 <tr role="button" tabIndex={0} onKeyDown={keyActivate}
@@ -131,8 +131,8 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                             </span>
                           )}
                           {r.status === "pending" && (
-                            <span className="w-5 h-5 bg-yellow-500/10 border border-yellow-500/30 rounded flex items-center justify-center" title="Pending verification">
-                              <Clock className="h-3 w-3 text-yellow-400" />
+                            <span className="w-5 h-5 bg-amber-500/10 border border-amber-500/30 rounded flex items-center justify-center" title="Pending verification">
+                              <Clock className="h-3 w-3 text-amber-400" />
                             </span>
                           )}
                         </div>
@@ -155,7 +155,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   </td>
                   <td className="p-4">
                     <div className="space-y-1.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>
                         <ShieldCheck className="h-3 w-3" />
                         {r.verification.level === "fully" ? "Fully Verified" : r.verification.level === "id" ? "ID Verified" : r.verification.level === "phone" ? resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified: r.verification.level === "phone" }) : r.verification.level === "email" ? "Email Only" : "Unverified"}
                       </span>
@@ -181,7 +181,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     {r.disputes.active > 0
                       ? <p className={`${ADMIN_TONE.danger.text} text-xs mt-0.5 font-medium`}>Active · of {r.disputes.total} total</p>
                       : r.disputes.total > 0
-                        ? <p className="text-yellow-400 text-xs mt-0.5 font-medium">In progress</p>
+                        ? <p className="text-amber-400 text-xs mt-0.5 font-medium">In progress</p>
                         : <p className={`${ADMIN_GROUND.muted} text-xs mt-0.5`}>Clean record</p>}
                   </td>
                   <td className="p-4">
@@ -210,7 +210,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                       </button>
                       <button title="Review Investigation" onClick={(e) => { e.stopPropagation(); navigate(`/admin/flagged-users?u=${r.user_id}`); }} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center"><FileSearch className="h-3.5 w-3.5" /></button>
                       <button title="Start Impersonation" onClick={(e) => { e.stopPropagation(); toast({ title: "Impersonation coming soon" }); }} className={`px-2.5 py-1.5 ${ADMIN_SOLID.special} rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center`}><UserCog className="h-3.5 w-3.5" /></button>
-                      <button title={r.is_flagged ? "Unflag user" : "Flag user"} onClick={(e) => { e.stopPropagation(); onFlagToggle(r); }} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-yellow-600 hover:bg-yellow-700"} min-h-11 min-w-11 justify-center`}>
+                      <button title={r.is_flagged ? "Unflag user" : "Flag user"} onClick={(e) => { e.stopPropagation(); onFlagToggle(r); }} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-amber-600 hover:bg-amber-700"} min-h-11 min-w-11 justify-center`}>
                         {r.is_flagged ? <FlagOff className="h-3.5 w-3.5" /> : <Flag className="h-3.5 w-3.5" />}
                       </button>
                       <button title="Generate Export" onClick={(e) => { e.stopPropagation(); toast({ title: "Per-user export coming soon" }); }} className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center"><FileDown className="h-3.5 w-3.5" /></button>

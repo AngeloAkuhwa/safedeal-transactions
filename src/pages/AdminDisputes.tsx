@@ -47,7 +47,7 @@ import { ADMIN_TONE } from "@/components/admin/palette";
 const PRIORITY_DOT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "bg-red-500",
   high: "bg-orange-500",
-  medium: "bg-yellow-400",
+  medium: "bg-amber-400",
   low: "bg-emerald-500",
   resolved: "bg-emerald-500",
 };
@@ -55,7 +55,7 @@ const PRIORITY_DOT: Record<DisputeQueueRow["priority"], string> = {
 const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "text-red-400",
   high: "text-orange-400",
-  medium: "text-yellow-300",
+  medium: "text-amber-300",
   low: "text-emerald-400",
   resolved: "text-emerald-400",
 };
@@ -63,7 +63,7 @@ const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
 const PRIORITY_ACCENT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "bg-red-500",
   high: "bg-orange-500",
-  medium: "bg-yellow-400",
+  medium: "bg-amber-400",
   low: "bg-emerald-500",
   resolved: "bg-emerald-500",
 };
@@ -126,7 +126,7 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
   }
   const map: Record<string, { label: string; tone: string }> = {
     open: { label: "Open", tone: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-    seller_response_pending: { label: "Awaiting Seller", tone: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30" },
+    seller_response_pending: { label: "Awaiting Seller", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
     under_review: { label: "Under Review", tone: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
     resolved: { label: "Resolved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   };
@@ -179,7 +179,7 @@ function KpiStrip({
   const k = data?.kpis;
   const cards: KpiCardDef[] = [
     { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} from yesterday` : "", Icon: Scale, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30", subTone: "text-muted-foreground" },
-    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: `${dueTodayCount} due today`, Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30", subTone: "text-muted-foreground" },
+    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: `${dueTodayCount} due today`, Icon: Clock, tone: "text-amber-300 bg-amber-500/10 border-amber-500/30", subTone: "text-muted-foreground" },
     { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: `${assignedToMeCount} assigned to you`, Icon: Search, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
     { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30", subTone: "text-red-400" },
     { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: Check, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
@@ -423,7 +423,7 @@ export default function AdminDisputes() {
                     const baseActive =
                       f.id === "overdue" ? "border border-red-500/50 bg-red-500/20 text-red-200" :
                       f.id === "open" ? "border border-orange-500/50 bg-orange-500/20 text-orange-200" :
-                      f.id === "awaiting_seller" ? "border border-yellow-500/50 bg-yellow-500/20 text-yellow-200" :
+                      f.id === "awaiting_seller" ? "border border-amber-500/50 bg-amber-500/20 text-amber-200" :
                       f.id === "under_review" ? "border border-blue-500/50 bg-blue-500/20 text-blue-200" :
                       f.id === "escalated" ? "border border-purple-500/50 bg-purple-500/20 text-purple-200" :
                       f.id === "resolved" ? "border border-emerald-500/50 bg-emerald-500/20 text-emerald-200" :

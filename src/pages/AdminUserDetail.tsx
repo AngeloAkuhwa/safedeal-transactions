@@ -301,7 +301,7 @@ export default function AdminUserDetail() {
                       <FlagOff className="h-4 w-4" /> Unflag User
                     </button>
                   ) : (
-                    <button onClick={() => setPendingAction({ kind: "flag" })} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
+                    <button onClick={() => setPendingAction({ kind: "flag" })} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
                       <Flag className="h-4 w-4" /> Flag User
                     </button>
                   )}
@@ -625,7 +625,7 @@ export default function AdminUserDetail() {
                       const title = item.title || t.replace(/_/g, " ");
                       const sev = item.severity ?? "neutral";
                       const dot = sev === "high" ? ADMIN_TONE.danger.dot
-                        : sev === "warning" ? "bg-yellow-400"
+                        : sev === "warning" ? "bg-amber-400"
                         : sev === "success" ? ADMIN_TONE.success.dot
                         : sev === "info" ? ADMIN_TONE.info.dot
                         : "bg-slate-500";
@@ -666,7 +666,7 @@ export default function AdminUserDetail() {
               <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                 <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
                   <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                    <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
+                    <StickyNote className="h-5 w-5 text-amber-400" /> Admin Notes &amp; Flags
                   </h3>
                   <div className="flex items-center gap-2">
                     <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className={`px-3 py-2 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} ${ADMIN_GROUND.body} rounded-lg text-xs font-medium border ${ADMIN_GROUND.borderSoft} min-h-11`}>

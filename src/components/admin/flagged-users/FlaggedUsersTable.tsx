@@ -38,7 +38,7 @@ const REASON_CHIP: Record<string, string> = {
   multiple_disputes: "bg-red-500/10 border-red-500/20 text-red-400",
   chargeback_pattern: "bg-red-500/10 border-red-500/20 text-red-400",
   identity_issues: "bg-orange-500/10 border-orange-500/20 text-orange-400",
-  suspicious_activity: "bg-yellow-500/10 border-yellow-500/20 text-yellow-300",
+  suspicious_activity: "bg-amber-500/10 border-amber-500/20 text-amber-300",
   fraud_detection: "bg-purple-500/10 border-purple-500/20 text-purple-300",
   stuck_frozen_escrow: "bg-purple-500/10 border-purple-500/20 text-purple-300",
   admin_flag: "bg-blue-500/10 border-blue-500/20 text-blue-300",

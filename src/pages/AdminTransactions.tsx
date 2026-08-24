@@ -78,7 +78,7 @@ import { ADMIN_TONE } from "@/components/admin/palette";
 /* ---------------- Visual helpers ---------------- */
 
 const STATUS_BADGE_CLS: Record<string, string> = {
-  awaiting_payment: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  awaiting_payment: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   funds_held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
   in_fulfillment: "bg-blue-500/15 text-blue-300 border-blue-500/30",
   dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
@@ -593,7 +593,7 @@ export default function AdminTransactions() {
         key: "awaiting", icon: Clock, label: "Awaiting Action",
         value: summary ? summary.awaitingActionCount.toLocaleString("en-NG") : "—",
         exact: null,
-        iconCls: "bg-yellow-500/15 text-yellow-400",
+        iconCls: "bg-amber-500/15 text-amber-400",
       },
       {
         key: "flagged", icon: Flag, label: "Flagged",

@@ -189,6 +189,38 @@ const BUDGET = {
   customer: 12,
 };
 
+/**
+ * The convergence pass (plan 6.2) retires hues, not just call sites, and a
+ * retired hue needs a ban rather than a ratchet: zero is the honest floor.
+ *
+ * Yellow went first. The admin surface spoke three caution hues at once
+ * (amber for warning, orange for elevated, and 127 yellow utilities that
+ * meant warning but drifted a step greener), and two screens disagreeing
+ * about one meaning is exactly the defect the palette exists to end. Every
+ * yellow folded into its amber equivalent in the same change, so yellow now
+ * carries no meaning here, and a new one would be a regression, not debt.
+ */
+const ADMIN_BANNED_HUES = /\b[a-z:]*(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:yellow)-[0-9]{2,3}\b/g;
+
+describe("retired admin hues stay retired", () => {
+  it("no admin file speaks yellow", () => {
+    const offenders: string[] = [];
+    for (const file of walk(path.join(ROOT, "src"))) {
+      const rel = path.relative(ROOT, file);
+      if (rel.includes("__tests__") || !isAdmin(rel)) continue;
+      const hits = stripComments(fs.readFileSync(file, "utf8")).match(ADMIN_BANNED_HUES) ?? [];
+      if (hits.length) offenders.push(`${rel}: ${hits.join(", ")}`);
+    }
+    expect(
+      offenders,
+      "Yellow was retired from the admin surface in the 6.2 convergence " +
+        "pass: caution is warning (amber) or elevated (orange), through " +
+        "ADMIN_TONE. Fold the new utility into its tone instead.\n" +
+        offenders.join("\n"),
+    ).toEqual([]);
+  });
+});
+
 /*
  * ui dropped 7 to 4 in the same change: the destructive toast close button's
  * red-* utilities became destructive tokens. The remaining four are the
