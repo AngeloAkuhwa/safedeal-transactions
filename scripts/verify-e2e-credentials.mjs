@@ -48,6 +48,44 @@ console.log(`project: ${new global.URL(URL_).host}`);
 const roles = process.argv.slice(2);
 if (roles.length === 0) roles.push("buyer", "seller", "admin");
 
+/**
+ * The password grant, retried on 5xx and network failure only.
+ *
+ * A 4xx is the truth this script exists to surface (wrong password, wrong
+ * project, unconfirmed email) and is never retried. A 504 is not a fact
+ * about the credential at all: on 2026-08-24 the project's auth layer spent
+ * a morning flapping, sign-ins succeeding and timing out seconds apart on
+ * the same runner, and every CI attempt died here while the database
+ * underneath answered instantly. Bounded retries with a pause let one
+ * healthy window through without hiding a real outage: every attempt is
+ * logged, and five failures still fail the job loudly.
+ */
+const ATTEMPTS = 5;
+const PAUSE_MS = 20000;
+async function passwordGrant(email, password, label) {
+  let last;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { apikey: KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.status < 500) return res;
+      last = res;
+      console.log(`${label}: attempt ${attempt}/${ATTEMPTS} got HTTP ${res.status} from the auth endpoint; ` +
+        (attempt < ATTEMPTS ? `retrying in ${PAUSE_MS / 1000}s` : "out of retries"));
+    } catch (err) {
+      last = err;
+      console.log(`${label}: attempt ${attempt}/${ATTEMPTS} could not reach the auth endpoint (${err?.cause?.code ?? err.message}); ` +
+        (attempt < ATTEMPTS ? `retrying in ${PAUSE_MS / 1000}s` : "out of retries"));
+    }
+    if (attempt < ATTEMPTS) await new Promise((r) => setTimeout(r, PAUSE_MS));
+  }
+  if (last instanceof Response) return last;
+  throw last;
+}
+
 let bad = 0;
 for (const role of roles) {
   const R = role.toUpperCase();
@@ -58,11 +96,7 @@ for (const role of roles) {
     bad += 1;
     continue;
   }
-  const res = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  const res = await passwordGrant(email, password, role);
   if (res.ok) {
     console.log(`${role.padEnd(6)} OK   ${email}`);
     continue;
