@@ -7,6 +7,7 @@ import {
   type PermissionEnvironment,
 } from "@/services/permission-repository";
 import { getStagedPermissionChangeCount } from "@/hooks/useStagedPermissionChanges";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const URL_KEY = "rm_env";
 
@@ -20,7 +21,7 @@ const META: Record<PermissionEnvironment, { label: string; icon: React.ReactNode
   staging: {
     label: "Staging",
     icon: <FlaskConical className="h-3.5 w-3.5" />,
-    tint: "text-amber-300",
+    tint: ADMIN_TONE.warning.text,
     ring: "ring-amber-500/40 bg-amber-500/10",
   },
   development: {

@@ -13,6 +13,7 @@ import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { EmptyState } from "./EmptyState";
 import { ArrowUpRight, ShieldOff, TimerReset, Filter, History, Eye } from "lucide-react";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 type OverrideType = "grant" | "deny" | "temporary";
 type OverrideStatus = "active" | "expired";
@@ -76,7 +77,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
   const typePill = (t: OverrideType) => t === "grant"
     ? { label: "Grant", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" }
     : t === "deny" ? { label: "Deny", cls: "bg-destructive/15 text-destructive border-destructive/30" }
-    : { label: "Temporary", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+    : { label: "Temporary", cls: ADMIN_TONE.warning.badge };
   const statusPill = (s: OverrideStatus) => s === "expired"
     ? { label: "Expired", cls: "bg-muted/40 text-muted-foreground border-border" }
     : { label: "Active", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" };
@@ -176,7 +177,7 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
                 <td className="px-4 py-3 align-middle text-xs">
                   <span className={
                     exp.tone === "rose" ? "text-rose-400"
-                    : exp.tone === "amber" ? "text-amber-300"
+                    : exp.tone === "amber" ? ADMIN_TONE.warning.text
                     : "text-muted-foreground"
                   }>{exp.label}</span>
                 </td>
@@ -285,7 +286,7 @@ function RevokeOverrideDialog({ row, env, onOpenChange, onDone }: { row: Overrid
         <div className="space-y-2 text-sm">
           <p className="text-xs text-muted-foreground">{row?.permission_key} · {row?.user_name}</p>
           {!guard.ok && guard.message && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">{guard.message}</div>
+            <div className={`rounded-md border ${ADMIN_TONE.warning.panel} p-2 text-xs text-amber-200`}>{guard.message}</div>
           )}
           <label className="block">
             <span className="mb-1 block text-xs uppercase text-muted-foreground">Reason (required)</span>

@@ -1,6 +1,7 @@
 import { Ban, Eye, PencilLine, CheckCircle2, AlertTriangle, Download, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import {
   ACCESS_LABEL,
   INTERNAL_ROLES,
@@ -40,7 +41,7 @@ const BUCKETS: {
   { key: "write",       label: "Write",       icon: PencilLine,    actions: ["create", "update", "assign", "reassign"],
     fill: "bg-sky-500/70",     dot: "bg-sky-400",     text: "text-sky-300" },
   { key: "approve",     label: "Approve",     icon: CheckCircle2,  actions: ["approve", "reject", "resolve", "escalate", "configure"],
-    fill: "bg-amber-500/70",   dot: "bg-amber-400",   text: "text-amber-300" },
+    fill: "bg-amber-500/70",   dot: ADMIN_TONE.warning.dot,   text: ADMIN_TONE.warning.text },
   { key: "destructive", label: "Destructive", icon: AlertTriangle, actions: ["suspend", "manage_permissions"],
     fill: "bg-rose-500/70",    dot: "bg-rose-400",    text: "text-rose-300" },
   { key: "export",      label: "Export",      icon: Download,      actions: ["export"],

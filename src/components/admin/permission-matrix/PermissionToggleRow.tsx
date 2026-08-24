@@ -4,6 +4,7 @@ import { isPrivilegedPermission, type InternalRoleKey } from "@/services/permiss
 import { checkRoleStageAllowed } from "@/services/role-guardrails";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   role: InternalRoleKey;
@@ -41,7 +42,7 @@ export function PermissionToggleRow({
     ? ShieldAlert
     : effectivelyGranted ? Check : Minus;
   const iconColor = tone === "privileged"
-    ? "text-amber-300"
+    ? ADMIN_TONE.warning.text
     : effectivelyGranted ? "text-emerald-400" : "text-muted-foreground";
 
   const staged = !!stagedOp;

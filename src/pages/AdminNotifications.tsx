@@ -47,8 +47,8 @@ const statusPill = (status: string) => {
     delivered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     read: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     failed: "bg-red-500/10 text-red-400 border-red-500/20",
-    pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    retrying: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    pending: ADMIN_TONE.warning.chip,
+    retrying: ADMIN_TONE.warning.chip,
   };
   return map[status] ?? "bg-muted text-muted-foreground border-border";
 };
@@ -60,7 +60,7 @@ const typePillClass = (type: string | null | undefined) => {
   const t = (type || "").toLowerCase();
   if (t.includes("dispute")) return { cls: "bg-red-500/10 border-red-500/20 text-red-400", label: "Dispute" };
   if (t.includes("payment")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Payment" };
-  if (t.includes("security")) return { cls: "bg-amber-500/10 border-amber-500/20 text-amber-400", label: "Security" };
+  if (t.includes("security")) return { cls: ADMIN_TONE.warning.chip, label: "Security" };
   if (t.includes("verification")) return { cls: "bg-purple-500/10 border-purple-500/20 text-purple-400", label: "Verification" };
   if (t.includes("delivery")) return { cls: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", label: "Delivery" };
   if (t.includes("transaction")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Transaction" };
@@ -158,7 +158,7 @@ function KpiCards({ kpis }: { kpis: any }) {
     orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    amber: ADMIN_TONE.warning.chip,
   };
   const numberColor: Record<string, string> = {
     blue: "text-blue-400",

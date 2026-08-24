@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { humanize, priorityBadgeClass, shortNameOf, slaBadgeClass, slaLabel } from "../helpers";
 import { cn } from "@/lib/utils";
 import type { AgentRosterEntry, RebalanceMove } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const SKIP_REASON: Record<string, string> = {
   final_decision_locked: "Task is in Final Decision: cannot move",
@@ -53,7 +54,7 @@ export function RebalancePreviewDrawer({
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Kpi label="Proposed" value={plan.length} tone="text-foreground" />
           <Kpi label="Will move" value={willMove} tone="text-emerald-300" />
-          <Kpi label="Skipped (safe)" value={skipped.length} tone="text-amber-300" />
+          <Kpi label="Skipped (safe)" value={skipped.length} tone={ADMIN_TONE.warning.text} />
         </div>
 
         <div className="mt-5 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

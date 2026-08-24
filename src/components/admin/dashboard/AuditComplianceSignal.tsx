@@ -2,10 +2,11 @@ import { ScrollText, ShieldAlert, UserX, KeyRound, FileCheck2 } from "lucide-rea
 import type { AuditComplianceSignal as AuditSignal } from "@/services/admin-dashboard.service";
 import { useAdminNav } from "../useAdminNav";
 import { formatRelative } from "./relative";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const COMPLIANCE_BADGE: Record<AuditSignal["compliance_status"], string> = {
   green: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  amber: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  amber: ADMIN_TONE.warning.badge,
   red: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 

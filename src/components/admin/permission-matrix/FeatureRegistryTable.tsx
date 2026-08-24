@@ -13,11 +13,12 @@ import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import type { FiltersState } from "./PermissionFilters";
 import { EmptyState } from "./EmptyState";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 function StatusPill({ status }: { status: "active" | "suspended" | "deprecated" }) {
   const map = {
     active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-    suspended: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    suspended: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,
     deprecated: "border-border bg-muted/40 text-muted-foreground line-through",
   } as const;
   return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold uppercase ${map[status]}`}>{status}</span>;
@@ -135,7 +136,7 @@ export function FeatureRegistryTable({
                 <td className="px-4 py-3 align-middle"><PermissionRiskBadge risk={r.risk} /></td>
                 <td className="px-4 py-3 align-middle text-xs">
                   {r.approval_required
-                    ? <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Required</span>
+                    ? <span className={`rounded-full border ${ADMIN_TONE.warning.panel} px-2 py-0.5 ${ADMIN_TONE.warning.text}`}>Required</span>
                     : <span className="text-muted-foreground">Direct</span>}
                 </td>
                 <td className="px-4 py-3 align-middle"><StatusPill status={r.status} /></td>

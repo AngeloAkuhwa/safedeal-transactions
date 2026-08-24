@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { humanize, shortNameOf } from "../helpers";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export interface AutoAssignPlanRow {
   task_id: string;
@@ -71,7 +72,7 @@ export function AutoAssignPreviewDrawer({
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Kpi label="Pending" value={pending} tone="text-foreground" />
           <Kpi label="Will assign" value={wouldAssign} tone="text-emerald-300" />
-          <Kpi label="Remain unassigned" value={wouldRemain} tone="text-amber-300" />
+          <Kpi label="Remain unassigned" value={wouldRemain} tone={ADMIN_TONE.warning.text} />
         </div>
 
         <SectionHeader label="Proposed assignments" count={plan.length} icon={<RotateCw className="h-3 w-3" />} />
@@ -118,14 +119,14 @@ export function AutoAssignPreviewDrawer({
                 const pct = l.max > 0 ? Math.min(100, Math.round((l.projected / l.max) * 100)) : 0;
                 const barTone =
                   pct >= 100 ? "bg-rose-400" :
-                  pct >= 80 ? "bg-amber-400" : "bg-emerald-400";
+                  pct >= 80 ? ADMIN_TONE.warning.dot : "bg-emerald-400";
                 return (
                   <div key={l.agent_id} className="rounded-lg border border-border/60 bg-card/30 p-2.5">
                     <div className="mb-1.5 flex items-center justify-between text-xs">
                       <span className="truncate font-medium text-foreground">{agent ? shortNameOf(agent) : l.agent_id.slice(0,8)}</span>
                       <span className="tabular-nums text-muted-foreground">
                         {l.current} → <span className={delta > 0 ? "font-semibold text-foreground" : "text-muted-foreground"}>{l.projected}</span> / {l.max}
-                        {delta !== 0 && <span className={`ml-1.5 ${delta > 0 ? "text-amber-300" : "text-emerald-300"}`}>({delta > 0 ? "+" : ""}{delta})</span>}
+                        {delta !== 0 && <span className={`ml-1.5 ${delta > 0 ? ADMIN_TONE.warning.text : "text-emerald-300"}`}>({delta > 0 ? "+" : ""}{delta})</span>}
                       </span>
                     </div>
                     <div className="h-1 overflow-hidden rounded-full bg-border/60">

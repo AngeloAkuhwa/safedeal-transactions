@@ -12,6 +12,7 @@ import { TablePagination } from "./TablePagination";
 import { workloadStatus, workloadStatusClass, workloadStatusLabel } from "./workloadStatus";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { agentInitials, agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export interface RowActions {
   onViewDetail: (a: AgentPerformanceRow) => void;
@@ -91,7 +92,7 @@ export function WorkloadTable({
             <dl className="grid grid-cols-3 gap-2 text-center text-xs">
               <div><dt className="text-muted-foreground">Active</dt><dd className="font-semibold">{a.active_cases} / {a.max_active}</dd></div>
               <div><dt className="text-muted-foreground">Waiting</dt><dd className="font-semibold">{a.waiting_cases}</dd></div>
-              <div><dt className="text-muted-foreground">Critical</dt><dd className={cn("font-semibold", a.critical_cases > 0 && "text-amber-300")}>{a.critical_cases}</dd></div>
+              <div><dt className="text-muted-foreground">Critical</dt><dd className={cn("font-semibold", a.critical_cases > 0 && ADMIN_TONE.warning.text)}>{a.critical_cases}</dd></div>
               <div><dt className="text-muted-foreground">Resolved</dt><dd className="font-semibold">{a.resolved}</dd></div>
               <div><dt className="text-muted-foreground">Avg time</dt><dd className="font-semibold">{hoursLabel(a.avg_resolution_hours)}</dd></div>
               <div><dt className="text-muted-foreground">Overdue</dt><dd className={cn("font-semibold", a.overdue > 0 && "text-rose-300")}>{a.overdue}</dd></div>

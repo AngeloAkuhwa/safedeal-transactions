@@ -181,10 +181,18 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * 202 non-matching raws remain for convergence), and a cross-file glyph
  * sweep converts every admin className whose only colour token is a
  * bare tone-400 text amid layout chrome, the one shape where a single
- * token IS the palette entry character for character).
+ * token IS the palette entry character for character); 3411 to 3291
+ * (6.2 batch 2, after the yellow fold made dozens of amber compositions
+ * exact warning sets: badge and chip triads in either member order,
+ * panel-plus-text composites, and the guarded shorts text-amber-300 and
+ * bg-amber-400 across 39 files. text-amber-400 stays raw on purpose:
+ * warning.text is amber-300, so no entry is an identical set. A second
+ * import lesson recorded: inserting after the last line starting with
+ * "import " lands inside a MULTILINE import; the opener line is not the
+ * import's end).
  */
 const BUDGET = {
-  admin: 3411,
+  admin: 3291,
   ui: 4,
   customer: 12,
 };

@@ -5,6 +5,7 @@ import {
   initialsOf, isEligibleAvailability, nameOf, relativeShort, humanize,
 } from "./helpers";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; onSelect: () => void }) {
   const offline = agent.availability === "offline";
@@ -88,7 +89,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
       <div className={cn("grid grid-cols-3 gap-2 text-xs", offline && "opacity-70")}>
         <div>
           <div className="text-muted-foreground">Active</div>
-          <div className={cn("text-sm font-semibold tabular-nums", atCap ? "text-amber-300" : "text-foreground")}>{agent.active}</div>
+          <div className={cn("text-sm font-semibold tabular-nums", atCap ? ADMIN_TONE.warning.text : "text-foreground")}>{agent.active}</div>
         </div>
         <div>
           <div className="text-muted-foreground">Avg</div>
@@ -108,7 +109,7 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
         <div
           className={cn(
             "h-full transition-all",
-            atCap ? "bg-amber-400" : loadPct >= 70 ? "bg-primary" : "bg-emerald-400",
+            atCap ? ADMIN_TONE.warning.dot : loadPct >= 70 ? "bg-primary" : "bg-emerald-400",
           )}
           style={{ width: `${loadPct}%` }}
         />

@@ -10,6 +10,7 @@ import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { ROLE_LABEL } from "@/services/permission-catalog";
 import { Link } from "react-router";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function PermissionDetailsDrawer({
   override,
@@ -119,7 +120,7 @@ export function PermissionDetailsDrawer({
               <div className="text-muted-foreground">{override.reason ?? "—"}</div>
             </div>
             {!guard.ok && (guard as any).message && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">{(guard as any).message}</div>
+              <div className={`rounded-md border ${ADMIN_TONE.warning.panel} p-2 text-xs text-amber-200`}>{(guard as any).message}</div>
             )}
 
             {canEdit && environment && (

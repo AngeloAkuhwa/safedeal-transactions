@@ -5,6 +5,7 @@ import { availabilityDot, availabilityLabel, availabilityTextColor, humanize, in
 import { cn } from "@/lib/utils";
 import { ListChecks, Repeat, AlertTriangle, Flame, Clock, Mail, Users } from "lucide-react";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AgentDetailsDrawer({
   open, onOpenChange, agent, onReassign, focus, context,
@@ -20,7 +21,7 @@ export function AgentDetailsDrawer({
 }) {
   const navigate = useNavigate();
   const capacityPct = agent && agent.max_active ? Math.min(100, Math.round((agent.active / agent.max_active) * 100)) : 0;
-  const capacityTone = capacityPct >= 100 ? "bg-rose-400" : capacityPct >= 80 ? "bg-amber-400" : "bg-emerald-400";
+  const capacityTone = capacityPct >= 100 ? "bg-rose-400" : capacityPct >= 80 ? ADMIN_TONE.warning.dot : "bg-emerald-400";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

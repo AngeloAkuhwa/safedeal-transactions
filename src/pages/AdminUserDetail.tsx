@@ -625,7 +625,7 @@ export default function AdminUserDetail() {
                       const title = item.title || t.replace(/_/g, " ");
                       const sev = item.severity ?? "neutral";
                       const dot = sev === "high" ? ADMIN_TONE.danger.dot
-                        : sev === "warning" ? "bg-amber-400"
+                        : sev === "warning" ? ADMIN_TONE.warning.dot
                         : sev === "success" ? ADMIN_TONE.success.dot
                         : sev === "info" ? ADMIN_TONE.info.dot
                         : "bg-slate-500";

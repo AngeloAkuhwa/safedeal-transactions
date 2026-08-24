@@ -11,6 +11,7 @@ import {
   humanize, initialsOf, isEligibleAvailability, nameOf, priorityBadgeClass,
 } from "../helpers";
 import type { AgentRosterEntry, UnassignedTask } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AssignTaskDrawer({
   open, onOpenChange, task, bulkCount, roster, onConfirm, submitting,
@@ -112,7 +113,7 @@ export function AssignTaskDrawer({
               {scored.map(({ agent: a, atCap, ineligibleAvail, skillGap, sodBlock, blocked }) => {
                 const selectedRow = agentId === a.user_id;
                 const loadPct = a.max_active > 0 ? Math.min(100, Math.round((a.active / a.max_active) * 100)) : 0;
-                const barTone = loadPct >= 100 ? "bg-rose-400" : loadPct >= 80 ? "bg-amber-400" : "bg-emerald-400";
+                const barTone = loadPct >= 100 ? "bg-rose-400" : loadPct >= 80 ? ADMIN_TONE.warning.dot : "bg-emerald-400";
                 return (
                   <button
                     key={a.user_id} type="button"
