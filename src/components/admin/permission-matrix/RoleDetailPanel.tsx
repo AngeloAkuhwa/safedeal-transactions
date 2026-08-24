@@ -19,6 +19,7 @@ import {
 } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionToggleRow } from "./PermissionToggleRow";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 function KpiCard({ icon: Icon, label, value, tone = "text-foreground" }: any) {
   return (
@@ -261,7 +262,7 @@ export function RoleDetailPanel({
               const label = k.split(".")[1] ?? k;
               return (
                 <li key={k} className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <Check className={`h-3.5 w-3.5 ${ADMIN_TONE.success.text}`} />
                   <span className="truncate">{label}</span>
                   <span className="ml-auto font-mono text-xs text-muted-foreground">{k.split(".")[0]}</span>
                   {isPrivilegedPermission(k) && <PermissionRiskBadge privileged size="xs" />}

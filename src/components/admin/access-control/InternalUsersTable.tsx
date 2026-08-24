@@ -10,6 +10,7 @@ import type { InternalUser } from "@/services/admin-access-control.service";
 import { relativeTime } from "@/services/admin-access-control.service";
 import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   rows: InternalUser[];
@@ -40,7 +41,7 @@ export function InternalUsersTable({
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="border-b border-border p-5">
         <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <KeyRound className="h-4 w-4 text-blue-400" />
+          <KeyRound className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
           Internal Access Management
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

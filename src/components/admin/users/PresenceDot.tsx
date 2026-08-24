@@ -1,3 +1,4 @@
+import { ADMIN_TONE } from "@/components/admin/palette";
 interface Props {
   online: boolean;
   /** ring color to blend with the card/page background */
@@ -31,7 +32,7 @@ export function PresenceCountChip({ online, offline, className = "" }: CountChip
       title={`${online} online, ${offline} offline (this page)`}
       className={`inline-flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-medium ${className}`}
     >
-      <span className="inline-flex items-center gap-1.5 text-emerald-400">
+      <span className={`inline-flex items-center gap-1.5 ${ADMIN_TONE.success.text}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
         {online} online
       </span>

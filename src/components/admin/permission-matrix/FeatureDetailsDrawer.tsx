@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { Check, Minus, ShieldAlert, KeyRound, GitBranch, History as HistoryIcon, Settings2 } from "lucide-react";
 import { Ban, Pause, Play } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -167,7 +168,7 @@ export function FeatureDetailsDrawer({
                   const has = roleMap.map.get(r.key)?.has(meta.key);
                   return (
                     <li key={r.key} className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${has ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
-                      {has ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {has ? <Check className={`h-3.5 w-3.5 ${ADMIN_TONE.success.text}`} /> : <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
                       <span className={has ? "" : "text-muted-foreground"}>{ROLE_LABEL[r.key]}</span>
                     </li>
                   );

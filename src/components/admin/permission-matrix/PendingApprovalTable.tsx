@@ -8,6 +8,7 @@ import { Search, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const RISK_CLR: Record<string, string> = {
   low: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
@@ -133,7 +134,7 @@ export function PendingApprovalTable({
                         ) : r.target_label}
                       </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">
-                        <span className="text-emerald-400">+{r.added_keys.length}</span>
+                        <span className={ADMIN_TONE.success.text}>+{r.added_keys.length}</span>
                         {" / "}
                         <span className="text-rose-400">−{r.removed_keys.length}</span>
                       </td>

@@ -2,6 +2,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { BulkAssignRowResult } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function BulkAssignResultDialog({
   open, onOpenChange, results, taskCodeById,
@@ -29,7 +30,7 @@ export function BulkAssignResultDialog({
               <div key={r.task_id} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 bg-card/40 p-2.5 text-sm">
                 <div className="flex items-center gap-2">
                   {r.ok
-                    ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ? <CheckCircle2 className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />
                     : <XCircle className="h-4 w-4 text-rose-400" />}
                   <span className="font-medium">#{code}</span>
                 </div>

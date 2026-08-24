@@ -43,7 +43,7 @@ import { AgreementPreviewDialog } from "@/components/admin/transactions/Agreemen
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
 import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
-import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 // ---------- helpers ----------
 // formatMoney dashes a missing amount; the old `?? 0` here stamped ₦0.00
@@ -1392,7 +1392,7 @@ function CaseCommunicationSection(props: {
       tone: "red" as const,
       label: "Seller Response Overdue",
       meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : "resolved",
-      leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "sd-live-dot")} />,
+      leading: <span className={cn(`w-2 h-2 ${ADMIN_TONE.danger.dot} rounded-full`, sellerOverdue && "sd-live-dot")} />,
       show: sellerOverdue || hasSellerResponse,
     },
     {
@@ -1852,15 +1852,15 @@ function MessageItem({ m }: { m: CommMessage }) {
     },
     evidence_request: {
       border: "border-slate-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
-      badgeBg: "bg-slate-700", badgeText: "text-slate-300",
+      badgeBg: "bg-slate-700", badgeText: ADMIN_GROUND.body,
       badgeIcon: <FilePlus2 className="w-3 h-3" />, badgeLabel: "Evidence Request",
-      accentText: "text-slate-300",
+      accentText: ADMIN_GROUND.body,
     },
     general: {
       border: "border-slate-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
-      badgeBg: "bg-slate-700", badgeText: "text-slate-300",
+      badgeBg: "bg-slate-700", badgeText: ADMIN_GROUND.body,
       badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "Message",
-      accentText: "text-slate-300",
+      accentText: ADMIN_GROUND.body,
     },
     internal: {
       border: "border-purple-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
@@ -2004,13 +2004,13 @@ function parseInternalNoteTag(body: string, n: any): { pill: { label: string; cl
   else if (n.noteType || n.note_type) tag = String(n.noteType ?? n.note_type).toLowerCase();
 
   const pillMap: Record<string, { label: string; cls: string }> = {
-    escalation: { label: "Escalation", cls: "bg-red-500/15 text-red-300 border border-red-500/30" },
-    escalate_case: { label: "Escalation", cls: "bg-red-500/15 text-red-300 border border-red-500/30" },
-    investigation: { label: "Investigation", cls: "bg-purple-500/15 text-purple-300 border border-purple-500/30" },
-    manual_admin_review: { label: "Investigation", cls: "bg-purple-500/15 text-purple-300 border border-purple-500/30" },
+    escalation: { label: "Escalation", cls: `${ADMIN_TONE.danger.badge} border` },
+    escalate_case: { label: "Escalation", cls: `${ADMIN_TONE.danger.badge} border` },
+    investigation: { label: "Investigation", cls: `${ADMIN_TONE.special.badge} border` },
+    manual_admin_review: { label: "Investigation", cls: `${ADMIN_TONE.special.badge} border` },
     follow_up: { label: "Follow-up", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
-    agent_note: { label: "Agent note", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/30" },
-    internal_note: { label: "Agent note", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/30" },
+    agent_note: { label: "Agent note", cls: `${ADMIN_TONE.neutral.badge} border` },
+    internal_note: { label: "Agent note", cls: `${ADMIN_TONE.neutral.badge} border` },
   };
   const pill = tag && pillMap[tag] ? pillMap[tag] : null;
   return { pill, cleanBody: clean || text };
@@ -2399,7 +2399,7 @@ function ResolutionSidebar({
       <SidebarGroup title="Resolution Actions" gapClass="space-y-2">
         <SidebarBtn icon={<RotateCcw />} label="Refund Buyer"
           onClick={onResolve} disabled={!canManage || isResolved}
-          variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+          variant="solid" solidClass={`${ADMIN_SOLID.success} border-transparent`}
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
         <SidebarBtn icon={<Wallet />} label="Release Funds to Seller"
           onClick={onResolve} disabled={!canManage || isResolved}
@@ -2423,7 +2423,7 @@ function ResolutionSidebar({
             tip="Payout block control not connected yet" />
           <SidebarBtn icon={<PlayCircle />} label="Resume Payout"
             disabled
-            variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+            variant="solid" solidClass={`${ADMIN_SOLID.success} border-transparent`}
             tip="Payout resume control not connected yet" />
         </div>
       </SidebarGroup>
@@ -2479,8 +2479,8 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
   const toneCls = statusTone === "emerald" ? ADMIN_TONE.success.text
     : statusTone === "red" ? ADMIN_TONE.danger.text
     : "text-yellow-400";
-  const dotCls = statusTone === "emerald" ? "bg-emerald-400"
-    : statusTone === "red" ? "bg-red-400"
+  const dotCls = statusTone === "emerald" ? ADMIN_TONE.success.dot
+    : statusTone === "red" ? ADMIN_TONE.danger.dot
     : "bg-yellow-400";
   return (
     <div className="rounded-lg border border-[#253044] bg-[#0F172A]/60 p-3">
@@ -2572,7 +2572,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     label: "Resolved", message: "Case has a recorded resolution outcome.",
     next: "View outcome and money movement.",
     cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-    dotCls: "bg-emerald-400",
+    dotCls: ADMIN_TONE.success.dot,
     Icon: CheckCircle2,
   };
   if (status === "dismissed" || status === "closed") return {
@@ -2586,7 +2586,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     label: "Escalated", message: "Case escalated: requires immediate admin review.",
     next: "Review evidence and determine outcome.",
     cls: "border-red-500/40 bg-red-500/10 text-red-100",
-    dotCls: "bg-red-400",
+    dotCls: ADMIN_TONE.danger.dot,
     Icon: AlertTriangle,
   };
   if (status === "under_review") return {
@@ -2603,7 +2603,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
       : "border-yellow-500/30 bg-yellow-500/10 text-yellow-100",
-    dotCls: overdue ? "bg-red-400" : "bg-yellow-400",
+    dotCls: overdue ? ADMIN_TONE.danger.dot : "bg-yellow-400",
     Icon: Clock,
   };
   return {

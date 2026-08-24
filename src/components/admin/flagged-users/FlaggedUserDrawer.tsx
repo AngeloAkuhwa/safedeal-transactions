@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relative } from "./risk";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   row: FlaggedUserRow | null;
@@ -113,7 +114,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
       <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto">
         <div className="sticky top-0 z-sticky flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
           <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-red-400" />
+            <Flag className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
             <h3 className="text-white font-semibold text-base">Flagged user</h3>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="h-11 w-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
@@ -157,7 +158,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
             <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Context</h4>
             {view.related.tx_code ? (
               <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                <Banknote className="h-4 w-4 text-purple-400 mt-0.5" />
+                <Banknote className={`h-4 w-4 ${ADMIN_TONE.special.text} mt-0.5`} />
                 <div>
                   <p className="text-white text-sm font-medium">#{view.related.tx_code}</p>
                   <p className="text-slate-400 text-xs">
@@ -168,7 +169,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
             ) : <p className="text-slate-500 text-xs">No related transaction.</p>}
             {view.disputes_30d > 0 && (
               <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                <Scale className="h-4 w-4 text-orange-400 mt-0.5" />
+                <Scale className={`h-4 w-4 ${ADMIN_TONE.elevated.text} mt-0.5`} />
                 <div>
                   <p className="text-orange-300 text-sm font-medium">{view.disputes_30d} dispute{view.disputes_30d === 1 ? "" : "s"} in 30 days</p>
                   <p className="text-slate-400 text-xs">{view.refunds_30d > 0 ? `${view.refunds_30d} chargeback(s)` : "No chargebacks"}</p>
@@ -192,7 +193,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               {view.flagged_by.is_system ? (
                 <>
                   <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-blue-400" />
+                    <Bot className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
                   </div>
                   <div>
                     <p className="text-white text-sm font-medium">Auto-Detection</p>

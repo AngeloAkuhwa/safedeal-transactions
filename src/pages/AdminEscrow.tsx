@@ -15,6 +15,7 @@ import { EscrowMobileHero } from "@/components/admin/escrow/EscrowMobileHero";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { fetchEscrowOverview, type EscrowQuery } from "@/services/admin-escrow.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const TITLE = "Escrow Overview";
 const SUBTITLE = "Real-time financial control center for all platform escrow funds";
@@ -92,7 +93,7 @@ export default function AdminEscrow() {
           <div className="flex items-center gap-2 ml-0 md:ml-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
-              <span className="text-emerald-400 font-semibold text-sm">Live</span>
+              <span className={`${ADMIN_TONE.success.text} font-semibold text-sm`}>Live</span>
             </div>
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
               <Clock className="h-3.5 w-3.5 text-slate-400" />

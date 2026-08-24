@@ -73,6 +73,7 @@ import { TransactionsEmptyState } from "@/components/admin/transactions/Transact
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -608,7 +609,7 @@ export default function AdminTransactions() {
     return (
       <AdminLayout title="Transaction Monitor" subtitle="Admin access required" badges={SIDEBAR_BADGES}>
         <div className="rounded-xl border border-border bg-card p-10 text-center">
-          <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-red-400" />
+          <ShieldAlert className={`mx-auto mb-3 h-8 w-8 ${ADMIN_TONE.danger.text}`} />
           <h2 className="text-base font-semibold text-foreground">Admin access required</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             You don't have permission to view the Transaction Monitor.

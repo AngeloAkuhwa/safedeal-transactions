@@ -6,6 +6,7 @@ import type { PermissionEnvironment } from "@/services/permission-repository";
 import { computeRoleResetDiff, stageRoleReset, type ResetRoleDiff } from "@/services/permission-workspace.service";
 import { ShieldAlert } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function ResetRoleToDefaultDialog({
   open, onOpenChange, role, environment, onDone,
@@ -59,7 +60,7 @@ export function ResetRoleToDefaultDialog({
           {diff && (
             <div className="space-y-2 rounded-md border border-border/60 bg-background/40 p-3 text-xs">
               <div className="flex items-center justify-between"><span>Source</span><span className="text-muted-foreground">{diff.source === "system_template" ? "System template" : "Catalog default"}</span></div>
-              <div className="flex items-center justify-between"><span>Permissions added back</span><span className="font-mono text-emerald-400">+{diff.add.length}</span></div>
+              <div className="flex items-center justify-between"><span>Permissions added back</span><span className={`font-mono ${ADMIN_TONE.success.text}`}>+{diff.add.length}</span></div>
               <div className="flex items-center justify-between"><span>Permissions removed</span><span className="font-mono text-rose-400">−{diff.remove.length}</span></div>
               <div className="flex items-center justify-between"><span>Privileged introduced</span><span className="font-mono text-amber-300">{privilegedAdded.length}</span></div>
               <div className="flex items-center justify-between"><span>Privileged removed</span><span className="font-mono text-amber-300">{privilegedRemoved.length}</span></div>

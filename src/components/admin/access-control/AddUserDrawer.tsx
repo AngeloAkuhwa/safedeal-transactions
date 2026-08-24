@@ -25,6 +25,7 @@ import { isProtectedRole, ROLE_LABEL } from "@/services/permission-catalog";
 import { DEPARTMENTS } from "@/services/departments.catalog";
 import { getTeamsForDepartment } from "@/services/teams.catalog";
 import { supabase } from "@/integrations/supabase/client";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   open: boolean;
@@ -228,7 +229,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                     ) : emailTaken === true ? (
                       <XCircle className="h-3.5 w-3.5 text-rose-400" />
                     ) : emailTaken === false && email.trim() ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <CheckCircle2 className={`h-3.5 w-3.5 ${ADMIN_TONE.success.text}`} />
                     ) : null}
                   </div>
                 </div>
@@ -236,7 +237,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                   <div className="text-xs text-rose-400">Already assigned to an internal user.</div>
                 )}
                 {emailTaken === false && email.trim() && !emailChecking && (
-                  <div className="text-xs text-emerald-400">Email is available.</div>
+                  <div className={`text-xs ${ADMIN_TONE.success.text}`}>Email is available.</div>
                 )}
               </div>
               <div className="space-y-1.5">

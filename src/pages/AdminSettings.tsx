@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 /** Keys whose values change money behaviour. Mirror of the edge function gate. */
 const isFinancialSettingKey = (key: string) =>
@@ -127,7 +128,7 @@ function HeaderBar({
               <span className="text-amber-400 font-medium text-xs">Production</span>
             </div>
             <div className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-muted border border-border rounded-full">
-              <ShieldCheck className="h-3 w-3 text-emerald-400" />
+              <ShieldCheck className={`h-3 w-3 ${ADMIN_TONE.success.text}`} />
               <span className="text-muted-foreground text-xs">All changes audited</span>
             </div>
           </div>
@@ -201,7 +202,7 @@ function HeaderBar({
       )}
       <div className="sd-page pb-3">
         <div className="p-3 bg-red-500/10 border-l-4 border-red-500 rounded-lg flex items-start gap-2 sd-alert">
-          <TriangleAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+          <TriangleAlert className={`h-4 w-4 ${ADMIN_TONE.danger.text} mt-0.5 shrink-0`} />
           <div className="flex-1">
             <p className="text-red-300 text-sm font-semibold">
               Production Environment: Changes Affect Live Transactions
@@ -531,7 +532,7 @@ export default function AdminSettings() {
                 <div>
                   <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-blue-400" />
+                      <Clock className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
                     </div>
                     Timeout Rules
                   </h3>
@@ -540,7 +541,7 @@ export default function AdminSettings() {
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
-                  <Layers className="h-3 w-3 text-blue-400" />
+                  <Layers className={`h-3 w-3 ${ADMIN_TONE.info.text}`} />
                   <span className="text-blue-300 text-xs font-medium">4 Business Rules</span>
                 </div>
               </div>
@@ -600,7 +601,7 @@ export default function AdminSettings() {
                 <div>
                   <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                     <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <Percent className="h-4 w-4 text-emerald-400" />
+                      <Percent className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />
                     </div>
                     Fee Configuration
                   </h3>
@@ -614,7 +615,7 @@ export default function AdminSettings() {
                     </div>
                   )}
                   <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                    <Coins className="h-3 w-3 text-emerald-400" />
+                    <Coins className={`h-3 w-3 ${ADMIN_TONE.success.text}`} />
                     <span className="text-emerald-300 text-xs font-medium">Active Rules</span>
                   </div>
                 </div>
@@ -623,7 +624,7 @@ export default function AdminSettings() {
             <div className="sd-card-pad">
               <div className="mb-4 pb-4 border-b border-border">
                 <h4 className="sd-eyebrow mb-3 flex items-center gap-1.5">
-                  <Coins className="h-3 w-3 text-emerald-400" />
+                  <Coins className={`h-3 w-3 ${ADMIN_TONE.success.text}`} />
                   Base Fee Structure
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -667,7 +668,7 @@ export default function AdminSettings() {
               <div className="pt-2">
                 <div className="bg-red-500/10 border-l-4 border-red-500 rounded-lg p-3 mb-4 sd-alert">
                   <div className="flex items-start gap-2">
-                    <TriangleAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                    <TriangleAlert className={`h-4 w-4 ${ADMIN_TONE.danger.text} mt-0.5 shrink-0`} />
                     <div className="flex-1">
                       <p className="text-red-200 font-semibold text-sm">Critical: Fee Structure Update</p>
                       <p className="text-red-300/80 text-xs mt-1">
@@ -696,7 +697,7 @@ export default function AdminSettings() {
               <div className="sd-card-pad border-b border-border">
                 <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                   <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
-                    <Sliders className="h-4 w-4 text-purple-400" />
+                    <Sliders className={`h-4 w-4 ${ADMIN_TONE.special.text}`} />
                   </div>
                   Platform Settings
                 </h3>
@@ -750,7 +751,7 @@ export default function AdminSettings() {
               <div className="sd-card-pad border-b border-border">
                 <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                   <div className="w-8 h-8 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-center">
-                    <ShieldHalf className="h-4 w-4 text-red-400" />
+                    <ShieldHalf className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
                   </div>
                   Security &amp; Compliance
                 </h3>
@@ -948,7 +949,7 @@ export default function AdminSettings() {
                 <div>
                   <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
-                      <HistoryIcon className="h-4 w-4 text-blue-400" />
+                      <HistoryIcon className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
                     </div>
                     Recent Changes &amp; Audit History
                   </h3>
@@ -994,7 +995,7 @@ export default function AdminSettings() {
               <div className="sd-card-pad border-b border-border">
                 <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                   <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-purple-400" />
+                    <Building2 className={`h-4 w-4 ${ADMIN_TONE.special.text}`} />
                   </div>
                   Vendor Overrides
                 </h3>
@@ -1232,7 +1233,7 @@ function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
   return (
     <div className="p-3 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
       <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-        <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
+        <HistoryIcon className={`h-3.5 w-3.5 ${ADMIN_TONE.info.text}`} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">

@@ -175,10 +175,16 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * yellow triads, /20 washes, 500-step dots and 600/500 hover solids
  * match no entry and wait for slice 2 or the convergence pass. A prop
  * lesson recorded: a quoted tone string can live in ANY prop, not just
- * className, so expression passes wrap prop values in braces).
+ * className, so expression passes wrap prop values in braces); 3523 to
+ * 3411 (batch 12: AdminDisputeDetail slice 2 finishes that file's exact
+ * sets (badge-plus-border triads, the emerald solid, dots, body texts;
+ * 202 non-matching raws remain for convergence), and a cross-file glyph
+ * sweep converts every admin className whose only colour token is a
+ * bare tone-400 text amid layout chrome, the one shape where a single
+ * token IS the palette entry character for character).
  */
 const BUDGET = {
-  admin: 3523,
+  admin: 3411,
   ui: 4,
   customer: 12,
 };

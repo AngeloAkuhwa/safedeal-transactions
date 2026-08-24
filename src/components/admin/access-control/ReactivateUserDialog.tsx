@@ -8,6 +8,7 @@ import type { InternalUser } from "@/services/admin-access-control.service";
 import { ROLE_LABEL } from "@/services/admin-access-control.service";
 import { useDrawerSafety } from "@/hooks/useDrawerSafety";
 import { useMutationOnce } from "@/hooks/useMutationOnce";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   user: InternalUser | null;
@@ -42,7 +43,7 @@ export function ReactivateUserDialog({ user, open, onOpenChange, onConfirm }: Pr
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserCheck className="h-4 w-4 text-emerald-400" />
+            <UserCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />
             Reactivate user
           </DialogTitle>
         </DialogHeader>
