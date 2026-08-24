@@ -49,7 +49,7 @@ export function AgreementNextSteps({ transactionId }: AgreementNextStepsProps) {
             <ArrowRight className="h-4 w-4 text-primary" />
             <span className="text-primary font-bold text-sm">What Happens Next</span>
           </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-3">
+          <h2 className="h-page font-bold text-foreground mb-3">
             Track Your Transaction
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">

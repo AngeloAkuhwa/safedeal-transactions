@@ -20,7 +20,7 @@ export default function LegalPrivacy() {
           Back to SafeDeal
         </Link>
 
-        <h1 className="mt-6 text-3xl font-semibold tracking-tight">Privacy Policy</h1>
+        <h1 className="mt-6 h-page font-semibold">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {new Date().getFullYear()}</p>
 
         <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">

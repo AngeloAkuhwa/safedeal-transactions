@@ -64,7 +64,7 @@ export default function Pricing() {
             <Shield className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Pricing</span>
           </div>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-4 h-hero font-bold">
             Start selling for free
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">

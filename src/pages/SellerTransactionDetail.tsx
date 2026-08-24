@@ -218,7 +218,7 @@ const SellerTransactionDetail = () => {
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Transaction #{tx.transaction_code}</h1>
+              <h1 className="h-page font-bold text-foreground">Transaction #{tx.transaction_code}</h1>
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                 <span className={`text-sm font-semibold ${moneyInfo.color}`}>{moneyInfo.label}</span>

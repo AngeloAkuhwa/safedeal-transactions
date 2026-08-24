@@ -33,7 +33,7 @@ export function PublicStorefrontHeader({ seller, productCount }: PublicStorefron
             <AvatarFallback className="text-lg sm:text-xl font-bold">{initials}</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{seller.full_name}</h1>
+            <h1 className="h-page font-bold text-foreground">{seller.full_name}</h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {seller.identity_verified && (
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1">

@@ -153,7 +153,7 @@ const RoleSelection = () => {
             <Shield className="h-3.5 w-3.5" />
             Account Setup
           </span>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">Choose your role</h1>
+          <h1 className="h-hero font-bold text-foreground mb-3">Choose your role</h1>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
             Select how you'll be using SafeDeal. You can always switch roles later from your dashboard settings.
           </p>

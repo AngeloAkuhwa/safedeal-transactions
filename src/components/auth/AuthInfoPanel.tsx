@@ -28,7 +28,7 @@ const AuthInfoPanel = () => {
           <span className="text-2xl font-bold text-foreground">SafeDeal</span>
         </Link>
 
-        <h2 className="text-3xl font-bold text-foreground mb-3">
+        <h2 className="h-page font-bold text-foreground mb-3">
           Join SafeDeal
         </h2>
         <p className="text-muted-foreground mb-10 text-base leading-relaxed">

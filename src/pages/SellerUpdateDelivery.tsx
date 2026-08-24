@@ -283,7 +283,7 @@ export default function SellerUpdateDelivery() {
         <Card className="rounded-2xl shadow border p-6 md:p-8 space-y-6">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="space-y-2">
-              <h1 className="text-2xl md:text-3xl font-bold">Update Delivery Status</h1>
+              <h1 className="h-page font-bold">Update Delivery Status</h1>
               <p className="text-sm text-muted-foreground">Choose what's happening now and provide method-specific details.</p>
               <DeliveryMethodBadge method={rawDeliveryMethod} />
             </div>

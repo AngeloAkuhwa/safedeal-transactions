@@ -82,7 +82,7 @@ export default function TransactionCancelled() {
                 <Ban className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
               </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Transaction Cancelled</h1>
+            <h1 className="h-page font-bold text-foreground mb-3">Transaction Cancelled</h1>
             {transactionCode && (
               <p className="text-sm text-muted-foreground mb-2 font-mono">Ref: {transactionCode}</p>
             )}

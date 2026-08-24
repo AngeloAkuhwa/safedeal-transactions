@@ -94,7 +94,7 @@ export function TransactionSuccess({
               <Check className="h-10 w-10 text-success-foreground" strokeWidth={3} />
             </div>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-3">Private Offer Created</h1>
+          <h1 className="h-hero font-bold text-foreground mb-3">Private Offer Created</h1>
           <p className="text-lg text-muted-foreground mb-6">Share the secure offer link below with your buyer to start the protected transaction.</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -305,7 +305,7 @@ export function TransactionSuccess({
               <Share2 className="h-4 w-4 text-primary" />
               <span className="text-xs font-bold text-primary uppercase tracking-wider">Transaction Flow</span>
             </div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">What Happens Next?</h2>
+            <h2 className="h-page font-bold text-foreground mb-2">What Happens Next?</h2>
             <p className="text-muted-foreground">Step-by-step guide to your SafeDeal transaction</p>
           </div>
 

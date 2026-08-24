@@ -250,7 +250,7 @@ const CartCheckoutReview = () => {
           </header>
 
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Review & Pay</h1>
+            <h1 className="h-page font-bold text-foreground">Review & Pay</h1>
             <p className="text-sm text-muted-foreground mt-1">Review your grouped order before payment</p>
           </div>
 
