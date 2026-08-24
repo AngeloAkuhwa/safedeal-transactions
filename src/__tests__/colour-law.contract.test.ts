@@ -158,10 +158,15 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * so no palette entry is an identical set); 3948 to 3909 (batch 8,
  * AdminNotifications: the recurring interactive chip triad earned a
  * palette entry, and the queue's chips, warning solids, glyphs and dots
- * now compose from it).
+ * now compose from it); 3909 to 3824 (batch 9, AdminTransactionDetail:
+ * its status maps, tone switch and pill fallbacks held the badge triads
+ * as inline strings, and those plus the danger and warning panels, tone
+ * glyphs and dot ternaries now read from the palette; the yellow triad,
+ * /40 borders, /20 wash pills, 500/600 solids and timeline icon triads
+ * match no palette entry and stay verbatim).
  */
 const BUDGET = {
-  admin: 3909,
+  admin: 3824,
   ui: 4,
   customer: 12,
 };
