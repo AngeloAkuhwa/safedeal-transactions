@@ -153,7 +153,7 @@ export function FlaggedUsersTable(props: Props) {
                       {r.disputes_30d > 0 && (
                         <div className="flex items-start gap-2">
                           <div className={`w-5 h-5 ${ADMIN_TONE.elevated.panel} border rounded flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                            <Scale className="h-3 w-3 text-orange-400" />
+                            <Scale className={`h-3 w-3 ${ADMIN_TONE.elevated.text}`} />
                           </div>
                           <div>
                             <p className="text-orange-300 text-sm font-medium">{r.disputes_30d} active dispute{r.disputes_30d === 1 ? "" : "s"}</p>
@@ -170,7 +170,7 @@ export function FlaggedUsersTable(props: Props) {
                       {r.auto_detected && (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded">
                           <Bot className={`h-3 w-3 ${ADMIN_TONE.info.text}`} />
-                          <p className="text-blue-400 text-xs">Auto-detected by fraud algorithm</p>
+                          <p className={`${ADMIN_TONE.info.text} text-xs`}>Auto-detected by fraud algorithm</p>
                         </div>
                       )}
                       {r.risk === "critical" && (

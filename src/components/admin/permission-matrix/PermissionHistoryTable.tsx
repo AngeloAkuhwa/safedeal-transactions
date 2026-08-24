@@ -8,6 +8,7 @@ import { Search, RotateCcw } from "lucide-react";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 import { findPermissionEntry } from "@/services/permission-catalog";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function PermissionHistoryTable({
   rows,
@@ -157,7 +158,7 @@ export function PermissionHistoryTable({
                       <td className="px-3 py-3 align-middle text-xs font-medium">{r.target_label}</td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.previous_summary}</td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">
-                        <span className="text-emerald-400">+{r.added_keys.length}</span>{" / "}<span className="text-rose-400">−{r.removed_keys.length}</span>
+                        <span className={ADMIN_TONE.success.text}>+{r.added_keys.length}</span>{" / "}<span className="text-rose-400">−{r.removed_keys.length}</span>
                       </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground max-w-[220px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</td>
                       <td className="px-3 py-3 align-middle font-mono text-xs text-muted-foreground">{r.approval_ref.slice(0, 8)}…</td>

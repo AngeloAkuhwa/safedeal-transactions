@@ -3,6 +3,7 @@ import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
 import { formatMoney } from "@/lib/format";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_BORDER, RISK_LABEL, relative } from "./risk";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   row: FlaggedUserRow;
@@ -61,7 +62,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
             {row.related.tx_code && (
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-purple-500/10 border border-purple-500/30 rounded flex items-center justify-center flex-shrink-0">
-                  <Banknote className="h-3 w-3 text-purple-400" />
+                  <Banknote className={`h-3 w-3 ${ADMIN_TONE.special.text}`} />
                 </div>
                 <p className="text-xs text-slate-300">
                   <span className="text-white font-medium">#{row.related.tx_code}:</span>{" "}
@@ -72,16 +73,16 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
             {row.refunds_30d >= 2 && (
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-red-500/10 border border-red-500/30 rounded flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-3 w-3 text-red-400" />
+                  <Zap className={`h-3 w-3 ${ADMIN_TONE.danger.text}`} />
                 </div>
-                <p className="text-xs text-red-400 font-medium italic">
+                <p className={`text-xs ${ADMIN_TONE.danger.text} font-medium italic`}>
                   Repeated chargeback pattern detected ({row.refunds_30d} in 30 days)
                 </p>
               </div>
             )}
             {row.auto_detected && (
               <div className="mt-2 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex items-center gap-2">
-                <Bot className="h-3 w-3 text-blue-400" />
+                <Bot className={`h-3 w-3 ${ADMIN_TONE.info.text}`} />
                 <span className="text-xs text-blue-300">Auto-detected by fraud algorithm</span>
               </div>
             )}

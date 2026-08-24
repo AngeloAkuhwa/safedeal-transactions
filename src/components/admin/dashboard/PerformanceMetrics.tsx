@@ -1,5 +1,6 @@
 import { LineChart, Timer, Users, Scale, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import type { PerformanceMetric } from "@/services/admin-dashboard.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const ICON: Record<string, typeof LineChart> = {
   tx_success: LineChart,
@@ -16,7 +17,7 @@ export function PerformanceMetrics({ metrics }: Props) {
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Performance Metrics</h3>
-        <span className="text-xs text-blue-400">View Details</span>
+        <span className={`text-xs ${ADMIN_TONE.info.text}`}>View Details</span>
       </div>
       {isEmpty ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-8 text-center">

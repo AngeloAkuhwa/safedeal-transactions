@@ -1,6 +1,7 @@
 import { RefreshCw, ShieldAlert, Flag, AlertTriangle } from "lucide-react";
 import { FlaggedExportButton } from "./FlaggedExportButton";
 import type { FlaggedQuery } from "@/services/admin-flagged-users.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   activeFlags: number;
@@ -17,19 +18,19 @@ export function FlaggedHeaderBar({ activeFlags, critical, query, isFetching, onR
         <div className="flex items-center gap-4 flex-wrap">
           <div>
             <h2 className="text-white text-xl font-semibold flex items-center gap-2">
-              <Flag className="h-5 w-5 text-red-400" /> Flagged Users
+              <Flag className={`h-5 w-5 ${ADMIN_TONE.danger.text}`} /> Flagged Users
             </h2>
             <p className="text-slate-400 text-sm mt-0.5">Fraud review workspace for suspicious accounts and high-risk users</p>
           </div>
           <div className="flex items-center gap-2 ml-0 md:ml-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 sd-live-dot" />
-              <span className="text-red-400 font-semibold text-sm">{activeFlags.toLocaleString()} Active Flags</span>
+              <span className={`${ADMIN_TONE.danger.text} font-semibold text-sm`}>{activeFlags.toLocaleString()} Active Flags</span>
             </div>
             {critical > 0 && (
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                <AlertTriangle className="h-3 w-3 text-orange-400" />
-                <span className="text-orange-400 text-sm font-semibold">{critical} Critical</span>
+                <AlertTriangle className={`h-3 w-3 ${ADMIN_TONE.elevated.text}`} />
+                <span className={`${ADMIN_TONE.elevated.text} text-sm font-semibold`}>{critical} Critical</span>
               </div>
             )}
           </div>

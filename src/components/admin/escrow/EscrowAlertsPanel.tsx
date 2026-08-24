@@ -6,6 +6,7 @@ import type { EscrowAlerts } from "@/services/admin-escrow.service";
 import { canConfigureEscrowAlerts } from "@/services/admin-escrow-alerts.service";
 import { ConfigureAlertsModal } from "./ConfigureAlertsModal";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 type Accent = {
   bg: string;        // icon container background
@@ -119,14 +120,14 @@ export function EscrowAlertsPanel({
     code: `#${r.code}`,
     amount: r.amount,
     rowIcon: <Lock className="h-3 w-3" />,
-    right: <span className="text-red-400 text-xs font-semibold">Frozen {r.days_frozen}d</span>,
+    right: <span className={`${ADMIN_TONE.danger.text} text-xs font-semibold`}>Frozen {r.days_frozen}d</span>,
   }));
 
   const overdueItems: Item[] = alerts.dispute_stalled.map((r) => ({
     id: r.tx_id,
     code: `#${r.code}`,
     rowIcon: <AlertTriangle className="h-3 w-3" />,
-    right: <span className="text-orange-400 text-xs font-semibold">Overdue {r.stalled_for}d</span>,
+    right: <span className={`${ADMIN_TONE.elevated.text} text-xs font-semibold`}>Overdue {r.stalled_for}d</span>,
   }));
 
   const stuckItems: Item[] = alerts.high_value_held.map((r) => ({
@@ -134,7 +135,7 @@ export function EscrowAlertsPanel({
     code: `#${r.code}`,
     amount: r.amount,
     rowIcon: <PauseCircle className="h-3 w-3" />,
-    right: <span className="text-purple-400 text-xs font-semibold">Idle {r.held_for}d</span>,
+    right: <span className={`${ADMIN_TONE.special.text} text-xs font-semibold`}>Idle {r.held_for}d</span>,
   }));
 
   const mismatchItems: Item[] = alerts.provider_mismatch.map((r) => ({
@@ -155,7 +156,7 @@ export function EscrowAlertsPanel({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h3 className="text-white text-base lg:text-lg font-semibold flex items-center gap-2">
-              <TriangleAlert className="h-5 w-5 text-orange-400" />
+              <TriangleAlert className={`h-5 w-5 ${ADMIN_TONE.elevated.text}`} />
               Escrow Alerts &amp; Anomalies
             </h3>
             <p className="text-slate-400 text-xs lg:text-sm mt-1">Active operational alerts requiring attention • Updated real-time</p>

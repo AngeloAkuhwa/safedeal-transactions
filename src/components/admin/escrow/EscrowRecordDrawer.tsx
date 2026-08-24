@@ -7,6 +7,7 @@ import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { fetchEscrowDetail, type EscrowDetail } from "@/services/admin-escrow.service";
 import { BlockSkeleton } from "@/components/common/PageSkeleton";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
@@ -169,7 +170,7 @@ export function EscrowRecordDrawer({
         {isLoading || !txId ? (
           <BlockSkeleton label="Loading the escrow record" lines={6} className="py-2" />
         ) : isError ? (
-          <div className="text-red-400 text-sm">{(error as Error).message}</div>
+          <div className={`${ADMIN_TONE.danger.text} text-sm`}>{(error as Error).message}</div>
         ) : data ? (
           <Body d={data} />
         ) : null}

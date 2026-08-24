@@ -40,6 +40,7 @@ import {
 } from "@/services/admin-disputes.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------- visual helpers ---------- */
 
@@ -528,7 +529,7 @@ export default function AdminDisputes() {
               </div>
             ) : error ? (
               <div className="flex flex-col items-center gap-3 py-12 text-center">
-                <AlertTriangle className="h-8 w-8 text-red-400" />
+                <AlertTriangle className={`h-8 w-8 ${ADMIN_TONE.danger.text}`} />
                 <div className="text-sm text-foreground">Unable to load dispute queue. Try again.</div>
                 <Button size="sm" variant="outline" onClick={() => void load()}>Retry</Button>
               </div>

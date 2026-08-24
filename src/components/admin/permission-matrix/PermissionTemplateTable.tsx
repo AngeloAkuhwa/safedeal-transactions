@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { useCurrentEnvironment } from "./EnvironmentSwitcher";
 import { TemplateCompareDialog } from "./TemplateCompareDialog";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
@@ -260,7 +261,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
           {diff && (
             <div className="space-y-2 rounded-md border border-border/60 bg-background/40 p-3 text-xs">
               <div className="flex items-center justify-between">
-                <span>Permissions added</span><span className="font-mono text-emerald-400">+{diff.add.length}</span>
+                <span>Permissions added</span><span className={`font-mono ${ADMIN_TONE.success.text}`}>+{diff.add.length}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Permissions removed</span><span className="font-mono text-rose-400">−{diff.remove.length}</span>
@@ -277,7 +278,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
                   <ul className="mt-1 space-y-1">
                     {diff.dependencies_added.slice(0, 10).map((d) => (
                       <li key={d.key} className="font-mono text-xs">
-                        <span className="text-emerald-400">+ {d.key}</span>
+                        <span className={ADMIN_TONE.success.text}>+ {d.key}</span>
                         <span className="text-muted-foreground"> · required by {d.from.join(", ")}</span>
                       </li>
                     ))}

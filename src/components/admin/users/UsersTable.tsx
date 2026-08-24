@@ -168,7 +168,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   </td>
                   <td className="p-4 text-right">
                     <p className={`${ADMIN_GROUND.heading} font-bold text-base`}>{r.transactions.count}</p>
-                    <p className="text-emerald-400 text-xs mt-0.5 font-medium">
+                    <p className={`${ADMIN_TONE.success.text} text-xs mt-0.5 font-medium`}>
                       {r.transactions.resolved > 0
                         ? `${r.transactions.resolved} resolved`
                         : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume, r.transactions.currency) : "—"}

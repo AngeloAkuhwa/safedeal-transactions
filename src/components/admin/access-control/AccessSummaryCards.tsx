@@ -1,5 +1,6 @@
 import { UserCog, UserCheck, UserX, ShieldAlert, MailPlus, ClipboardCheck, Lock } from "lucide-react";
 import type { AccessSummary, AccessFilter } from "@/services/admin-access-control.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface CardDef {
   filter: AccessFilter;
@@ -29,7 +30,7 @@ function Card({
       <div className="mb-4 flex items-center justify-between">
         <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${def.iconTone}`}>{def.icon}</div>
         {def.critical && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400">
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold ${ADMIN_TONE.danger.text}`}>
             <ShieldAlert className="h-3 w-3" /> Critical
           </span>
         )}
@@ -49,17 +50,17 @@ export function AccessSummaryCards({
 }) {
   const cards: CardDef[] = [
     { filter: "admins", label: "Active Admins", value: summary.active_admins,
-      icon: <UserCog className="h-5 w-5 text-blue-400" />, iconTone: "bg-blue-500/15" },
+      icon: <UserCog className={`h-5 w-5 ${ADMIN_TONE.info.text}`} />, iconTone: "bg-blue-500/15" },
     { filter: "agents", label: "Active Agents", value: summary.active_agents,
-      icon: <UserCheck className="h-5 w-5 text-emerald-400" />, iconTone: "bg-emerald-500/15" },
+      icon: <UserCheck className={`h-5 w-5 ${ADMIN_TONE.success.text}`} />, iconTone: "bg-emerald-500/15" },
     { filter: "invited", label: "Pending Invitations", value: summary.pending_invites,
       icon: <MailPlus className="h-5 w-5 text-indigo-400" />, iconTone: "bg-indigo-500/15" },
     { filter: "pending_approval", label: "Pending Access Approvals", value: summary.pending_approvals,
       icon: <ClipboardCheck className="h-5 w-5 text-amber-400" />, iconTone: "bg-amber-500/15" },
     { filter: "suspended_or_locked", label: "Suspended or Locked Users", value: summary.suspended_or_locked,
-      icon: <Lock className="h-5 w-5 text-red-400" />, iconTone: "bg-red-500/15" },
+      icon: <Lock className={`h-5 w-5 ${ADMIN_TONE.danger.text}`} />, iconTone: "bg-red-500/15" },
     { filter: "privileged", label: "Privileged Access Users", value: summary.privileged_users,
-      icon: <ShieldAlert className="h-5 w-5 text-red-400" />, iconTone: "bg-red-500/15", critical: true },
+      icon: <ShieldAlert className={`h-5 w-5 ${ADMIN_TONE.danger.text}`} />, iconTone: "bg-red-500/15", critical: true },
   ];
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -20,6 +20,7 @@ import {
 import { runExport } from "@/services/admin-escrow.service";
 import { useAdminRealtimeChannel, createBurstThrottle } from "@/hooks/useAdminRealtimeChannel";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- helpers ---------------- */
 function fmtRelative(iso: string): string {
@@ -107,8 +108,8 @@ function AuditHeader({
           </div>
           <div className="ml-0 flex flex-wrap items-center gap-2 md:ml-4">
             <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-400">Immutable</span>
+              <ShieldCheck className={`h-3.5 w-3.5 ${ADMIN_TONE.success.text}`} />
+              <span className={`text-sm font-semibold ${ADMIN_TONE.success.text}`}>Immutable</span>
             </div>
             {lastEntryAt && (
               <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5 lg:flex">
@@ -245,8 +246,8 @@ function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
                         {row.changed_keys.map((k) => (
                           <tr key={k} className="align-top">
                             <td className="px-2 py-1.5 font-mono text-foreground/80">{k}</td>
-                            <td className="px-2 py-1.5 font-mono text-red-400">{clip(beforeObj?.[k])}</td>
-                            <td className="px-2 py-1.5 font-mono text-emerald-400">{clip(afterObj?.[k])}</td>
+                            <td className={`px-2 py-1.5 font-mono ${ADMIN_TONE.danger.text}`}>{clip(beforeObj?.[k])}</td>
+                            <td className={`px-2 py-1.5 font-mono ${ADMIN_TONE.success.text}`}>{clip(afterObj?.[k])}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -642,13 +643,13 @@ export default function AdminAuditLogs() {
                           <div className="flex items-center gap-2">
                             {isSystemActor ? (
                               <div className="w-8 h-8 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
-                                <Bot className="h-4 w-4 text-blue-400" />
+                                <Bot className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
                               </div>
                             ) : r.actor.avatar_url ? (
                               <img src={r.actor.avatar_url} className={`w-8 h-8 rounded-full ${r.severity === "critical" ? "border-2 border-red-500/40" : ""}`} alt="" />
                             ) : (
                               <div className={`w-8 h-8 rounded-full bg-blue-500/15 border ${r.severity === "critical" ? "border-red-500/40" : "border-blue-500/30"} flex items-center justify-center`}>
-                                <User className="h-4 w-4 text-blue-400" />
+                                <User className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
                               </div>
                             )}
                             <div>
@@ -662,17 +663,17 @@ export default function AdminAuditLogs() {
                         <td className="p-3 align-top">
                           {r.target.user_id ? (
                             <div>
-                              <p className="text-emerald-400 text-sm font-medium">{r.target.public_user_id ?? "User"}</p>
+                              <p className={`${ADMIN_TONE.success.text} text-sm font-medium`}>{r.target.public_user_id ?? "User"}</p>
                               <p className="text-muted-foreground text-xs">{r.target.user_email ?? r.target.user_name ?? "—"}</p>
                             </div>
                           ) : r.target.transaction_id ? (
                             <div>
-                              <p className="text-emerald-400 text-sm font-medium">TXN #{r.target.transaction_id.slice(0, 8)}</p>
+                              <p className={`${ADMIN_TONE.success.text} text-sm font-medium`}>TXN #{r.target.transaction_id.slice(0, 8)}</p>
                               <p className="text-muted-foreground text-xs">Transaction ID</p>
                             </div>
                           ) : r.target.dispute_id ? (
                             <div>
-                              <p className="text-emerald-400 text-sm font-medium">Case #{r.target.dispute_id.slice(0, 8)}</p>
+                              <p className={`${ADMIN_TONE.success.text} text-sm font-medium`}>Case #{r.target.dispute_id.slice(0, 8)}</p>
                               <p className="text-muted-foreground text-xs">Dispute Case</p>
                             </div>
                           ) : (

@@ -26,6 +26,7 @@ import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { PermissionPanel } from "./PermissionPanel";
 import { CopyPermissionsPreview } from "./CopyPermissionsPreview";
 import { AcknowledgeConflictDialog } from "./AcknowledgeConflictDialog";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   roleMap: RoleGrantMap;
@@ -256,7 +257,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
         count={privilegedDiffs.length}
       >
         {privilegedDiffs.length === 0 ? (
-          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+          <EmptyRow icon={<CircleCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />}
             title="No privileged permission differences"
             body="Selected roles have identical high-risk access." />
         ) : (
@@ -300,7 +301,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
         count={perRoleAnalysis.reduce((n, x) => n + x.missing.length, 0)}
       >
         {perRoleAnalysis.every((x) => x.missing.length === 0) ? (
-          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+          <EmptyRow icon={<CircleCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />}
             title="All required dependencies are satisfied"
             body="Every write/approve permission on these roles has its matching view permission." />
         ) : (
@@ -352,7 +353,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
       >
         {exemptRolesInView.length > 0 && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-xs text-muted-foreground">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+            <ShieldCheck className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${ADMIN_TONE.success.text}`} />
             <span>
               <span className="font-semibold text-foreground/80">
                 {exemptRolesInView.map((r) => ROLE_LABEL[r]).join(", ")}
@@ -362,7 +363,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
           </div>
         )}
         {perRoleAnalysis.every((x) => x.conflicts.length === 0) ? (
-          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+          <EmptyRow icon={<CircleCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />}
             title="No segregation-of-duties conflicts detected"
             body="No selected role can both initiate and approve the same sensitive financial action." />
         ) : (
