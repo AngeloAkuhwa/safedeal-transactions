@@ -145,10 +145,13 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * shed its triads to the palette definition file, which is excluded above
  * as the vocabulary's one definition site); 4236 to 4137 (batch 2,
  * PayoutsTable's buttons, tone tiles, menus and table chrome now compose
- * from ADMIN_TONE / ADMIN_SOLID / ADMIN_GROUND with identical class sets).
+ * from ADMIN_TONE / ADMIN_SOLID / ADMIN_GROUND with identical class sets);
+ * 4137 to 4092 (batch 3, UsersTable chrome, tone glyphs and solid CTAs;
+ * its softer /10-/20 badge maps stay verbatim because converting them to
+ * the badge triad would move pixels, which a mechanical batch never does).
  */
 const BUDGET = {
-  admin: 4137,
+  admin: 4092,
   ui: 4,
   customer: 12,
 };
