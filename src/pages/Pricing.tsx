@@ -68,8 +68,8 @@ export default function Pricing() {
             Start selling for free
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">
-            Open your store, list your products and take protected payments at no cost.
-            Upgrade only when you want more room to grow.
+            Open your store, list your products and share your link for free.
+            You pay only when a deal completes, and upgrade only when you want more room to grow.
           </p>
         </header>
 

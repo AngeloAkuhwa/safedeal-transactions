@@ -38,6 +38,20 @@ const REVENUE_FIRST = [
   /paid to grow/i,
 ];
 
+/**
+ * Unscoped "free" is the mirror-image failure: a claim that reads as
+ * bait-and-switch the moment the vendor meets the per-deal fee. "Free" is
+ * allowed, and encouraged, when scoped to what actually costs nothing
+ * (free to open, list for free, no listing fees). "Free forever" and
+ * "at no cost" next to a priced action are the pattern this refuses,
+ * because on a trust product the fee discovered later costs more vendors
+ * than the fee itself ever will.
+ */
+const UNSCOPED_FREE = [
+  /free forever/i,
+  /payments at no cost/i,
+];
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -60,6 +74,26 @@ describe("product voice", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("every free claim is scoped to what is actually free", () => {
+    const offenders: string[] = [];
+    for (const file of [...walk("src/pages"), ...walk("src/components"), ...walk("src/lib")]) {
+      if (/pages\/Admin/.test(file)) continue;
+      const src = stripComments(readFileSync(file, "utf8"));
+      for (const re of UNSCOPED_FREE) {
+        if (re.test(src)) offenders.push(`${file}: ${re}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the success-fee scoping line stands where the free claim leads", () => {
+    // The pricing hero says free; the very next sentence must say when the
+    // vendor pays. Scoping and disclosure travel together or the free claim
+    // reads as bait once the fee card comes into view.
+    const pricing = readFileSync("src/pages/Pricing.tsx", "utf8");
+    expect(pricing).toMatch(/pay only when a deal completes/i);
   });
 
   it("the fee disclosure stays: posture never becomes opacity", () => {
