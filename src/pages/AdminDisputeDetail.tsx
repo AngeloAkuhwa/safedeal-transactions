@@ -43,6 +43,7 @@ import { AgreementPreviewDialog } from "@/components/admin/transactions/Agreemen
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
 import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
+import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 // ---------- helpers ----------
 // formatMoney dashes a missing amount; the old `?? 0` here stamped ₦0.00
@@ -148,17 +149,17 @@ function KV({ label, value, className }: { label: string; value: React.ReactNode
 }
 
 const STATUS_TONE: Record<string, string> = {
-  open: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  open: ADMIN_TONE.info.badge,
   awaiting_seller_response: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
-  under_review: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  escalated: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-  resolved: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  closed: "bg-slate-500/15 text-slate-300 border-slate-500/30",
-  dismissed: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  under_review: ADMIN_TONE.special.badge,
+  escalated: ADMIN_TONE.elevated.badge,
+  resolved: ADMIN_TONE.success.badge,
+  closed: ADMIN_TONE.neutral.badge,
+  dismissed: ADMIN_TONE.neutral.badge,
 };
 function StatusPill({ value }: { value?: string | null }) {
   if (!value) return <span className="text-xs text-muted-foreground">—</span>;
-  const cls = STATUS_TONE[value] ?? "bg-slate-500/15 text-slate-300 border-slate-500/30";
+  const cls = STATUS_TONE[value] ?? ADMIN_TONE.neutral.badge;
   return (
     <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap", cls)}>
       {titleCase(value)}
@@ -228,7 +229,7 @@ export default function AdminDisputeDetail() {
     return (
       <AdminLayout title="Dispute" hideDefaultHeaders fullBleed>
         <ErrorPanel
-          icon={<ShieldAlert className="h-8 w-8 text-red-400" />}
+          icon={<ShieldAlert className={`h-8 w-8 ${ADMIN_TONE.danger.text}`} />}
           title="Admin access required"
           message="You don't have permission to view this dispute."
           onBack={() => navigate("/admin/disputes")}
@@ -252,7 +253,7 @@ export default function AdminDisputeDetail() {
     return (
       <AdminLayout title="Dispute" hideDefaultHeaders fullBleed>
         <ErrorPanel
-          icon={<AlertTriangle className="h-8 w-8 text-orange-400" />}
+          icon={<AlertTriangle className={`h-8 w-8 ${ADMIN_TONE.elevated.text}`} />}
           title="Couldn't load dispute"
           message={err}
           onBack={() => navigate("/admin/disputes")}
@@ -520,9 +521,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold",
               overdue
                 ? "border-red-500/40 bg-red-500/15 text-red-300"
-                : "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+                : ADMIN_TONE.success.badge,
             )}>
-              {overdue && <span className="h-2 w-2 rounded-full bg-red-400 sd-live-dot" />}
+              {overdue && <span className={`h-2 w-2 rounded-full ${ADMIN_TONE.danger.dot} sd-live-dot`} />}
               {slaText}
             </span>
           )}
@@ -558,7 +559,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <div className="text-xs text-muted-foreground mb-1">Transaction</div>
                   <button
                     onClick={() => navigate(`/admin/transactions/${txId}`)}
-                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all min-h-11"
+                    className={`block text-left text-sm font-semibold ${ADMIN_TONE.info.text} hover:text-blue-300 font-mono break-all min-h-11`}
                   >
                     {txCode}
                   </button>
@@ -572,7 +573,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs text-muted-foreground mb-1">Dispute Reason</div>
-                  <div className="text-sm font-semibold text-orange-400 break-words">
+                  <div className={`text-sm font-semibold ${ADMIN_TONE.elevated.text} break-words`}>
                     {titleCase(row.reason ?? dispute.claimType) || "—"}
                   </div>
                 </div>
@@ -684,19 +685,19 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               </div>
 
               {active.isDisputeActive && moneyStatus === "funds_pending_release" && (
-                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
+                <div className={`mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border ${ADMIN_TONE.elevated.panel} p-3 text-xs text-orange-200`}>
                   <AlertTriangle className="inline h-4 w-4 mr-1.5" />
                   Active dispute: release is blocked until the dispute is resolved.
                 </div>
               )}
               {active.isFrozen && (
-                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                <div className={`mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border ${ADMIN_TONE.danger.panel} p-3 text-xs text-red-200`}>
                   <Snowflake className="inline h-4 w-4 mr-1.5" />
                   Funds are frozen. No payouts or refunds will process automatically.
                 </div>
               )}
               {refundedAmount > 0 && (
-                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+                <div className={`mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border ${ADMIN_TONE.success.panel} p-3 text-xs text-emerald-200`}>
                   Refunded so far: <span className="font-semibold">{ngn(refundedAmount)}</span>
                 </div>
               )}
@@ -1056,9 +1057,9 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     : "bg-orange-600 hover:bg-orange-500 text-white border-transparent";
   const sellerTier: string | null = !isBuyer && party.sellerTier ? party.sellerTier : null;
   const accountStatusValue = isBuyer
-    ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
+    ? <span className={cn(party.accountStatus === "good_standing" ? ADMIN_TONE.success.text : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
     : (party.payoutStatus === "blocked"
-        ? <span className="text-red-400">Blocked</span>
+        ? <span className={ADMIN_TONE.danger.text}>Blocked</span>
         : <span className="text-foreground">{titleCase(party.payoutStatus) || "—"}</span>);
   const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="min-w-0">
@@ -1094,7 +1095,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
               <Star className="h-4 w-4 fill-yellow-400" /> {titleCase(sellerTier)} Seller
             </span>
           ) : ver.identity ? (
-            <span className="inline-flex items-center gap-1 text-sm text-emerald-400 shrink-0">
+            <span className={`inline-flex items-center gap-1 text-sm ${ADMIN_TONE.success.text} shrink-0`}>
               <CheckCircle2 className="h-4 w-4" /> Verified
             </span>
           ) : null}
@@ -1157,11 +1158,11 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
 
 function Tag({ children, tone }: { children: React.ReactNode; tone: "emerald" | "blue" | "red" | "orange" | "slate" }) {
   const map = {
-    emerald: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-    blue: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-    red: "bg-red-500/15 text-red-300 border-red-500/30",
-    orange: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-    slate: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    emerald: ADMIN_TONE.success.badge,
+    blue: ADMIN_TONE.info.badge,
+    red: ADMIN_TONE.danger.badge,
+    orange: ADMIN_TONE.elevated.badge,
+    slate: ADMIN_TONE.neutral.badge,
   };
   return <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-semibold", map[tone])}>{children}</span>;
 }
@@ -1198,11 +1199,11 @@ function FinStat({ label, value, caption, tone }: {
   label: string; value: React.ReactNode; caption?: React.ReactNode;
   tone?: "info" | "warning" | "success" | "danger" | "orange";
 }) {
-  const toneCls = tone === "danger" ? "text-red-400"
-    : tone === "warning" ? "text-orange-400"
-    : tone === "success" ? "text-emerald-400"
-    : tone === "info" ? "text-blue-400"
-    : tone === "orange" ? "text-orange-400"
+  const toneCls = tone === "danger" ? ADMIN_TONE.danger.text
+    : tone === "warning" ? ADMIN_TONE.elevated.text
+    : tone === "success" ? ADMIN_TONE.success.text
+    : tone === "info" ? ADMIN_TONE.info.text
+    : tone === "orange" ? ADMIN_TONE.elevated.text
     : "text-foreground";
   return (
     <div className="min-w-0">
@@ -1256,9 +1257,9 @@ function moneyDotColor(v?: string | null) {
   return "bg-muted-foreground";
 }
 function moneyTextColor(v?: string | null) {
-  if (v === "funds_frozen") return "text-red-400";
-  if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return "text-emerald-400";
-  if (v === "funds_pending_release") return "text-orange-400";
+  if (v === "funds_frozen") return ADMIN_TONE.danger.text;
+  if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return ADMIN_TONE.success.text;
+  if (v === "funds_pending_release") return ADMIN_TONE.elevated.text;
   if (v === "funds_held_in_escrow") return "text-yellow-400";
   return "text-foreground";
 }
@@ -1269,8 +1270,8 @@ function payoutDotColor(payout: any, disputeActive: boolean) {
   return "bg-muted-foreground";
 }
 function payoutTextColor(payout: any, disputeActive: boolean) {
-  if (disputeActive) return "text-red-400";
-  if (payout?.status === "completed") return "text-emerald-400";
+  if (disputeActive) return ADMIN_TONE.danger.text;
+  if (payout?.status === "completed") return ADMIN_TONE.success.text;
   if (payout?.status === "pending") return "text-yellow-400";
   return "text-foreground";
 }
@@ -1383,7 +1384,7 @@ function CaseCommunicationSection(props: {
       tone: "emerald" as const,
       label: "Buyer Responded",
       meta: buyerResponded ? dayLabel(openedAt) : "—",
-      leading: <span className="w-2 h-2 bg-emerald-400 rounded-full" />,
+      leading: <span className={`w-2 h-2 ${ADMIN_TONE.success.dot} rounded-full`} />,
       show: buyerResponded || !!buyerClaim,
     },
     {
@@ -1399,15 +1400,15 @@ function CaseCommunicationSection(props: {
       tone: "orange" as const,
       label: "Evidence Requested",
       meta: dayLabel(openedAt),
-      leading: <FilePlus2 className="w-3 h-3 text-orange-400" />,
+      leading: <FilePlus2 className={`w-3 h-3 ${ADMIN_TONE.elevated.text}`} />,
       show: (evidence ?? []).length > 0,
     },
   ];
   const statusChips = allChips.filter((c) => c.show);
   const chipTone: Record<string, string> = {
-    emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-    red: "bg-red-500/10 border-red-500/30 text-red-400",
-    orange: "bg-orange-500/10 border-orange-500/30 text-orange-400",
+    emerald: `${ADMIN_TONE.success.panel} ${ADMIN_TONE.success.text}`,
+    red: `${ADMIN_TONE.danger.panel} ${ADMIN_TONE.danger.text}`,
+    orange: `${ADMIN_TONE.elevated.panel} ${ADMIN_TONE.elevated.text}`,
     yellow: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
   };
   const chipMeta: Record<string, string> = {
@@ -1430,7 +1431,7 @@ function CaseCommunicationSection(props: {
     body: n.note,
     msgRef: `NOTE-${String(n.id ?? "").slice(0, 4).toUpperCase()}`,
     footerMeta: (
-      <div className="flex items-center gap-1 text-slate-500">
+      <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
         <Lock className="w-3 h-3" /> <span>Visible to admins only</span>
       </div>
     ),
@@ -1520,7 +1521,7 @@ function CaseCommunicationSection(props: {
       msgRef: `CLAIM-${disputeId.slice(0, 4).toUpperCase()}`,
       attachments: claimAttachedGroup ? evidenceChips(claimAttachedGroup.items) : undefined,
       footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
+        <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
           <Check className="w-3 h-3" /> <span>Filed via dispute form</span>
         </div>
       ),
@@ -1552,7 +1553,7 @@ function CaseCommunicationSection(props: {
       msgRef: `EV-${firstId.slice(0, 4).toUpperCase()}`,
       attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
+        <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
           <Check className="w-3 h-3" /> <span>Attached to dispute</span>
         </div>
       ),
@@ -1611,7 +1612,7 @@ function CaseCommunicationSection(props: {
       msgRef: `RES-${r.number}`,
       attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
+        <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
           <Check className="w-3 h-3" /> <span>Submitted via dispute response</span>
         </div>
       ),
@@ -1643,7 +1644,7 @@ function CaseCommunicationSection(props: {
       msgRef: `EV-${firstId.slice(0, 4).toUpperCase()}`,
       attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
+        <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
           <Check className="w-3 h-3" /> <span>Attached to dispute</span>
         </div>
       ),
@@ -1669,20 +1670,20 @@ function CaseCommunicationSection(props: {
 
   return (
     <section className="p-0 md:p-2">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className={`${ADMIN_GROUND.panel} border rounded-xl overflow-hidden`}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-800">
-          <h3 className="text-white text-lg font-semibold">Case Communication</h3>
-          <p className="text-slate-400 text-sm mt-1">
+        <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
+          <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Case Communication</h3>
+          <p className={`${ADMIN_GROUND.muted} text-sm mt-1`}>
             Structured dispute communication workspace - all messages are logged and auditable
           </p>
         </div>
 
         {/* Status row */}
-        <div className="px-6 py-4 bg-slate-800/30 border-b border-slate-800">
+        <div className={`px-6 py-4 bg-slate-800/30 border-b ${ADMIN_GROUND.border}`}>
           <div className="flex items-center gap-2 mb-3">
-            <Info className="w-4 h-4 text-blue-400" />
-            <span className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
+            <Info className={`w-4 h-4 ${ADMIN_TONE.info.text}`} />
+            <span className={`${ADMIN_GROUND.body} text-xs font-semibold uppercase tracking-wider`}>
               Communication Status
             </span>
           </div>
@@ -1701,12 +1702,12 @@ function CaseCommunicationSection(props: {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-800">
+        <div className={`border-b ${ADMIN_GROUND.border}`}>
           <div className="flex gap-1 px-6 overflow-x-auto">
             {([
-              { id: "buyer" as CommTab, label: "Buyer Messages", icon: <UserIcon className="w-3.5 h-3.5 mr-2 text-blue-400" />, border: "border-blue-500" },
-              { id: "seller" as CommTab, label: "Seller Messages", icon: <Store className="w-3.5 h-3.5 mr-2 text-orange-400" />, border: "border-orange-500" },
-              { id: "internal" as CommTab, label: "Internal Notes", icon: <StickyNote className="w-3.5 h-3.5 mr-2 text-purple-400" />, border: "border-purple-500" },
+              { id: "buyer" as CommTab, label: "Buyer Messages", icon: <UserIcon className={`w-3.5 h-3.5 mr-2 ${ADMIN_TONE.info.text}`} />, border: "border-blue-500" },
+              { id: "seller" as CommTab, label: "Seller Messages", icon: <Store className={`w-3.5 h-3.5 mr-2 ${ADMIN_TONE.elevated.text}`} />, border: "border-orange-500" },
+              { id: "internal" as CommTab, label: "Internal Notes", icon: <StickyNote className={`w-3.5 h-3.5 mr-2 ${ADMIN_TONE.special.text}`} />, border: "border-purple-500" },
             ]).map((t) => {
               const isActive = activeTab === t.id;
               return (
@@ -1716,8 +1717,8 @@ function CaseCommunicationSection(props: {
                   className={cn(
                     "px-4 py-3 text-sm font-medium transition-all inline-flex items-center whitespace-nowrap",
                     isActive
-                      ? cn("text-white bg-slate-800 border-b-2", t.border)
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                      ? cn(`${ADMIN_GROUND.heading} ${ADMIN_GROUND.raised} border-b-2`, t.border)
+                      : `${ADMIN_GROUND.muted} hover:text-white hover:bg-slate-800/50`
                   )}
                 >
                   {t.icon}{t.label}
@@ -1732,15 +1733,15 @@ function CaseCommunicationSection(props: {
           {/* Thread (only scroll container) */}
           <div className="space-y-4 mb-6 max-h-[600px] overflow-y-auto pr-2">
             {activeMessages.length === 0 ? (
-              <div className="text-slate-400 text-sm py-6 text-center">{emptyText}</div>
+              <div className={`${ADMIN_GROUND.muted} text-sm py-6 text-center`}>{emptyText}</div>
             ) : (
               activeMessages.map((m) => <MessageItem key={m.id} m={m} />)
             )}
           </div>
 
           {/* Quick Actions */}
-          <div className="mb-4 pb-4 border-b border-slate-800">
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Quick Actions</p>
+          <div className={`mb-4 pb-4 border-b ${ADMIN_GROUND.border}`}>
+            <p className={`${ADMIN_GROUND.muted} text-xs font-semibold uppercase tracking-wider mb-3`}>Quick Actions</p>
             <div className="flex flex-wrap gap-2">
               <QuickActionChip disabled icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
               <QuickActionChip disabled icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
@@ -1750,9 +1751,9 @@ function CaseCommunicationSection(props: {
           </div>
 
           {/* Composer */}
-          <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4">
+          <div className={`bg-slate-800/30 border ${ADMIN_GROUND.borderSoft} rounded-lg p-4`}>
             <div className="mb-3">
-              <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 block">
+              <label className={`${ADMIN_GROUND.muted} text-xs font-semibold uppercase tracking-wider mb-2 block`}>
                 {accent.label}
               </label>
               <textarea
@@ -1761,7 +1762,7 @@ function CaseCommunicationSection(props: {
                 rows={4}
                 placeholder={accent.placeholder}
                 className={cn(
-                  "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-300 text-sm placeholder-slate-500 focus:outline-none resize-none",
+                  `w-full bg-slate-900 border ${ADMIN_GROUND.borderSoft} rounded-lg px-4 py-3 ${ADMIN_GROUND.body} text-sm placeholder-slate-500 focus:outline-none resize-none`,
                   accent.focus
                 )}
               />
@@ -1772,7 +1773,7 @@ function CaseCommunicationSection(props: {
                   value={msgType}
                   onChange={(e) => setMsgType(e.target.value)}
                   className={cn(
-                    "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg focus:outline-none text-xs font-medium min-h-11",
+                    `px-3 py-2 ${ADMIN_GROUND.raised} border ${ADMIN_GROUND.borderSoft} ${ADMIN_GROUND.body} rounded-lg focus:outline-none text-xs font-medium min-h-11`,
                     accent.focus
                   )}
                 >
@@ -1827,9 +1828,9 @@ function MessageItem({ m }: { m: CommMessage }) {
   const kindStyle: Record<MsgKind, { border: string; bg: string; body: string; badgeBg: string; badgeText: string; badgeIcon: React.ReactNode; badgeLabel: string; accentText: string }> = {
     deadline: {
       border: "border-red-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
-      badgeBg: "bg-red-500/20", badgeText: "text-red-400",
+      badgeBg: "bg-red-500/20", badgeText: ADMIN_TONE.danger.text,
       badgeIcon: <AlertTriangle className="w-3 h-3" />, badgeLabel: "Deadline Notice",
-      accentText: "text-red-400",
+      accentText: ADMIN_TONE.danger.text,
     },
     reminder: {
       border: "border-yellow-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
@@ -1839,15 +1840,15 @@ function MessageItem({ m }: { m: CommMessage }) {
     },
     seller_reply: {
       border: "border-orange-500", bg: "bg-orange-500/5", body: "bg-slate-900/70 border border-orange-500/10",
-      badgeBg: "bg-orange-500/20", badgeText: "text-orange-400",
+      badgeBg: "bg-orange-500/20", badgeText: ADMIN_TONE.elevated.text,
       badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "General Reply",
-      accentText: "text-orange-400",
+      accentText: ADMIN_TONE.elevated.text,
     },
     buyer_reply: {
       border: "border-blue-500", bg: "bg-blue-500/5", body: "bg-slate-900/70 border border-blue-500/10",
-      badgeBg: "bg-blue-500/20", badgeText: "text-blue-400",
+      badgeBg: "bg-blue-500/20", badgeText: ADMIN_TONE.info.text,
       badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "General Reply",
-      accentText: "text-blue-400",
+      accentText: ADMIN_TONE.info.text,
     },
     evidence_request: {
       border: "border-slate-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
@@ -1863,17 +1864,17 @@ function MessageItem({ m }: { m: CommMessage }) {
     },
     internal: {
       border: "border-purple-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
-      badgeBg: "bg-purple-500/20", badgeText: "text-purple-400",
+      badgeBg: "bg-purple-500/20", badgeText: ADMIN_TONE.special.text,
       badgeIcon: <StickyNote className="w-3 h-3" />, badgeLabel: "Internal Note",
-      accentText: "text-purple-400",
+      accentText: ADMIN_TONE.special.text,
     },
   };
   const s = kindStyle[m.kind];
 
   const roleColor = (role: CommMessage["senderRole"] | CommMessage["recipientRole"]) =>
-    role === "seller" ? "text-orange-400"
-    : role === "buyer" ? "text-blue-400"
-    : role === "internal" ? "text-purple-400"
+    role === "seller" ? ADMIN_TONE.elevated.text
+    : role === "buyer" ? ADMIN_TONE.info.text
+    : role === "internal" ? ADMIN_TONE.special.text
     : "text-white";
 
   const rolePillClass = (() => {
@@ -1902,7 +1903,7 @@ function MessageItem({ m }: { m: CommMessage }) {
               <span className={cn("font-medium text-sm", roleColor(m.recipientRole))}>{m.recipientName}</span>
               <span className={cn("px-2 py-0.5 text-xs rounded", rolePillClass)}>{rolePillLabel}</span>
             </div>
-            <p className="text-slate-400 text-xs">
+            <p className={`${ADMIN_GROUND.muted} text-xs`}>
               {m.timestamp}{m.topic ? <> • {m.topic}</> : null}
             </p>
           </div>
@@ -1911,30 +1912,30 @@ function MessageItem({ m }: { m: CommMessage }) {
           <span className={cn("px-2 py-1 text-xs font-semibold rounded flex items-center gap-1", s.badgeBg, s.badgeText)}>
             {s.badgeIcon}{s.badgeLabel}
           </span>
-          {m.msgRef && <span className="text-slate-500 text-xs">#{m.msgRef}</span>}
+          {m.msgRef && <span className={`${ADMIN_GROUND.faint} text-xs`}>#{m.msgRef}</span>}
         </div>
       </div>
 
       <div className={cn("rounded-lg p-3 mb-3", s.body)}>
-        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{m.body}</p>
+        <p className={`${ADMIN_GROUND.body} text-sm leading-relaxed whitespace-pre-wrap`}>{m.body}</p>
       </div>
 
       {m.attachments && m.attachments.length > 0 && (
         <div className="flex gap-2 mb-3 flex-wrap">
           {m.attachments.map((a, i) => (
-            <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-2 flex items-center gap-2 hover:border-orange-500 transition-all cursor-pointer text-xs">
+            <div key={i} className={`${ADMIN_GROUND.raised} border ${ADMIN_GROUND.borderSoft} rounded-lg p-2 flex items-center gap-2 hover:border-orange-500 transition-all cursor-pointer text-xs`}>
               <Paperclip className={cn("w-3 h-3", s.accentText)} />
-              <span className="text-slate-300">{a.name}</span>
-              {a.size && <span className="text-slate-500">{a.size}</span>}
+              <span className={ADMIN_GROUND.body}>{a.name}</span>
+              {a.size && <span className={ADMIN_GROUND.faint}>{a.size}</span>}
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-700 gap-2 flex-wrap">
+      <div className={`flex items-center justify-between pt-2 border-t ${ADMIN_GROUND.borderSoft} gap-2 flex-wrap`}>
         <div className="flex items-center gap-3 text-xs">
           {m.footerMeta ?? (
-            <div className="flex items-center gap-1 text-slate-500">
+            <div className={`flex items-center gap-1 ${ADMIN_GROUND.faint}`}>
               <Check className="w-3 h-3" /> <span>Logged</span>
             </div>
           )}
@@ -2291,10 +2292,10 @@ function ResolutionSidebar({
       {isResolved && (
         <div>
           <div className="text-base font-semibold text-foreground mb-3">Resolution Summary</div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
+          <div className={`rounded-xl border ${ADMIN_TONE.success.panel} p-4 space-y-3`}>
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className={`h-1.5 w-1.5 rounded-full ${ADMIN_TONE.success.dot}`} />
                 Resolved
               </span>
               {resolvedAt && (
@@ -2370,28 +2371,28 @@ function ResolutionSidebar({
         <SidebarBtn icon={<Search />} label="Move to Under Review"
           onClick={onMoveReview}
           disabled={isResolved}
-          iconColor="text-blue-400" iconBg="bg-blue-500/10"
+          iconColor={ADMIN_TONE.info.text} iconBg="bg-blue-500/10"
           tip={isResolved ? "Case already resolved" : undefined} />
         <SidebarBtn icon={<MessageSquare />} label="Request More Evidence"
           onClick={onResolve} disabled={isResolved}
-          iconColor="text-purple-400" iconBg="bg-purple-500/10"
+          iconColor={ADMIN_TONE.special.text} iconBg="bg-purple-500/10"
           tip={isResolved ? "Case already resolved" : "Opens dispute action panel"} />
         <SidebarBtn icon={<UsersIcon />} label="Assign / Reassign Agent"
-          iconColor="text-emerald-400" iconBg="bg-emerald-500/10"
+          iconColor={ADMIN_TONE.success.text} iconBg="bg-emerald-500/10"
           disabled tip="Agent assignment not connected yet" />
         <SidebarBtn icon={<ArrowUp />} label="Escalate Further"
           onClick={onEscalate} disabled={isResolved}
-          iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+          iconColor={ADMIN_TONE.elevated.text} iconBg="bg-orange-500/10" />
         <SidebarBtn icon={<AlertTriangle />} label="Mark High Risk"
           onClick={onHighRisk}
           disabled={isResolved}
           tip={isResolved ? "Case already resolved" : undefined}
-          iconColor="text-red-400" iconBg="bg-red-500/10" />
+          iconColor={ADMIN_TONE.danger.text} iconBg="bg-red-500/10" />
         <SidebarBtn icon={<ShieldAlert />} label="Mark Fraud Watch"
           onClick={onFraud}
           disabled={isResolved}
           tip={isResolved ? "Case already resolved" : undefined}
-          iconColor="text-red-400" iconBg="bg-red-500/10" />
+          iconColor={ADMIN_TONE.danger.text} iconBg="bg-red-500/10" />
       </SidebarGroup>
 
       {/* Resolution Actions (solid + outlined) */}
@@ -2432,19 +2433,19 @@ function ResolutionSidebar({
         <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote}
           iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
         <SidebarBtn icon={<Edit3 />} label="Add Internal Note" onClick={onAddNote}
-          iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+          iconColor={ADMIN_TONE.special.text} iconBg="bg-purple-500/10" />
         <SidebarBtn icon={<Search />} label="Open Investigation" disabled
-          iconColor="text-orange-400" iconBg="bg-orange-500/10"
+          iconColor={ADMIN_TONE.elevated.text} iconBg="bg-orange-500/10"
           tip={isResolved ? "Case already resolved" : "Investigation workflow not connected yet"} />
         <SidebarBtn icon={<CreditCard />} label="View Linked Transaction"
           onClick={() => navigate(`/admin/transactions/${txId}`)}
-          iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+          iconColor={ADMIN_TONE.info.text} iconBg="bg-blue-500/10" />
         <SidebarBtn icon={<CreditCard />} label="View Payment Record" disabled
-          iconColor="text-emerald-400" iconBg="bg-emerald-500/10" tip="Coming soon" />
+          iconColor={ADMIN_TONE.success.text} iconBg="bg-emerald-500/10" tip="Coming soon" />
         <SidebarBtn icon={<Vault />} label="View Escrow Record" disabled
-          iconColor="text-orange-400" iconBg="bg-orange-500/10" tip="Coming soon" />
+          iconColor={ADMIN_TONE.elevated.text} iconBg="bg-orange-500/10" tip="Coming soon" />
         <SidebarBtn icon={<Wallet />} label="View Payout Record" disabled
-          iconColor="text-purple-400" iconBg="bg-purple-500/10" tip="Coming soon" />
+          iconColor={ADMIN_TONE.special.text} iconBg="bg-purple-500/10" tip="Coming soon" />
       </SidebarGroup>
 
       {/* Resolution Summary */}
@@ -2475,8 +2476,8 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
   role: "buyer" | "seller"; name: string; statusLabel: string;
   statusTone: "emerald" | "red" | "yellow"; summary: string;
 }) {
-  const toneCls = statusTone === "emerald" ? "text-emerald-400"
-    : statusTone === "red" ? "text-red-400"
+  const toneCls = statusTone === "emerald" ? ADMIN_TONE.success.text
+    : statusTone === "red" ? ADMIN_TONE.danger.text
     : "text-yellow-400";
   const dotCls = statusTone === "emerald" ? "bg-emerald-400"
     : statusTone === "red" ? "bg-red-400"
