@@ -119,7 +119,9 @@ function OfferCard({ offer, muted }: { offer: BuyerOffer; muted?: boolean }) {
         <div className="flex items-baseline justify-between border-t border-border pt-3">
           <span className="text-xs text-muted-foreground">Price</span>
           <span className="text-lg font-bold text-foreground">
-            {formatMoney(Number(product?.unit_price || 0), product?.currency_code || "NGN")}
+            {/* formatMoney dashes a missing amount, and a missing currency
+                renders a bare figure rather than claiming Naira. */}
+            {formatMoney(product?.unit_price, product?.currency_code ?? "")}
           </span>
         </div>
         {offer.expires_at && offer.status !== "expired" && offer.status !== "purchased" && (

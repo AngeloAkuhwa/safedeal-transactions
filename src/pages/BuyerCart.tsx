@@ -286,8 +286,12 @@ const BuyerCart = () => {
   for (const item of selectedItems) {
     const sid = item.product!.seller_id;
     const prev = sellerGroups.get(sid);
+    // First insert seeds from the item itself rather than `prev?.amount || 0`:
+    // a zero fallback on money is banned even as a reduce identity, because
+    // the same shape elsewhere silently renders invented ₦0.00 figures.
+    const lineTotal = item.product!.unit_price * item.quantity;
     sellerGroups.set(sid, {
-      amount: (prev?.amount || 0) + item.product!.unit_price * item.quantity,
+      amount: prev ? prev.amount + lineTotal : lineTotal,
       currency: prev?.currency ?? item.product!.currency_code,
     });
   }

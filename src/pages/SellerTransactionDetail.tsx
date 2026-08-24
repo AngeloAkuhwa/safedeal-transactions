@@ -39,8 +39,10 @@ import {
 } from "@/lib/status-labels";
 import { SummaryPageSkeleton } from "@/components/common/PageSkeleton";
 
+// formatMoney already renders a missing amount as a dash; the old `?? 0`
+// here defeated that and turned every absent figure into a claimed ₦0.00.
 const fmt = (amount: number | undefined | null, currency: string) =>
-  formatMoney(amount ?? 0, currency);
+  formatMoney(amount, currency);
 
 const SellerTransactionDetail = () => {
   const { transactionId } = useParams<{ transactionId: string }>();

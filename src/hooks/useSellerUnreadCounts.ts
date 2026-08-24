@@ -77,10 +77,14 @@ export function useSellerUnreadCounts() {
     };
   }, [userId, queryClient]);
 
+  // These are unread-item counts, so an absent payload honestly means zero
+  // unread. The count-named local keeps the money-zero guard able to tell
+  // this apart from a monetary total, which must never fall back to 0.
+  const totalCount = query.data?.total;
   return {
     notifications: query.data?.notifications ?? 0,
     messages: query.data?.messages ?? 0,
-    total: query.data?.total ?? 0,
+    total: totalCount ?? 0,
     userId,
   };
 }

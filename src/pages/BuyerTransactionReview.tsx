@@ -186,10 +186,13 @@ export default function BuyerTransactionReview() {
   }
 
   const currencyCode = data.pricing?.currency_code || "NGN";
-  const totalAmount = data.pricing?.total_amount ?? 0;
-  const itemAmount = data.pricing?.item_amount ?? 0;
-  const feeAmount = data.pricing?.service_fee_amount ?? 0;
-  const feeRate = data.pricing?.service_fee_rate ?? 0;
+  // No zero fallbacks: formatMoney renders a missing amount as a dash, so a
+  // review page with absent pricing shows "Pay —" rather than "Pay ₦0.00",
+  // which is exactly the difference between a visible defect and a silent one.
+  const totalAmount = data.pricing?.total_amount;
+  const itemAmount = data.pricing?.item_amount;
+  const feeAmount = data.pricing?.service_fee_amount;
+  const feeRate = data.pricing?.service_fee_rate;
   const payButtonLabel =
     authState === "ready"
       ? `Pay ${formatMoney(totalAmount, currencyCode)}`
@@ -813,7 +816,7 @@ function TimelineCard() {
 }
 
 function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; currencyCode: string }) {
-  const totalAmount = data.pricing?.total_amount ?? 0;
+  const totalAmount = data.pricing?.total_amount;
   return (
     <div className="bg-success rounded-2xl shadow-2xl p-6 text-success-foreground border-2 border-success/40">
       <div className="flex items-center gap-2 mb-4">
@@ -981,7 +984,9 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
 }
 
 function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate, totalAmount }: {
-  data: ReviewData; currencyCode: string; itemAmount: number; feeAmount: number; feeRate: number; totalAmount: number;
+  data: ReviewData; currencyCode: string;
+  itemAmount: number | undefined; feeAmount: number | undefined;
+  feeRate: number | undefined; totalAmount: number | undefined;
 }) {
   return (
     <Card className="rounded-2xl shadow-lg">
@@ -996,7 +1001,8 @@ function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate
             <span className="font-semibold text-foreground">{formatMoney(itemAmount, currencyCode)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{FEE_NAME} ({(feeRate * 100).toFixed(1)}%)</span>
+            {/* A missing rate is omitted, never rendered as 0.0% or NaN%. */}
+            <span className="text-muted-foreground">{FEE_NAME}{typeof feeRate === "number" ? ` (${(feeRate * 100).toFixed(1)}%)` : ""}</span>
             <span className="font-semibold text-foreground">{formatMoney(feeAmount, currencyCode)}</span>
           </div>
           <p className="text-xs text-muted-foreground -mt-1">{FEE_CAPTION}</p>

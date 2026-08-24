@@ -67,8 +67,11 @@ export function deriveDisputeDisplay(
   if (disputeStatus !== "resolved") return null;
 
   const ms = moneyStatus ?? null;
-  const frozen = Number(escrow?.frozenAmount ?? 0);
-  const held = Number(escrow?.heldAmount ?? 0);
+  // No zero fallback on money: an absent escrow figure must not read as a
+  // known ₦0. Number(undefined) is NaN, and NaN > 0 is false, so the gating
+  // below behaves identically while never inventing an amount.
+  const frozen = Number(escrow?.frozenAmount);
+  const held = Number(escrow?.heldAmount);
 
   // No outcome row but dispute is resolved. Fall back to money state.
   const otype = (outcome?.outcome_type ?? "") as DisputeOutcomeType;
@@ -97,9 +100,15 @@ export function deriveDisputeDisplay(
         label: "Partially Resolved",
         tone: "info",
         moneyStatus: ms ?? "refund_pending",
+        // A split row appears only when its amount is actually recorded: a
+        // partial outcome with an absent figure must not display as ₦0.00.
         parts: [
-          { label: "Refund Pending", amount: Number(outcome?.refund_amount ?? 0) },
-          { label: "Release Pending", amount: Number(outcome?.release_amount ?? 0) },
+          ...(typeof outcome?.refund_amount === "number"
+            ? [{ label: "Refund Pending" as const, amount: outcome.refund_amount }]
+            : []),
+          ...(typeof outcome?.release_amount === "number"
+            ? [{ label: "Release Pending" as const, amount: outcome.release_amount }]
+            : []),
         ],
         resolved: true,
       };

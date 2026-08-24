@@ -143,7 +143,6 @@ const CURRENCY_DEBT = [
   "src/pages/AdminDisputeDetail.tsx",
   "src/pages/AdminTransactionDetail.tsx",
   "src/pages/BuyerDisputeDetail.tsx",
-  "src/pages/BuyerPrivateOffers.tsx",
   "src/pages/BuyerTransactionReview.tsx",
   "src/pages/OfferClaimLanding.tsx",
   "src/pages/SellerDisputeDetail.tsx",
@@ -515,13 +514,9 @@ function isCountName(match: string): boolean {
 const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/create-transaction/index.ts",
   "src/components/admin/transactions/AgreementPreviewDialog.tsx",
-  "src/components/agreement/LockedSnapshotCard.tsx",
-  "src/hooks/useSellerUnreadCounts.ts",
   "src/pages/AdminAuditLogs.tsx",
   "src/pages/AdminIdentity.tsx",
   "src/pages/AdminSupport.tsx",
-  "src/pages/BuyerCart.tsx",
-  "src/pages/BuyerMarketplace.tsx",
   "supabase/functions/admin-flagged-users-export/index.ts",
   "supabase/functions/admin-users-directory-export/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
@@ -532,17 +527,10 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/verify-paystack-payment/index.ts",
   "src/components/admin/transactions/MoneyStatus.ts",
   "src/components/admin/transactions/ResolveDisputeDialog.tsx",
-  "src/components/seller/SellerMetricsCards.tsx",
   "src/lib/admin-active-state.ts",
-  "src/lib/dispute-display-status.ts",
   "src/pages/AdminDisputeDetail.tsx",
   "src/pages/AdminPermissionMatrix.tsx",
   "src/pages/AdminTransactionDetail.tsx",
-  "src/pages/BuyerPrivateOffers.tsx",
-  "src/pages/BuyerTransactionReview.tsx",
-  "src/pages/BuyerTransactionTracking.tsx",
-  "src/pages/SellerTransactionShare.tsx",
-  "src/pages/SellerUpdateDelivery.tsx",
   "src/services/admin-flagged-users.service.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/provider-refund.ts",
@@ -574,8 +562,6 @@ const MONEY_ZERO_DEBT: string[] = [
   // Newly VISIBLE after the bracket rule was fixed to allow a money noun at
   // index 0 (`LIMIT_BY_LEVEL[level] ?? 0`) and after the bare-identifier rule
   // lost the same leading-character requirement. Recorded, not narrowed away.
-  "src/components/security/RecoveryCodesPanel.tsx",
-  "src/pages/SellerTransactionDetail.tsx",
   "supabase/functions/admin-audit-logs/index.ts",
   "supabase/functions/buyer-disputes/index.ts",
 ];

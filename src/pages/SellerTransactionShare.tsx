@@ -59,7 +59,9 @@ const SellerTransactionShare = () => {
     item_description: item?.description ?? "",
     item_quantity: item?.quantity ?? 1,
     item_condition: item?.condition ?? "",
-    price: pricing?.item_amount ?? 0,
+    // No zero fallback: an absent amount must render as missing downstream,
+    // never as a ₦0.00 price on the share preview.
+    price: pricing?.item_amount,
     currency_code: currency,
     delivery_method: tx.delivery_method,
     expected_delivery_date: tx.expected_delivery_date ?? "",
