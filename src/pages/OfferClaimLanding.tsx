@@ -221,7 +221,7 @@ function AnonymousPreview({
           <Badge className="mb-3 bg-primary/10 text-primary border-primary/30 hover:bg-primary/15">
             <Lock className="h-3 w-3 mr-1.5" /> Private Offer
           </Badge>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">A private offer just for you</h1>
+          <h1 className="h-hero font-bold text-foreground">A private offer just for you</h1>
           <p className="text-muted-foreground mt-2">
             From <span className="font-semibold text-foreground">{seller?.full_name || "the seller"}</span>
           </p>

@@ -528,7 +528,7 @@ export default function BuyerPaymentSummary() {
                   Transaction #{data.transaction.transaction_code}
                 </span>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Secure Payment</h1>
+              <h1 className="h-page font-bold text-foreground">Secure Payment</h1>
               <p className="text-muted-foreground mt-1">Complete your payment to lock the transaction agreement</p>
             </div>
           </div>
@@ -1140,7 +1140,7 @@ export default function BuyerPaymentSummary() {
               <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Check className="h-10 w-10 text-success" />
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-3">Payment Successful!</h2>
+              <h2 className="h-page font-bold text-foreground mb-3">Payment Successful!</h2>
               <p className="text-muted-foreground mb-6">Your payment has been received and is now securely held by SafeDeal.</p>
 
               <div className="bg-muted rounded-xl p-6 mb-6 text-left">

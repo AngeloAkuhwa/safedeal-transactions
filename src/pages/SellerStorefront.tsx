@@ -175,7 +175,7 @@ const SellerStorefront = () => {
             spending width. */}
         <div className="relative z-rail flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-5 sm:px-6 lg:px-8">
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
+            <h1 className="h-page font-bold text-foreground">Storefront</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
             {planState && (
               <p className="text-xs text-muted-foreground mt-1">

@@ -125,7 +125,7 @@ export default function Contact() {
           Back to SafeDeal
         </Link>
 
-        <h1 className="mt-6 text-3xl font-semibold tracking-tight">Contact support</h1>
+        <h1 className="mt-6 h-page font-semibold">Contact support</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           SafeDeal is live in Lagos, Nigeria today, with more cities and countries rolling out.
         </p>

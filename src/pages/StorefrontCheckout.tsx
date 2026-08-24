@@ -189,7 +189,7 @@ const StorefrontCheckout = () => {
       </header>
 
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Complete Your Purchase</h1>
+        <h1 className="h-page font-bold text-foreground">Complete Your Purchase</h1>
         <p className="text-sm text-muted-foreground mt-1">Review your order details and confirm payment</p>
       </div>
 

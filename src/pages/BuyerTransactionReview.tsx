@@ -252,7 +252,7 @@ export default function BuyerTransactionReview() {
                       {chipLabel}
                     </Badge>
                   </div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                  <h1 className="h-page font-bold text-foreground">
                     {locked ? "Locked Transaction Agreement" : "Review Transaction Agreement"}
                   </h1>
                   <p className="text-muted-foreground mt-1">
@@ -461,7 +461,7 @@ export default function BuyerTransactionReview() {
       <section className="py-12 bg-card border-t">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-3">How SafeDeal Protects You</h2>
+            <h2 className="h-page font-bold text-foreground mb-3">How SafeDeal Protects You</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">Your payment is secured every step of the way until you confirm the item matches this agreement</p>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
@@ -487,7 +487,7 @@ export default function BuyerTransactionReview() {
       <section className="py-12 bg-muted">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-foreground mb-3">Frequently Asked Questions</h2>
+            <h2 className="h-page font-bold text-foreground mb-3">Frequently Asked Questions</h2>
             <p className="text-muted-foreground">Common questions about the SafeDeal buyer process</p>
           </div>
           <div className="space-y-4">

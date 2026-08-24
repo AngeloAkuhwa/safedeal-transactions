@@ -19,7 +19,7 @@ export function AgreementHero({ isLocked = true }: AgreementHeroProps) {
             Payment Pending
           </Badge>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+          <h1 className="h-hero font-bold text-foreground mb-4">
             Transaction Agreement Preview
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
@@ -53,7 +53,7 @@ export function AgreementHero({ isLocked = true }: AgreementHeroProps) {
           Payment Confirmed
         </Badge>
 
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+        <h1 className="h-hero font-bold text-foreground mb-4">
           Agreement Locked Successfully
         </h1>
         <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">

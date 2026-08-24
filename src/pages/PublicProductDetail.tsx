@@ -332,7 +332,7 @@ const PublicProductDetail = () => {
             </Badge>
           </div>
 
-          <h1 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">
+          <h1 className="h-hero font-bold text-foreground leading-tight">
             {product.title}
           </h1>
 

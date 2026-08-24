@@ -9,7 +9,7 @@ export function ImmutabilityExplanation() {
             <ShieldCheck className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-2xl lg:text-3xl font-bold mb-2">
+            <h2 className="h-page font-bold mb-2">
               What Does "Agreement Locked" Mean?
             </h2>
             <p className="text-primary-foreground/70 text-base">

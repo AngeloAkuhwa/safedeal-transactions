@@ -152,7 +152,7 @@ const SellerNotifications = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground mb-2">
+              <h1 className="h-hero font-bold text-primary-foreground mb-2">
                 Notifications
               </h1>
               <p className="text-primary-foreground/80 text-base sm:text-lg">

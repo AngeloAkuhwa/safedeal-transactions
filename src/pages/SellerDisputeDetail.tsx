@@ -149,7 +149,7 @@ const SellerDisputeDetail = () => {
               {/* ═══ OVERVIEW ═══ */}
               <div id="overview" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <h1 className="h-page font-bold text-foreground">
                     Dispute Case
                   </h1>
                   <p className="text-muted-foreground text-sm mt-1">
