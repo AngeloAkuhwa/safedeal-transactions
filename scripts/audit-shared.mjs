@@ -123,7 +123,28 @@ export const AUTH_ROUTES = {
   ],
 };
 
+/**
+ * A 5xx from the password grant is weather, not a verdict. During the
+ * 2026-08-24 auth-layer flap, sign-ins succeeded and timed out seconds
+ * apart, so a single attempt turned an entire audit run red while the
+ * database underneath was healthy. Retry only when the failure says
+ * "service", never when it says "credential" (400 stays terminal), and
+ * log every attempt so a real outage still reads as one in the log.
+ */
 export async function signIn(page, base, email, password) {
+  const ATTEMPTS = 3;
+  const PAUSE_MS = 20000;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    const { ok, retryable } = await signInOnce(page, base, email, password);
+    if (ok) return true;
+    if (!retryable || attempt === ATTEMPTS) return false;
+    console.error(`signIn[${email}]: attempt ${attempt}/${ATTEMPTS} hit a service failure; retrying in ${PAUSE_MS / 1000}s`);
+    await page.waitForTimeout(PAUSE_MS);
+  }
+  return false;
+}
+
+async function signInOnce(page, base, email, password) {
   // A sign-in that fails must say WHY. Without this, every failure looks the
   // same ("LOGIN FAILED") whether the password is wrong, the account is
   // unconfirmed, or the app is pointed at a Supabase project where the
@@ -141,12 +162,28 @@ export async function signIn(page, base, email, password) {
     }
   };
   page.on("response", onResponse);
-  await page.goto(`${base}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
-  await page.waitForTimeout(2000);
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(6000);
+  // The interactive half can time out for service reasons too: during the
+  // flap the auth page hung on its own session check and never rendered the
+  // email input, so page.fill threw and killed the entire audit run from
+  // inside attempt one. A timeout here is service-shaped, not a verdict
+  // about the credential, so it reports as retryable instead of escaping.
+  try {
+    await page.goto(`${base}/auth?mode=login`, { waitUntil: "domcontentloaded", timeout: 35000 });
+    await page.waitForTimeout(2000);
+    if (/\/auth\b/.test(page.url())) {
+      // A late token from a previous attempt can land the session and make
+      // /auth redirect away, in which case there is no form to fill and the
+      // sign-in already happened.
+      await page.fill('input[type="email"]', email);
+      await page.fill('input[type="password"]', password);
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(6000);
+    }
+  } catch (err) {
+    page.off("response", onResponse);
+    console.error(`signIn[${email}]: page interaction failed before the credential was judged (${err?.name ?? "Error"}: ${String(err?.message ?? err).split("\n")[0]})`);
+    return { ok: false, retryable: true };
+  }
   page.off("response", onResponse);
   const ok = !/\/auth\b/.test(page.url());
   if (!ok) {
@@ -164,5 +201,8 @@ export async function signIn(page, base, email, password) {
       );
     }
   }
-  return ok;
+  // "Never reached the token endpoint" is also service-shaped: the flap
+  // manifests as both 504s and hung requests the form never gets past.
+  const retryable = !ok && (tokenStatus === null || tokenStatus >= 500);
+  return { ok, retryable };
 }
