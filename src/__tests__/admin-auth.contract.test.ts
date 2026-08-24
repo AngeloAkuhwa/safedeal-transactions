@@ -43,12 +43,16 @@ const LIVE_TIMEOUT_MS = 20_000;
 d("admin edge functions: role enforcement contract", { timeout: LIVE_TIMEOUT_MS }, () => {
   let buyerToken: string;
 
+  // The hook budget covers the sign-in helper's service retries (three
+  // attempts, twenty seconds apart, added after the 2026-08-24 auth flap
+  // timed this hook out at vitest's 10s default and skipped all 102 live
+  // assertions). A credential rejection still fails in seconds.
   beforeAll(async () => {
     const client = await signInAsBuyer();
     const { data } = await client.auth.getSession();
     buyerToken = data.session?.access_token ?? "";
     expect(buyerToken).toBeTruthy();
-  });
+  }, 120_000);
 
   describe.each(ADMIN_FUNCTIONS)("%s", (fn) => {
     it("rejects anonymous callers (401)", async () => {
