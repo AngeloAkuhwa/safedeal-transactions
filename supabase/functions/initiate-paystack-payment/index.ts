@@ -163,7 +163,14 @@ Deno.serve(async (req) => {
 
     if (txErr) throw txErr;
 
-    if (tx.buyer_id !== userId) {
+    // A transaction bound to another account stays theirs. An unclaimed one
+    // (buyer_id null) is NOT refused here: the share link is the capability,
+    // and the claim happens below, after the state gates prove the
+    // transaction is genuinely payable. Refusing null here was the missing
+    // backend half of guest pay (plan 4.1): the frontend sends a new
+    // account straight back to this function, and nothing else ever made
+    // that account the buyer.
+    if (tx.buyer_id !== null && tx.buyer_id !== userId) {
       return jsonErr("Only the buyer can initiate payment", 403);
     }
 
@@ -186,6 +193,59 @@ Deno.serve(async (req) => {
     const isRetry = tx.money_status === "payment_pending";
     if (tx.money_status !== "not_secured" && !isRetry) {
       return jsonErr(`Invalid money state: ${tx.money_status}`, 409);
+    }
+
+    // ── Guest pay, the backend half (plan 4.1): claim on pay ──
+    // Identity attaches at the point money moves, the same principle the
+    // pay page states. The first signed-in link holder to initiate payment
+    // becomes the buyer. Atomicity lives in the WHERE clause: the update
+    // matches only while buyer_id is still null, so a race between two
+    // claimers has exactly one winner and the loser gets the same refusal
+    // a stranger gets. Sitting after the status and money gates means a
+    // cancelled or already-paid transaction can never acquire a buyer here.
+    if (tx.buyer_id === null) {
+      const { data: claimed, error: claimErr } = await supabase
+        .from("transactions")
+        .update({ buyer_id: userId })
+        .eq("id", txId)
+        .is("buyer_id", null)
+        .select("id")
+        .maybeSingle();
+      if (claimErr) throw claimErr;
+      if (!claimed) {
+        return jsonErr("Only the buyer can initiate payment", 403);
+      }
+      tx.buyer_id = userId;
+
+      const { data: claimerProfile } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("id", userId)
+        .maybeSingle();
+
+      // The buyer participant seat was minted with user_id null alongside
+      // the transaction. Fill it, guarded the same way as the claim itself,
+      // so a seat an account already holds is never reassigned.
+      await Promise.all([
+        supabase
+          .from("transaction_participants")
+          .update({
+            user_id: userId,
+            display_name: claimerProfile?.full_name || "Buyer",
+            email: userEmail,
+            phone: claimerProfile?.phone || null,
+          })
+          .eq("transaction_id", txId)
+          .eq("role", "buyer")
+          .is("user_id", null),
+        supabase.from("transaction_events").insert({
+          transaction_id: txId,
+          event_type: "buyer_claimed_by_link",
+          actor_user_id: userId,
+          description: "Buyer attached to the transaction through its share link at payment",
+          metadata: { share_token_claim: true },
+        }),
+      ]);
     }
 
     // 6. Fetch pricing data and compute
