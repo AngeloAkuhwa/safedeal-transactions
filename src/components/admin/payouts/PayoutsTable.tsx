@@ -20,6 +20,7 @@ import { PayoutStatusPill } from "./PayoutStatusPill";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 import { getPayoutCaptionFromRow, getAccountPresentation } from "@/lib/payout-presentation";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
   rows: PayoutRow[];
@@ -59,10 +60,10 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
-const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 min-w-11 disabled:opacity-50 disabled:cursor-not-allowed";
-const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium whitespace-nowrap min-h-11 min-w-11";
+const emeraldBtn = `px-3 py-1.5 ${ADMIN_SOLID.success} rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-semibold whitespace-nowrap min-h-11 min-w-11 disabled:opacity-50 disabled:cursor-not-allowed`;
+const slateBtn = `px-3 py-1.5 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} ${ADMIN_GROUND.body} rounded-lg transition-all flex items-center justify-center gap-2 text-xs font-medium whitespace-nowrap min-h-11 min-w-11`;
 
-const iconSquareBtn = "w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
+const iconSquareBtn = `w-11 h-11 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} rounded-lg flex items-center justify-center ${ADMIN_GROUND.body} hover:text-white transition-all`;
 
 function renderPrimaryActions(
   r: PayoutRow, releasingId: string | null,
@@ -125,11 +126,11 @@ function renderPrimaryActions(
 }
 
 function PayoutIdIcon({ row }: { row: PayoutRow }) {
-  if (row.release_blocked) return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center shrink-0"><FaBan className="text-red-400 text-xs" /></div>;
-  if (row.status === "failed") return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center shrink-0"><FaTriangleExclamation className="text-red-400 text-xs" /></div>;
-  if (row.status === "completed") return <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center shrink-0"><FaCheck className="text-emerald-400 text-xs" /></div>;
-  if (row.status === "pending" || row.status === "processing") return <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center justify-center shrink-0"><FaArrowsRotate className="text-blue-400 text-xs" /></div>;
-  return <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-center shrink-0"><FaClock className="text-orange-400 text-xs" /></div>;
+  if (row.release_blocked) return <div className={`w-8 h-8 ${ADMIN_TONE.danger.panel} border rounded-lg flex items-center justify-center shrink-0`}><FaBan className={`${ADMIN_TONE.danger.text} text-xs`} /></div>;
+  if (row.status === "failed") return <div className={`w-8 h-8 ${ADMIN_TONE.danger.panel} border rounded-lg flex items-center justify-center shrink-0`}><FaTriangleExclamation className={`${ADMIN_TONE.danger.text} text-xs`} /></div>;
+  if (row.status === "completed") return <div className={`w-8 h-8 ${ADMIN_TONE.success.panel} border rounded-lg flex items-center justify-center shrink-0`}><FaCheck className={`${ADMIN_TONE.success.text} text-xs`} /></div>;
+  if (row.status === "pending" || row.status === "processing") return <div className={`w-8 h-8 ${ADMIN_TONE.info.panel} border rounded-lg flex items-center justify-center shrink-0`}><FaArrowsRotate className={`${ADMIN_TONE.info.text} text-xs`} /></div>;
+  return <div className={`w-8 h-8 ${ADMIN_TONE.elevated.panel} border rounded-lg flex items-center justify-center shrink-0`}><FaClock className={`${ADMIN_TONE.elevated.text} text-xs`} /></div>;
 }
 
 function payoutCaption(r: PayoutRow) {
@@ -194,12 +195,12 @@ function RowMenu({
   const itemCls = "gap-2.5 cursor-pointer";
   const seller = (
     <DropdownMenuItem className={itemCls} onClick={onOpenSeller}>
-      <FaUser className="text-blue-400" /> View Seller Profile
+      <FaUser className={ADMIN_TONE.info.text} /> View Seller Profile
     </DropdownMenuItem>
   );
   const tx = (
     <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
-      <FaReceipt className="text-blue-400" /> View Transaction
+      <FaReceipt className={ADMIN_TONE.info.text} /> View Transaction
     </DropdownMenuItem>
   );
   const note = (
@@ -209,7 +210,7 @@ function RowMenu({
   );
   const block = (
     <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
-      <FaBan className="text-red-400" /> Block Payout
+      <FaBan className={ADMIN_TONE.danger.text} /> Block Payout
     </DropdownMenuItem>
   );
 
@@ -217,10 +218,10 @@ function RowMenu({
     return (
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem className={itemCls} onClick={onOpen}>
-          <FaCircleInfo className="text-blue-400" /> View Block Reason
+          <FaCircleInfo className={ADMIN_TONE.info.text} /> View Block Reason
         </DropdownMenuItem>
         <DropdownMenuItem className={itemCls} onClick={onUnblock}>
-          <FaCheck className="text-emerald-400" /> Unblock Payout
+          <FaCheck className={ADMIN_TONE.success.text} /> Unblock Payout
         </DropdownMenuItem>
         {seller}
         {tx}
@@ -231,15 +232,15 @@ function RowMenu({
   }
 
   if (row.status === "failed") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
+    const rowCls = `px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`;
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
         align="end"
-        className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
+        className={`w-56 !bg-slate-800 border ${ADMIN_GROUND.borderSoft} rounded-lg shadow-xl py-2 px-0`}
       >
         <DropdownMenuItem className={rowCls} onClick={onOpen}>
-          <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
+          <span className={iconSlot}><FaCircleInfo className={ADMIN_TONE.info.text} /></span>
           <span>View Failure Details</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={rowCls} onClick={onUpdateBank}>
@@ -251,16 +252,16 @@ function RowMenu({
           <span>View Seller Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={rowCls} onClick={onOpenTransaction}>
-          <span className={iconSlot}><FaReceipt className="text-blue-400" /></span>
+          <span className={iconSlot}><FaReceipt className={ADMIN_TONE.info.text} /></span>
           <span>View Transaction</span>
         </DropdownMenuItem>
-        <div className="border-t border-slate-700 my-2" />
+        <div className={`border-t ${ADMIN_GROUND.borderSoft} my-2`} />
         <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
-          <span className={iconSlot}><FaBan className="text-red-400" /></span>
+          <span className={iconSlot}><FaBan className={ADMIN_TONE.danger.text} /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -268,15 +269,15 @@ function RowMenu({
   }
 
   if (row.status === "pending" || row.status === "processing") {
-    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11";
+    const rowCls = `px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`;
     const iconSlot = "w-4 flex justify-center";
     return (
       <DropdownMenuContent
         align="end"
-        className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
+        className={`w-56 !bg-slate-800 border ${ADMIN_GROUND.borderSoft} rounded-lg shadow-xl py-2 px-0`}
       >
         <DropdownMenuItem className={rowCls} onClick={onOpen}>
-          <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
+          <span className={iconSlot}><FaCircleInfo className={ADMIN_TONE.info.text} /></span>
           <span>View Processing Status</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={rowCls} onClick={onOpenSeller}>
@@ -284,20 +285,20 @@ function RowMenu({
           <span>View Seller Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={rowCls} onClick={onOpenTransaction}>
-          <span className={iconSlot}><FaReceipt className="text-blue-400" /></span>
+          <span className={iconSlot}><FaReceipt className={ADMIN_TONE.info.text} /></span>
           <span>View Transaction Details</span>
         </DropdownMenuItem>
-        <div className="border-t border-slate-700 my-2" />
+        <div className={`border-t ${ADMIN_GROUND.borderSoft} my-2`} />
         <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400 min-h-11`} onClick={onPause}>
-          <span className={iconSlot}><FaPause className="text-orange-400" /></span>
+          <span className={iconSlot}><FaPause className={ADMIN_TONE.elevated.text} /></span>
           <span>Pause Payout</span>
         </DropdownMenuItem>
         <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400 min-h-11`} onClick={onBlock}>
-          <span className={iconSlot}><FaBan className="text-red-400" /></span>
+          <span className={iconSlot}><FaBan className={ADMIN_TONE.danger.text} /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -308,27 +309,27 @@ function RowMenu({
     return (
       <DropdownMenuContent
         align="end"
-        className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
+        className={`w-56 !bg-slate-800 border ${ADMIN_GROUND.borderSoft} rounded-lg shadow-xl py-2 px-0`}
       >
-        <DropdownMenuItem onClick={onOpen} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
-          <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
+        <DropdownMenuItem onClick={onOpen} className={`px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`}>
+          <span className={`w-4 flex justify-center ${ADMIN_GROUND.body}`}><FaCircleCheck /></span>
           <span>View Completion Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenSeller} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
-          <span className="w-4 flex justify-center text-slate-300"><FaUser /></span>
+        <DropdownMenuItem onClick={onOpenSeller} className={`px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`}>
+          <span className={`w-4 flex justify-center ${ADMIN_GROUND.body}`}><FaUser /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenTransaction} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
-          <span className="w-4 flex justify-center text-slate-300"><FaReceipt /></span>
+        <DropdownMenuItem onClick={onOpenTransaction} className={`px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`}>
+          <span className={`w-4 flex justify-center ${ADMIN_GROUND.body}`}><FaReceipt /></span>
           <span>View Transaction</span>
         </DropdownMenuItem>
-        <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem onClick={onDownloadReceipt} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
-          <span className="w-4 flex justify-center text-slate-300"><FaDownload /></span>
+        <div className={`border-t ${ADMIN_GROUND.borderSoft} my-2`} />
+        <DropdownMenuItem onClick={onDownloadReceipt} className={`px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`}>
+          <span className={`w-4 flex justify-center ${ADMIN_GROUND.body}`}><FaDownload /></span>
           <span>Download Receipt</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onAddNote} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11">
-          <span className="w-4 flex justify-center text-slate-300"><FaNoteSticky /></span>
+        <DropdownMenuItem onClick={onAddNote} className={`px-4 py-2.5 text-xs ${ADMIN_GROUND.body} hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none min-h-11`}>
+          <span className={`w-4 flex justify-center ${ADMIN_GROUND.body}`}><FaNoteSticky /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -339,7 +340,7 @@ function RowMenu({
   return (
     <DropdownMenuContent align="end" className="w-56">
       <DropdownMenuItem className={itemCls} onClick={onOpen}>
-        <FaCircleInfo className="text-blue-400" /> View Details
+        <FaCircleInfo className={ADMIN_TONE.info.text} /> View Details
       </DropdownMenuItem>
       {seller}
       {tx}
@@ -357,9 +358,9 @@ export function PayoutsTable({
 }: Props) {
   if (loading && rows.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className={`${ADMIN_GROUND.panel} border rounded-xl overflow-hidden`}>
         <div className="p-4 space-y-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full bg-slate-800" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className={`h-14 w-full ${ADMIN_GROUND.raised}`} />)}
         </div>
       </div>
     );
@@ -379,14 +380,14 @@ export function PayoutsTable({
   }
   const topReasons = Array.from(reasonCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="p-6 border-b border-slate-800">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl overflow-hidden`}>
+      <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
         <div className="flex items-center justify-between">
-          <h3 className="text-white text-lg font-semibold">Payout Records</h3>
+          <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Payout Records</h3>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 text-sm">{totalCount} payouts found</span>
+            <span className={`${ADMIN_GROUND.muted} text-sm`}>{totalCount} payouts found</span>
             {onRefresh && (
-              <button onClick={onRefresh} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded text-sm hover:bg-slate-700 transition-all flex items-center gap-1.5 min-h-11">
+              <button onClick={onRefresh} className={`px-3 py-1.5 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.body} rounded text-sm ${ADMIN_GROUND.raisedHover} transition-all flex items-center gap-1.5 min-h-11`}>
                 <FaArrowsRotate className="text-xs" /> Refresh
               </button>
             )}
@@ -394,11 +395,11 @@ export function PayoutsTable({
         </div>
         {rows.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <span className="font-medium text-slate-300">
+            <span className={`font-medium ${ADMIN_GROUND.body}`}>
               {allEligible.length} of {rows.length} eligible for batch release
             </span>
             {topReasons.length > 0 && (
-              <span className="text-slate-400">
+              <span className={ADMIN_GROUND.muted}>
                : {topReasons.map(([reason, n]) => `${n} ${reason.toLowerCase()}`).join(", ")}
               </span>
             )}
@@ -407,24 +408,24 @@ export function PayoutsTable({
       </div>
       {rows.length === 0 ? (
         <div className="p-10 text-center">
-          <div className="text-sm font-medium text-white">No payouts found</div>
-          <div className="mt-1 text-xs text-slate-400">There are no payouts for the selected filter.</div>
+          <div className={`text-sm font-medium ${ADMIN_GROUND.heading}`}>No payouts found</div>
+          <div className={`mt-1 text-xs ${ADMIN_GROUND.muted}`}>There are no payouts for the selected filter.</div>
         </div>
       ) : (
       <>
       <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
       <table className="w-full min-w-[1200px] sd-stack">
         <thead>
-          <tr className="bg-slate-800 border-b border-slate-700">
+          <tr className={`${ADMIN_GROUND.raised} border-b ${ADMIN_GROUND.borderSoft}`}>
             <th className="text-left p-4"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout ID</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Seller</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Transaction</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Amount</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout Account</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Status</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Initiated</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Actions</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Payout ID</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Seller</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Transaction</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Amount</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Payout Account</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Status</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Initiated</th>
+            <th className={`text-left p-4 ${ADMIN_GROUND.muted} font-medium text-xs uppercase tracking-wider`}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -432,7 +433,7 @@ export function PayoutsTable({
             const e = eligibleForRelease(r);
             const caption = payoutCaption(r);
             return (
-              <tr role="button" tabIndex={0} onKeyDown={keyActivate} key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
+              <tr role="button" tabIndex={0} onKeyDown={keyActivate} key={r.id} className={`border-b ${ADMIN_GROUND.border} hover:bg-slate-800/50 transition-all cursor-pointer`} onClick={() => onOpen(r)}>
                 <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -453,7 +454,7 @@ export function PayoutsTable({
                     <div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-white font-medium text-sm cursor-default whitespace-nowrap">{friendlyPayoutId(r)}</div>
+                          <div className={`${ADMIN_GROUND.heading} font-medium text-sm cursor-default whitespace-nowrap`}>{friendlyPayoutId(r)}</div>
                         </TooltipTrigger>
                         <TooltipContent>{r.id}</TooltipContent>
                       </Tooltip>
@@ -469,11 +470,11 @@ export function PayoutsTable({
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-8 w-8 shrink-0 rounded-full">
                       {r.seller.avatar_url ? <AvatarImage src={r.seller.avatar_url} alt={r.seller.name} /> : null}
-                      <AvatarFallback className="text-xs bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
+                      <AvatarFallback className={`text-xs ${ADMIN_GROUND.raised} ${ADMIN_GROUND.body}`}>{initials(r.seller.name)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="text-white font-medium text-sm whitespace-nowrap">{r.seller.name}</div>
-                      <div className="text-slate-400 text-xs whitespace-nowrap">{sellerTierLabel(r)}</div>
+                      <div className={`${ADMIN_GROUND.heading} font-medium text-sm whitespace-nowrap`}>{r.seller.name}</div>
+                      <div className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{sellerTierLabel(r)}</div>
                     </div>
                   </div>
                 </td>
@@ -486,15 +487,15 @@ export function PayoutsTable({
                     >
                       {r.transaction.code}
                     </button>
-                    <FaArrowUpRightFromSquare className="text-slate-500 text-xs shrink-0" />
+                    <FaArrowUpRightFromSquare className={`${ADMIN_GROUND.faint} text-xs shrink-0`} />
                   </div>
-                  <p className="text-slate-400 text-xs whitespace-nowrap">
+                  <p className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>
                     {r.transaction.item_title ?? "No item snapshot"}
                   </p>
                 </td>
                 <td className="p-4">
-                  <p className="text-white font-semibold text-sm">{formatMoney(r.amount, r.currency ?? "NGN")}</p>
-                  <p className="text-slate-400 text-xs">NGN</p>
+                  <p className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>{formatMoney(r.amount, r.currency ?? "NGN")}</p>
+                  <p className={`${ADMIN_GROUND.muted} text-xs`}>NGN</p>
                 </td>
                 <td className="p-4">
                   {(() => {
@@ -502,7 +503,7 @@ export function PayoutsTable({
                     const terminal = r.status === "completed" || r.status === "reversed" || r.status === "cancelled";
                     if (ap.state === "no_account") {
                       if (terminal) {
-                        return <p className="text-slate-400 text-xs">—</p>;
+                        return <p className={`${ADMIN_GROUND.muted} text-xs`}>—</p>;
                       }
                       return (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-xs font-medium">
@@ -514,12 +515,12 @@ export function PayoutsTable({
                       return (
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account!.bank_name ?? "—"}</p>
+                            <p className={`${ADMIN_GROUND.body} text-sm font-medium whitespace-nowrap`}>{r.payout_account!.bank_name ?? "—"}</p>
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-xs font-bold shrink-0">
                               <FaCheck className="text-xs" /> VERIFIED
                             </span>
                           </div>
-                          <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account!.masked_account ?? "—"}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{r.payout_account!.masked_account ?? "—"}</p>
                         </div>
                       );
                     }
@@ -527,8 +528,8 @@ export function PayoutsTable({
                     if (terminal) {
                       return (
                         <div>
-                          <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
-                          <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? "—"}</p>
+                          <p className={`${ADMIN_GROUND.body} text-sm font-medium whitespace-nowrap`}>{r.payout_account?.bank_name ?? "Account"}</p>
+                          <p className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{r.payout_account?.masked_account ?? "—"}</p>
                         </div>
                       );
                     }
@@ -540,12 +541,12 @@ export function PayoutsTable({
                     return (
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
+                          <p className={`${ADMIN_GROUND.body} text-sm font-medium whitespace-nowrap`}>{r.payout_account?.bank_name ?? "Account"}</p>
                           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-xs font-bold shrink-0`}>
                             <FaXmark className="text-xs" /> {badgeText}
                           </span>
                         </div>
-                        <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? ap.tableLabel}</p>
+                        <p className={`${ADMIN_GROUND.muted} text-xs whitespace-nowrap`}>{r.payout_account?.masked_account ?? ap.tableLabel}</p>
                       </div>
                     );
                   })()}
@@ -553,7 +554,7 @@ export function PayoutsTable({
                 <td className="p-4"><PayoutStatusPill row={r} /></td>
                 <td className="p-4 whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>
                   <p className="text-slate-300 text-sm">{formatAbsolute(r.entered_queue_at)}</p>
-                  <p className="text-slate-400 text-xs">{formatRelative(r.entered_queue_at)}</p>
+                  <p className={`${ADMIN_GROUND.muted} text-xs`}>{formatRelative(r.entered_queue_at)}</p>
                 </td>
                 <td role="button" tabIndex={0} onKeyDown={keyActivate} className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
@@ -588,7 +589,7 @@ export function PayoutsTable({
       </table>
       </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-t border-slate-800">
-        <div className="text-slate-400 text-xs">Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
+        <div className={`${ADMIN_GROUND.muted} text-xs`}>Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
         <div className="flex items-center gap-1">
           <button disabled={page <= 1} onClick={() => onPageChange?.(page - 1)} aria-label="Previous page"
             className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all relative before:absolute before:-inset-2 before:content-['']">

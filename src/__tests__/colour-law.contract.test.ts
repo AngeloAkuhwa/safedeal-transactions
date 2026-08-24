@@ -141,13 +141,14 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * budgeted for.
  */
 /*
- * admin re-anchored 4278 to 4236 in the 4.5 batch-1 conversion: badges.tsx
- * shed its inline triads to the palette definition file (which is excluded
- * above as the vocabulary's one definition site, so the budget now measures
- * call sites only).
+ * admin ratchet history under plan 4.5: 4278 to 4236 (batch 1, badges.tsx
+ * shed its triads to the palette definition file, which is excluded above
+ * as the vocabulary's one definition site); 4236 to 4137 (batch 2,
+ * PayoutsTable's buttons, tone tiles, menus and table chrome now compose
+ * from ADMIN_TONE / ADMIN_SOLID / ADMIN_GROUND with identical class sets).
  */
 const BUDGET = {
-  admin: 4236,
+  admin: 4137,
   ui: 4,
   customer: 12,
 };

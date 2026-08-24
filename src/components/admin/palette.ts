@@ -90,6 +90,41 @@ export const ADMIN_TONE: Record<AdminTone, AdminToneClasses> = {
 };
 
 /**
+ * Solid call-to-action surfaces: the filled buttons that COMMIT a judgement
+ * (release funds, retry a payout) rather than labelling one. Only tones
+ * that actually have a committing action get an entry; a tone missing here
+ * has no solid form on purpose.
+ */
+export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
+  success: "bg-emerald-600 hover:bg-emerald-700 text-white",
+  danger: "bg-red-600 hover:bg-red-700 text-white",
+};
+
+/**
+ * The neutral slate ground the whole back office sits on. Named by role so
+ * a screen says what a surface IS, not which slate step it happens to be.
+ * Hover states ship beside their resting state because the pair is the
+ * meaning: a raised control that lightens one step on hover.
+ */
+export const ADMIN_GROUND = {
+  /** Page-level card: slate-900 with its hairline. */
+  panel: "bg-slate-900 border-slate-800",
+  /** Raised interactive surface (buttons, menus). */
+  raised: "bg-slate-800",
+  raisedHover: "hover:bg-slate-700",
+  border: "border-slate-800",
+  borderSoft: "border-slate-700",
+  /** Primary text on the dark ground. */
+  heading: "text-white",
+  /** Body text. */
+  body: "text-slate-300",
+  /** Secondary text. */
+  muted: "text-slate-400",
+  /** Tertiary, receding text. */
+  faint: "text-slate-500",
+} as const;
+
+/**
  * Categories, not judgements: internal roles and other same-rank groupings
  * where hue only needs to separate, never to warn. Kept apart from the tone
  * map so nobody reads meaning into a category hue.
