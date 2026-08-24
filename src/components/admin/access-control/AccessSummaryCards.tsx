@@ -56,7 +56,7 @@ export function AccessSummaryCards({
     { filter: "invited", label: "Pending Invitations", value: summary.pending_invites,
       icon: <MailPlus className="h-5 w-5 text-indigo-400" />, iconTone: "bg-indigo-500/15" },
     { filter: "pending_approval", label: "Pending Access Approvals", value: summary.pending_approvals,
-      icon: <ClipboardCheck className="h-5 w-5 text-amber-400" />, iconTone: "bg-amber-500/15" },
+      icon: <ClipboardCheck className={`h-5 w-5 ${ADMIN_TONE.warning.text}`} />, iconTone: "bg-amber-500/15" },
     { filter: "suspended_or_locked", label: "Suspended or Locked Users", value: summary.suspended_or_locked,
       icon: <Lock className={`h-5 w-5 ${ADMIN_TONE.danger.text}`} />, iconTone: "bg-red-500/15" },
     { filter: "privileged", label: "Privileged Access Users", value: summary.privileged_users,

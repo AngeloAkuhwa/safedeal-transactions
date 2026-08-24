@@ -10,6 +10,7 @@ import {
   type AgentCaseRow, type AgentPerformanceRow, type AgentPerformanceFilters,
 } from "@/services/agent-performance.service";
 import { FileSearch } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AgentCasesDrawer({
   agent, open, onOpenChange, slaOnly = false, filters,
@@ -142,7 +143,7 @@ export function AgentCasesDrawer({
             ))}
           </div>
           {truncated && (
-             <span className="text-xs text-amber-400">More results are available; narrow the filters to investigate the complete set.</span>
+             <span className={`text-xs ${ADMIN_TONE.warning.text}`}>More results are available; narrow the filters to investigate the complete set.</span>
           )}
         </div>
 

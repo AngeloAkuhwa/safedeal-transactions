@@ -166,7 +166,7 @@ function KpiCards({ kpis }: { kpis: any }) {
     orange: "text-orange-400",
     purple: "text-purple-400",
     emerald: "text-emerald-400",
-    amber: "text-amber-400",
+    amber: ADMIN_TONE.warning.text,
   };
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -523,16 +523,16 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
     <Card className="overflow-hidden">
       <div className="p-3 border-b border-border">
         <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-          <Megaphone className="h-4 w-4 text-amber-400" />
+          <Megaphone className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
           Broadcast Message
         </h3>
         <p className="text-muted-foreground text-xs mt-0.5">Send system-wide announcements with caution</p>
       </div>
       <div className="p-3 space-y-3">
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+          <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.warning.text} mt-0.5 shrink-0`} />
           <div>
-            <h4 className="text-amber-400 font-semibold text-xs mb-0.5">Broadcast Caution</h4>
+            <h4 className={`${ADMIN_TONE.warning.text} font-semibold text-xs mb-0.5`}>Broadcast Caution</h4>
             <p className="text-amber-300/80 text-xs leading-relaxed">
               Messages will be sent to all selected users immediately. Review content carefully before sending. This action cannot be undone.
             </p>

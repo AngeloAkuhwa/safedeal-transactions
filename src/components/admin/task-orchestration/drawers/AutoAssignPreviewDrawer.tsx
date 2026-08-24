@@ -144,7 +144,7 @@ export function AutoAssignPreviewDrawer({
             <SectionHeader
               label="Cannot place"
               count={unmatched.length}
-              icon={<AlertCircle className="h-3 w-3 text-amber-400" />}
+              icon={<AlertCircle className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />}
             />
             <div className="space-y-1">
               {unmatched.map(u => (

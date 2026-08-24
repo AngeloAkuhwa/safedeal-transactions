@@ -1091,7 +1091,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
             <div className="text-sm text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
           </div>
           {!isBuyer && sellerTier ? (
-            <span className="inline-flex items-center gap-1 text-sm text-amber-400 shrink-0">
+            <span className={`inline-flex items-center gap-1 text-sm ${ADMIN_TONE.warning.text} shrink-0`}>
               <Star className="h-4 w-4 fill-amber-400" /> {titleCase(sellerTier)} Seller
             </span>
           ) : ver.identity ? (
@@ -1260,7 +1260,7 @@ function moneyTextColor(v?: string | null) {
   if (v === "funds_frozen") return ADMIN_TONE.danger.text;
   if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return ADMIN_TONE.success.text;
   if (v === "funds_pending_release") return ADMIN_TONE.elevated.text;
-  if (v === "funds_held_in_escrow") return "text-amber-400";
+  if (v === "funds_held_in_escrow") return ADMIN_TONE.warning.text;
   return "text-foreground";
 }
 function payoutDotColor(payout: any, disputeActive: boolean) {
@@ -1272,7 +1272,7 @@ function payoutDotColor(payout: any, disputeActive: boolean) {
 function payoutTextColor(payout: any, disputeActive: boolean) {
   if (disputeActive) return ADMIN_TONE.danger.text;
   if (payout?.status === "completed") return ADMIN_TONE.success.text;
-  if (payout?.status === "pending") return "text-amber-400";
+  if (payout?.status === "pending") return ADMIN_TONE.warning.text;
   return "text-foreground";
 }
 
@@ -2431,7 +2431,7 @@ function ResolutionSidebar({
       {/* Investigation Actions */}
       <SidebarGroup title="Investigation Actions">
         <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote}
-          iconColor="text-amber-400" iconBg="bg-amber-500/10" />
+          iconColor={ADMIN_TONE.warning.text} iconBg="bg-amber-500/10" />
         <SidebarBtn icon={<Edit3 />} label="Add Internal Note" onClick={onAddNote}
           iconColor={ADMIN_TONE.special.text} iconBg="bg-purple-500/10" />
         <SidebarBtn icon={<Search />} label="Open Investigation" disabled
@@ -2478,7 +2478,7 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
 }) {
   const toneCls = statusTone === "emerald" ? ADMIN_TONE.success.text
     : statusTone === "red" ? ADMIN_TONE.danger.text
-    : "text-amber-400";
+    : ADMIN_TONE.warning.text;
   const dotCls = statusTone === "emerald" ? ADMIN_TONE.success.dot
     : statusTone === "red" ? ADMIN_TONE.danger.dot
     : ADMIN_TONE.warning.dot;
