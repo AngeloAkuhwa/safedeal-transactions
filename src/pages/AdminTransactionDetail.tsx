@@ -49,6 +49,7 @@ import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } fro
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 // formatMoney dashes a missing amount; the old `?? 0` here defeated that and
 // stamped ₦0.00 over every absent figure on the admin detail page.
@@ -78,23 +79,23 @@ const titleCase = (s?: string | null) =>
   (s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const TX_STATUS_CLS: Record<string, string> = {
-  draft: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  draft: ADMIN_TONE.neutral.badge,
   awaiting_payment: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
-  payment_secured: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  seller_preparing_delivery: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  seller_dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  delivered_awaiting_verification: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  completed: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  cancelled: "bg-slate-500/15 text-slate-300 border-slate-500/30",
-  refunded: "bg-slate-500/15 text-slate-300 border-slate-500/30",
-  disputed: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-  resolved: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  timed_out: "bg-red-500/15 text-red-300 border-red-500/30",
+  payment_secured: ADMIN_TONE.info.badge,
+  seller_preparing_delivery: ADMIN_TONE.info.badge,
+  seller_dispatched: ADMIN_TONE.info.badge,
+  delivered_awaiting_verification: ADMIN_TONE.special.badge,
+  completed: ADMIN_TONE.success.badge,
+  cancelled: ADMIN_TONE.neutral.badge,
+  refunded: ADMIN_TONE.neutral.badge,
+  disputed: ADMIN_TONE.elevated.badge,
+  resolved: ADMIN_TONE.success.badge,
+  timed_out: ADMIN_TONE.danger.badge,
 };
 
 function StatusPill({ value, cls }: { value?: string | null; cls?: string }) {
   if (!value) return <span className="text-xs text-muted-foreground">—</span>;
-  const klass = cls ?? TX_STATUS_CLS[value] ?? "bg-slate-500/15 text-slate-300 border-slate-500/30";
+  const klass = cls ?? TX_STATUS_CLS[value] ?? ADMIN_TONE.neutral.badge;
   return (
     <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap", klass)}>
       {titleCase(value)}
@@ -107,7 +108,7 @@ function MoneyPill({ value }: { value?: string | null }) {
   return (
     <span className={cn(
       "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap",
-      meta?.classes ?? "bg-slate-500/15 text-slate-300 border-slate-500/30",
+      meta?.classes ?? ADMIN_TONE.neutral.badge,
     )}>
       {moneyStatusLabel(value)}
     </span>
@@ -380,11 +381,11 @@ export default function AdminTransactionDetail() {
 
   const toneToClasses = (tone: string | undefined) => {
     switch (tone) {
-      case "danger": return "bg-red-500/15 text-red-300 border-red-500/30";
-      case "warning": return "bg-orange-500/15 text-orange-300 border-orange-500/30";
-      case "success": return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
-      case "info": return "bg-blue-500/15 text-blue-300 border-blue-500/30";
-      default: return "bg-slate-500/15 text-slate-300 border-slate-500/30";
+      case "danger": return ADMIN_TONE.danger.badge;
+      case "warning": return ADMIN_TONE.elevated.badge;
+      case "success": return ADMIN_TONE.success.badge;
+      case "info": return ADMIN_TONE.info.badge;
+      default: return ADMIN_TONE.neutral.badge;
     }
   };
 
@@ -521,8 +522,8 @@ export default function AdminTransactionDetail() {
   }, [data?.pricing]);
 
   const liveDotCls =
-    liveSync === "live" ? "bg-emerald-400" :
-    liveSync === "connecting" ? "bg-amber-400" : "bg-slate-500";
+    liveSync === "live" ? ADMIN_TONE.success.dot :
+    liveSync === "connecting" ? ADMIN_TONE.warning.dot : "bg-slate-500";
   const liveDotTitle =
     liveSync === "live" ? "Live updates connected" :
     liveSync === "connecting" ? "Connecting…" : "Live updates offline";
@@ -697,7 +698,7 @@ export default function AdminTransactionDetail() {
       )}
 
       {denied && !loading && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className={`rounded-xl border ${ADMIN_TONE.danger.panel} p-4 text-sm text-red-300`}>
           Admin access required to view this transaction.
         </div>
       )}
@@ -711,7 +712,7 @@ export default function AdminTransactionDetail() {
       )}
 
       {err && !loading && !denied && !notFound && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300 flex items-start gap-2">
+        <div className={`rounded-xl border ${ADMIN_TONE.danger.panel} p-4 text-sm text-red-300 flex items-start gap-2`}>
           <AlertTriangle className="mt-0.5 h-4 w-4" />
           <div className="flex-1">{err}</div>
           <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>
@@ -832,7 +833,7 @@ export default function AdminTransactionDetail() {
                         <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(k)}</div>
                         <div className="text-base font-semibold text-foreground truncate flex items-center gap-1.5">
                           {p?.name ?? "—"}
-                          {p?.verification?.identity && <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
+                          {p?.verification?.identity && <ShieldCheck className={`h-3.5 w-3.5 ${ADMIN_TONE.success.text}`} />}
                           {p?.flagged && <span className="text-xs rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0, 8)}`}</div>
@@ -921,7 +922,7 @@ export default function AdminTransactionDetail() {
                     const due = dispute.sellerResponseDueAt ? new Date(dispute.sellerResponseDueAt).getTime() : null;
                     const days = due ? Math.max(1, Math.floor((Date.now() - due) / (24 * 3600 * 1000))) : null;
                     return (
-                      !disputeResolved && <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                      !disputeResolved && <span className={`${ADMIN_TONE.danger.text} text-sm font-medium inline-flex items-center`}>
                         <Clock className="h-3.5 w-3.5 mr-1" />
                         {days ? `Overdue: ${days} day${days === 1 ? "" : "s"} past resolution deadline` : "Overdue: past resolution deadline"}
                       </span>
@@ -975,31 +976,31 @@ export default function AdminTransactionDetail() {
               <div className="space-y-3">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
                 {showHighRisk ? (
-                  <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <div className={`flex items-center justify-between p-3 ${ADMIN_TONE.danger.panel} border rounded-lg`}>
                     <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-4 w-4 text-red-400" />
+                      <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
                       <span className="text-foreground font-medium text-sm">
                         {active.isFrozen ? "Funds Frozen" :
                          active.isInvestigationActive ? "Investigation In Progress" :
                          "High Risk Transaction"}
                       </span>
                     </div>
-                    <span className="text-red-400 text-xs font-semibold tracking-wider">
+                    <span className={`${ADMIN_TONE.danger.text} text-xs font-semibold tracking-wider`}>
                       {data.risk?.level === "escalated" ? "ESCALATED" : "HIGH"}
                     </span>
                   </div>
                 ) : showReleaseReviewBanner ? (
-                  <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className={`flex items-center justify-between p-3 ${ADMIN_TONE.warning.panel} border rounded-lg`}>
                     <div className="flex items-center gap-3">
                       <Clock className="h-4 w-4 text-amber-400" />
                       <span className="text-foreground font-medium text-sm">Pending Release Review</span>
                     </div>
-                    <span className="text-amber-300 text-xs font-semibold tracking-wider">REVIEW</span>
+                    <span className={`${ADMIN_TONE.warning.text} text-xs font-semibold tracking-wider`}>REVIEW</span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                  <div className={`flex items-center justify-between p-3 ${ADMIN_TONE.success.panel} border rounded-lg`}>
                     <div className="flex items-center gap-3">
-                      <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                      <ShieldCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />
                       <span className="text-foreground font-medium text-sm">No active risk</span>
                     </div>
                     <span className="text-emerald-300 text-xs font-semibold tracking-wider">CLEAR</span>
@@ -1012,9 +1013,9 @@ export default function AdminTransactionDetail() {
                     {allFlags.map((f: any, i: number) => {
                       const tone = flagChipTone(String(f.label ?? ""));
                       const cls = tone === "red"
-                        ? "text-red-400"
+                        ? ADMIN_TONE.danger.text
                         : tone === "orange"
-                          ? "text-orange-400"
+                          ? ADMIN_TONE.elevated.text
                           : "text-muted-foreground";
                       return (
                         <li key={i} className="flex items-center gap-2 text-sm">
@@ -1054,7 +1055,7 @@ export default function AdminTransactionDetail() {
                   <h4 className="text-sm font-medium text-foreground mb-3">Admin Action History</h4>
                   <ul className="space-y-2">
                     {data.risk.escalationHistory.map((h: any, i: number) => {
-                      const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
+                      const dot = h.severity === "critical" ? ADMIN_TONE.danger.dot : h.severity === "warning" ? ADMIN_TONE.elevated.dot : ADMIN_TONE.neutral.dot;
                       return (
                         <li key={i} className="flex items-center gap-3 text-sm flex-wrap">
                           <div className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
@@ -1238,7 +1239,7 @@ export default function AdminTransactionDetail() {
                 />
                 <div className="p-4 lg:p-6">
                   {!lockedAgreement ? (
-                    <div className="rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-300">
+                    <div className={`rounded-md border ${ADMIN_TONE.elevated.panel} p-3 text-sm text-orange-300`}>
                       Agreement snapshot missing. Review this transaction for data integrity.
                     </div>
                   ) : (
@@ -1325,7 +1326,7 @@ export default function AdminTransactionDetail() {
                         <p className="text-foreground text-sm">Funds Received</p>
                         <p className="text-xs text-muted-foreground">{fmtDate(data.payment?.paidAt)}</p>
                       </div>
-                      <span className="text-emerald-400 font-semibold tabular-nums">+{ngn(data.payment?.amount ?? data.pricing?.buyerTotal)}</span>
+                      <span className={`${ADMIN_TONE.success.text} font-semibold tabular-nums`}>+{ngn(data.payment?.amount ?? data.pricing?.buyerTotal)}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
                       <div>
@@ -1391,7 +1392,7 @@ export default function AdminTransactionDetail() {
                     <ul className="space-y-3 text-sm">
                       {milestones.map((m, i) => (
                         <li key={i} className="flex items-center gap-3">
-                          <div className={cn("w-3 h-3 rounded-full shrink-0", m.at ? "bg-emerald-400" : "bg-muted")} />
+                          <div className={cn("w-3 h-3 rounded-full shrink-0", m.at ? ADMIN_TONE.success.dot : "bg-muted")} />
                           <div className="min-w-0">
                             <p className={cn("text-foreground", !m.at && "text-muted-foreground")}>{m.label}</p>
                             <p className="text-xs text-muted-foreground">{m.at ? fmtDate(m.at) : "Pending"}</p>
@@ -1406,8 +1407,8 @@ export default function AdminTransactionDetail() {
                   return diff >= 0 && diff < 24 * 3600 * 1000;
                 })() && (
                   <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-2.5 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                    <span className="text-red-400 text-xs">Dispute opened within 24hrs of delivery</span>
+                    <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.danger.text} shrink-0`} />
+                    <span className={`${ADMIN_TONE.danger.text} text-xs`}>Dispute opened within 24hrs of delivery</span>
                   </div>
                 )}
               </div>
@@ -1440,7 +1441,7 @@ export default function AdminTransactionDetail() {
                         icon={Clock}
                         label="Resolution Deadline"
                         value={fmtDate(dispute.sellerResponseDueAt)}
-                        pill={dispute.overdue ? <span className="text-xs font-bold text-red-400">OVERDUE</span> : null}
+                        pill={dispute.overdue ? <span className={`text-xs font-bold ${ADMIN_TONE.danger.text}`}>OVERDUE</span> : null}
                       />
                     )}
                     <DStatusRow icon={User} label="Dispute Type" value={titleCase(dispute.claimType) || "—"} pill={null} />
@@ -1504,7 +1505,7 @@ export default function AdminTransactionDetail() {
                                   <div className="text-sm text-muted-foreground truncate">{ev.title}</div>
                                   <div className="text-xs text-muted-foreground truncate">
                                     {fmtDate(ev.uploadedAt)}
-                                    {unavailable && <span className="ml-2 text-red-400">Unavailable</span>}
+                                    {unavailable && <span className={`ml-2 ${ADMIN_TONE.danger.text}`}>Unavailable</span>}
                                   </div>
                                 </div>
                               </button>
