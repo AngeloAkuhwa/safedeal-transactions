@@ -24,6 +24,7 @@ import {
 } from "@/services/admin-notifications.service";
 import { useRealtimeAdminNotifications } from "@/hooks/useRealtimeAdminNotifications";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
+import { ADMIN_TONE, ADMIN_SOLID } from "@/components/admin/palette";
 
 // ---------- helpers ----------
 const channelIcon = (ch: string) => {
@@ -104,7 +105,7 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" /> Live
+              <span className={`h-1.5 w-1.5 rounded-full ${ADMIN_TONE.success.dot} sd-live-dot`} /> Live
             </span>
             {lastSync && (
               <span className="hidden lg:inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
@@ -201,7 +202,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
     <Card className="overflow-hidden" ref={filtersRef as any}>
       <div className="p-3 border-b border-border">
         <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-          <Search className="h-4 w-4 text-blue-400" />
+          <Search className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
           Search & Filter Notifications
         </h3>
         <p className="text-muted-foreground text-xs mt-0.5">Search by user, notification ID, or transaction reference</p>
@@ -297,10 +298,10 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
       <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
           <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
             Failed Deliveries & Retry Queue
             {rows.length > 0 && (
-              <span className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-xs text-red-400">{rows.length}</span>
+              <span className={`rounded ${ADMIN_TONE.danger.chip} border px-1.5 py-0.5 text-xs`}>{rows.length}</span>
             )}
           </h3>
           <p className="text-muted-foreground text-xs mt-0.5">Notifications requiring attention or manual retry</p>
@@ -309,7 +310,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
           <Button
             onClick={onRetryAll}
             disabled={!rows.length}
-            className="px-3 h-11 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            className={`px-3 h-11 text-xs ${ADMIN_SOLID.warning} font-medium`}
           >
             <RotateCw className="h-3.5 w-3.5" /> Retry All Failed
           </Button>
@@ -320,7 +321,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
       </div>
       {!rows.length ? (
         <div className="p-8 text-center text-xs text-muted-foreground">
-          <CheckCircle2 className="mx-auto h-7 w-7 text-emerald-400" />
+          <CheckCircle2 className={`mx-auto h-7 w-7 ${ADMIN_TONE.success.text}`} />
           <div className="mt-2 font-medium text-foreground text-sm">No failed deliveries</div>
           <div className="mt-1">All notifications delivered successfully in the last 24h.</div>
         </div>
@@ -372,7 +373,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                     <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
                     <td className="px-3 py-2">
                       <div className="flex items-start gap-1.5">
-                        <AlertCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
+                        <AlertCircle className={`h-3.5 w-3.5 ${ADMIN_TONE.danger.text} mt-0.5 shrink-0`} />
                         <div className="min-w-0">
                           <div className="text-xs text-red-300 truncate max-w-[240px]">{r.provider_response ?? "Unknown error"}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">Attempt {r.attempt_count} of 3</div>
@@ -381,11 +382,11 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {exhausted ? (
-                        <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded flex items-center gap-1.5 w-fit">
+                        <span className={`px-2 py-1 ${ADMIN_TONE.danger.chip} border text-xs font-semibold rounded flex items-center gap-1.5 w-fit`}>
                           <XCircle className="h-3 w-3" /> Failed {r.attempt_count}/3
                         </span>
                       ) : (
-                        <span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold rounded">
+                        <span className={`px-2 py-1 ${ADMIN_TONE.warning.chip} border text-xs font-semibold rounded`}>
                           Attempt {r.attempt_count}/3
                         </span>
                       )}
@@ -397,7 +398,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/users/${r.user!.id}`)}
                             title="View User Profile"
-                            className="px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className={`px-2 py-1 ${ADMIN_TONE.special.chip} border ${ADMIN_TONE.special.chipHover} rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11`}
                           >
                             <User className="h-3 w-3" /> User
                           </button>
@@ -406,7 +407,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}
                             title={`View Dispute ${shortDisId(r.dispute_id)}`}
-                            className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className={`px-2 py-1 ${ADMIN_TONE.info.chip} border ${ADMIN_TONE.info.chipHover} rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11`}
                           >
                             <Scale className="h-3 w-3" /> {shortDisId(r.dispute_id)}
                           </button>
@@ -415,7 +416,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}
                             title={`View Transaction ${shortTxnCode(r.transaction)}`}
-                            className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11"
+                            className={`px-2 py-1 ${ADMIN_TONE.success.chip} border ${ADMIN_TONE.success.chipHover} rounded text-xs font-semibold transition-all flex items-center gap-1 min-h-11`}
                           >
                             <Receipt className="h-3 w-3" /> {shortTxnCode(r.transaction)}
                           </button>
@@ -424,7 +425,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           onClick={() => onRetry(r.delivery_id)}
                           disabled={retrying === r.delivery_id}
                           title="Retry Delivery"
-                          className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed min-h-11"
+                          className={`px-2 py-1 ${ADMIN_TONE.warning.chip} border ${ADMIN_TONE.warning.chipHover} rounded text-xs font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed min-h-11`}
                         >
                           <RotateCw className={`h-3 w-3 ${retrying === r.delivery_id ? "animate-spin" : ""}`} /> Retry
                         </button>
@@ -540,7 +541,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
 
         <div>
           <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">
-            Message Title <span className="text-red-400">*</span>
+            Message Title <span className={ADMIN_TONE.danger.text}>*</span>
           </Label>
           <Input
             ref={titleRef}
@@ -591,7 +592,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
           <p className="text-muted-foreground/70 text-xs mt-1">Respects opt-out preferences · Audit logged</p>
           <p className="text-emerald-400/90 text-xs mt-1 flex items-center gap-1.5">
             {/* Static: the header "Live" chip owns this screen's live dot. */}
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${ADMIN_TONE.success.dot}`} />
             ≈ {onlineCount} recipient{onlineCount === 1 ? "" : "s"} online right now
           </p>
         </div>
@@ -611,7 +612,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         </div>
 
         <Button
-          className="w-full h-11 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+          className={`w-full h-11 text-xs ${ADMIN_SOLID.warning} font-semibold`}
           disabled={m.isPending || !title.trim() || !message.trim() || !channels.length}
           onClick={() => m.mutate()}
         >
@@ -690,7 +691,7 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                     <span className="ml-1.5 text-xs text-muted-foreground">×{r.occurrence_count} occurrences</span>
                   )}
                   {r.resolved_at && (
-                    <span className="ml-1.5 text-xs text-emerald-400">resolved</span>
+                    <span className={`ml-1.5 text-xs ${ADMIN_TONE.success.text}`}>resolved</span>
                   )}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">

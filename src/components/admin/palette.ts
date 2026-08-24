@@ -37,6 +37,11 @@ interface AdminToneClasses {
   badge: string;
   /** Softer triad for larger washes (wash 10, border 30). */
   panel: string;
+  /** Interactive chip triad (wash 10, border 20, text 400): the quieter,
+      clickable form the notification and moderation queues use. Pair with
+      chipHover on interactive chips; a static chip omits it. */
+  chip: string;
+  chipHover: string;
   /** Standalone tinted text. */
   text: string;
   /** Status dot. */
@@ -47,12 +52,16 @@ export const ADMIN_TONE: Record<AdminTone, AdminToneClasses> = {
   success: {
     badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
     panel: "bg-emerald-500/10 border-emerald-500/30",
+    chip: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+    chipHover: "hover:bg-emerald-500/20",
     text: "text-emerald-400",
     dot: "bg-emerald-400",
   },
   danger: {
     badge: "bg-red-500/15 text-red-300 border-red-500/30",
     panel: "bg-red-500/10 border-red-500/30",
+    chip: "bg-red-500/10 border-red-500/20 text-red-400",
+    chipHover: "hover:bg-red-500/20",
     text: "text-red-400",
     dot: "bg-red-400",
   },
@@ -60,30 +69,40 @@ export const ADMIN_TONE: Record<AdminTone, AdminToneClasses> = {
   elevated: {
     badge: "bg-orange-500/15 text-orange-300 border-orange-500/30",
     panel: "bg-orange-500/10 border-orange-500/30",
+    chip: "bg-orange-500/10 border-orange-500/20 text-orange-400",
+    chipHover: "hover:bg-orange-500/20",
     text: "text-orange-400",
     dot: "bg-orange-400",
   },
   warning: {
     badge: "bg-amber-500/15 text-amber-300 border-amber-500/30",
     panel: "bg-amber-500/10 border-amber-500/30",
+    chip: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+    chipHover: "hover:bg-amber-500/20",
     text: "text-amber-300",
     dot: "bg-amber-400",
   },
   info: {
     badge: "bg-blue-500/15 text-blue-300 border-blue-500/30",
     panel: "bg-blue-500/10 border-blue-500/30",
+    chip: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+    chipHover: "hover:bg-blue-500/20",
     text: "text-blue-400",
     dot: "bg-blue-400",
   },
   special: {
     badge: "bg-purple-500/15 text-purple-300 border-purple-500/30",
     panel: "bg-purple-500/10 border-purple-500/30",
+    chip: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+    chipHover: "hover:bg-purple-500/20",
     text: "text-purple-400",
     dot: "bg-purple-400",
   },
   neutral: {
     badge: "bg-slate-500/15 text-slate-300 border-slate-500/30",
     panel: "bg-slate-500/10 border-slate-500/30",
+    chip: "bg-slate-500/10 border-slate-500/20 text-slate-400",
+    chipHover: "hover:bg-slate-500/20",
     text: "text-slate-400",
     dot: "bg-slate-400",
   },
@@ -100,6 +119,7 @@ export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
   danger: "bg-red-600 hover:bg-red-700 text-white",
   info: "bg-blue-600 hover:bg-blue-700 text-white",
   special: "bg-purple-600 hover:bg-purple-700 text-white",
+  warning: "bg-amber-600 hover:bg-amber-700 text-white",
 };
 
 /**
