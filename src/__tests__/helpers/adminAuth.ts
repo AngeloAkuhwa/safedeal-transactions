@@ -43,24 +43,56 @@ function makeClient(): SupabaseClient {
   });
 }
 
+/**
+ * Sign in, retrying on service failure only. During the 2026-08-24 auth
+ * flap the CI preflight (which retries 5xx) passed and then this helper's
+ * single-shot sign-in timed out seconds later, killing the beforeAll hook
+ * and skipping all 102 live assertions. A 5xx or a network-level throw is
+ * the service's weather, not the credential's truth, so it gets bounded
+ * retries with a pause; a 4xx (wrong password, unconfirmed email) still
+ * throws immediately, because that IS the answer these helpers exist to
+ * surface. The role contract itself is untouched: every 401/403 assertion
+ * below runs exactly as before once a session exists.
+ */
+const SIGN_IN_ATTEMPTS = 3;
+const SIGN_IN_PAUSE_MS = 20_000;
+
+async function signInWithServiceRetry(label: string, email: string, password: string): Promise<SupabaseClient> {
+  let lastFailure = "";
+  for (let attempt = 1; attempt <= SIGN_IN_ATTEMPTS; attempt++) {
+    const client = makeClient();
+    try {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (!error) return client;
+      const status = (error as { status?: number }).status ?? 0;
+      if (status && status < 500) throw new Error(`${label} sign-in failed: ${error.message}`);
+      lastFailure = `${error.message}${status ? ` (HTTP ${status})` : ""}`;
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith(`${label} sign-in failed:`)) throw err;
+      lastFailure = err instanceof Error ? err.message : String(err);
+    }
+    if (attempt < SIGN_IN_ATTEMPTS) {
+      console.error(`${label} sign-in attempt ${attempt}/${SIGN_IN_ATTEMPTS} hit a service failure (${lastFailure}); retrying in ${SIGN_IN_PAUSE_MS / 1000}s`);
+      await new Promise((r) => setTimeout(r, SIGN_IN_PAUSE_MS));
+    }
+  }
+  throw new Error(`${label} sign-in failed after ${SIGN_IN_ATTEMPTS} attempts, all service errors: ${lastFailure}`);
+}
+
 export async function signInAsBuyer(): Promise<SupabaseClient> {
-  const client = makeClient();
-  const { error } = await client.auth.signInWithPassword({
-    email: env("VITE_TEST_BUYER_EMAIL") as string,
-    password: env("VITE_TEST_BUYER_PASSWORD") as string,
-  });
-  if (error) throw new Error(`buyer sign-in failed: ${error.message}`);
-  return client;
+  return signInWithServiceRetry(
+    "buyer",
+    env("VITE_TEST_BUYER_EMAIL") as string,
+    env("VITE_TEST_BUYER_PASSWORD") as string,
+  );
 }
 
 export async function signInAsAdmin(): Promise<SupabaseClient> {
-  const client = makeClient();
-  const { error } = await client.auth.signInWithPassword({
-    email: env("VITE_TEST_ADMIN_EMAIL") as string,
-    password: env("VITE_TEST_ADMIN_PASSWORD") as string,
-  });
-  if (error) throw new Error(`admin sign-in failed: ${error.message}`);
-  return client;
+  return signInWithServiceRetry(
+    "admin",
+    env("VITE_TEST_ADMIN_EMAIL") as string,
+    env("VITE_TEST_ADMIN_PASSWORD") as string,
+  );
 }
 
 export async function anonClient(): Promise<SupabaseClient> {
