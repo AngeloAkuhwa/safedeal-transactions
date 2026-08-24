@@ -474,20 +474,26 @@ const MONEY_MAP_NOUN = `(?:${MONEY_NOUN}|limit|Limit|LIMIT|cap|Cap|CAP|amounts|A
  * Widened again in this pass to cover the three shapes that still evaded it:
  * optional chaining (`x?.amount ?? 0`), a cast receiver
  * (`(x as any)?.fee ?? 0`) and bracket access (`LIMIT_BY_LEVEL[level] ?? 0`).
+ *
+ * Every zero here carries `(?!\.)`: `?? 0.02` is a documented default RATE
+ * (safedeal-money-policy's 2% platform fee), not a zero fallback, and the
+ * bare `0\b` matched it because a digit-to-dot transition is a word
+ * boundary. An instrument that cries wolf on a legitimate default teaches
+ * people to ignore it, which is worse than a blind spot.
  */
 const MONEY_ZERO_FALLBACK = new RegExp(
   [
     // member access, optionally chained, on an identifier / call / cast /
     // index result: `x.amount ?? 0`, `x?.amount ?? 0`, `(p as any)?.fee ?? 0`.
-    String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`[\w$)\]]\s*\??\.\s*(?:[\w$]+\s*\??\.\s*)*[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
     // bare money-named identifier: `totalAmount ?? 0`, and one whose money
     // noun starts at index 0 (`amountDue ?? 0`): the old leading
     // `[A-Za-z_$]` forced the noun to start at index >= 1.
-    String.raw`\b[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`\b[\w$]*${MONEY_NOUN}[\w$]*\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
     // bracket lookup on a money-named table: `LIMIT_BY_LEVEL[level] ?? 0`.
     // Same leading-character fix: `LIMIT_BY_LEVEL` begins with its noun, so
     // the rule could not see the very line its comment cites.
-    String.raw`\b[\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`\b[\w$]*${MONEY_MAP_NOUN}[\w$]*(?:\??\.[\w$]+)*\s*\[[^\]\n]*\]\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
   ].join("|"),
   "g",
 );
@@ -508,7 +514,7 @@ const MONEY_ZERO_FALLBACK = new RegExp(
  * `.total ?? 0` stays an offence, because it may well be a money total.
  */
 function isCountName(match: string): boolean {
-  return /(?:_count|_users|_flagged|_transactions|_items|_disputes|Count)\s*(?:\?\?|\|\|)\s*0\b/.test(match);
+  return /(?:_count|_users|_flagged|_transactions|_items|_disputes|Count)\s*(?:\?\?|\|\|)\s*0\b(?!\.)/.test(match);
 }
 
 const MONEY_ZERO_DEBT: string[] = [
@@ -519,7 +525,6 @@ const MONEY_ZERO_DEBT: string[] = [
   "supabase/functions/buyer-transactions/index.ts",
   "supabase/functions/paystack-webhook/index.ts",
   "supabase/functions/reconcile-escrow/index.ts",
-  "supabase/functions/_shared/safedeal-money-policy.ts",
   "supabase/functions/verify-paystack-payment/index.ts",
   "supabase/functions/_shared/flagged-users-engine.ts",
   "supabase/functions/_shared/provider-refund.ts",
@@ -608,13 +613,13 @@ const MONEY_NAME = `(?:${MONEY_NOUN.slice(3, -1)}|net|Net|kobo|Kobo)`;
 const MONEY_ZERO_WRAPPED = new RegExp(
   [
     // `const totalAmount = Number(x) || 0;`: money-named declaration.
-    String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`\b(?:const|let|var)\s+[\w$]*${MONEY_NAME}[\w$]*\s*(?::[^=]+?)?=\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
     // `amount: Number(x) ?? 0,` / `this.fee = num(x) || 0`: money-named
     // object-literal property or assignment target.
-    String.raw`\b[\w$.]*${MONEY_NAME}[\w$]*\s*[:=]\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`\b[\w$.]*${MONEY_NAME}[\w$]*\s*[:=]\s*[\w$.]+\([^;\n]*?\)\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
     // `Number(pricingRow.platform_fee_amount) || 0` anywhere: call argument,
     // return expression, nested property. The money noun is inside the call.
-    String.raw`\([^()\n]*${MONEY_NAME}[^()\n]*\)\s*(?:\?\?|\|\|)\s*0\b`,
+    String.raw`\([^()\n]*${MONEY_NAME}[^()\n]*\)\s*(?:\?\?|\|\|)\s*0\b(?!\.)`,
   ].join("|"),
   "g",
 );
