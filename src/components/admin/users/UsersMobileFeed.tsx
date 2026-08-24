@@ -40,7 +40,7 @@ function statusChip(r: UserDirectoryRow) {
   if (r.status === "under_investigation") return { label: "Investigating", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
   if (r.status === "flagged") return { label: "Flagged", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
   if (r.status === "pending") {
-    return { label: r.verification.id ? "Pending" : "Pending ID", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+    return { label: r.verification.id ? "Pending" : "Pending ID", cls: ADMIN_TONE.warning.chip };
   }
   return { label: "Active Now", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
 }

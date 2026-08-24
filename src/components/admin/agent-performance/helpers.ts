@@ -11,6 +11,7 @@ export function toggleStateFilter(current: string, state: string): string {
   return next.length ? next.join(",") : "all";
 }
 import type { AgentPerformanceRow } from "@/services/agent-performance.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export const CARD_CLASS =
   "rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur-sm lg:p-6 shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]";
@@ -28,7 +29,7 @@ export function scoreTone(band: string): string {
   switch (band) {
     case "Excellent": return "text-primary";
     case "Very Good": return "text-emerald-300";
-    case "Good": return "text-amber-300";
+    case "Good": return ADMIN_TONE.warning.text;
     case "Insufficient Data": return "text-muted-foreground";
     default: return "text-rose-300";
   }
@@ -49,7 +50,7 @@ export function activeCasesPillClass(r: AgentPerformanceRow): string {
 
 export function availabilityDot(a: string): string {
   return {
-    available: "bg-emerald-400", active: "bg-emerald-400", busy: "bg-amber-400",
+    available: "bg-emerald-400", active: "bg-emerald-400", busy: ADMIN_TONE.warning.dot,
     at_capacity: "bg-rose-400", offline: "bg-muted-foreground",
     on_leave: "bg-sky-400", suspended: "bg-rose-500",
   }[a] ?? "bg-muted-foreground";
@@ -64,7 +65,7 @@ export function availabilityLabel(a: string): string {
 
 export function availabilityTextClass(a: string): string {
   return {
-    available: "text-emerald-300", active: "text-emerald-300", busy: "text-amber-300",
+    available: "text-emerald-300", active: "text-emerald-300", busy: ADMIN_TONE.warning.text,
     at_capacity: "text-rose-300", offline: "text-muted-foreground",
     on_leave: "text-sky-300", suspended: "text-rose-400",
   }[a] ?? "text-muted-foreground";
@@ -85,7 +86,7 @@ export function minutesLabel(m: number | null): string {
 export function slaTone(pctValue: number | null): string {
   if (pctValue == null) return "text-muted-foreground";
   if (pctValue >= 95) return "text-emerald-300";
-  if (pctValue >= 85) return "text-amber-300";
+  if (pctValue >= 85) return ADMIN_TONE.warning.text;
   return "text-rose-300";
 }
 

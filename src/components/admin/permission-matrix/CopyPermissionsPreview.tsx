@@ -11,6 +11,7 @@ import {
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { keyActivate } from "@/lib/a11y";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   open: boolean;
@@ -32,7 +33,7 @@ function permMeta(key: string) {
 function RiskDot({ k }: { k: string }) {
   const r = getPermissionRisk(k);
   const cls = r === "critical" ? "bg-rose-400"
-    : r === "high" ? "bg-amber-400"
+    : r === "high" ? ADMIN_TONE.warning.dot
     : r === "medium" ? "bg-sky-400" : "bg-muted-foreground/50";
   return <span className={cn("mr-2 inline-block h-1.5 w-1.5 rounded-full", cls)} />;
 }

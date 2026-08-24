@@ -47,7 +47,7 @@ import { ADMIN_TONE } from "@/components/admin/palette";
 const PRIORITY_DOT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "bg-red-500",
   high: "bg-orange-500",
-  medium: "bg-amber-400",
+  medium: ADMIN_TONE.warning.dot,
   low: "bg-emerald-500",
   resolved: "bg-emerald-500",
 };
@@ -55,7 +55,7 @@ const PRIORITY_DOT: Record<DisputeQueueRow["priority"], string> = {
 const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "text-red-400",
   high: "text-orange-400",
-  medium: "text-amber-300",
+  medium: ADMIN_TONE.warning.text,
   low: "text-emerald-400",
   resolved: "text-emerald-400",
 };
@@ -63,7 +63,7 @@ const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
 const PRIORITY_ACCENT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "bg-red-500",
   high: "bg-orange-500",
-  medium: "bg-amber-400",
+  medium: ADMIN_TONE.warning.dot,
   low: "bg-emerald-500",
   resolved: "bg-emerald-500",
 };
@@ -126,7 +126,7 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
   }
   const map: Record<string, { label: string; tone: string }> = {
     open: { label: "Open", tone: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-    seller_response_pending: { label: "Awaiting Seller", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+    seller_response_pending: { label: "Awaiting Seller", tone: ADMIN_TONE.warning.badge },
     under_review: { label: "Under Review", tone: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
     resolved: { label: "Resolved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   };

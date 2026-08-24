@@ -28,14 +28,14 @@ const ROLE_CLASS: Record<string, string> = {
   buyer: "bg-blue-500/10 border-blue-500/20 text-blue-400",
   seller: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   business: "bg-purple-500/10 border-purple-500/20 text-purple-400",
-  admin: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+  admin: ADMIN_TONE.warning.chip,
 };
 
 const STATUS_CLASS: Record<string, string> = {
   active: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   flagged: "bg-red-500/10 border-red-500/20 text-red-400",
   suspended: "bg-purple-500/10 border-purple-500/20 text-purple-400",
-  pending: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+  pending: ADMIN_TONE.warning.chip,
   under_investigation: "bg-orange-500/10 border-orange-500/20 text-orange-400",
 };
 
@@ -155,7 +155,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   </td>
                   <td className="p-4">
                     <div className="space-y-1.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : ADMIN_TONE.warning.chip}`}>
                         <ShieldCheck className="h-3 w-3" />
                         {r.verification.level === "fully" ? "Fully Verified" : r.verification.level === "id" ? "ID Verified" : r.verification.level === "phone" ? resolveClaim("SELLER_PHONE_VERIFIED", { phoneVerified: r.verification.level === "phone" }) : r.verification.level === "email" ? "Email Only" : "Unverified"}
                       </span>

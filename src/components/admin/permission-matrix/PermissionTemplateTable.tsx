@@ -128,7 +128,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs">{t.permission_keys.length}</td>
                       <td className="px-4 py-3 text-right text-xs">
-                        {priv > 0 ? <span className="text-amber-300">{priv}</span> : <span className="text-muted-foreground">0</span>}
+                        {priv > 0 ? <span className={ADMIN_TONE.warning.text}>{priv}</span> : <span className="text-muted-foreground">0</span>}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full border px-2 py-0.5 text-xs uppercase ${t.status === "active" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-border bg-muted/40 text-muted-foreground"}`}>{t.status}</span>
@@ -291,7 +291,7 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
               </div>
               <div className="flex items-center justify-between">
                 <span>Approval required</span>
-                <span className={diff.approval_required ? "text-amber-300" : "text-muted-foreground"}>{diff.approval_required ? "Yes" : "No"}</span>
+                <span className={diff.approval_required ? ADMIN_TONE.warning.text : "text-muted-foreground"}>{diff.approval_required ? "Yes" : "No"}</span>
               </div>
             </div>
           )}

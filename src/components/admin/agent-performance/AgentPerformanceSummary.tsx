@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { INNER_CARD_CLASS } from "./helpers";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AgentPerformanceSummaryData } from "@/services/agent-performance.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 type Card = {
   key: string;
@@ -17,7 +18,7 @@ type Card = {
 
 const NOTE_TONE: Record<Card["noteTone"], string> = {
   success: "text-emerald-300",
-  warning: "text-amber-300",
+  warning: ADMIN_TONE.warning.text,
   danger: "text-rose-300",
   primary: "text-primary",
   muted: "text-muted-foreground",

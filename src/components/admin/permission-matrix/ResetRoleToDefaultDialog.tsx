@@ -66,7 +66,7 @@ export function ResetRoleToDefaultDialog({
               <div className="flex items-center justify-between"><span>Privileged removed</span><span className="font-mono text-amber-300">{privilegedRemoved.length}</span></div>
               <div className="flex items-center justify-between">
                 <span>Approval required</span>
-                <span className={requiresApproval ? "text-amber-300" : "text-muted-foreground"}>{requiresApproval ? "Yes" : "No"}</span>
+                <span className={requiresApproval ? ADMIN_TONE.warning.text : "text-muted-foreground"}>{requiresApproval ? "Yes" : "No"}</span>
               </div>
             </div>
           )}

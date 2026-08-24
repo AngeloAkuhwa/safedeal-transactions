@@ -27,6 +27,7 @@ import { permissionForPath } from "@/services/admin-route-permissions";
 import { adminDisplayName, adminInitials, adminRoleLabel } from "@/lib/admin-identity";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 type Badge = {
   count: number;
@@ -49,7 +50,7 @@ const BADGE_TONE: Record<Badge["tone"], string> = {
   orange: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
   purple: "bg-purple-500/15 text-purple-400 border border-purple-500/30",
   red: "bg-red-500/15 text-red-400 border border-red-500/30",
-  yellow: "bg-amber-500/15 text-amber-300 border border-amber-500/30",
+  yellow: `${ADMIN_TONE.warning.badge} border`,
   cyan: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30",
 };
 

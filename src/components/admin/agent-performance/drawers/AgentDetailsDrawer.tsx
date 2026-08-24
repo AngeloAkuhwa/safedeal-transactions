@@ -9,6 +9,7 @@ import {
   availabilityDot, availabilityLabel, availabilityTextClass,
   hoursLabel, minutesLabel, scoreTone, slaTone, INNER_CARD_CLASS,
 } from "../helpers";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import {
   agentInitials, agentName, fetchAgentActivity, fetchAgentCases,
   type AgentActivityEvent, type AgentCaseRow, type AgentPerformanceFilters,
@@ -248,7 +249,7 @@ export function AgentDetailsDrawer({
               <TabsContent value="sla" className="mt-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Stat label="On track" value={String(agent.sla_on_track ?? 0)} />
-                  <Stat label="At risk" value={String(agent.sla_at_risk ?? 0)} tone={(agent.sla_at_risk ?? 0) > 0 ? "text-amber-300" : undefined} />
+                  <Stat label="At risk" value={String(agent.sla_at_risk ?? 0)} tone={(agent.sla_at_risk ?? 0) > 0 ? ADMIN_TONE.warning.text : undefined} />
                   <Stat label="Breached" value={String(agent.breached)} tone={agent.breached > 0 ? "text-rose-300" : undefined} />
                   <Stat label="Overdue (open)" value={String(agent.overdue)} tone={agent.overdue > 0 ? "text-rose-300" : undefined} />
                   <Stat label="Completed within SLA" value={String(agent.sla_completed_within ?? agent.on_time)} />

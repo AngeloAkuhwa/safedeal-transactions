@@ -80,7 +80,7 @@ const titleCase = (s?: string | null) =>
 
 const TX_STATUS_CLS: Record<string, string> = {
   draft: ADMIN_TONE.neutral.badge,
-  awaiting_payment: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  awaiting_payment: ADMIN_TONE.warning.badge,
   payment_secured: ADMIN_TONE.info.badge,
   seller_preparing_delivery: ADMIN_TONE.info.badge,
   seller_dispatched: ADMIN_TONE.info.badge,

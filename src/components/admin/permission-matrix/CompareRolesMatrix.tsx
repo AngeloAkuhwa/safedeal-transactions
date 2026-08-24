@@ -59,7 +59,7 @@ function riskChip(key: string) {
 function riskDot(key: string) {
   const r = getPermissionRisk(key);
   const cls = r === "critical" ? "bg-rose-400"
-    : r === "high" ? "bg-amber-400"
+    : r === "high" ? ADMIN_TONE.warning.dot
     : r === "medium" ? "bg-sky-400" : "bg-muted-foreground/50";
   return <span className={cn("inline-block h-1.5 w-1.5 rounded-full", cls)} aria-hidden />;
 }

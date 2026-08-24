@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import type { AgentRosterEntry, OrchestrationPriority } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function initialsOf(a?: AgentRosterEntry | null): string {
   if (!a) return "?";
@@ -86,7 +87,7 @@ export function availabilityDot(a: string): string {
   return {
     available:   "bg-emerald-400",
     active:      "bg-primary",
-    busy:        "bg-amber-400",
+    busy:        ADMIN_TONE.warning.dot,
     at_capacity: "bg-rose-400",
     offline:     "bg-muted-foreground",
     on_leave:    "bg-sky-400",
@@ -104,7 +105,7 @@ export function availabilityLabel(a: string): string {
 
 export function availabilityTextColor(a: string): string {
   return {
-    available: "text-emerald-300", active: "text-primary", busy: "text-amber-300",
+    available: "text-emerald-300", active: "text-primary", busy: ADMIN_TONE.warning.text,
     at_capacity: "text-rose-300", offline: "text-muted-foreground",
     on_leave: "text-sky-300", suspended: "text-rose-400",
   }[a] ?? "text-muted-foreground";

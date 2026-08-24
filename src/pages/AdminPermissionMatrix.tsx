@@ -53,6 +53,7 @@ import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matri
 import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
 import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
 import { Plus } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const VALID_TABS = new Set<WorkspaceTab>(TAB_DEFS.map((t) => t.key));
 
@@ -270,7 +271,7 @@ export default function AdminPermissionMatrix() {
   };
 
   const securityLevel: { label: string; tone: string } = canManage
-    ? { label: "High", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" }
+    ? { label: "High", tone: ADMIN_TONE.warning.badge }
     : perms.has("permissions.view")
       ? { label: "Read-only", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" }
       : { label: "Restricted", tone: "bg-destructive/15 text-destructive border-destructive/30" };

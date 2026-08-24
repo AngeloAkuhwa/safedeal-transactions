@@ -150,7 +150,7 @@ function KV({ label, value, className }: { label: string; value: React.ReactNode
 
 const STATUS_TONE: Record<string, string> = {
   open: ADMIN_TONE.info.badge,
-  awaiting_seller_response: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  awaiting_seller_response: ADMIN_TONE.warning.badge,
   under_review: ADMIN_TONE.special.badge,
   escalated: ADMIN_TONE.elevated.badge,
   resolved: ADMIN_TONE.success.badge,
@@ -2008,7 +2008,7 @@ function parseInternalNoteTag(body: string, n: any): { pill: { label: string; cl
     escalate_case: { label: "Escalation", cls: `${ADMIN_TONE.danger.badge} border` },
     investigation: { label: "Investigation", cls: `${ADMIN_TONE.special.badge} border` },
     manual_admin_review: { label: "Investigation", cls: `${ADMIN_TONE.special.badge} border` },
-    follow_up: { label: "Follow-up", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+    follow_up: { label: "Follow-up", cls: `${ADMIN_TONE.warning.badge} border` },
     agent_note: { label: "Agent note", cls: `${ADMIN_TONE.neutral.badge} border` },
     internal_note: { label: "Agent note", cls: `${ADMIN_TONE.neutral.badge} border` },
   };
@@ -2481,7 +2481,7 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
     : "text-amber-400";
   const dotCls = statusTone === "emerald" ? ADMIN_TONE.success.dot
     : statusTone === "red" ? ADMIN_TONE.danger.dot
-    : "bg-amber-400";
+    : ADMIN_TONE.warning.dot;
   return (
     <div className="rounded-lg border border-[#253044] bg-[#0F172A]/60 p-3">
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -2603,7 +2603,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
       : "border-amber-500/30 bg-amber-500/10 text-amber-100",
-    dotCls: overdue ? ADMIN_TONE.danger.dot : "bg-amber-400",
+    dotCls: overdue ? ADMIN_TONE.danger.dot : ADMIN_TONE.warning.dot,
     Icon: Clock,
   };
   return {

@@ -78,7 +78,7 @@ import { ADMIN_TONE } from "@/components/admin/palette";
 /* ---------------- Visual helpers ---------------- */
 
 const STATUS_BADGE_CLS: Record<string, string> = {
-  awaiting_payment: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  awaiting_payment: ADMIN_TONE.warning.badge,
   funds_held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
   in_fulfillment: "bg-blue-500/15 text-blue-300 border-blue-500/30",
   dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
@@ -123,14 +123,14 @@ const NEUTRAL_FLAG_META: Record<string, { label: string; cls: string; Icon?: typ
   in_fulfillment:    { label: "In Fulfillment",   cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
   dispatched:        { label: "In Transit",       cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
   in_transit:        { label: "In Transit",       cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
-  delivered:         { label: "Awaiting Confirm", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30",   Icon: Clock },
-  delivered_awaiting_verification: { label: "Awaiting Confirm", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30", Icon: Clock },
+  delivered:         { label: "Awaiting Confirm", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,   Icon: Clock },
+  delivered_awaiting_verification: { label: "Awaiting Confirm", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`, Icon: Clock },
   completed:         { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
   released:          { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
   refunded:          { label: "Refunded",         cls: "bg-slate-500/10 text-slate-300 border-slate-500/30",   Icon: RotateCcw },
   cancelled:         { label: "Cancelled",        cls: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30",      Icon: Ban },
   draft:             { label: "Draft",            cls: "bg-zinc-500/10 text-zinc-400 border-dashed border-zinc-500/40", Icon: FileText },
-  awaiting_payment:  { label: "Awaiting Payment", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30",   Icon: Hourglass },
+  awaiting_payment:  { label: "Awaiting Payment", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,   Icon: Hourglass },
 };
 
 function buildFlagBadges(t: {
@@ -1449,7 +1449,7 @@ function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live"
     state === "live"
       ? { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Live sync", pulse: true }
       : state === "connecting"
-      ? { dot: "bg-amber-400", border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400", label: "Connecting…", pulse: true }
+      ? { dot: ADMIN_TONE.warning.dot, border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400", label: "Connecting…", pulse: true }
       : { dot: "bg-muted-foreground", border: "border-border", bg: "bg-muted/40", text: "text-muted-foreground", label: "Offline", pulse: false };
   return (
     <span

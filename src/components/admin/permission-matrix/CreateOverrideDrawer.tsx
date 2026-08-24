@@ -10,6 +10,7 @@ import { checkOverrideAllowed } from "@/services/role-guardrails";
 import { fetchRoleGrantMap } from "@/services/permission-workspace.service";
 import { toast } from "@/hooks/use-toast";
 import { ShieldAlert, Search, Clock } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 type UserOption = { id: string; name: string; email: string; role: InternalRoleKey | null };
 
@@ -262,7 +263,7 @@ function Row({ label, value, tone }: { label: string; value: React.ReactNode; to
   return (
     <div className="flex items-center justify-between rounded-md border border-border/40 bg-background/60 px-2 py-1">
       <span className="text-muted-foreground">{label}</span>
-      <span className={tone === "amber" ? "text-amber-300" : "text-foreground"}>{value}</span>
+      <span className={tone === "amber" ? ADMIN_TONE.warning.text : "text-foreground"}>{value}</span>
     </div>
   );
 }

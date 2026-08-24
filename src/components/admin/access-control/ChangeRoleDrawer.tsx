@@ -24,6 +24,7 @@ import { useDrawerSafety } from "@/hooks/useDrawerSafety";
 import { useMutationOnce } from "@/hooks/useMutationOnce";
 import { fetchAssignedWorkImpact } from "@/services/assigned-work.service";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const LEVEL_BADGE: Record<AccessLevel, string> = {
   full:     "bg-rose-500/15 text-rose-300 border-rose-500/40",
@@ -358,7 +359,7 @@ function SectionCap({ children, icon, tone }: { children: React.ReactNode; icon:
   const toneClass = {
     emerald: "text-emerald-300",
     rose:    "text-rose-300",
-    amber:   "text-amber-300",
+    amber:   ADMIN_TONE.warning.text,
     sky:     "text-sky-300",
   }[tone];
   return (

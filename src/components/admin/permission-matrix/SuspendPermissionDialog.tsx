@@ -18,6 +18,7 @@ import {
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import { permissionRepo } from "@/services/permission-repository";
 import { invalidateRoleGrantMap } from "@/services/permission-workspace.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 /**
  * Flips permissions.assignable so the permission is no longer offered in
@@ -186,7 +187,7 @@ export function SuspendPermissionDialog({
               <div className="rounded-md border border-border/60 bg-background/40 p-2 text-xs">
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-muted-foreground">Assignable</span>
-                  <span className={`rounded-full border px-1.5 py-0.5 text-xs uppercase tracking-wider ${currentlyAssignable ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}>
+                  <span className={`rounded-full border px-1.5 py-0.5 text-xs uppercase tracking-wider ${currentlyAssignable ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`}`}>
                     {currentlyAssignable ? "Yes" : "No"}
                   </span>
                 </div>

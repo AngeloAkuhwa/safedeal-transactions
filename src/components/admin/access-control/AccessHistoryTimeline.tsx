@@ -1,9 +1,10 @@
 import { Link } from "react-router";
 import { relativeTime, type AccessAuditEntry } from "@/services/admin-access-control.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const SEVERITY_TINT: Record<string, string> = {
   info: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-  warning: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+  warning: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,
   critical: "bg-red-500/10 text-red-300 border-red-500/40",
 };
 

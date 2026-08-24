@@ -2,6 +2,7 @@ import { AlertOctagon, Users, Gauge, ArrowUpRight, Clock, Timer } from "lucide-r
 import { cn } from "@/lib/utils";
 import { TONE, type ToneKey } from "./helpers";
 import type { OrchestrationOverview } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Card {
   key: string;
@@ -16,7 +17,7 @@ interface Card {
 
 const DELTA_COLOR: Record<NonNullable<Card["deltaTone"]>, string> = {
   danger: "text-rose-300",
-  warning: "text-amber-300",
+  warning: ADMIN_TONE.warning.text,
   success: "text-emerald-300",
   muted: "text-muted-foreground",
 };

@@ -218,8 +218,8 @@ export function RoleDetailPanel({
           <KpiCard icon={Users} label="Active users" value={activeUsers} />
           <KpiCard icon={KeyRound} label="Granted" tone="text-emerald-400"
             value={<>{summary.granted}<span className="text-sm text-muted-foreground">/{summary.total}</span></>} />
-          <KpiCard icon={ShieldAlert} label="Privileged" tone="text-amber-300" value={summary.privileged} />
-          <KpiCard icon={Clock} label="Pending changes" tone={(pendingQuery.data?.length ?? 0) > 0 ? "text-amber-300" : "text-foreground"} value={pendingQuery.data?.length ?? 0} />
+          <KpiCard icon={ShieldAlert} label="Privileged" tone={ADMIN_TONE.warning.text} value={summary.privileged} />
+          <KpiCard icon={Clock} label="Pending changes" tone={(pendingQuery.data?.length ?? 0) > 0 ? ADMIN_TONE.warning.text : "text-foreground"} value={pendingQuery.data?.length ?? 0} />
           <KpiCard icon={History} label="Last modified" value={modifiedQuery.data?.at ? new Date(modifiedQuery.data.at).toLocaleDateString() : "—"} />
           <KpiCard icon={ShieldCheck} label="Modified by" value={modifiedQuery.data?.by_name ?? "—"} />
         </div>
@@ -358,7 +358,7 @@ export function RoleDetailPanel({
             <li key={r.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{new Date(r.created_at).toLocaleString()}</span>
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-300">Pending</span>
+                <span className={`rounded-full border ${ADMIN_TONE.warning.panel} px-2 py-0.5 ${ADMIN_TONE.warning.text}`}>Pending</span>
               </div>
               {r.reason && <div className="mt-1 text-foreground">{r.reason}</div>}
               <div className="mt-1 text-muted-foreground">

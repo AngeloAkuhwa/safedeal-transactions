@@ -10,6 +10,7 @@ import {
 import { Timer } from "lucide-react";
 import type { SlaSummary } from "@/services/agent-performance.service";
 import { hoursLabel, minutesLabel } from "./helpers";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const STATE_META: Record<SlaState, { label: string; className: string }> = {
   on_track: { label: "On track", className: "bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/30" },
@@ -307,7 +308,7 @@ export function SLAComplianceTable({
             <tr key={a.user_id} className="border-b border-border/60 transition-colors hover:bg-card/50">
               <td className="px-4 py-3 text-sm font-medium text-foreground">{agentShortName(a)}</td>
               <td className="px-4 py-3 text-center text-sm text-emerald-300">{a.on_time}</td>
-              <td className={cn("px-4 py-3 text-center text-sm", a.overdue > 0 ? "text-amber-300" : "text-muted-foreground")}>{a.overdue}</td>
+              <td className={cn("px-4 py-3 text-center text-sm", a.overdue > 0 ? ADMIN_TONE.warning.text : "text-muted-foreground")}>{a.overdue}</td>
               <td className={cn("px-4 py-3 text-center text-sm", a.breached > 0 ? "text-rose-300" : "text-muted-foreground")}>{a.breached}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
