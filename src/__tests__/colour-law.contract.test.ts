@@ -169,10 +169,16 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * and text role plus the tone glyphs, badge-set pill buttons, activity
  * badge map, dot ternaries and danger/info solid CTAs were exact palette
  * sets; the /20 washes, yellow and orange solids, slate-950 shell and
- * hover shades match no entry and stay verbatim).
+ * hover shades match no entry and stay verbatim); 3664 to 3523 (batch 11,
+ * AdminDisputeDetail slice 1: status and tone maps, panel-plus-text
+ * triads, sidebar iconColor props, tab chrome and ground roles; the
+ * yellow triads, /20 washes, 500-step dots and 600/500 hover solids
+ * match no entry and wait for slice 2 or the convergence pass. A prop
+ * lesson recorded: a quoted tone string can live in ANY prop, not just
+ * className, so expression passes wrap prop values in braces).
  */
 const BUDGET = {
-  admin: 3664,
+  admin: 3523,
   ui: 4,
   customer: 12,
 };
