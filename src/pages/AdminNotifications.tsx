@@ -39,10 +39,10 @@ const channelLabel = (ch: string) => ({ in_app: "In-App", email: "Email", sms: "
 
 const statusPill = (status: string) => {
   const map: Record<string, string> = {
-    sent: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    delivered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    read: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+    sent: ADMIN_TONE.success.chip,
+    delivered: ADMIN_TONE.success.chip,
+    read: ADMIN_TONE.success.chip,
+    failed: ADMIN_TONE.danger.chip,
     pending: ADMIN_TONE.warning.chip,
     retrying: ADMIN_TONE.warning.chip,
   };
@@ -54,12 +54,12 @@ const statusLabel = (s: string) =>
 // Type pill color mapping (from reference)
 const typePillClass = (type: string | null | undefined) => {
   const t = (type || "").toLowerCase();
-  if (t.includes("dispute")) return { cls: "bg-red-500/10 border-red-500/20 text-red-400", label: "Dispute" };
-  if (t.includes("payment")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Payment" };
+  if (t.includes("dispute")) return { cls: ADMIN_TONE.danger.chip, label: "Dispute" };
+  if (t.includes("payment")) return { cls: ADMIN_TONE.info.chip, label: "Payment" };
   if (t.includes("security")) return { cls: ADMIN_TONE.warning.chip, label: "Security" };
-  if (t.includes("verification")) return { cls: "bg-purple-500/10 border-purple-500/20 text-purple-400", label: "Verification" };
-  if (t.includes("delivery")) return { cls: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", label: "Delivery" };
-  if (t.includes("transaction")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Transaction" };
+  if (t.includes("verification")) return { cls: ADMIN_TONE.special.chip, label: "Verification" };
+  if (t.includes("delivery")) return { cls: ADMIN_TONE.success.chip, label: "Delivery" };
+  if (t.includes("transaction")) return { cls: ADMIN_TONE.info.chip, label: "Transaction" };
   return { cls: "bg-slate-500/10 border-slate-500/20 text-slate-300", label: "System" };
 };
 const TypePill = ({ type }: { type: string | null | undefined }) => {
@@ -100,7 +100,7 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
             <p className="sd-page-sub">Monitor delivery performance and manage communication issues</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400">
+            <span className={`inline-flex items-center gap-1.5 rounded-md border ${ADMIN_TONE.success.chip} px-2 py-1 text-xs font-semibold`}>
               <span className={`h-1.5 w-1.5 rounded-full ${ADMIN_TONE.success.dot} sd-live-dot`} /> Live
             </span>
             {lastSync && (
@@ -149,11 +149,11 @@ function KpiCards({ kpis }: { kpis: any }) {
       trend: fmtPct(kpis.retry_delta), trendSub: compared, trendColor: trendColorFor(kpis.retry_delta, false) },
   ];
   const iconBg: Record<string, string> = {
-    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    red: "bg-red-500/10 text-red-400 border-red-500/20",
+    blue: ADMIN_TONE.info.chip,
+    red: ADMIN_TONE.danger.chip,
     orange: ADMIN_TONE.elevated.chip,
-    purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    purple: ADMIN_TONE.special.chip,
+    emerald: ADMIN_TONE.success.chip,
     amber: ADMIN_TONE.warning.chip,
   };
   const numberColor: Record<string, string> = {

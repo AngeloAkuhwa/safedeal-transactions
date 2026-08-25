@@ -276,10 +276,25 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * inventing one is not a hover fix; three solids that set text-foreground
  * where the palette says text-white; and two whose triad is split across a
  * long utility string, where reordering would be eyeballing rather than a
- * mechanical rule).
+ * mechanical rule); 3010 to 2677 (6.1 tail, every complete palette set
+ * consumed. The per-tone batches each took one hue, so tones nobody had a
+ * reason to open kept restating the palette verbatim: 131 complete sets
+ * were still written as literal class strings, 37 success, 23 danger, 22
+ * warning, 19 info, 17 special, 5 neutral, 2 elevated, and 6
+ * ADMIN_CATEGORY.cyan. The cyan six are the finding. No batch had ever
+ * touched the category map, because every pass was scoped by TONE and a
+ * category is not a tone, so a whole shelf of the palette sat unconsumed
+ * while the tones around it were swept twice. Pixel identity here is a
+ * property of the transform rather than a claim about it: each rewritten
+ * string was re-expanded, substituting each palette expression back for
+ * its literal tokens, and the token multiset compared with the original,
+ * with any mismatch aborting the run. palette-sets-consumed.contract now
+ * holds the floor, red-verified on all 131. Complete sets only, on
+ * purpose: a partial set is bespoke work, and sweeping those would be a
+ * visual change wearing a mechanical pass's clothes).
  */
 const BUDGET = {
-  admin: 3010,
+  admin: 2677,
   ui: 4,
   customer: 12,
 };

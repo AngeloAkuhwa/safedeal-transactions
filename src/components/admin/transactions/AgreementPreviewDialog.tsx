@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldCheck, Lock } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AdminTxLockedAgreement } from "@/services/admin-transaction-detail.service";
 
 interface Props {
@@ -45,7 +46,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
         <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
           <div className="flex items-center justify-between gap-3">
             <DialogTitle className="text-base">Locked Agreement: #{transactionCode}</DialogTitle>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+            <span className={`inline-flex items-center gap-1.5 rounded-full ${ADMIN_TONE.success.chip} px-2.5 py-1 text-xs font-medium border`}>
               <ShieldCheck className="h-3.5 w-3.5" /> Read-only
             </span>
           </div>
@@ -70,7 +71,7 @@ export function AgreementPreviewDialog({ open, onOpenChange, agreement, transact
 
           <div className="relative p-6 space-y-5 text-sm">
             {!agreement ? (
-              <div className="rounded-md border border-orange-500/30 bg-orange-500/10 p-4 text-orange-300 text-sm">
+              <div className={`rounded-md border ${ADMIN_TONE.elevated.panel} p-4 text-orange-300 text-sm`}>
                 Agreement snapshot missing. Review this transaction for data integrity.
               </div>
             ) : (

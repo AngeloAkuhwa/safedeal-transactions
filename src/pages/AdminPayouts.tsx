@@ -19,7 +19,7 @@ import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
 import { fetchAdminSettings } from "@/services/admin-settings.service";
-import { ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_TONE, ADMIN_SOLID } from "@/components/admin/palette";
 import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
@@ -290,8 +290,8 @@ export default function AdminPayouts() {
       {autoReleaseOn !== null && (
         <div className={`mb-4 rounded-lg border px-3 py-2 flex items-center gap-2 text-xs ${
           autoReleaseOn
-            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-            : "bg-amber-500/10 border-amber-500/30 text-amber-200"
+            ? `${ADMIN_TONE.success.panel} text-emerald-200`
+            : `${ADMIN_TONE.warning.panel} text-amber-200`
         }`}>
           <Info className="h-3.5 w-3.5 shrink-0" />
           <span>

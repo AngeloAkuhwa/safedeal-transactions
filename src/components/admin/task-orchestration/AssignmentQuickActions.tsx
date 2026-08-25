@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { OrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 
 interface Action {
@@ -81,7 +82,7 @@ export function AssignmentQuickActions({
               a.primary
                 ? "border-primary/40 bg-primary/15 text-primary-foreground hover:bg-primary/25"
                 : a.tone === "warning"
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
+                ? `${ADMIN_TONE.warning.panel} text-amber-100 hover:bg-amber-500/15`
                 : "border-border/60 bg-background/60 text-foreground hover:border-primary/40 hover:bg-card/80",
               a.disabled && "cursor-not-allowed opacity-50 hover:bg-inherit",
             )}

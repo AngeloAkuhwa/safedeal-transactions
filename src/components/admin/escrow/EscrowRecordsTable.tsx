@@ -4,7 +4,7 @@ import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import type { EscrowRecordRow } from "@/services/admin-escrow.service";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_CATEGORY, ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 /**
  * Fallback for a state the UI does not know about. A dynamic key lookup must
@@ -17,11 +17,11 @@ const UNKNOWN_STATE_STYLE = {
 };
 
 const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
-  held:            { dot: "bg-emerald-400",   pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "Held" },
-  frozen:          { dot: "bg-red-400 sd-live-dot", pill: "bg-red-500/15 text-red-300 border-red-500/30",     label: "Frozen" },
+  held:            { dot: "bg-emerald-400",   pill: ADMIN_TONE.success.badge, label: "Held" },
+  frozen:          { dot: "bg-red-400 sd-live-dot", pill: ADMIN_TONE.danger.badge,     label: "Frozen" },
   pending_release: { dot: ADMIN_TONE.elevated.dot,    pill: ADMIN_TONE.elevated.badge,     label: "Pending Release" },
-  released:        { dot: "bg-cyan-400",      pill: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",           label: "Released" },
-  refunded:        { dot: "bg-purple-400",    pill: "bg-purple-500/15 text-purple-300 border-purple-500/30",     label: "Refunded" },
+  released:        { dot: "bg-cyan-400",      pill: ADMIN_CATEGORY.cyan,           label: "Released" },
+  refunded:        { dot: "bg-purple-400",    pill: ADMIN_TONE.special.badge,     label: "Refunded" },
 };
 
 function Avatar({ name, url }: { name: string; url: string | null }) {

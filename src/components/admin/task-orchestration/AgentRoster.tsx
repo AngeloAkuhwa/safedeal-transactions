@@ -4,6 +4,7 @@ import { CARD_CLASS, availabilityDot } from "./helpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
 
 type Filter = "all" | "online" | "available" | "busy" | "offline" | "on_leave" | "suspended";
@@ -71,7 +72,7 @@ export function AgentRoster({ roster, onSelect }: { roster: AgentRosterEntry[]; 
           <h2 className="text-base font-semibold tracking-tight text-foreground">Agent Roster</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Availability &amp; live workload</p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
+        <div className={`inline-flex items-center gap-2 rounded-full border ${ADMIN_TONE.success.panel} px-2.5 py-1 text-xs text-emerald-300`}>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 sd-live-dot" />
           <span className="tabular-nums">{online}</span> Online
         </div>

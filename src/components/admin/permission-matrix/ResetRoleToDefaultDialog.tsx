@@ -71,7 +71,7 @@ export function ResetRoleToDefaultDialog({
             </div>
           )}
           {diff && requiresApproval && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
+            <div className={`flex items-start gap-2 rounded-md border ${ADMIN_TONE.warning.panel} p-2 text-xs text-amber-200`}>
               <ShieldAlert className="mt-0.5 h-3 w-3" />
               <span>Reset touches privileged permissions. Super Admin approval is required.</span>
             </div>

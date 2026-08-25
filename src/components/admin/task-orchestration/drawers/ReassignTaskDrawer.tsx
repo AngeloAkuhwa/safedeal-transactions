@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { nameOf, shortNameOf } from "../helpers";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AgentRosterEntry, LiveTask } from "@/services/task-orchestration.service";
 
 export function ReassignTaskDrawer({
@@ -72,7 +73,7 @@ export function ReassignTaskDrawer({
           </div>
 
           {capacityHit && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+            <div className={`flex items-start gap-2 rounded-xl border ${ADMIN_TONE.warning.panel} p-3 text-xs text-amber-100`}>
               <TriangleAlert className="mt-0.5 h-4 w-4" />
               <div>
                 Selected agent is at capacity ({target?.active}/{target?.max_active}).

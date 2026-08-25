@@ -1,6 +1,7 @@
 import { Ban, ClipboardCheck, MailPlus, Search, ShieldAlert, UserPlus, X } from "lucide-react";
 import type { AccessFilter } from "@/services/admin-access-control.service";
 import { AdvancedFilters, type AdvancedFilterState } from "./AdvancedFilters";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -37,7 +38,7 @@ function chipClass(active: boolean, tone?: "danger" | "critical" | "warning" | "
     if (tone === "indigo")   return "bg-indigo-500/20 text-indigo-200 border-indigo-500/60";
     return "bg-blue-600 text-white border-blue-600";
   }
-  if (tone === "critical") return "bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20";
+  if (tone === "critical") return `${ADMIN_TONE.danger.panel} text-red-300 hover:bg-red-500/20`;
   if (tone === "danger")   return "bg-muted text-red-300 border-red-500/30 hover:bg-red-500/10";
   if (tone === "warning")  return "bg-muted text-amber-300 border-amber-500/30 hover:bg-amber-500/10";
   if (tone === "indigo")   return "bg-muted text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10";

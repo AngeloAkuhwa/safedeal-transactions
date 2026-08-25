@@ -153,7 +153,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
       </div>
 
       {requiresApproval && (
-        <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300">
+        <div className={`flex items-center gap-2 rounded-md border ${ADMIN_TONE.warning.panel} px-2.5 py-1.5 text-xs text-amber-300`}>
           <ShieldAlert className="h-3.5 w-3.5" /> Requires approval before activation.
         </div>
       )}

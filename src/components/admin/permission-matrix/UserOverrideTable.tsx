@@ -75,12 +75,12 @@ export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, 
   };
 
   const typePill = (t: OverrideType) => t === "grant"
-    ? { label: "Grant", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" }
+    ? { label: "Grant", cls: ADMIN_TONE.success.badge }
     : t === "deny" ? { label: "Deny", cls: "bg-destructive/15 text-destructive border-destructive/30" }
     : { label: "Temporary", cls: ADMIN_TONE.warning.badge };
   const statusPill = (s: OverrideStatus) => s === "expired"
     ? { label: "Expired", cls: "bg-muted/40 text-muted-foreground border-border" }
-    : { label: "Active", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" };
+    : { label: "Active", cls: ADMIN_TONE.success.badge };
 
   return (
     <div className="space-y-3">

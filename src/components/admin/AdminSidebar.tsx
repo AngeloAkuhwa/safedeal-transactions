@@ -27,7 +27,7 @@ import { permissionForPath } from "@/services/admin-route-permissions";
 import { adminDisplayName, adminInitials, adminRoleLabel } from "@/lib/admin-identity";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
 
 type Badge = {
   count: number;
@@ -51,7 +51,7 @@ const BADGE_TONE: Record<Badge["tone"], string> = {
   purple: "bg-purple-500/15 text-purple-400 border border-purple-500/30",
   red: "bg-red-500/15 text-red-400 border border-red-500/30",
   yellow: `${ADMIN_TONE.warning.badge} border`,
-  cyan: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30",
+  cyan: `${ADMIN_CATEGORY.cyan} border`,
 };
 
 type SidebarBadges = AdminDashboardResponse["sidebar_badges"] & { access_approvals?: number };
@@ -218,7 +218,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                       className={[
                         "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors min-h-11",
                         active
-                          ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
+                          ? `border ${ADMIN_TONE.info.panel} text-blue-300`
                           : "text-foreground/90 hover:bg-muted/70 hover:text-foreground",
                       ].join(" ")}
                     >

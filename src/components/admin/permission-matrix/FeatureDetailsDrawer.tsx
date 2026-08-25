@@ -104,7 +104,7 @@ export function FeatureDetailsDrawer({
             <div className="flex flex-wrap items-center gap-2">
               <PermissionRiskBadge privileged={isPrivilegedPermission(meta.key)} />
               {isPrivilegedPermission(meta.key) && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">
+                <span className={`inline-flex items-center gap-1 rounded-full border ${ADMIN_TONE.warning.panel} px-2 py-0.5 text-xs text-amber-300`}>
                   <ShieldAlert className="h-3 w-3" /> Privileged
                 </span>
               )}
@@ -127,13 +127,13 @@ export function FeatureDetailsDrawer({
               <div className="flex flex-wrap gap-2">
                 {meta.status !== "active" && (
                   <button type="button" onClick={() => setStatus.mutate("active")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20 min-h-11">
+                    className={`inline-flex items-center gap-1 rounded-md border ${ADMIN_TONE.success.panel} px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20 min-h-11`}>
                     <Play className="h-3 w-3" /> Reactivate
                   </button>
                 )}
                 {meta.status !== "suspended" && (
                   <button type="button" onClick={() => setStatus.mutate("suspended")} disabled={setStatus.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-300 hover:bg-amber-500/20 min-h-11">
+                    className={`inline-flex items-center gap-1 rounded-md border ${ADMIN_TONE.warning.panel} px-2 py-1 text-xs text-amber-300 hover:bg-amber-500/20 min-h-11`}>
                     <Pause className="h-3 w-3" /> Suspend
                   </button>
                 )}
@@ -204,7 +204,7 @@ export function FeatureDetailsDrawer({
                       return (
                         <li key={`${other}-${i}`} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-xs">
                           <span className="font-mono">{other}</span>
-                          <span className="ml-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-xs text-amber-300 uppercase">{c.severity}</span>
+                          <span className={`ml-2 rounded-full border ${ADMIN_TONE.warning.panel} px-1.5 text-xs text-amber-300 uppercase`}>{c.severity}</span>
                           {c.rationale && <div className="mt-0.5 text-muted-foreground">{c.rationale}</div>}
                         </li>
                       );
@@ -221,7 +221,7 @@ export function FeatureDetailsDrawer({
                 <ul className="mb-2 space-y-1">
                   {pendingQuery.data.map((r) => (
                     <li key={r.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-xs">
-                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 text-xs text-amber-300">Pending</span>
+                      <span className={`rounded-full border ${ADMIN_TONE.warning.panel} px-1.5 text-xs text-amber-300`}>Pending</span>
                       <span className="ml-2 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                       {r.reason && <div className="mt-0.5">{r.reason}</div>}
                     </li>

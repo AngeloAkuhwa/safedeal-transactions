@@ -5,9 +5,9 @@ import { formatRelative } from "./relative";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 const COMPLIANCE_BADGE: Record<AuditSignal["compliance_status"], string> = {
-  green: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  green: ADMIN_TONE.success.badge,
   amber: ADMIN_TONE.warning.badge,
-  red: "bg-red-500/15 text-red-300 border-red-500/30",
+  red: ADMIN_TONE.danger.badge,
 };
 
 const COMPLIANCE_LABEL: Record<AuditSignal["compliance_status"], string> = {

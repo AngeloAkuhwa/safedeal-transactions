@@ -169,7 +169,7 @@ export function SuspendPermissionDialog({
                               <span className="truncate">{o.label}</span>
                               <span className="flex items-center gap-2">
                                 {!o.assignable && (
-                                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-xs uppercase tracking-wider text-amber-300">Suspended</span>
+                                  <span className={`rounded-full border ${ADMIN_TONE.warning.panel} px-1.5 py-0.5 text-xs uppercase tracking-wider text-amber-300`}>Suspended</span>
                                 )}
                                 <span className="text-xs text-muted-foreground">{o.key}</span>
                               </span>

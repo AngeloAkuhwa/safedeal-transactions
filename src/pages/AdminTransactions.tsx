@@ -73,16 +73,16 @@ import { TransactionsEmptyState } from "@/components/admin/transactions/Transact
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- Visual helpers ---------------- */
 
 const STATUS_BADGE_CLS: Record<string, string> = {
   awaiting_payment: ADMIN_TONE.warning.badge,
-  funds_held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  in_fulfillment: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  delivered: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  funds_held: ADMIN_TONE.special.badge,
+  in_fulfillment: ADMIN_TONE.info.badge,
+  dispatched: ADMIN_TONE.info.badge,
+  delivered: ADMIN_TONE.success.badge,
   completed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   cancelled: "bg-muted text-muted-foreground border-border",
   in_dispute: "bg-orange-500/15 text-orange-400 border-orange-500/30",
@@ -91,10 +91,10 @@ const STATUS_BADGE_CLS: Record<string, string> = {
 };
 
 const ESCROW_BADGE_CLS: Record<string, string> = {
-  released: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  released: ADMIN_TONE.success.badge,
+  held: ADMIN_TONE.special.badge,
   refunded: "bg-muted text-muted-foreground border-border",
-  frozen: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  frozen: ADMIN_CATEGORY.cyan,
   pending: "bg-muted text-muted-foreground border-border",
 };
 
@@ -107,8 +107,8 @@ const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag
 
 // Operational flags returned in `flags[]` by admin-transactions-monitor.
 const SECONDARY_FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
-  frozen:         { label: "Frozen",         cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
-  admin_frozen:   { label: "Admin Frozen",   cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
+  frozen:         { label: "Frozen",         cls: ADMIN_CATEGORY.cyan,      Icon: Snowflake },
+  admin_frozen:   { label: "Admin Frozen",   cls: ADMIN_CATEGORY.cyan,      Icon: Snowflake },
   overdue:        { label: "Overdue",        cls: ADMIN_TONE.elevated.badge,Icon: Clock },
   payment_failed: { label: "Payment Failed", cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
   payout_failed:  { label: "Payout Failed",  cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
@@ -125,9 +125,9 @@ const NEUTRAL_FLAG_META: Record<string, { label: string; cls: string; Icon?: typ
   in_transit:        { label: "In Transit",       cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
   delivered:         { label: "Awaiting Confirm", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,   Icon: Clock },
   delivered_awaiting_verification: { label: "Awaiting Confirm", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`, Icon: Clock },
-  completed:         { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
-  released:          { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
-  refunded:          { label: "Refunded",         cls: "bg-slate-500/10 text-slate-300 border-slate-500/30",   Icon: RotateCcw },
+  completed:         { label: "Released",         cls: `${ADMIN_TONE.success.panel} text-emerald-300`, Icon: CheckCircle2 },
+  released:          { label: "Released",         cls: `${ADMIN_TONE.success.panel} text-emerald-300`, Icon: CheckCircle2 },
+  refunded:          { label: "Refunded",         cls: `${ADMIN_TONE.neutral.panel} text-slate-300`,   Icon: RotateCcw },
   cancelled:         { label: "Cancelled",        cls: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30",      Icon: Ban },
   draft:             { label: "Draft",            cls: "bg-zinc-500/10 text-zinc-400 border-dashed border-zinc-500/40", Icon: FileText },
   awaiting_payment:  { label: "Awaiting Payment", cls: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,   Icon: Hourglass },

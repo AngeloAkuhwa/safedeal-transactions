@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useReadingMode } from "./ReadingModeContext";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { ScrollSpeed } from "@/hooks/useAutoScroll";
 
 interface Props {
@@ -217,7 +218,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             </TooltipContent>
           </Tooltip>
         ) : (
-          <div className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1">
+          <div className={`flex items-center gap-1 rounded-lg border ${ADMIN_TONE.success.panel} px-1.5 py-1`}>
             <span className="ml-1 mr-1 flex items-center gap-1.5 text-xs font-medium text-emerald-300">
               <span className="h-1.5 w-1.5 sd-live-dot rounded-full bg-emerald-400" />
               Reading Mode active

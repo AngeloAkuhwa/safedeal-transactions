@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CARD_CLASS, relative } from "./helpers";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AssignmentRulesConfig } from "@/services/task-orchestration.service";
 
 const FALLBACK_TARGETS = [
@@ -79,7 +80,7 @@ export function AssignmentRulesPanel({
           <h2 className="text-base font-semibold text-foreground">Assignment Rules &amp; Automation Controls</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Configure automated task distribution and assignment logic</p>
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300">
+        <div className={`inline-flex items-center gap-1.5 rounded-full border ${ADMIN_TONE.warning.panel} px-2.5 py-1 text-xs text-amber-300`}>
           <Gauge className="h-3 w-3" /> Advanced Configuration
         </div>
       </div>

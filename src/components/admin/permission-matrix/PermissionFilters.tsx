@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { INTERNAL_ROLES, PERMISSION_MODULES, ROLE_LABEL } from "@/services/permission-catalog";
 
 const ACTION_OPTIONS: Array<{ key: string; label: string }> = [
@@ -156,8 +157,8 @@ export function PermissionFilters({
         </label>
       )}
       <div className="ml-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Full</span>
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Limited</span>
+        <span className={`inline-flex items-center gap-1 rounded-full border ${ADMIN_TONE.success.panel} px-2 py-0.5 text-emerald-300`}><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Full</span>
+        <span className={`inline-flex items-center gap-1 rounded-full border ${ADMIN_TONE.warning.panel} px-2 py-0.5 text-amber-200`}><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Limited</span>
         <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" /> None</span>
       </div>
     </div>

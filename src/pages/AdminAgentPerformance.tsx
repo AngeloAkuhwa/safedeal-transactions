@@ -20,6 +20,7 @@ import { LoadingSkeleton } from "@/components/admin/agent-performance/states/Loa
 import { ErrorState } from "@/components/admin/agent-performance/states/ErrorState";
 import { CARD_CLASS } from "@/components/admin/agent-performance/helpers";
 import { toast } from "sonner";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import {
   DEFAULT_AGENT_FILTERS, DEFAULT_SLA_QUERY, downloadCsv, exportAgentPerformance, fetchAgentPerformance,
   type AgentPerformanceFilters as Filters, type AgentPerformanceOverview, type AgentPerformanceRow,
@@ -303,7 +304,7 @@ export default function AdminAgentPerformance() {
         {data && (
           <>
             {filters.scope === "all_time" && data.range.all_time !== true && (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
+              <p className={`rounded-lg border ${ADMIN_TONE.warning.panel} px-4 py-2 text-xs text-amber-300`}>
                 Showing “{data.range.label}” data. The analytics service returned a windowed
                 result for an all-time request. Reload in a moment; if it persists the backend
                 is running an older version.
