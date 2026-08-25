@@ -1603,8 +1603,8 @@ export default function AdminTransactionDetail() {
                   <KV label="Amount" value={ngn(data.payout.amount)} />
                   <KV label="Reference" value={<span className="font-mono text-xs break-all">{data.payout.providerReference ?? "—"}</span>} />
                   <KV label="Released At" value={fmtDate(data.payout.releasedAt ?? data.payout.completedAt)} />
-                  {data.payout.failureReason && <div className="col-span-2"><KV label="Failure" value={<span className="text-red-300">{data.payout.failureReason}</span>} /></div>}
-                  {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
+                  {data.payout.failureReason && <div className="col-span-2"><KV label="Failure" value={<span className={ADMIN_TONE.danger.text}>{data.payout.failureReason}</span>} /></div>}
+                  {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className={ADMIN_TONE.elevated.text}>{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
                 </dl>
               )}
                 </div>

@@ -216,10 +216,23 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * AdminTransactionDetail pairs a red-300 failure reason with an
  * orange-300 blocked reason. Folding one hue out of a multi-hue 300
  * family would break the set, so those converge as sets in the family
- * batch).
+ * batch); 3186 to 3168 (6.2 batch 6, the multi-hue 300 families. Reading
+ * them turned up a rule 7 defect rather than a colour one: TIMELINE_TONE
+ * was defined TWICE, character for character, in AdminCaseTimeline and
+ * AdminDisputeDetail, and each carried its own copy of the four-hue
+ * header tint beside it. So the fix went into the palette, not into the
+ * two call sites: ADMIN_TIMELINE now owns the dot and the header tint,
+ * and both timelines consume it. The header tint converges from the 300
+ * step to each tone's .text in the same motion, and AdminTransactionDetail's
+ * red-300 / orange-300 payout pair conforms with it. Ten of the eighteen
+ * shed are consolidation into the exempt definition file rather than
+ * elimination, the same shape as batch 1's badges.tsx, and are called out
+ * here so the number is not read as more than it is. The dots keep their
+ * 500 step: no palette entry carries a 500 dot, and a consolidation is
+ * not where one gets invented).
  */
 const BUDGET = {
-  admin: 3186,
+  admin: 3168,
   ui: 4,
   customer: 12,
 };

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ADMIN_TIMELINE } from "@/components/admin/palette";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,14 +47,6 @@ const DISPUTE_RELEVANT_TYPES = new Set([
   "transaction_status",
   "event",
 ]);
-
-const TIMELINE_TONE: Record<string, string> = {
-  green: "bg-emerald-500",
-  red: "bg-red-500",
-  orange: "bg-orange-500",
-  blue: "bg-blue-500",
-  muted: "bg-muted-foreground/60",
-};
 
 const titleCase = (s?: string | null) =>
   (s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -279,14 +272,11 @@ export function AdminCaseTimeline({
     <div className="space-y-4">
       {header && (
         <div className="flex items-center gap-2">
-          <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", TIMELINE_TONE[header.tone])} />
+          <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ADMIN_TIMELINE[header.tone]?.dot)} />
           <span
             className={cn(
               "text-sm font-semibold",
-              header.tone === "green" && "text-emerald-300",
-              header.tone === "orange" && "text-orange-300",
-              header.tone === "red" && "text-red-300",
-              header.tone === "blue" && "text-blue-300",
+              ADMIN_TIMELINE[header.tone]?.text,
             )}
           >
             {header.label}
@@ -299,7 +289,7 @@ export function AdminCaseTimeline({
             <span
               className={cn(
                 "h-2 w-2 rounded-full shrink-0 -ml-[21px]",
-                TIMELINE_TONE[r.tone],
+                ADMIN_TIMELINE[r.tone]?.dot,
               )}
             />
             <div className="text-sm font-semibold text-foreground">{r.title}</div>

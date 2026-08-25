@@ -44,7 +44,7 @@ import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.se
 import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND, ADMIN_TIMELINE } from "@/components/admin/palette";
 
 // ---------- helpers ----------
 // formatMoney dashes a missing amount; the old `?? 0` here stamped ₦0.00
@@ -2037,14 +2037,6 @@ function dedupeTimeline(items: any[]) {
 }
 
 // ---- timeline humanizer / dedupe helpers ----
-const TIMELINE_TONE: Record<string, string> = {
-  green: "bg-emerald-500",
-  red: "bg-red-500",
-  orange: "bg-orange-500",
-  blue: "bg-blue-500",
-  muted: "bg-muted-foreground/60",
-};
-
 function humanizeTimelineEntry(e: any): { title: string; description: string; tone: string; actor: string | null; sortKey: string } {
   const t: string = e.type ?? "";
   const rawTitle: string = e.title ?? "";
@@ -2177,14 +2169,11 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             "h-2.5 w-2.5 rounded-full shrink-0",
-            TIMELINE_TONE[header.tone],
+            ADMIN_TIMELINE[header.tone]?.dot,
           )} />
           <span className={cn(
             "text-sm font-semibold",
-            header.tone === "green" && "text-emerald-300",
-            header.tone === "orange" && "text-orange-300",
-            header.tone === "red" && "text-red-300",
-            header.tone === "blue" && "text-blue-300",
+            ADMIN_TIMELINE[header.tone]?.text,
           )}>
             {header.label}
           </span>
