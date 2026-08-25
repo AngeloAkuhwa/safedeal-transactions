@@ -242,10 +242,26 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * hover:bg-orange-500 buttons, which hover LIGHTER against a system
  * where every other tone darkens. That last one is a real inconsistency
  * and a deliberate fix, so it is recorded here rather than folded in
- * under a mechanical pass).
+ * under a mechanical pass); 3102 to 3081 (6.2 batch 8, the heavy pill.
+ * The wash question was answered by reading where the 20% actually
+ * lands rather than by folding it away: the flagged-user risk tiers all
+ * use ONE recipe, a 20% wash with a 40% border, so ADMIN_BADGE_STRONG
+ * records it, Partial like ADMIN_SOLID because only three tones carry a
+ * heavier form. risk.ts consumes it, and `medium` converges from
+ * amber-200 to its tone's 300 in the same motion, which is the batch's
+ * one deliberate pixel move: one tier a step lighter than its
+ * neighbours was the only thing keeping the three from being a single
+ * recipe. `low` stays raw because a solid slate chip is not a wash
+ * pill. FlaggedUserCard stops inlining the four-branch ternary it was
+ * writing beside an import of the very module that exports it, which is
+ * pixel-identical and the third rule 7 duplication this arc has turned
+ * up. Recorded and NOT done: the borderless 20% washes have no palette
+ * home at all, because every entry carries a border, so folding them
+ * would add one. Giving them an entry or a border is a shape decision,
+ * not a wash decision, and it is not this batch's).
  */
 const BUDGET = {
-  admin: 3102,
+  admin: 3081,
   ui: 4,
   customer: 12,
 };

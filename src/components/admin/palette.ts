@@ -127,6 +127,26 @@ export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
 };
 
 /**
+ * The heavy pill: one step above the badge on both the wash and the border.
+ *
+ * Measuring the wash question found six intensities in use and no entry for
+ * the 20% tier, 108 sites of it. Reading where it lands settled what to do:
+ * the flagged-user risk tiers all use ONE recipe, a 20% wash with a 40%
+ * border, applied identically across critical, high and medium. That is the
+ * surface making a severity distinction the badge cannot make, so it earns
+ * an entry rather than being folded into the badge and erased.
+ *
+ * Partial, like ADMIN_SOLID and for the same reason: only the tones that
+ * genuinely carry a heavier form get one. A tone missing here has no heavy
+ * pill on purpose.
+ */
+export const ADMIN_BADGE_STRONG: Partial<Record<AdminTone, string>> = {
+  danger: "bg-red-500/20 border-red-500/40 text-red-300",
+  elevated: "bg-orange-500/20 border-orange-500/40 text-orange-300",
+  warning: "bg-amber-500/20 border-amber-500/40 text-amber-300",
+};
+
+/**
  * The neutral slate ground the whole back office sits on. Named by role so
  * a screen says what a surface IS, not which slate step it happens to be.
  * Hover states ship beside their resting state because the pair is the
