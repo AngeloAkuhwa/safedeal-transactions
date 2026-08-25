@@ -20,11 +20,13 @@ import { sellerVerificationClaim } from "@/lib/trust/trust-claims";
  * their names and delegate, so no page changes.
  *
  * The anatomy, in order: image (with the state that belongs to the product
- * on it), seller row, title, price, one action slot. The master plan asks
- * for six elements including social proof and location; the backend serves
- * neither per product today (no ratings, no sold counts, no product
- * geography), and this codebase does not invent facts, so those two arrive
- * when the data does (PLAN.md item 2.1b).
+ * on it), seller row, title, one meta line (social proof and location),
+ * price, one action slot. Social proof is the product's completed-sale
+ * count and location is the seller's recorded city and state, both served
+ * per product since 2.1b landed; each renders only when the fact exists,
+ * because this codebase does not invent facts. Ratings stay absent on
+ * purpose: no rating infrastructure exists yet, and a hollow star row is
+ * exactly the invented trust this card was built to avoid.
  *
  * ## Container queries, not viewport units
  *
@@ -45,11 +47,19 @@ export interface BuyerCardProduct {
   unit_price: number;
   currency_code: string;
   primary_image_url?: string | null;
+  /**
+   * Completed transactions that originated from this product. Zero renders
+   * NOTHING: "0 sold" is the absence of social proof shouted, not proof.
+   */
+  sold_count?: number | null;
 }
 
 export interface BuyerCardSeller {
   full_name: string;
   identity_verified?: boolean;
+  /** Where the goods are: shown as "City, State" when the profile has it. */
+  city_name?: string | null;
+  state_name?: string | null;
   /** Present when the seller row should link to the store. */
   onOpenStore?: () => void;
 }
@@ -91,6 +101,16 @@ export function BuyerProductCard({
     ? sellerVerificationClaim({ identityVerified: seller.identity_verified })
     : null;
   const sellerInitial = seller ? (seller.full_name || "S")[0].toUpperCase() : null;
+
+  // The plan's remaining two card elements (2.1b), each rendered only when
+  // the fact exists. No placeholder, no "0 sold", no invented geography.
+  const soldClaim =
+    typeof product.sold_count === "number" && product.sold_count > 0
+      ? `${product.sold_count} sold`
+      : null;
+  const locationClaim = seller
+    ? [seller.city_name, seller.state_name].filter(Boolean).join(", ") || null
+    : null;
 
   return (
     <div
@@ -202,6 +222,17 @@ export function BuyerProductCard({
 
         {showDescription && product.short_description && (
           <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{product.short_description}</p>
+        )}
+
+        {(soldClaim || locationClaim) && (
+          /* One quiet meta line, not two decorated rows: social proof and
+             location share it, separated by a dot, and it disappears
+             entirely when neither fact is known. */
+          <p className="mb-2 truncate text-xs text-muted-foreground">
+            {soldClaim}
+            {soldClaim && locationClaim && <span aria-hidden> &middot; </span>}
+            {locationClaim}
+          </p>
         )}
 
         <div className="mt-auto flex flex-wrap items-end justify-between gap-2">

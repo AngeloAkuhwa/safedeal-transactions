@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     if (activeSellerIds.length > 0) {
       const { data: sellers } = await adminClient
         .from("profiles")
-        .select("id, full_name, store_slug, avatar_url")
+        .select("id, full_name, store_slug, avatar_url, city_name, state_name")
         .in("id", activeSellerIds);
 
       const { data: verifications } = await adminClient
@@ -207,6 +207,8 @@ Deno.serve(async (req) => {
           full_name: s.full_name,
           store_slug: s.store_slug,
           avatar_url: s.avatar_url,
+          city_name: s.city_name ?? null,
+          state_name: s.state_name ?? null,
           trust_summary: {
             verification_level: v.verification_level || "unverified",
             email_verified: v.email_verified || false,
@@ -248,6 +250,28 @@ Deno.serve(async (req) => {
       }));
     }
 
+    // Social proof, measured rather than invented (plan 2.1b): a product's
+    // sold count is the number of COMPLETED transactions that originated
+    // from it. Completed only: an in-flight, disputed or refunded
+    // transaction is not a sale, and the card renders nothing at zero
+    // rather than announcing "0 sold".
+    const soldCounts: Record<string, number> = {};
+    {
+      const pageProductIds = filteredProducts.map((p: { id: string }) => p.id);
+      if (pageProductIds.length > 0) {
+        const { data: soldRows } = await adminClient
+          .from("transactions")
+          .select("source_product_id")
+          .eq("status", "completed")
+          .in("source_product_id", pageProductIds);
+        for (const r of soldRows || []) {
+          if (r.source_product_id) {
+            soldCounts[r.source_product_id] = (soldCounts[r.source_product_id] || 0) + 1;
+          }
+        }
+      }
+    }
+
     // Shape response: public-safe data only
     const shaped = filteredProducts.map((p: any) => {
       const primaryMedia = (p.product_media || []).find((m: any) => m.is_primary);
@@ -267,11 +291,14 @@ Deno.serve(async (req) => {
         category_id: p.category_id || null,
         primary_image_url: primaryImageUrl,
         is_featured: featuredIds.has(p.id),
+        sold_count: soldCounts[p.id] || 0,
         seller: sellerMap[p.seller_id] || {
           id: p.seller_id,
           full_name: "Unknown Seller",
           store_slug: null,
           avatar_url: null,
+          city_name: null,
+          state_name: null,
           trust_summary: {
             verification_level: "unverified",
             email_verified: false,

@@ -23,6 +23,8 @@ interface ProductCardProps {
     status?: string;
     visibility_type?: string;
     primary_image_url?: string | null;
+    /** Completed transactions that originated from this product. */
+    sold_count?: number | null;
   };
   onClick?: () => void;
   showBadges?: boolean;

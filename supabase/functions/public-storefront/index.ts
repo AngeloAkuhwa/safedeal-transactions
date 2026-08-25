@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     // Get seller profile
     const { data: seller, error: sellerError } = await adminClient
       .from("profiles")
-      .select("id, full_name, avatar_url, store_slug, vendor_status, vendor_status_reason")
+      .select("id, full_name, avatar_url, store_slug, vendor_status, vendor_status_reason, city_name, state_name")
       .eq("store_slug", sellerSlug)
       .single();
 
@@ -119,9 +119,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Social proof, measured rather than invented (plan 2.1b), mirroring the
+    // marketplace: completed transactions per originating product, and the
+    // card stays silent at zero.
+    const soldCounts: Record<string, number> = {};
+    if (productIds.length > 0) {
+      const { data: soldRows } = await adminClient
+        .from("transactions")
+        .select("source_product_id")
+        .eq("status", "completed")
+        .in("source_product_id", productIds);
+      for (const r of soldRows || []) {
+        if (r.source_product_id) {
+          soldCounts[r.source_product_id] = (soldCounts[r.source_product_id] || 0) + 1;
+        }
+      }
+    }
+
     const enrichedProducts = (products || []).map((p: any) => ({
       ...p,
       primary_image_url: mediaMap[p.id] || null,
+      sold_count: soldCounts[p.id] || 0,
     }));
 
     return jsonResponse({
@@ -129,6 +147,8 @@ Deno.serve(async (req) => {
         full_name: seller.full_name,
         avatar_url: seller.avatar_url,
         store_slug: seller.store_slug,
+        city_name: (seller as { city_name?: string | null }).city_name ?? null,
+        state_name: (seller as { state_name?: string | null }).state_name ?? null,
         verification_level: verification?.verification_level || "unverified",
         email_verified: verification?.email_verified || false,
         phone_verified: verification?.phone_verified || false,

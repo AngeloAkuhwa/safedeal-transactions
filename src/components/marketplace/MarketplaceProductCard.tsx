@@ -64,6 +64,8 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
         seller={{
           full_name: seller.full_name,
           identity_verified: seller.trust_summary?.identity_verified,
+          city_name: seller.city_name,
+          state_name: seller.state_name,
           onOpenStore: seller.store_slug
             ? () => navigate(`/store/${seller.store_slug}`)
             : undefined,
