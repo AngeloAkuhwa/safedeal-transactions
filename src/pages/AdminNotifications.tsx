@@ -35,7 +35,7 @@ const channelIcon = (ch: string) => {
 };
 const channelIconColor = (ch: string) => {
   if (ch === "email") return "text-purple-400";
-  if (ch === "sms") return "text-orange-400";
+  if (ch === "sms") return ADMIN_TONE.elevated.text;
   if (ch === "push") return "text-emerald-400";
   return "text-blue-400"; // in_app
 };
@@ -155,7 +155,7 @@ function KpiCards({ kpis }: { kpis: any }) {
   const iconBg: Record<string, string> = {
     blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     red: "bg-red-500/10 text-red-400 border-red-500/20",
-    orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    orange: ADMIN_TONE.elevated.chip,
     purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     amber: ADMIN_TONE.warning.chip,
@@ -163,7 +163,7 @@ function KpiCards({ kpis }: { kpis: any }) {
   const numberColor: Record<string, string> = {
     blue: "text-blue-400",
     red: "text-red-400",
-    orange: "text-orange-400",
+    orange: ADMIN_TONE.elevated.text,
     purple: "text-purple-400",
     emerald: "text-emerald-400",
     amber: ADMIN_TONE.warning.text,
@@ -454,10 +454,10 @@ function DeliveryPerf({ perf }: { perf: any[] }) {
   const meta: Record<string, { name: string; sub: string; iconBg: string; barBg: string; iconColor: string; numberColor: string }> = {
     in_app: { name: "In-App Notifications", sub: "Real-time platform notifications", iconBg: "bg-blue-500/10 border-blue-500/20", iconColor: "text-blue-400", barBg: "bg-blue-500", numberColor: "text-blue-400" },
     email: { name: "Email Notifications", sub: "Transaction confirmations & alerts", iconBg: "bg-purple-500/10 border-purple-500/20", iconColor: "text-purple-400", barBg: "bg-purple-500", numberColor: "text-purple-400" },
-    sms: { name: "SMS Notifications", sub: "Security codes & urgent alerts", iconBg: "bg-orange-500/10 border-orange-500/20", iconColor: "text-orange-400", barBg: "bg-orange-500", numberColor: "text-orange-400" },
+    sms: { name: "SMS Notifications", sub: "Security codes & urgent alerts", iconBg: "bg-orange-500/10 border-orange-500/20", iconColor: ADMIN_TONE.elevated.text, barBg: "bg-orange-500", numberColor: ADMIN_TONE.elevated.text },
     push: { name: "Push Notifications", sub: "Mobile push alerts", iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-400", barBg: "bg-emerald-500", numberColor: "text-emerald-400" },
   };
-  const rateColor = (rate: number) => (rate >= 95 ? "text-emerald-400" : rate >= 90 ? "text-orange-400" : "text-red-400");
+  const rateColor = (rate: number) => (rate >= 95 ? "text-emerald-400" : rate >= 90 ? ADMIN_TONE.elevated.text : "text-red-400");
   return (
     <Card className="overflow-hidden">
       <div className="p-3 border-b border-border">

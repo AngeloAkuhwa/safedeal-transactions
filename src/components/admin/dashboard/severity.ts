@@ -1,9 +1,10 @@
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { Severity } from "@/services/admin-dashboard.service";
 
 export const SEVERITY_BG: Record<Severity, string> = {
   blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   red: "bg-red-500/10 text-red-400 border-red-500/20",
-  orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  orange: ADMIN_TONE.elevated.chip,
   purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   cyan: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
   yellow: "bg-amber-500/10 text-amber-300 border-amber-500/20",
@@ -13,7 +14,7 @@ export const SEVERITY_BG: Record<Severity, string> = {
 export const SEVERITY_DOT: Record<Severity, string> = {
   blue: "bg-blue-400",
   red: "bg-red-400",
-  orange: "bg-orange-400",
+  orange: ADMIN_TONE.elevated.dot,
   purple: "bg-purple-400",
   cyan: "bg-cyan-300",
   yellow: "bg-amber-300",

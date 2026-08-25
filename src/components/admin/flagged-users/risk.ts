@@ -1,3 +1,4 @@
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { FlaggedRisk, FlaggedStatus } from "@/services/admin-flagged-users.service";
 
 export const RISK_LABEL: Record<FlaggedRisk, string> = {
@@ -30,7 +31,7 @@ export const RISK_PILL: Record<FlaggedRisk, string> = {
 
 export const RISK_DOT: Record<FlaggedRisk, string> = {
   critical: "bg-red-400",
-  high: "bg-orange-400",
+  high: ADMIN_TONE.elevated.dot,
   medium: "bg-amber-300",
   low: "bg-slate-400",
 };

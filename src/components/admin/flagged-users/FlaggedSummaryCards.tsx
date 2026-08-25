@@ -1,4 +1,5 @@
 import { Flag, AlertTriangle, Ban, CheckCircle2, Bot } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { FlaggedSummary } from "@/services/admin-flagged-users.service";
 
 interface Props {
@@ -55,12 +56,12 @@ export function FlaggedSummaryCards({ summary }: Props) {
       />
       <Card
         icon={AlertTriangle}
-        iconWrap="bg-orange-500/10 border-orange-500/30"
-        iconClass="text-orange-400"
+        iconWrap={ADMIN_TONE.elevated.panel}
+        iconClass={ADMIN_TONE.elevated.text}
         label="High Risk"
         value={summary.high_risk}
         delta={summary.critical > 0 ? `${summary.critical} Critical` : "Critical"}
-        deltaClass="text-orange-400"
+        deltaClass={ADMIN_TONE.elevated.text}
         hint="Immediate attention needed"
       />
       <Card

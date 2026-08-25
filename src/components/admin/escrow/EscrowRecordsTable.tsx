@@ -18,7 +18,7 @@ const UNKNOWN_STATE_STYLE = {
 const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
   held:            { dot: "bg-emerald-400",   pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "Held" },
   frozen:          { dot: "bg-red-400 sd-live-dot", pill: "bg-red-500/15 text-red-300 border-red-500/30",     label: "Frozen" },
-  pending_release: { dot: "bg-orange-400",    pill: "bg-orange-500/15 text-orange-300 border-orange-500/30",     label: "Pending Release" },
+  pending_release: { dot: ADMIN_TONE.elevated.dot,    pill: ADMIN_TONE.elevated.badge,     label: "Pending Release" },
   released:        { dot: "bg-cyan-400",      pill: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",           label: "Released" },
   refunded:        { dot: "bg-purple-400",    pill: "bg-purple-500/15 text-purple-300 border-purple-500/30",     label: "Refunded" },
 };
@@ -37,10 +37,10 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
   const lines: { icon: React.ReactNode; text: string; className: string }[] = [];
   if (row.flagged) {
     lines.push({ icon: <Link2 className="h-3 w-3" />, text: "Linked dispute", className: "text-slate-400" });
-    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Admin review", className: "text-orange-400" });
+    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Admin review", className: ADMIN_TONE.elevated.text });
   } else if (row.money_status === "funds_releasing") {
     lines.push({ icon: <CheckCircle2 className="h-3 w-3" />, text: "Buyer confirmed", className: "text-emerald-400" });
-    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Auto-release pending", className: "text-orange-400" });
+    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Auto-release pending", className: ADMIN_TONE.elevated.text });
   }
   if (row.state_mismatch) {
     lines.push({ icon: <AlertTriangle className="h-3 w-3" />, text: "State mismatch", className: ADMIN_TONE.warning.text });

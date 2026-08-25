@@ -54,7 +54,7 @@ const PRIORITY_DOT: Record<DisputeQueueRow["priority"], string> = {
 
 const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
   overdue: "text-red-400",
-  high: "text-orange-400",
+  high: ADMIN_TONE.elevated.text,
   medium: ADMIN_TONE.warning.text,
   low: "text-emerald-400",
   resolved: "text-emerald-400",
@@ -101,7 +101,7 @@ function humanizeSla(sla: DisputeQueueRow["sla"]): { label: string; sub: string;
     const m = sla.due_in_minutes;
     const txt = m >= 1440 ? `Due in ${Math.floor(m / 1440)} days` : m >= 60 ? `Due in ${Math.floor(m / 60)} hours` : `Due in ${m} min`;
     const due = sla.due_at_iso ? new Date(sla.due_at_iso) : null;
-    const tone = m < 240 ? "text-orange-400" : "text-muted-foreground";
+    const tone = m < 240 ? ADMIN_TONE.elevated.text : "text-muted-foreground";
     return { label: txt, sub: due ? `Due: ${due.toLocaleString("en-NG", { timeZone: "Africa/Lagos", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "", tone };
   }
   return { label: "—", sub: "", tone: "text-muted-foreground" };
@@ -117,7 +117,7 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
     if (derived) {
       const tone =
         derived.tone === "success" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-        derived.tone === "warning" ? "bg-orange-500/15 text-orange-300 border-orange-500/30" :
+        derived.tone === "warning" ? ADMIN_TONE.elevated.badge :
         derived.tone === "danger" ? "bg-red-500/15 text-red-300 border-red-500/30" :
         derived.tone === "info" ? "bg-blue-500/15 text-blue-300 border-blue-500/30" :
         "bg-muted text-muted-foreground border-border";

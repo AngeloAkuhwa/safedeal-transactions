@@ -36,7 +36,7 @@ const STATUS_CLASS: Record<string, string> = {
   flagged: "bg-red-500/10 border-red-500/20 text-red-400",
   suspended: "bg-purple-500/10 border-purple-500/20 text-purple-400",
   pending: ADMIN_TONE.warning.chip,
-  under_investigation: "bg-orange-500/10 border-orange-500/20 text-orange-400",
+  under_investigation: ADMIN_TONE.elevated.chip,
 };
 
 function relativeDate(iso: string | null): string {
