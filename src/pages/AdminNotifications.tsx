@@ -114,7 +114,7 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
           <Button variant="outline" size="sm" onClick={onExport} className="h-11 text-xs">
             <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Button size="sm" onClick={onBroadcast} className="h-11 text-xs bg-blue-600 hover:bg-blue-500 text-white">
+          <Button size="sm" onClick={onBroadcast} className={`h-11 text-xs ${ADMIN_SOLID.info}`}>
             <Megaphone className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Broadcast Message</span>
           </Button>
         </div>
@@ -256,7 +256,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={onSearch}
-            className="px-4 h-11 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+            className={`px-4 h-11 text-xs ${ADMIN_SOLID.info} font-semibold`}
           >
             <Search className="h-3.5 w-3.5" /> Search Notifications
           </Button>

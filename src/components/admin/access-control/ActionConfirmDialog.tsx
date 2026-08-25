@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import { Label } from "@/components/ui/label";
 
 interface Props {
@@ -69,7 +70,7 @@ export function ActionConfirmDialog({
           <AlertDialogAction
             onClick={(e) => { e.preventDefault(); void submit(); }}
             disabled={!canSubmit}
-            className={variant === "destructive" ? "bg-red-600 text-white hover:bg-red-700" : undefined}
+            className={variant === "destructive" ? ADMIN_SOLID.danger : undefined}
           >
             {busy ? "Working…" : confirmLabel}
           </AlertDialogAction>

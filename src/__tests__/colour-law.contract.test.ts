@@ -258,10 +258,28 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * up. Recorded and NOT done: the borderless 20% washes have no palette
  * home at all, because every entry carries a border, so folding them
  * would add one. Giving them an entry or a border is a shape decision,
- * not a wash decision, and it is not this batch's).
+ * not a wash decision, and it is not this batch's); 3081 to 3010 (6.2
+ * batch 9, hover direction. The orange note above understated it. Counted
+ * across the whole surface there are 86 resting/hover pairs and they
+ * disagreed 27 to 32 about which way a hover moves, which is close enough
+ * to even that it took counting rather than reading: two buttons sat side
+ * by side on AdminDisputes, one deepening and one brightening under the
+ * same pointer. Two conventions were already there and each is internally
+ * perfect, so the fix conformed to them rather than inventing a third: the
+ * neutral slate ground LIFTS one step (29 sites, no exceptions), and
+ * saturated solids DARKEN, which is what ADMIN_SOLID has encoded since
+ * batch 7. The 27 strays flipped to 700, and where the flip made the set
+ * exact the site now consumes ADMIN_SOLID instead of restating it.
+ * hover-direction.contract holds the rule, red-verified on all 27. Held
+ * back and still raw, each for a stated reason: two sky buttons, because
+ * sky is a real admin hue at 85 sites with no palette tone at all and
+ * inventing one is not a hover fix; three solids that set text-foreground
+ * where the palette says text-white; and two whose triad is split across a
+ * long utility string, where reordering would be eyeballing rather than a
+ * mechanical rule).
  */
 const BUDGET = {
-  admin: 3081,
+  admin: 3010,
   ui: 4,
   customer: 12,
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import { Loader2 } from "lucide-react";
 
 const REASONS = ["Dispute resolved","Risk cleared","Evidence reviewed","False flag","Manual correction","Other"];
@@ -121,7 +122,7 @@ export function UnfreezeFundsDialog({ open, onOpenChange, bothPartiesConfirmed, 
           <button onClick={() => close(false)} disabled={submitting}
             className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm min-h-11">Cancel</button>
           <button onClick={submit} disabled={!canSubmit}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm font-medium disabled:opacity-60 min-h-11">
+            className={`inline-flex items-center gap-2 rounded-md ${ADMIN_SOLID.success} px-3 py-2 text-sm font-medium disabled:opacity-60 min-h-11`}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Unfreeze
           </button>

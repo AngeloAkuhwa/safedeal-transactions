@@ -151,7 +151,7 @@ function HeaderBar({
             disabled={!dirty}
             className={`h-11 min-w-11 shrink-0 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-foreground transition-colors ${
               dirty
-                ? "bg-amber-600 hover:bg-amber-500"
+                ? "bg-amber-600 hover:bg-amber-700"
                 : "bg-muted border border-border opacity-60 cursor-not-allowed"
             }`}
           >
@@ -574,7 +574,7 @@ export default function AdminSettings() {
                   </div>
                   <button
                     onClick={() => { toast.success("Timeout rules saved locally"); setDirty(false); }}
-                    className="h-11 px-3 bg-blue-600 hover:bg-blue-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+                    className="h-11 px-3 bg-blue-600 hover:bg-blue-700 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
                   >
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Update Timeout Rules
@@ -660,7 +660,7 @@ export default function AdminSettings() {
                 <div className="flex items-center justify-end flex-wrap gap-2">
                   <button
                     onClick={() => { toast.success("Fee structure saved locally"); setDirty(false); }}
-                    className="h-11 px-3 bg-emerald-600 hover:bg-emerald-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+                    className="h-11 px-3 bg-emerald-600 hover:bg-emerald-700 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
                   >
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Update Fee Structure

@@ -814,7 +814,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <Button
                     size="sm"
                     onClick={() => dialogs.setNoteOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                    className={ADMIN_SOLID.info}
                   >
                     <FilePlus2 className="h-4 w-4 mr-1.5" />
                     Add Note
@@ -1039,8 +1039,8 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     ? "bg-blue-500/15 text-blue-400"
     : "bg-orange-500/15 text-orange-400";
   const callBtnCls = isBuyer
-    ? "bg-blue-600 hover:bg-blue-500 text-white border-transparent"
-    : "bg-orange-600 hover:bg-orange-500 text-white border-transparent";
+    ? `${ADMIN_SOLID.info} border-transparent`
+    : `${ADMIN_SOLID.elevated} border-transparent`;
   const sellerTier: string | null = !isBuyer && party.sellerTier ? party.sellerTier : null;
   const accountStatusValue = isBuyer
     ? <span className={cn(party.accountStatus === "good_standing" ? ADMIN_TONE.success.text : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
