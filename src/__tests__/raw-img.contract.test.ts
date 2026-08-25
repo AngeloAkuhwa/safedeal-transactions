@@ -8,6 +8,16 @@
  * desktop-sized original. A raw <img src={product.image_url}> does none of
  * that, and 52 of them shipped before the primitive existed.
  *
+ * Measured again after the first classification pass: of those 52, only
+ * four were ever product photos a rendition could serve (a product hero,
+ * a top-products thumbnail, a transaction item photo, and one already
+ * converted). The rest are avatars, uploaded dispute evidence, local
+ * pre-submit previews, deliberate full-size lightboxes, a QR code and
+ * two static brand assets. Every surviving entry below now carries the
+ * reason it stays raw, so the list stops reading as 48 pending defects
+ * and starts reading as what it is: an inventory with four conversions
+ * done and the remainder deliberate.
+ *
  * Not every <img> is a defect: QR codes, receipt scans, dispute evidence,
  * avatars and static brand art are not product photos and stay raw on
  * purpose. This guard cannot tell those apart, and does not try. What it
@@ -18,9 +28,18 @@
  * a converted site cannot silently leave headroom behind.
  *
  * Blind spot, written down per house rule 3: this counts the literal text
- * "<img" after JSX comment stripping. An <img> assembled by createElement
- * or hidden in a string would not be seen. None exists today; if one
+ * "<img" after comment stripping. An <img> assembled by createElement or
+ * hidden in a string would not be seen. None exists today; if one
  * appears, teach the walk to see it rather than trusting this note.
+ *
+ * The stripper counts ALL block comments, not only the `{/* … *\/}` JSX
+ * form, because the narrower version had already produced a false
+ * positive: `PurchaseAuthModal` was converted to `ProductImage` in #41
+ * and its migration note says so in a plain `/* … *\/` comment inside a
+ * ternary branch. The word `<img` in that sentence kept the file on the
+ * debt list, so a finished conversion still read as outstanding work.
+ * A guard that miscounts in the safe direction still lies about how
+ * much is left.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -32,49 +51,46 @@ const ROOT = path.resolve(__dirname, "..");
 const DEFINITION = "components/common/ProductImage.tsx";
 
 const RAW_IMG_DEBT = new Map<string, number>([
-  ["components/admin/escrow/EscrowRecordsTable.tsx", 1],
-  ["components/admin/flagged-users/UserAvatar.tsx", 1],
-  ["components/admin/payouts/PayoutDetailDrawer.tsx", 1],
-  ["components/admin/task-orchestration/AgentLoadCard.tsx", 1],
-  ["components/admin/task-orchestration/LiveTaskProgression.tsx", 1],
-  ["components/admin/task-orchestration/ProductivityInsights.tsx", 1],
-  ["components/admin/task-orchestration/drawers/AgentDetailsDrawer.tsx", 1],
-  ["components/admin/task-orchestration/drawers/AssignTaskDrawer.tsx", 1],
-  ["components/admin/transactions/EvidencePreviewDialog.tsx", 1],
-  ["components/admin/users/UserDetailDrawer.tsx", 1],
-  ["components/admin/users/UsersMobileFeed.tsx", 1],
-  ["components/admin/users/UsersTable.tsx", 1],
-  ["components/auth/BrandedAuthSplash.tsx", 1],
-  ["components/disputes/BuyerClaimSection.tsx", 2],
-  ["components/disputes/DeliveryProofSection.tsx", 1],
-  ["components/disputes/SellerResponseSection.tsx", 1],
-  ["components/pwa/InstallPrompt.tsx", 1],
-  ["components/security/TwoFactorDialog.tsx", 1],
-  ["components/seller-disputes/SellerEvidenceSection.tsx", 1],
-  ["components/seller-disputes/SellerResponseForm.tsx", 1],
-  ["components/seller-disputes/SellerViewBuyerClaim.tsx", 1],
-  ["components/seller/DispatchForm.tsx", 1],
-  ["components/storefront/PurchaseAuthModal.tsx", 1],
-  ["components/transactions/ContactSellerModal.tsx", 1],
-  ["components/transactions/ProductMediaGallery.tsx", 3],
-  ["components/verification/DisputeForm.tsx", 2],
-  ["pages/AdminAuditLogs.tsx", 1],
-  ["pages/AdminDisputeDetail.tsx", 3],
-  ["pages/AdminDisputes.tsx", 1],
-  ["pages/AdminNotifications.tsx", 2],
-  ["pages/AdminTransactionDetail.tsx", 2],
-  ["pages/AdminUserDetail.tsx", 1],
-  ["pages/BuyerTransactionDetail.tsx", 3],
-  ["pages/BuyerTransactionReview.tsx", 1],
-  ["pages/BuyerTransactionTracking.tsx", 3],
-  ["pages/SellerAnalytics.tsx", 1],
-  ["pages/SellerCreateTransaction.tsx", 1],
-  ["pages/SellerProductCreate.tsx", 1],
-  ["pages/SellerProductPreview.tsx", 1],
-  ["pages/SellerUpdateDelivery.tsx", 1],
+  ["components/admin/escrow/EscrowRecordsTable.tsx", 1], // avatar
+  ["components/admin/flagged-users/UserAvatar.tsx", 1], // avatar
+  ["components/admin/payouts/PayoutDetailDrawer.tsx", 1], // avatar
+  ["components/admin/task-orchestration/AgentLoadCard.tsx", 1], // avatar
+  ["components/admin/task-orchestration/LiveTaskProgression.tsx", 1], // avatar
+  ["components/admin/task-orchestration/ProductivityInsights.tsx", 1], // avatar
+  ["components/admin/task-orchestration/drawers/AgentDetailsDrawer.tsx", 1], // avatar
+  ["components/admin/task-orchestration/drawers/AssignTaskDrawer.tsx", 1], // avatar
+  ["components/admin/transactions/EvidencePreviewDialog.tsx", 1], // evidence
+  ["components/admin/users/UserDetailDrawer.tsx", 1], // avatar
+  ["components/admin/users/UsersMobileFeed.tsx", 1], // avatar
+  ["components/admin/users/UsersTable.tsx", 1], // avatar
+  ["components/auth/BrandedAuthSplash.tsx", 1], // asset (brand logo)
+  ["components/disputes/BuyerClaimSection.tsx", 2], // evidence
+  ["components/disputes/DeliveryProofSection.tsx", 1], // evidence
+  ["components/disputes/SellerResponseSection.tsx", 1], // evidence
+  ["components/pwa/InstallPrompt.tsx", 1], // asset (PWA icon)
+  ["components/security/TwoFactorDialog.tsx", 1], // qr
+  ["components/seller-disputes/SellerEvidenceSection.tsx", 1], // evidence
+  ["components/seller-disputes/SellerResponseForm.tsx", 1], // upload
+  ["components/seller-disputes/SellerViewBuyerClaim.tsx", 1], // evidence
+  ["components/seller/DispatchForm.tsx", 1], // upload
+  ["components/transactions/ContactSellerModal.tsx", 1], // upload
+  ["components/transactions/ProductMediaGallery.tsx", 3], // renditions inline + lightbox
+  ["components/verification/DisputeForm.tsx", 2], // upload
+  ["pages/AdminAuditLogs.tsx", 1], // avatar
+  ["pages/AdminDisputeDetail.tsx", 3], // evidence + lightbox + avatar
+  ["pages/AdminDisputes.tsx", 1], // avatar
+  ["pages/AdminNotifications.tsx", 2], // avatar
+  ["pages/AdminTransactionDetail.tsx", 1], // avatar
+  ["pages/AdminUserDetail.tsx", 1], // avatar
+  ["pages/BuyerTransactionDetail.tsx", 3], // evidence + avatar
+  ["pages/BuyerTransactionReview.tsx", 1], // avatar
+  ["pages/BuyerTransactionTracking.tsx", 3], // lightbox + evidence + avatar
+  ["pages/SellerCreateTransaction.tsx", 1], // upload
+  ["pages/SellerProductCreate.tsx", 1], // upload
+  ["pages/SellerUpdateDelivery.tsx", 1], // upload
 ]);
 
-const stripJsxComments = (s: string) => s.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "");
+const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "");
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -90,7 +106,7 @@ describe("raw <img> only ever decreases", () => {
   for (const file of walk(ROOT)) {
     const rel = path.relative(ROOT, file);
     if (rel.startsWith("__tests__") || rel === DEFINITION) continue;
-    const n = stripJsxComments(fs.readFileSync(file, "utf8")).split("<img").length - 1;
+    const n = stripComments(fs.readFileSync(file, "utf8")).split("<img").length - 1;
     if (n) counts.set(rel, n);
   }
 
