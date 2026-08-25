@@ -104,7 +104,7 @@ export function ConfigureAlertsModal({ open, onOpenChange, initial, onSaved }: P
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving || loading || !values} className="bg-sky-600 hover:bg-sky-500">
+          <Button onClick={save} disabled={saving || loading || !values} className="bg-sky-600 hover:bg-sky-700">
             {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving…</> : "Save thresholds"}
           </Button>
         </DialogFooter>

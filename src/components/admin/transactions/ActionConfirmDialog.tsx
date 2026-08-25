@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -72,8 +73,8 @@ export function ActionConfirmDialog({
 
   const btnCls =
     confirmTone === "danger"
-      ? "bg-red-600 hover:bg-red-500 text-white"
-      : "bg-blue-600 hover:bg-blue-500 text-white";
+      ? ADMIN_SOLID.danger
+      : ADMIN_SOLID.info;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

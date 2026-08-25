@@ -7,7 +7,7 @@ import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { fetchEscrowDetail, type EscrowDetail } from "@/services/admin-escrow.service";
 import { BlockSkeleton } from "@/components/common/PageSkeleton";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
@@ -138,7 +138,7 @@ function Body({ d }: { d: EscrowDetail }) {
       <div className="flex gap-2">
         <button
           onClick={() => nav(`/admin/transactions/${d.transaction.id}`)}
-          className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 min-h-11"
+          className={`flex-1 px-4 py-2.5 ${ADMIN_SOLID.success} rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 min-h-11`}
         >
           <FileText className="h-4 w-4" /> Full transaction
           <ExternalLink className="h-3 w-3" />

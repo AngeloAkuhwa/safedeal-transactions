@@ -26,7 +26,7 @@ import {
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { keyActivate } from "@/lib/a11y";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------- visual helpers ---------- */
 
@@ -634,7 +634,7 @@ export default function AdminDisputes() {
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={`h-11 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
+                                  className={`h-11 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? ADMIN_SOLID.success : ADMIN_SOLID.elevated}`}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
@@ -715,7 +715,7 @@ export default function AdminDisputes() {
                         <div className="mt-3 flex items-center justify-between pl-2">
                           <span className="text-xs text-muted-foreground">{row.agent?.name ?? "Unassigned"}</span>
                           <div className="flex items-center gap-1">
-                            <Button size="sm" className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
+                            <Button size="sm" className={isResolved ? ADMIN_SOLID.success : ADMIN_SOLID.elevated} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
                               {isResolved ? "View Resolution" : "Review"}
                             </Button>
                             <DropdownMenu>

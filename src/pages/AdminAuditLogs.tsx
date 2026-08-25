@@ -15,7 +15,7 @@ import {
 import { runExport } from "@/services/admin-escrow.service";
 import { useAdminRealtimeChannel, createBurstThrottle } from "@/hooks/useAdminRealtimeChannel";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- helpers ---------------- */
 function fmtRelative(iso: string): string {
@@ -133,7 +133,7 @@ function AuditHeader({
             {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             <span className="hidden sm:inline">Export Logs</span>
           </Button>
-          <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="gap-2 bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500">
+          <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="gap-2 bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
             {complianceLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
             <span className="hidden sm:inline">Compliance Report</span>
           </Button>
@@ -685,21 +685,21 @@ export default function AdminAuditLogs() {
                         </td>
                         <td className="p-3 align-top">
                           <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                            <Button onClick={() => setDrawerRow(r)} title="View Details" size="sm" className="h-11 px-2 text-xs bg-blue-600 hover:bg-blue-500 text-white">
+                            <Button onClick={() => setDrawerRow(r)} title="View Details" size="sm" className={`h-11 px-2 text-xs ${ADMIN_SOLID.info}`}>
                               <Eye className="h-3 w-3" /><span className="hidden xl:inline ml-1">Details</span>
                             </Button>
                             {r.target.user_id && (
-                              <Button onClick={() => navigate(`/admin/users/${r.target.user_id}`)} title="View User" size="sm" className="h-11 px-2 text-xs bg-purple-600 hover:bg-purple-500 text-white">
+                              <Button onClick={() => navigate(`/admin/users/${r.target.user_id}`)} title="View User" size="sm" className={`h-11 px-2 text-xs ${ADMIN_SOLID.special}`}>
                                 <User className="h-3 w-3" /><span className="hidden xl:inline ml-1">User</span>
                               </Button>
                             )}
                             {r.target.transaction_id && (
-                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white min-w-11 inline-flex items-center justify-center">
+                              <Button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction" size="sm" className={`h-11 px-2 text-xs ${ADMIN_SOLID.elevated} min-w-11 inline-flex items-center justify-center`}>
                                 <ArrowRight className="h-3 w-3" /><span className="hidden xl:inline ml-1">TXN</span>
                               </Button>
                             )}
                             {r.target.dispute_id && (
-                              <Button onClick={() => navigate(`/admin/disputes/${r.target.dispute_id}`)} title="View Dispute" size="sm" className="h-11 px-2 text-xs bg-orange-600 hover:bg-orange-500 text-white">
+                              <Button onClick={() => navigate(`/admin/disputes/${r.target.dispute_id}`)} title="View Dispute" size="sm" className={`h-11 px-2 text-xs ${ADMIN_SOLID.elevated}`}>
                                 <Scale className="h-3 w-3" /><span className="hidden xl:inline ml-1">Dispute</span>
                               </Button>
                             )}
