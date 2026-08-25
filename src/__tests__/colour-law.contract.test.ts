@@ -189,10 +189,16 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * warning.text is amber-300, so no entry is an identical set. A second
  * import lesson recorded: inserting after the last line starting with
  * "import " lands inside a MULTILINE import; the opener line is not the
- * import's end).
+ * import's end); 3291 to 3253 (6.2 batch 3, a deliberate step change:
+ * 38 standalone caution texts and glyphs at amber-400 fold into
+ * warning.text amber-300, one step brighter on the slate-900 ground,
+ * so caution text reads at one intensity everywhere. Pill-internal
+ * text beside /15 and /20 washes keeps its 400 inside its composite,
+ * the RolePicker favourite star keeps its hover pair, and both wait
+ * for the wash batch).
  */
 const BUDGET = {
-  admin: 3291,
+  admin: 3253,
   ui: 4,
   customer: 12,
 };

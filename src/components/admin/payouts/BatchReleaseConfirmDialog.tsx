@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 export const BATCH_RELEASE_CONFIRM_PHRASE = "RELEASE";
 
@@ -45,7 +46,7 @@ export function BatchReleaseConfirmDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
             Confirm batch release
           </DialogTitle>
           <DialogDescription>

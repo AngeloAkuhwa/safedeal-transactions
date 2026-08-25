@@ -241,7 +241,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className={`${ADMIN_GROUND.heading} font-semibold text-sm`}>Eligibility Checklist</h4>
-                  <span className={`text-xs font-semibold ${detail.eligibility.eligible ? "text-emerald-400" : "text-amber-400"}`}>
+                  <span className={`text-xs font-semibold ${detail.eligibility.eligible ? "text-emerald-400" : ADMIN_TONE.warning.text}`}>
                     {passed}/{total} ready
                   </span>
                 </div>
@@ -296,7 +296,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     <Row label="Account" value={detail.payout_account.masked_account ?? "—"} />
                     <Row label="Account name" value={detail.payout_account.account_name ?? "—"} />
                     <Row label="Verification" value={
-                      <span className={ap.state === "verified_ready" || ap.state === "verified_no_recipient" ? "text-emerald-400" : "text-amber-400"}>
+                      <span className={ap.state === "verified_ready" || ap.state === "verified_no_recipient" ? "text-emerald-400" : ADMIN_TONE.warning.text}>
                         {ap.drawerVerificationLabel}
                       </span>
                     } />

@@ -1449,7 +1449,7 @@ function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live"
     state === "live"
       ? { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Live sync", pulse: true }
       : state === "connecting"
-      ? { dot: ADMIN_TONE.warning.dot, border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400", label: "Connecting…", pulse: true }
+      ? { dot: ADMIN_TONE.warning.dot, border: "border-amber-500/30", bg: "bg-amber-500/10", text: ADMIN_TONE.warning.text, label: "Connecting…", pulse: true }
       : { dot: "bg-muted-foreground", border: "border-border", bg: "bg-muted/40", text: "text-muted-foreground", label: "Offline", pulse: false };
   return (
     <span
