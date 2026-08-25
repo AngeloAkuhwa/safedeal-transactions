@@ -12,6 +12,8 @@ export interface MarketplaceSeller {
   full_name: string;
   store_slug: string | null;
   avatar_url: string | null;
+  city_name: string | null;
+  state_name: string | null;
   trust_summary: SellerTrustSummary;
 }
 
@@ -29,6 +31,8 @@ export interface MarketplaceProduct {
   primary_image_url: string | null;
   /** Paid featured placement (Growth plan or an active store boost). */
   is_featured?: boolean;
+  /** Completed transactions that originated from this product. */
+  sold_count?: number;
   seller: MarketplaceSeller;
 }
 
