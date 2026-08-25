@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import type { EscrowRecordRow } from "@/services/admin-escrow.service";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 /**
@@ -24,12 +25,13 @@ const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }>
 };
 
 function Avatar({ name, url }: { name: string; url: string | null }) {
-  const initials = name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-  if (url) return <img src={url} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />;
   return (
-    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center shrink-0">
-      {initials || "??"}
-    </div>
+    <UserAvatar
+      url={url}
+      name={name}
+      className="w-8 h-8 rounded-full object-cover shrink-0"
+      fallbackClassName="w-8 h-8 rounded-full bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center shrink-0"
+    />
   );
 }
 

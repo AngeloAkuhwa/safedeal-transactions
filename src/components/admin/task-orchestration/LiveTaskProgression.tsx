@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
-  CARD_CLASS, humanize, initialsOf, relative, shortNameOf,
+  CARD_CLASS, humanize, initialsOf, nameOf, relative, shortNameOf,
   slaBadgeClass, slaLabel, statusChip,
 } from "./helpers";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import type { AgentRosterEntry, LiveTask } from "@/services/task-orchestration.service";
 
 const SLA_FILTERS = [
@@ -127,9 +128,12 @@ export function LiveTaskProgression({
                   <td className="px-2 py-3">
                     <div className="flex items-center gap-2">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {agent?.avatar_url
-                          ? <img src={agent.avatar_url} className="h-full w-full rounded-full object-cover" alt="" />
-                          : initialsOf(agent)}
+                        <UserAvatar
+                          url={agent?.avatar_url}
+                          name={agent ? nameOf(agent) : null}
+                          alt=""
+                          className="h-full w-full rounded-full object-cover"
+                        />
                       </div>
                       <span className="text-xs text-muted-foreground">{shortNameOf(agent)}</span>
                     </div>

@@ -2,6 +2,7 @@ import { Activity, CheckCircle2, GaugeCircle, Clock8, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CARD_CLASS, TONE, initialsOf, nameOf, type ToneKey } from "./helpers";
 import type { AgentRosterEntry, OrchestrationOverview } from "@/services/task-orchestration.service";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Item {
@@ -73,9 +74,12 @@ export function ProductivityInsights({
                   </div>
                   <div className="mb-1 flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
-                      {it.agent?.avatar_url
-                        ? <img src={it.agent.avatar_url} className="h-full w-full rounded-full object-cover" alt="" />
-                        : initialsOf(it.agent)}
+                      <UserAvatar
+                        url={it.agent?.avatar_url}
+                        name={it.agent ? nameOf(it.agent) : null}
+                        alt=""
+                        className="h-full w-full rounded-full object-cover"
+                      />
                     </div>
                     <div className="min-w-0 truncate text-sm font-medium text-foreground">{nameOf(it.agent)}</div>
                   </div>

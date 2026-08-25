@@ -50,6 +50,7 @@ import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { ProductImage } from "@/components/common/ProductImage";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 // formatMoney dashes a missing amount; the old `?? 0` here defeated that and
@@ -148,11 +149,18 @@ function MobileAccordion({ title, defaultOpen, action, children }: { title: stri
   );
 }
 function Avatar({ name, src, size = 32 }: { name?: string | null; src?: string | null; size?: number }) {
-  const initials = (name ?? "?").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-  return src ? (
-    <img src={src} alt={name ?? ""} className="rounded-full object-cover" style={{ width: size, height: size }} />
-  ) : (
-    <div className="rounded-full bg-muted text-foreground flex items-center justify-center text-xs font-semibold" style={{ width: size, height: size }}>{initials}</div>
+  // Sized by prop rather than class, so the box classes carry no dimensions
+  // and the wrapper supplies them inline.
+  return (
+    <span className="inline-flex" style={{ width: size, height: size }}>
+      <UserAvatar
+        url={src}
+        name={name}
+        alt={name ?? ""}
+        className="w-full h-full rounded-full object-cover"
+        fallbackClassName="w-full h-full rounded-full bg-muted text-foreground flex items-center justify-center text-xs font-semibold"
+      />
+    </span>
   );
 }
 function Empty({ children }: { children: React.ReactNode }) {

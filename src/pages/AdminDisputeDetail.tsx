@@ -43,6 +43,7 @@ import { AgreementPreviewDialog } from "@/components/admin/transactions/Agreemen
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
 import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 // ---------- helpers ----------
@@ -1889,13 +1890,13 @@ function MessageItem({ m }: { m: CommMessage }) {
     <div className={cn("border-l-4 rounded-lg p-4", s.border, s.bg)}>
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
-          {m.avatarUrl ? (
-            <img src={m.avatarUrl} alt="" className="w-9 h-9 rounded-full ring-2 ring-slate-700 object-cover" />
-          ) : (
-            <div className="w-9 h-9 rounded-full ring-2 ring-slate-700 bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-200">
-              {initials(m.senderName)}
-            </div>
-          )}
+          <UserAvatar
+            url={m.avatarUrl}
+            name={m.senderName}
+            alt=""
+            className="w-9 h-9 rounded-full ring-2 ring-slate-700 object-cover"
+            fallbackClassName="w-9 h-9 rounded-full ring-2 ring-slate-700 bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-200"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className={cn("font-semibold text-sm", roleColor(m.senderRole))}>{m.senderName}</span>

@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 function fmtDate(iso: string | null | undefined): string {
@@ -239,9 +240,12 @@ export default function AdminUserDetail() {
             <div className={`bg-slate-800/50 border ${ADMIN_GROUND.borderSoft} rounded-xl p-4 sm:p-6`}>
               <div className="flex items-start justify-between gap-4 flex-col lg:flex-row">
                 <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-                  {data.user.avatar_url
-                    ? <img src={data.user.avatar_url} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-slate-600 object-cover shrink-0" alt={data.user.full_name} />
-                    : <span className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-slate-600 bg-slate-700 text-white text-2xl font-bold inline-flex items-center justify-center shrink-0">{(data.user.full_name || "?").slice(0, 1).toUpperCase()}</span>}
+                  <UserAvatar
+                    url={data.user.avatar_url}
+                    name={data.user.full_name}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-slate-600 object-cover shrink-0"
+                    fallbackClassName="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-slate-600 bg-slate-700 text-white text-2xl font-bold inline-flex items-center justify-center shrink-0"
+                  />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       <h3 className={`${ADMIN_GROUND.heading} text-lg sm:text-xl font-bold truncate`}>{data.user.full_name || "Unnamed"}</h3>

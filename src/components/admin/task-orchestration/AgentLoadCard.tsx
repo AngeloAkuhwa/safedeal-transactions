@@ -5,6 +5,7 @@ import {
   initialsOf, isEligibleAvailability, nameOf, relativeShort, humanize,
 } from "./helpers";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; onSelect: () => void }) {
@@ -31,9 +32,12 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
         <div className="flex min-w-0 items-center gap-2">
           <div className={cn("relative h-8 w-8 flex-shrink-0 rounded-full ring-2", availabilityRing(agent.availability))}>
             <div className="flex h-full w-full items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
-              {agent.avatar_url
-                ? <img src={agent.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-                : initialsOf(agent)}
+              <UserAvatar
+                url={agent.avatar_url}
+                name={nameOf(agent)}
+                alt=""
+                className="h-full w-full rounded-full object-cover"
+              />
             </div>
             <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background", availabilityDot(agent.availability))} />
           </div>

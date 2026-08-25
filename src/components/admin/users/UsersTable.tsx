@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { PresenceDot } from "./PresenceDot";
 import { resolveClaim } from "@/lib/trust/trust-claims";
 import { keyActivate } from "@/lib/a11y";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_SOLID, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
@@ -96,7 +97,6 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
               const ring = r.is_flagged || r.is_suspended ? "ring-red-500/30"
                 : r.trust_badge === "trusted_seller" ? "ring-emerald-500/30"
                 : r.status === "pending" ? "ring-amber-500/30" : "ring-slate-700";
-              const init = (r.full_name || "?").slice(0, 1).toUpperCase();
               return (
                 <tr role="button" tabIndex={0} onKeyDown={keyActivate}
                   key={r.user_id}
@@ -109,9 +109,12 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                         onClick={(e) => { e.stopPropagation(); onOpenDetail(r.user_id); }}
                         className="relative block min-h-11"
                       >
-                        {r.avatar_url
-                          ? <img src={r.avatar_url} className={`w-10 h-10 rounded-full ring-2 ${ring}`} alt={r.full_name} />
-                          : <span className={`w-10 h-10 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
+                        <UserAvatar
+                          url={r.avatar_url}
+                          name={r.full_name}
+                          className={`w-10 h-10 rounded-full ring-2 ${ring}`}
+                          fallbackClassName={`w-10 h-10 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}
+                        />
                         <PresenceDot online={!!isOnline?.(r.user_id)} ringClass="ring-slate-900" />
                       </button>
                       <div>
