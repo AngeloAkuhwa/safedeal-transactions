@@ -237,7 +237,16 @@ const SellerProductPreview = () => {
                         {heroImage.media_type === "video" ? (
                           <video src={heroImage.file_url} className="w-full h-full object-contain" controls />
                         ) : (
-                          <img src={heroImage.file_url} alt={product.title} className="w-full h-full object-contain" />
+                          /* The thumbnails below already render through the
+                             renditions; the hero was the one slot still
+                             shipping the full master into a 16:10 box. */
+                          <ProductImage
+                            url={heroImage.file_url}
+                            alt={product.title}
+                            rendition="detail"
+                            sizes="(max-width: 1024px) 100vw, 720px"
+                            className="object-contain"
+                          />
                         )}
                       </div>
                       {thumbnails.length > 0 && (

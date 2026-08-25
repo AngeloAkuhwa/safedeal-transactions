@@ -30,6 +30,7 @@ import {
 } from "@/services/seller-analytics.service";
 import { cn } from "@/lib/utils";
 import { TONE, toneChip, type Tone } from "@/lib/tone";
+import { ProductImage } from "@/components/common/ProductImage";
 import { formatMoney } from "@/lib/format";
 
 /* ---------- Helpers ---------- */
@@ -709,11 +710,12 @@ const SellerAnalytics = () => {
                             >
                               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded bg-muted shrink-0 overflow-hidden flex items-center justify-center">
                                 {p.image_url ? (
-                                  <img
-                                    src={p.image_url}
+                                  <ProductImage
+                                    url={p.image_url}
                                     alt={p.name}
-                                    loading="lazy"
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    rendition="thumb"
+                                    sizes="40px"
+                                    className="transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
                                   <Package className="h-4 w-4 text-muted-foreground/60" />

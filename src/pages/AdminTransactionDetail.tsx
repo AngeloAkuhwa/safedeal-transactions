@@ -49,6 +49,7 @@ import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } fro
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { ProductImage } from "@/components/common/ProductImage";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 // formatMoney dashes a missing amount; the old `?? 0` here defeated that and
@@ -1282,7 +1283,13 @@ export default function AdminTransactionDetail() {
               {data.items.map((it) => (
                 <div key={it.id} className="flex gap-3 items-start border-t border-border pt-3 first:border-t-0 first:pt-0">
                   {it.image ? (
-                    <img src={it.image} alt={it.title} className="w-16 h-16 rounded-md object-cover bg-muted" />
+                    <ProductImage
+                      url={it.image}
+                      alt={it.title}
+                      rendition="thumb"
+                      sizes="64px"
+                      className="w-16 h-16 rounded-md bg-muted"
+                    />
                   ) : (
                     <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center text-muted-foreground"><Package className="h-5 w-5" /></div>
                   )}
