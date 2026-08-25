@@ -1248,7 +1248,7 @@ export default function AdminTransactionDetail() {
                 />
                 <div className="p-4 lg:p-6">
                   {!lockedAgreement ? (
-                    <div className={`rounded-md border ${ADMIN_TONE.elevated.panel} p-3 text-sm text-orange-300`}>
+                    <div className={`rounded-md border ${ADMIN_TONE.elevated.panel} p-3 text-sm ${ADMIN_TONE.elevated.text}`}>
                       Agreement snapshot missing. Review this transaction for data integrity.
                     </div>
                   ) : (

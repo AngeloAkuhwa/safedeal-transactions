@@ -171,7 +171,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
                 <Scale className={`h-4 w-4 ${ADMIN_TONE.elevated.text} mt-0.5`} />
                 <div>
-                  <p className="text-orange-300 text-sm font-medium">{view.disputes_30d} dispute{view.disputes_30d === 1 ? "" : "s"} in 30 days</p>
+                  <p className={`${ADMIN_TONE.elevated.text} text-sm font-medium`}>{view.disputes_30d} dispute{view.disputes_30d === 1 ? "" : "s"} in 30 days</p>
                   <p className="text-slate-400 text-xs">{view.refunds_30d > 0 ? `${view.refunds_30d} chargeback(s)` : "No chargebacks"}</p>
                 </div>
               </div>
