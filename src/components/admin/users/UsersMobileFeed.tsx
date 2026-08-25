@@ -167,7 +167,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       {r.disputes.active > 0
                         ? <p className={`${ADMIN_TONE.danger.text} font-bold text-sm`}>Active disputes</p>
                         : r.disputes.total > 0
-                          ? <p className="text-amber-400 font-bold text-sm">In progress</p>
+                          ? <p className={`${ADMIN_TONE.warning.text} font-bold text-sm`}>In progress</p>
                           : <p className={`${ADMIN_GROUND.muted} font-bold text-sm`}>Clean record</p>}
                     </div>
                   </>

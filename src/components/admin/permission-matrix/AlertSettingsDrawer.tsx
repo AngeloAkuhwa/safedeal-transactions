@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 const ALERT_KEYS = [
   { key: "critical_permission_changed", label: "Critical permission changes", desc: "Notify when Privileged / Critical permissions are granted, revoked, or applied." },
@@ -95,7 +96,7 @@ export function AlertSettingsDrawer({ open, onOpenChange }: { open: boolean; onO
                   <Label className="text-sm font-medium">{a.label}</Label>
                   <p className="mt-0.5 text-xs text-muted-foreground">{a.desc}</p>
                   {disabled && (
-                    <p className="mt-1 text-xs text-amber-400">You need permissions.view to receive this alert.</p>
+                    <p className={`mt-1 text-xs ${ADMIN_TONE.warning.text}`}>You need permissions.view to receive this alert.</p>
                   )}
                 </div>
                 <Switch

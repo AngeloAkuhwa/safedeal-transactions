@@ -132,7 +132,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                           )}
                           {r.status === "pending" && (
                             <span className="w-5 h-5 bg-amber-500/10 border border-amber-500/30 rounded flex items-center justify-center" title="Pending verification">
-                              <Clock className="h-3 w-3 text-amber-400" />
+                              <Clock className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
                             </span>
                           )}
                         </div>
@@ -181,7 +181,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     {r.disputes.active > 0
                       ? <p className={`${ADMIN_TONE.danger.text} text-xs mt-0.5 font-medium`}>Active · of {r.disputes.total} total</p>
                       : r.disputes.total > 0
-                        ? <p className="text-amber-400 text-xs mt-0.5 font-medium">In progress</p>
+                        ? <p className={`${ADMIN_TONE.warning.text} text-xs mt-0.5 font-medium`}>In progress</p>
                         : <p className={`${ADMIN_GROUND.muted} text-xs mt-0.5`}>Clean record</p>}
                   </td>
                   <td className="p-4">

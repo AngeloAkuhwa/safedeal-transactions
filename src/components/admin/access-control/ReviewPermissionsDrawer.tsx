@@ -26,6 +26,7 @@ import {
   type OverrideDetail,
 } from "@/services/admin-access-control.service";
 import { toast } from "sonner";
+import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   user: InternalUser | null;
@@ -463,7 +464,7 @@ function RequestOverrideDialog({
                 {options.map((o) => (
                   <SelectItem key={o.key} value={o.key}>
                     <span className="inline-flex items-center gap-1.5">
-                      {isPrivilegedPermission(o.key) && <span className="text-amber-400">★</span>}
+                      {isPrivilegedPermission(o.key) && <span className={ADMIN_TONE.warning.text}>★</span>}
                       <span className="font-mono text-xs">{o.key}</span>
                     </span>
                   </SelectItem>
