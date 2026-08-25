@@ -16,7 +16,7 @@ export function AgentPerformanceHeader({
     <div className="sticky top-0 z-sticky border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 lg:px-8">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground lg:text-2xl">Agent Performance &amp; Dispute Operations</h1>
+          <h1 className="h-page font-semibold text-foreground">Agent Performance &amp; Dispute Operations</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Performance tracking · Workload management
           </p>

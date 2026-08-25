@@ -353,7 +353,7 @@ export default function AdminDisputes() {
                 <Menu className="h-5 w-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
+                <h1 className="h-page font-semibold text-foreground">Dispute Resolution Queue</h1>
                 <p className="text-xs sm:text-sm text-muted-foreground">Live dispute triage and case management</p>
               </div>
             </div>

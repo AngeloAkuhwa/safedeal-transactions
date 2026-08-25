@@ -94,7 +94,7 @@ export default function AdminReconciliation() {
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-semibold">Reconciliation &amp; Pricing Audit</h1>
+            <h1 className="h-page font-semibold">Reconciliation &amp; Pricing Audit</h1>
             <p className="text-sm text-muted-foreground">
               Hourly job compares Paystack collected / paid-out / refunded with the internal escrow ledger.
               {data?.latest_run ? ` Latest run ${new Date(data.latest_run.run_at).toLocaleString()}.` : " No runs yet."}
