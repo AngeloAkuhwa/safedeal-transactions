@@ -15,7 +15,7 @@ import { EscrowMobileHero } from "@/components/admin/escrow/EscrowMobileHero";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { fetchEscrowOverview, type EscrowQuery } from "@/services/admin-escrow.service";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 const TITLE = "Escrow Overview";
 const SUBTITLE = "Real-time financial control center for all platform escrow funds";
@@ -107,7 +107,7 @@ export default function AdminEscrow() {
             type="button"
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11"
+            className={`px-4 py-2 ${ADMIN_SOLID.success} rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 min-h-11`}
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Refresh Data</span>

@@ -229,10 +229,23 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * elimination, the same shape as batch 1's badges.tsx, and are called out
  * here so the number is not read as more than it is. The dots keep their
  * 500 step: no palette entry carries a 500 dot, and a consolidation is
- * not where one gets invented).
+ * not where one gets invented); 3168 to 3102 (6.2 batch 7, the solid
+ * CTAs, mechanical: every occurrence of bg-X-600 hover:bg-X-700
+ * text-white is character for character an ADMIN_SOLID entry, whether it
+ * stands alone as a className or sits inside a longer one, so standalone
+ * ones became the expression and embedded ones became a template with
+ * the entry interpolated. ADMIN_SOLID gained an `elevated` entry: orange
+ * had committing actions and no entry, which is why its buttons were
+ * hand-written, and it was added at the 600/700 pattern every other tone
+ * already follows rather than as a new idea. Held back: solids missing
+ * text-white, which are not identical sets, and orange's
+ * hover:bg-orange-500 buttons, which hover LIGHTER against a system
+ * where every other tone darkens. That last one is a real inconsistency
+ * and a deliberate fix, so it is recorded here rather than folded in
+ * under a mechanical pass).
  */
 const BUDGET = {
-  admin: 3168,
+  admin: 3102,
   ui: 4,
   customer: 12,
 };

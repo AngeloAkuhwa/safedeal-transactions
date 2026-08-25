@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import type { FlaggedQuery } from "@/services/admin-flagged-users.service";
 
 interface Props {
@@ -97,7 +98,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
           <button
             type="button"
             onClick={onApply}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+            className={`px-6 py-3 ${ADMIN_SOLID.danger} rounded-lg font-semibold transition-all flex items-center justify-center gap-2`}
           >
             <Search className="h-4 w-4" /> Search
           </button>

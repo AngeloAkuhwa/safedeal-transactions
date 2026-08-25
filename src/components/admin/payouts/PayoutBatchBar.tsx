@@ -1,6 +1,7 @@
 import { CheckCheck, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -26,7 +27,7 @@ export function PayoutBatchBar({ selected, onClear, onProcess, processing }: Pro
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" onClick={onProcess} disabled={processing} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11 sm:h-9 text-xs sm:text-sm">
+          <Button size="sm" onClick={onProcess} disabled={processing} className={`${ADMIN_SOLID.success} gap-2 h-11 sm:h-9 text-xs sm:text-sm`}>
             {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
             Process
           </Button>

@@ -19,6 +19,7 @@ import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
 import { fetchAdminSettings } from "@/services/admin-settings.service";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
@@ -263,7 +264,7 @@ export default function AdminPayouts() {
           </Button>
           <Button
             size="sm"
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className={`gap-2 ${ADMIN_SOLID.success}`}
             onClick={handleProcessBatchClick}
             disabled={batchProcessing}
           >

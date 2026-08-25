@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { type UserDirectoryQuery } from "@/services/admin-users-directory.service";
 import { runExport } from "@/services/admin-escrow.service";
 import { PresenceCountChip } from "./PresenceDot";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   totalUsers: number;
@@ -67,7 +67,7 @@ export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCoun
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             <span className="hidden sm:inline">{busy ? "Exporting…" : "Export Users"}</span>
           </button>
-          <button type="button" onClick={() => toast({ title: "Coming soon", description: "User creation is on the roadmap." })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium min-h-11">
+          <button type="button" onClick={() => toast({ title: "Coming soon", description: "User creation is on the roadmap." })} className={`px-4 py-2 ${ADMIN_SOLID.success} rounded-lg transition-all flex items-center gap-2 text-sm font-medium min-h-11`}>
             <UserPlus className="h-4 w-4" />
             <span className="hidden sm:inline">Add User</span>
           </button>

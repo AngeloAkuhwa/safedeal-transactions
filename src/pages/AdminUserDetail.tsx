@@ -226,7 +226,7 @@ export default function AdminUserDetail() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50 min-h-11">
+              <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className={`px-3 sm:px-4 py-2 sm:py-2.5 ${ADMIN_SOLID.elevated} rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50 min-h-11`}>
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
               <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className={`px-3 sm:px-4 py-2 sm:py-2.5 ${ADMIN_SOLID.info} rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20 min-h-11`}>
@@ -305,7 +305,7 @@ export default function AdminUserDetail() {
                       <FlagOff className="h-4 w-4" /> Unflag User
                     </button>
                   ) : (
-                    <button onClick={() => setPendingAction({ kind: "flag" })} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11">
+                    <button onClick={() => setPendingAction({ kind: "flag" })} className={`px-4 py-2 ${ADMIN_SOLID.warning} rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2 min-h-11`}>
                       <Flag className="h-4 w-4" /> Flag User
                     </button>
                   )}

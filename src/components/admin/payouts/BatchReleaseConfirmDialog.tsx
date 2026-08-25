@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 export const BATCH_RELEASE_CONFIRM_PHRASE = "RELEASE";
 
@@ -89,7 +89,7 @@ export function BatchReleaseConfirmDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className={ADMIN_SOLID.success}
             disabled={disabled}
             onClick={async () => {
               setBusy(true);
