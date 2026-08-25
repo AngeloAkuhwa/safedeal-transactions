@@ -6,7 +6,7 @@ import { formatMoneyCompact } from "@/lib/format";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   userId: string | null;
@@ -143,7 +143,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
             <div className="sticky bottom-0 bg-slate-950 pt-3 -mx-5 px-5 border-t border-slate-800">
               <button
                 onClick={() => { onClose(); navigate(`/admin/users/${data.user.user_id}`); }}
-                className="w-full mb-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center justify-center gap-1 font-medium min-h-11"
+                className={`w-full mb-2 py-2 ${ADMIN_SOLID.info} rounded text-xs flex items-center justify-center gap-1 font-medium min-h-11`}
               >
                 <ExternalLink className="h-3 w-3" /> Open Full Investigation Hub
               </button>
@@ -152,9 +152,9 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
                   <ExternalLink className="h-3 w-3" /> Fraud workspace
                 </button>
                 {data.user.is_flagged
-                  ? <button onClick={() => onClearFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs flex items-center justify-center gap-1 min-h-11"><CheckCircle2 className="h-3 w-3" /> Clear flag</button>
-                  : <button onClick={() => onFlag(data.user.user_id, data.user.full_name)} className="py-2 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs flex items-center justify-center gap-1 min-h-11"><Flag className="h-3 w-3" /> Flag</button>}
-                <button onClick={() => onSuspend(data.user.user_id, data.user.full_name)} disabled={data.user.is_suspended} className={`py-2 rounded text-xs flex items-center justify-center gap-1 ${data.user.is_suspended ? "bg-slate-700/50 text-slate-500" : "bg-purple-600 hover:bg-purple-700 text-white"} min-h-11`}>
+                  ? <button onClick={() => onClearFlag(data.user.user_id, data.user.full_name)} className={`py-2 ${ADMIN_SOLID.success} rounded text-xs flex items-center justify-center gap-1 min-h-11`}><CheckCircle2 className="h-3 w-3" /> Clear flag</button>
+                  : <button onClick={() => onFlag(data.user.user_id, data.user.full_name)} className={`py-2 ${ADMIN_SOLID.warning} rounded text-xs flex items-center justify-center gap-1 min-h-11`}><Flag className="h-3 w-3" /> Flag</button>}
+                <button onClick={() => onSuspend(data.user.user_id, data.user.full_name)} disabled={data.user.is_suspended} className={`py-2 rounded text-xs flex items-center justify-center gap-1 ${data.user.is_suspended ? "bg-slate-700/50 text-slate-500" : ADMIN_SOLID.special} min-h-11`}>
                   <Ban className="h-3 w-3" /> {data.user.is_suspended ? "Suspended" : "Suspend"}
                 </button>
               </div>

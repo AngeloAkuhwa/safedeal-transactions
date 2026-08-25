@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import type { EscrowQuery } from "@/services/admin-escrow.service";
 
 interface Props {
@@ -97,7 +98,7 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
           <button
             type="button"
             onClick={onApply}
-            className="px-5 py-2.5 lg:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 min-h-11"
+            className={`px-5 py-2.5 lg:py-3 ${ADMIN_SOLID.success} rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 min-h-11`}
           >
             <Search className="h-4 w-4" />
             Search

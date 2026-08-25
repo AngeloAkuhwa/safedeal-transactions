@@ -1,5 +1,6 @@
 import { Search, X } from "lucide-react";
 import type { UserDirectoryQuery } from "@/services/admin-users-directory.service";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
@@ -68,7 +69,7 @@ export function UsersFilters({ value, search, onChange, onSearchChange, onApply,
           <button type="button" onClick={onReset} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg flex items-center gap-1.5 min-h-11">
             <X className="h-4 w-4" /> Reset
           </button>
-          <button type="button" onClick={onApply} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg flex items-center gap-1.5 min-h-11">
+          <button type="button" onClick={onApply} className={`px-4 py-2 ${ADMIN_SOLID.success} text-sm font-medium rounded-lg flex items-center gap-1.5 min-h-11`}>
             <Search className="h-4 w-4" /> Search
           </button>
         </div>

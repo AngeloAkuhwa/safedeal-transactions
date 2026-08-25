@@ -2393,7 +2393,7 @@ function ResolutionSidebar({
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
         <SidebarBtn icon={<Wallet />} label="Release Funds to Seller"
           onClick={onResolve} disabled={!canManage || isResolved}
-          variant="solid" solidClass="bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+          variant="solid" solidClass={`${ADMIN_SOLID.info} border-transparent`}
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
         <SidebarBtn icon={<Percent />} label="Partial Refund"
           onClick={onResolve} disabled={!canManage || isResolved}
@@ -2409,7 +2409,7 @@ function ResolutionSidebar({
         <div className="mt-3 pt-3 border-t border-[#253044]/70 space-y-2">
           <SidebarBtn icon={<Ban />} label="Block Payout"
             disabled
-            variant="solid" solidClass="bg-red-600 hover:bg-red-700 text-white border-transparent"
+            variant="solid" solidClass={`${ADMIN_SOLID.danger} border-transparent`}
             tip="Payout block control not connected yet" />
           <SidebarBtn icon={<PlayCircle />} label="Resume Payout"
             disabled

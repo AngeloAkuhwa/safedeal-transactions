@@ -15,7 +15,7 @@ import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline
 import * as payoutsApi from "@/services/admin-payouts.service";
 import { getPayoutPill, getPayoutCaption, getAccountPresentation } from "@/lib/payout-presentation";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
   open: boolean;
@@ -381,7 +381,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                   <button
                     className={
                       releaseEnabled
-                        ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-11"
+                        ? `px-4 py-2 ${ADMIN_SOLID.success} rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-11`
                         : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed min-h-11"
                     }
                     disabled={!releaseEnabled || busy === "release"}
@@ -449,7 +449,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
           )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleRelease} disabled={busy === "release"}>
+            <Button className={ADMIN_SOLID.success} onClick={handleRelease} disabled={busy === "release"}>
               {busy === "release" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Release"}
             </Button>
           </DialogFooter>

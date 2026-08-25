@@ -120,6 +120,10 @@ export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
   info: "bg-blue-600 hover:bg-blue-700 text-white",
   special: "bg-purple-600 hover:bg-purple-700 text-white",
   warning: "bg-amber-600 hover:bg-amber-700 text-white",
+  // Orange had committing actions and no entry, so its buttons were
+  // written by hand. Added at the pattern every other tone already
+  // follows (600 resting, 700 on hover) rather than as a new idea.
+  elevated: "bg-orange-600 hover:bg-orange-700 text-white",
 };
 
 /**

@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill, payoutPillFor } from "./PayoutStatusPill";
 import { eligibleForRelease } from "./PayoutsTable";
+import { ADMIN_SOLID } from "@/components/admin/palette";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -111,7 +112,7 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
                     ) : r.status === "failed" && r.retry_allowed ? (
                       <Button size="sm" variant="outline" className="h-11 px-3 text-xs" onClick={() => onRetry(r)}>Retry</Button>
                     ) : r.status === "awaiting_release" ? (
-                      <Button size="sm" className="h-11 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      <Button size="sm" className={`h-11 px-3 text-xs ${ADMIN_SOLID.success}`}
                         disabled={!e.ok || releasingId === r.id}
                         onClick={() => onRelease(r)}>
                         {releasingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Release"}
