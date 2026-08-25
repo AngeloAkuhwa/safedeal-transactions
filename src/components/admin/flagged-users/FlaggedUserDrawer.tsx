@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relative } from "./risk";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   row: FlaggedUserRow | null;
@@ -157,7 +157,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
           <section className="space-y-2">
             <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Context</h4>
             {view.related.tx_code ? (
-              <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+              <div className={`flex items-start gap-3 p-3 ${ADMIN_GROUND.panel} border rounded-xl`}>
                 <Banknote className={`h-4 w-4 ${ADMIN_TONE.special.text} mt-0.5`} />
                 <div>
                   <p className="text-white text-sm font-medium">#{view.related.tx_code}</p>
@@ -168,7 +168,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               </div>
             ) : <p className="text-slate-500 text-xs">No related transaction.</p>}
             {view.disputes_30d > 0 && (
-              <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+              <div className={`flex items-start gap-3 p-3 ${ADMIN_GROUND.panel} border rounded-xl`}>
                 <Scale className={`h-4 w-4 ${ADMIN_TONE.elevated.text} mt-0.5`} />
                 <div>
                   <p className={`${ADMIN_TONE.elevated.text} text-sm font-medium`}>{view.disputes_30d} dispute{view.disputes_30d === 1 ? "" : "s"} in 30 days</p>
@@ -177,7 +177,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               </div>
             )}
             {view.escrow_at_risk > 0 && (
-              <div className="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+              <div className={`flex items-start gap-3 p-3 ${ADMIN_GROUND.panel} border rounded-xl`}>
                 <Clock className="h-4 w-4 text-red-300 mt-0.5" />
                 <div>
                   <p className="text-white text-sm font-medium">{formatMoney(view.escrow_at_risk, "NGN")}</p>
@@ -232,7 +232,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
             )}
             <ul className="space-y-2">
               {detail?.admin_actions?.slice(0, 5).map((a) => (
-                <li key={a.id} className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <li key={a.id} className={`p-2 rounded-lg ${ADMIN_GROUND.panel} border`}>
                   <div className="flex items-center justify-between">
                     <span className="text-white text-xs font-semibold">{a.label}</span>
                     <span className="text-slate-500 text-xs">{relative(a.created_at)}</span>
@@ -251,13 +251,13 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               onChange={(e) => setNote(e.target.value)}
               placeholder="Required note: reason for this action…"
               rows={3}
-              className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500"
+              className={`w-full p-3 ${ADMIN_GROUND.panel} border rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500`}
             />
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button" disabled={!canSuspend || !!pending}
                 onClick={() => runAction("suspend_user")}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
+                className={`px-3 py-2 ${ADMIN_SOLID.special} disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold min-h-11`}
               >
                 {pending === "suspend_user" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                 Suspend
@@ -265,7 +265,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!canClear || !!pending}
                 onClick={() => runAction("clear_flag")}
-                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
+                className={`px-3 py-2 ${ADMIN_SOLID.success} disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold min-h-11`}
               >
                 {pending === "clear_flag" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Clear Flag
@@ -273,7 +273,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               <button
                 type="button" disabled={!canEscalate || !!pending}
                 onClick={() => runAction("escalate_case")}
-                className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold min-h-11"
+                className={`px-3 py-2 ${ADMIN_SOLID.elevated} disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold min-h-11`}
               >
                 {pending === "escalate_case" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
                 Escalate

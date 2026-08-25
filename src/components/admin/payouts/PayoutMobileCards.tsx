@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill, payoutPillFor } from "./PayoutStatusPill";
 import { eligibleForRelease } from "./PayoutsTable";
-import { ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -52,7 +52,7 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
         const sellerInitials = (r.seller.name || "?")
           .split(" ").map((s) => s[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
         return (
-          <Card key={r.id} className="bg-slate-900 border-slate-800 p-4 space-y-3">
+          <Card key={r.id} className={`${ADMIN_GROUND.panel} p-4 space-y-3`}>
             {/* Row 1: checkbox + status-icon square + code/reason + status pill */}
             <div className="flex items-start gap-3">
               <Tooltip>

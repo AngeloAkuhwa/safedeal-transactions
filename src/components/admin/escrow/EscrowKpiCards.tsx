@@ -1,7 +1,7 @@
 import { Lock, Hourglass, RotateCcw, CheckCircle2, CalendarRange, Vault } from "lucide-react";
 import type { EscrowKpis } from "@/services/admin-escrow.service";
 import { formatMoney } from "@/lib/format";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import { formatMoneyCompactOrDash } from "@/lib/payment/money-format";
 
 function fmtDelta(d: number): string {
@@ -14,7 +14,7 @@ function Card({ icon, iconBg, iconBorder, iconColor, label, value, currency, sub
   label: string; value: number; currency: string | null; sub: string; delta: number; deltaColor: string;
 }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 lg:p-6">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl p-4 lg:p-6`}>
       <div className="flex items-center justify-between mb-3 lg:mb-4">
         <div className={`w-10 h-10 lg:w-12 lg:h-12 ${iconBg} border ${iconBorder} rounded-lg flex items-center justify-center`}>
           <span className={iconColor}>{icon}</span>

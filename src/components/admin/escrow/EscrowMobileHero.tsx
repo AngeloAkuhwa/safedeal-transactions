@@ -1,4 +1,4 @@
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import { Clock, RefreshCw } from "lucide-react";
 
 export function EscrowMobileHero({
@@ -11,7 +11,7 @@ export function EscrowMobileHero({
   warnings: number;
 }) {
   return (
-    <div className="lg:hidden bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div className={`lg:hidden ${ADMIN_GROUND.panel} border rounded-xl p-4`}>
       <div className="flex items-center justify-between">
         <div className="min-w-0">
           <h2 className="text-white text-base font-semibold">Escrow Overview</h2>

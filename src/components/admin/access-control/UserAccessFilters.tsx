@@ -1,7 +1,7 @@
 import { Ban, ClipboardCheck, MailPlus, Search, ShieldAlert, UserPlus, X } from "lucide-react";
 import type { AccessFilter } from "@/services/admin-access-control.service";
 import { AdvancedFilters, type AdvancedFilterState } from "./AdvancedFilters";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -87,7 +87,7 @@ export function UserAccessFilters({
           <button
             type="button"
             onClick={onAddUser}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 min-h-11"
+            className={`inline-flex shrink-0 items-center gap-2 rounded-lg ${ADMIN_SOLID.info} px-4 py-2 text-sm font-semibold transition-colors min-h-11`}
           >
             <UserPlus className="h-4 w-4" /> Add User
           </button>

@@ -87,7 +87,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
           const isBusinessUnverified = r.roles.includes("business") && r.verification.level !== "fully";
 
           return (
-            <div key={r.user_id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+            <div key={r.user_id} className={`${ADMIN_GROUND.panel} border rounded-2xl overflow-hidden shadow-xl shadow-black/20`}>
               {/* Card body: opens full detail page */}
               <div
                 role="button"
@@ -232,7 +232,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
             <button
               disabled={page <= 1}
               onClick={() => onPage(page - 1)}
-              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']"
+              className={`w-10 h-10 ${ADMIN_GROUND.panel} border rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']`}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -240,7 +240,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
             <button
               disabled={page >= pageCount}
               onClick={() => onPage(page + 1)}
-              className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']"
+              className={`w-10 h-10 ${ADMIN_GROUND.panel} border rounded-lg text-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative before:absolute before:-inset-2 before:content-['']`}
             >
               <ChevronRight className="h-4 w-4" />
             </button>

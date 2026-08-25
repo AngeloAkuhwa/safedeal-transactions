@@ -1,5 +1,5 @@
 import { Flag, AlertTriangle, Ban } from "lucide-react";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import type { FlaggedSummary } from "@/services/admin-flagged-users.service";
 
 export function FlaggedMobileStatsScroll({ summary }: { summary: FlaggedSummary }) {
@@ -11,7 +11,7 @@ export function FlaggedMobileStatsScroll({ summary }: { summary: FlaggedSummary 
   return (
     <div className="lg:hidden flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
       {items.map(({ icon: Icon, wrap, color, value, label }) => (
-        <div key={label} className="min-w-[160px] bg-slate-900 border border-slate-800 rounded-2xl p-4 snap-start">
+        <div key={label} className={`min-w-[160px] ${ADMIN_GROUND.panel} border rounded-2xl p-4 snap-start`}>
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${wrap}`}>
             <Icon className={`h-5 w-5 ${color}`} />
           </div>

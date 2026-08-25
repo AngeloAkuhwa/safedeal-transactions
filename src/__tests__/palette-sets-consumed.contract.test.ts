@@ -30,7 +30,14 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { ADMIN_TONE, ADMIN_CATEGORY } from "@/components/admin/palette";
+import {
+  ADMIN_TONE,
+  ADMIN_CATEGORY,
+  ADMIN_SOLID,
+  ADMIN_BADGE_STRONG,
+  ADMIN_GROUND,
+  ADMIN_TIMELINE,
+} from "@/components/admin/palette";
 
 const ROOT = path.resolve(__dirname, "../..");
 const AREAS = [
@@ -61,16 +68,44 @@ function adminSources(): string[] {
   return out;
 }
 
-/** Every named set in the palette, as its member class tokens. */
+/**
+ * Every named set in the palette, as its member class tokens.
+ *
+ * All six class-bearing maps, which is the correction this batch exists for.
+ * The first version of this guard read two of them, ADMIN_TONE and
+ * ADMIN_CATEGORY, while claiming in its own header to read the sets from the
+ * palette itself. It was blind to ADMIN_SOLID, ADMIN_BADGE_STRONG,
+ * ADMIN_GROUND and ADMIN_TIMELINE, and 50 complete sets sat unconsumed behind
+ * that blindness: 39 restatements of ADMIN_GROUND.panel alone. A guard written
+ * to close a scoping hole had the same scoping hole one level up, so it now
+ * enumerates the maps explicitly and a new one is a one line addition here.
+ */
 function paletteSets(): Array<{ name: string; members: string[] }> {
   const sets: Array<{ name: string; members: string[] }> = [];
+
+  const add = (name: string, value: string | undefined) => {
+    if (!value) return;
+    const members = value.split(/\s+/).filter(Boolean);
+    // A one token set cannot be policed. ADMIN_GROUND.raised is "bg-slate-800"
+    // and ADMIN_GROUND.heading is "text-white"; demanding those be consumed
+    // would flag every legitimate use of a single utility anywhere in admin.
+    // Two tokens is the point at which a string is restating a RECIPE.
+    if (members.length < 2) return;
+    sets.push({ name, members });
+  };
+
   for (const [tone, classes] of Object.entries(ADMIN_TONE)) {
     for (const kind of ["badge", "panel", "chip"] as const) {
-      sets.push({ name: `ADMIN_TONE.${tone}.${kind}`, members: classes[kind].split(" ") });
+      add(`ADMIN_TONE.${tone}.${kind}`, classes[kind]);
     }
   }
-  for (const [hue, value] of Object.entries(ADMIN_CATEGORY)) {
-    sets.push({ name: `ADMIN_CATEGORY.${hue}`, members: value.split(" ") });
+  for (const [hue, value] of Object.entries(ADMIN_CATEGORY)) add(`ADMIN_CATEGORY.${hue}`, value);
+  for (const [tone, value] of Object.entries(ADMIN_SOLID)) add(`ADMIN_SOLID.${tone}`, value);
+  for (const [tone, value] of Object.entries(ADMIN_BADGE_STRONG)) add(`ADMIN_BADGE_STRONG.${tone}`, value);
+  for (const [key, value] of Object.entries(ADMIN_GROUND)) add(`ADMIN_GROUND.${key}`, value);
+  for (const [key, entry] of Object.entries(ADMIN_TIMELINE)) {
+    add(`ADMIN_TIMELINE.${key}.dot`, entry.dot);
+    add(`ADMIN_TIMELINE.${key}.text`, entry.text);
   }
   return sets;
 }
@@ -84,7 +119,7 @@ describe("admin never restates a complete palette set", () => {
   it("has sets to look for", () => {
     // Zero here would mean the palette shape changed under the guard, not
     // that the surface got clean.
-    expect(sets.length).toBeGreaterThan(15);
+    expect(sets.length).toBeGreaterThan(25);
   });
 
   it("finds no set written out as literal classes", () => {

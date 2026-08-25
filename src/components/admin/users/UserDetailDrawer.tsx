@@ -6,7 +6,7 @@ import { formatMoneyCompact } from "@/lib/format";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   userId: string | null;
@@ -35,7 +35,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right" className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 text-slate-200 p-0 overflow-y-auto">
-        <div className="sticky top-0 bg-slate-900 border-b border-slate-800 px-5 py-4 flex items-center justify-between z-sticky">
+        <div className={`sticky top-0 ${ADMIN_GROUND.panel} border-b px-5 py-4 flex items-center justify-between z-sticky`}>
           <h3 className="text-white font-semibold">User Detail</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded min-h-11 min-w-11 inline-flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
@@ -64,27 +64,27 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+              <div className={`${ADMIN_GROUND.panel} border rounded-lg p-3`}>
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><Mail className="h-3 w-3" /> Email</p>
                 <p className="text-slate-200 text-sm truncate">{data.user.email || "—"}</p>
                 {data.user.verification.email && <span className={`${ADMIN_TONE.success.text} text-xs`}>verified</span>}
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+              <div className={`${ADMIN_GROUND.panel} border rounded-lg p-3`}>
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><Phone className="h-3 w-3" /> Phone</p>
                 <p className="text-slate-200 text-sm">{data.user.phone ?? "—"}</p>
                 {data.user.verification.phone && <span className={`${ADMIN_TONE.success.text} text-xs`}>verified</span>}
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+              <div className={`${ADMIN_GROUND.panel} border rounded-lg p-3`}>
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><IdCard className="h-3 w-3" /> Identity</p>
                 <p className="text-slate-200 text-sm capitalize">{data.user.verification.id_status ?? "none"}</p>
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+              <div className={`${ADMIN_GROUND.panel} border rounded-lg p-3`}>
                 <p className="text-slate-500 text-xs mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Joined</p>
                 <p className="text-slate-200 text-sm">{fmt(data.user.joined_at)}</p>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+            <div className={`${ADMIN_GROUND.panel} border rounded-lg p-4`}>
               <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Activity</p>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
@@ -107,7 +107,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
               <div className="space-y-2">
                 {data.recent_transactions.length === 0 && <p className="text-slate-500 text-sm">No recent transactions.</p>}
                 {data.recent_transactions.map((t) => (
-                  <button key={t.transaction_id} onClick={() => navigate(`/admin/transactions/${t.transaction_id}`)} className="w-full text-left bg-slate-900 border border-slate-800 rounded-lg p-3 hover:border-emerald-500/30 transition">
+                  <button key={t.transaction_id} onClick={() => navigate(`/admin/transactions/${t.transaction_id}`)} className={`w-full text-left ${ADMIN_GROUND.panel} border rounded-lg p-3 hover:border-emerald-500/30 transition`}>
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <p className="text-white text-sm font-medium">{t.transaction_code}</p>
@@ -128,7 +128,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
               <div className="space-y-2">
                 {data.timeline.length === 0 && <p className="text-slate-500 text-sm">No admin actions recorded.</p>}
                 {data.timeline.map((a) => (
-                  <div key={a.id} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
+                  <div key={a.id} className={`${ADMIN_GROUND.panel} border rounded-lg p-3`}>
                     <div className="flex items-center justify-between">
                       <p className="text-white text-sm font-medium capitalize">{a.type.replace(/_/g, " ")}</p>
                       <p className="text-slate-500 text-xs">{fmt(a.created_at)}</p>

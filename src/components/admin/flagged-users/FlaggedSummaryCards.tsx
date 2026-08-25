@@ -1,5 +1,5 @@
 import { Flag, AlertTriangle, Ban, CheckCircle2, Bot } from "lucide-react";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import type { FlaggedSummary } from "@/services/admin-flagged-users.service";
 
 interface Props {
@@ -26,7 +26,7 @@ function Card({
   hint: string;
 }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl p-6`}>
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center border ${iconWrap}`}>
           <Icon className={`h-5 w-5 ${iconClass}`} />

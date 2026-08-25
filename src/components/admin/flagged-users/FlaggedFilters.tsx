@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import type { FlaggedQuery } from "@/services/admin-flagged-users.service";
 
 interface Props {
@@ -16,7 +16,7 @@ const SELECT_CLS =
 
 export function FlaggedFilters({ value, search, onChange, onSearchChange, onApply, onReset }: Props) {
   return (
-    <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-xl">
+    <div className={`hidden lg:block ${ADMIN_GROUND.panel} border rounded-xl`}>
       <div className="p-6 border-b border-slate-800">
         <h3 className="text-white text-lg font-semibold">Filter &amp; Search</h3>
         <p className="text-slate-400 text-sm mt-1">Filter flagged users by risk level, reason, and date range</p>

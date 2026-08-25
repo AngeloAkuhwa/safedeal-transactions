@@ -3,7 +3,7 @@ import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
 import { formatMoney } from "@/lib/format";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_BORDER, RISK_LABEL, RISK_PILL, relative } from "./risk";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   row: FlaggedUserRow;
@@ -23,7 +23,7 @@ const REASON_PILL: Record<string, string> = {
 export function FlaggedUserCard({ row, onOpen }: Props) {
   const showDetails = row.risk === "critical" || row.reasons.length > 1;
   return (
-    <div className={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden border-l-4 ${RISK_BORDER[row.risk]}`}>
+    <div className={`${ADMIN_GROUND.panel} border rounded-2xl overflow-hidden border-l-4 ${RISK_BORDER[row.risk]}`}>
       <div className="p-4 flex items-start gap-4">
         <UserAvatar name={row.name} avatarUrl={row.avatar_url} ringClass={RISK_AVATAR_RING[row.risk]} size="lg" />
         <div className="flex-1 min-w-0">
