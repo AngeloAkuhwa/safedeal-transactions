@@ -2,7 +2,7 @@ import { ChevronDown, Banknote, Zap, Bot, FolderOpen, Search, User } from "lucid
 import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
 import { formatMoney } from "@/lib/format";
 import { UserAvatar } from "./UserAvatar";
-import { RISK_AVATAR_RING, RISK_BORDER, RISK_LABEL, relative } from "./risk";
+import { RISK_AVATAR_RING, RISK_BORDER, RISK_LABEL, RISK_PILL, relative } from "./risk";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
@@ -40,12 +40,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
                 {r.label}
               </span>
             ))}
-            <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase border ${
-              row.risk === "critical" ? "bg-red-500/20 border-red-500/40 text-red-300"
-              : row.risk === "high" ? "bg-orange-500/20 border-orange-500/40 text-orange-300"
-              : row.risk === "medium" ? "bg-amber-500/20 border-amber-500/40 text-amber-200"
-              : "bg-slate-700 border-slate-600 text-slate-300"
-            }`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase border ${RISK_PILL[row.risk]}`}>
               {RISK_LABEL[row.risk]} Risk
             </span>
           </div>

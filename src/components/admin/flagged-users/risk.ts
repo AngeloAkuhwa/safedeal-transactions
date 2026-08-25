@@ -1,4 +1,4 @@
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_TONE, ADMIN_BADGE_STRONG } from "@/components/admin/palette";
 import type { FlaggedRisk, FlaggedStatus } from "@/services/admin-flagged-users.service";
 
 export const RISK_LABEL: Record<FlaggedRisk, string> = {
@@ -23,9 +23,14 @@ export const RISK_AVATAR_RING: Record<FlaggedRisk, string> = {
 };
 
 export const RISK_PILL: Record<FlaggedRisk, string> = {
-  critical: "bg-red-500/20 border-red-500/40 text-red-300",
-  high: "bg-orange-500/20 border-orange-500/40 text-orange-300",
-  medium: "bg-amber-500/20 border-amber-500/40 text-amber-200",
+  critical: ADMIN_BADGE_STRONG.danger!,
+  high: ADMIN_BADGE_STRONG.elevated!,
+  // Converged from amber-200 in the same motion: the other two tiers read
+  // their tone's 300, and one tier a step lighter than its neighbours was
+  // the only thing keeping this from being a single recipe.
+  medium: ADMIN_BADGE_STRONG.warning!,
+  // `low` is not a wash pill. A solid slate chip means "no elevated risk",
+  // so no heavy entry is an identical set and it stays as written.
   low: "bg-slate-700 border-slate-600 text-slate-300",
 };
 
