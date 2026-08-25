@@ -128,7 +128,7 @@ function Body({ d }: { d: EscrowDetail }) {
           <Row label="Opened" value={formatRelative(d.dispute.opened_at)} />
           <button
             onClick={() => nav(`/admin/disputes/${d.dispute!.id}`)}
-            className="mt-2 w-full px-3 py-2 bg-red-500/15 text-red-300 border border-red-500/30 rounded text-xs font-semibold inline-flex items-center justify-center gap-2 min-h-11"
+            className={`mt-2 w-full px-3 py-2 ${ADMIN_TONE.danger.badge} border rounded text-xs font-semibold inline-flex items-center justify-center gap-2 min-h-11`}
           >
             <AlertCircle className="h-3 w-3" /> Open dispute case
           </button>

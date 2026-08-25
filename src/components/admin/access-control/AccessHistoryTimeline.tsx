@@ -3,7 +3,7 @@ import { relativeTime, type AccessAuditEntry } from "@/services/admin-access-con
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 const SEVERITY_TINT: Record<string, string> = {
-  info: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+  info: `${ADMIN_TONE.info.panel} text-blue-300`,
   warning: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,
   critical: "bg-red-500/10 text-red-300 border-red-500/40",
 };

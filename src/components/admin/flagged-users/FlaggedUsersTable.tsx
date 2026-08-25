@@ -35,8 +35,8 @@ interface Props {
 }
 
 const REASON_CHIP: Record<string, string> = {
-  multiple_disputes: "bg-red-500/10 border-red-500/20 text-red-400",
-  chargeback_pattern: "bg-red-500/10 border-red-500/20 text-red-400",
+  multiple_disputes: ADMIN_TONE.danger.chip,
+  chargeback_pattern: ADMIN_TONE.danger.chip,
   identity_issues: ADMIN_TONE.elevated.chip,
   suspicious_activity: "bg-amber-500/10 border-amber-500/20 text-amber-300",
   fraud_detection: "bg-purple-500/10 border-purple-500/20 text-purple-300",

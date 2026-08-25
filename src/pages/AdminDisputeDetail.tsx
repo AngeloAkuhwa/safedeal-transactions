@@ -1393,7 +1393,7 @@ function CaseCommunicationSection(props: {
     emerald: `${ADMIN_TONE.success.panel} ${ADMIN_TONE.success.text}`,
     red: `${ADMIN_TONE.danger.panel} ${ADMIN_TONE.danger.text}`,
     orange: `${ADMIN_TONE.elevated.panel} ${ADMIN_TONE.elevated.text}`,
-    yellow: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+    yellow: `${ADMIN_TONE.warning.panel} text-amber-400`,
   };
   const chipMeta: Record<string, string> = {
     emerald: "text-emerald-400/60",
@@ -2544,14 +2544,14 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
   if (resolvedAt || status === "resolved") return {
     label: "Resolved", message: "Case has a recorded resolution outcome.",
     next: "View outcome and money movement.",
-    cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    cls: `${ADMIN_TONE.success.panel} text-emerald-100`,
     dotCls: ADMIN_TONE.success.dot,
     Icon: CheckCircle2,
   };
   if (status === "dismissed" || status === "closed") return {
     label: "Closed", message: "Case closed without payout or refund.",
     next: "Review audit trail.",
-    cls: "border-slate-500/30 bg-slate-500/10 text-slate-100",
+    cls: `${ADMIN_TONE.neutral.panel} text-slate-100`,
     dotCls: "bg-slate-400",
     Icon: XCircle,
   };
@@ -2565,7 +2565,7 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
   if (status === "under_review") return {
     label: "Under Review", message: "Admin review in progress.",
     next: "Review evidence and decide the outcome.",
-    cls: "border-purple-500/30 bg-purple-500/10 text-purple-100",
+    cls: `${ADMIN_TONE.special.panel} text-purple-100`,
     dotCls: "bg-purple-400",
     Icon: Gavel,
   };
@@ -2575,14 +2575,14 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     next: overdue ? "Send reminder or escalate." : "Wait for seller response or send reminder.",
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
-      : "border-amber-500/30 bg-amber-500/10 text-amber-100",
+      : `${ADMIN_TONE.warning.panel} text-amber-100`,
     dotCls: overdue ? ADMIN_TONE.danger.dot : ADMIN_TONE.warning.dot,
     Icon: Clock,
   };
   return {
     label: "Open", message: "Case waiting for triage.",
     next: "Move to under review or request seller response.",
-    cls: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+    cls: `${ADMIN_TONE.info.panel} text-blue-100`,
     dotCls: "bg-blue-400",
     Icon: Gavel,
   };

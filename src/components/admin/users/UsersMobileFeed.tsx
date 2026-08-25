@@ -37,13 +37,13 @@ function relative(iso: string | null): string {
 }
 
 function statusChip(r: UserDirectoryRow) {
-  if (r.status === "suspended") return { label: "Suspended", cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" };
-  if (r.status === "under_investigation") return { label: "Investigating", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
-  if (r.status === "flagged") return { label: "Flagged", cls: "bg-red-500/10 text-red-400 border-red-500/20" };
+  if (r.status === "suspended") return { label: "Suspended", cls: ADMIN_TONE.special.chip };
+  if (r.status === "under_investigation") return { label: "Investigating", cls: ADMIN_TONE.danger.chip };
+  if (r.status === "flagged") return { label: "Flagged", cls: ADMIN_TONE.danger.chip };
   if (r.status === "pending") {
     return { label: r.verification.id ? "Pending" : "Pending ID", cls: ADMIN_TONE.warning.chip };
   }
-  return { label: "Active Now", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+  return { label: "Active Now", cls: ADMIN_TONE.success.chip };
 }
 
 function ringClass(r: UserDirectoryRow) {

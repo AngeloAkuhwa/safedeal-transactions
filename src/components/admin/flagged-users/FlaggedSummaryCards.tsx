@@ -46,7 +46,7 @@ export function FlaggedSummaryCards({ summary }: Props) {
     <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
       <Card
         icon={Flag}
-        iconWrap="bg-red-500/10 border-red-500/30"
+        iconWrap={ADMIN_TONE.danger.panel}
         iconClass="text-red-400"
         label="Total Flagged"
         value={summary.total_flagged}
@@ -66,7 +66,7 @@ export function FlaggedSummaryCards({ summary }: Props) {
       />
       <Card
         icon={Ban}
-        iconWrap="bg-purple-500/10 border-purple-500/30"
+        iconWrap={ADMIN_TONE.special.panel}
         iconClass="text-purple-400"
         label="Suspended"
         value={summary.suspended}
@@ -76,7 +76,7 @@ export function FlaggedSummaryCards({ summary }: Props) {
       />
       <Card
         icon={CheckCircle2}
-        iconWrap="bg-emerald-500/10 border-emerald-500/30"
+        iconWrap={ADMIN_TONE.success.panel}
         iconClass="text-emerald-400"
         label="Cleared"
         value={summary.cleared_this_week}
@@ -86,7 +86,7 @@ export function FlaggedSummaryCards({ summary }: Props) {
       />
       <Card
         icon={Bot}
-        iconWrap="bg-blue-500/10 border-blue-500/30"
+        iconWrap={ADMIN_TONE.info.panel}
         iconClass="text-blue-400"
         label="Auto-Detection"
         value={summary.auto_detected}

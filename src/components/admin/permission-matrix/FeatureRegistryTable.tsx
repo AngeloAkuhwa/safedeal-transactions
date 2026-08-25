@@ -17,7 +17,7 @@ import { ADMIN_TONE } from "@/components/admin/palette";
 
 function StatusPill({ status }: { status: "active" | "suspended" | "deprecated" }) {
   const map = {
-    active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    active: `${ADMIN_TONE.success.panel} text-emerald-300`,
     suspended: `${ADMIN_TONE.warning.panel} ${ADMIN_TONE.warning.text}`,
     deprecated: "border-border bg-muted/40 text-muted-foreground line-through",
   } as const;

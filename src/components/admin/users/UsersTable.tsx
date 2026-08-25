@@ -26,16 +26,16 @@ interface Props {
 }
 
 const ROLE_CLASS: Record<string, string> = {
-  buyer: "bg-blue-500/10 border-blue-500/20 text-blue-400",
-  seller: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-  business: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+  buyer: ADMIN_TONE.info.chip,
+  seller: ADMIN_TONE.success.chip,
+  business: ADMIN_TONE.special.chip,
   admin: ADMIN_TONE.warning.chip,
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  active: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-  flagged: "bg-red-500/10 border-red-500/20 text-red-400",
-  suspended: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+  active: ADMIN_TONE.success.chip,
+  flagged: ADMIN_TONE.danger.chip,
+  suspended: ADMIN_TONE.special.chip,
   pending: ADMIN_TONE.warning.chip,
   under_investigation: ADMIN_TONE.elevated.chip,
 };
@@ -134,7 +134,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                             </span>
                           )}
                           {r.status === "pending" && (
-                            <span className="w-5 h-5 bg-amber-500/10 border border-amber-500/30 rounded flex items-center justify-center" title="Pending verification">
+                            <span className={`w-5 h-5 ${ADMIN_TONE.warning.panel} border rounded flex items-center justify-center`} title="Pending verification">
                               <Clock className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
                             </span>
                           )}

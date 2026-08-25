@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getAdminTransactionDetail, type AdminTxDetail } from "@/services/admin-transaction-actions.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { formatMoney } from "@/lib/format";
 
 type Section = "timeline" | "ledger" | "messages";
@@ -44,7 +45,7 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
         </SheetHeader>
         <div className="mt-4 text-sm">
           {loading && (<div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>)}
-          {err && <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-red-400">{err}</div>}
+          {err && <div className={`rounded-md border ${ADMIN_TONE.danger.panel} p-3 text-red-400`}>{err}</div>}
           {!loading && !err && data && section === "timeline" && (
             <ul className="space-y-3">
               {(data.timeline ?? []).length === 0 && (<li className="text-muted-foreground">No events recorded.</li>)}

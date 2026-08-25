@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldCheck, FileText, Image as ImageIcon, Video, Receipt, Truck, ExternalLink } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
 
 interface Props {
@@ -63,7 +64,7 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
             <DialogTitle className="text-base truncate">
               Evidence Preview {item ? `— ${item.title}` : ""}
             </DialogTitle>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+            <span className={`inline-flex items-center gap-1.5 rounded-full ${ADMIN_TONE.success.chip} px-2.5 py-1 text-xs font-medium border`}>
               <ShieldCheck className="h-3.5 w-3.5" /> Read-only
             </span>
           </div>

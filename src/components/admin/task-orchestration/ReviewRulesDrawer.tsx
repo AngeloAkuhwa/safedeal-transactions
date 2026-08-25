@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { AssignmentRulesConfig, RuleVersionRow } from "@/services/task-orchestration.service";
 
 function diffKeys(a: AssignmentRulesConfig, b: AssignmentRulesConfig): string[] {
@@ -128,7 +129,7 @@ export function ReviewRulesDrawer({
           </section>
 
           {warnings.length > 0 && (
-            <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+            <section className={`rounded-xl border ${ADMIN_TONE.warning.panel} p-3`}>
               <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-amber-300">
                 <AlertTriangle className="h-3.5 w-3.5" /> Warnings
               </div>

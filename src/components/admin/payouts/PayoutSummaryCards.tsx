@@ -15,10 +15,10 @@ type Tone = "orange" | "blue" | "red" | "emerald" | "purple" | "cyan";
 
 const TONE: Record<Tone, { box: string; icon: string; chip: string }> = {
   orange:  { box: ADMIN_TONE.elevated.panel,   icon: ADMIN_TONE.elevated.text,  chip: "text-orange-400 bg-orange-500/10" },
-  blue:    { box: "bg-blue-500/10 border-blue-500/30",       icon: "text-blue-400",    chip: "text-blue-400 bg-blue-500/10" },
-  red:     { box: "bg-red-500/10 border-red-500/30",         icon: "text-red-400",     chip: "text-red-400 bg-red-500/10" },
-  emerald: { box: "bg-emerald-500/10 border-emerald-500/30", icon: "text-emerald-400", chip: "text-emerald-400 bg-emerald-500/10" },
-  purple:  { box: "bg-purple-500/10 border-purple-500/30",   icon: "text-purple-400",  chip: "text-purple-400 bg-purple-500/10" },
+  blue:    { box: ADMIN_TONE.info.panel,       icon: "text-blue-400",    chip: "text-blue-400 bg-blue-500/10" },
+  red:     { box: ADMIN_TONE.danger.panel,         icon: "text-red-400",     chip: "text-red-400 bg-red-500/10" },
+  emerald: { box: ADMIN_TONE.success.panel, icon: "text-emerald-400", chip: "text-emerald-400 bg-emerald-500/10" },
+  purple:  { box: ADMIN_TONE.special.panel,   icon: "text-purple-400",  chip: "text-purple-400 bg-purple-500/10" },
   cyan:    { box: "bg-cyan-500/10 border-cyan-500/30",       icon: "text-cyan-400",    chip: "text-cyan-400 bg-cyan-500/10" },
 };
 

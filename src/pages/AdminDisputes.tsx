@@ -102,19 +102,19 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
     });
     if (derived) {
       const tone =
-        derived.tone === "success" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
+        derived.tone === "success" ? ADMIN_TONE.success.badge :
         derived.tone === "warning" ? ADMIN_TONE.elevated.badge :
-        derived.tone === "danger" ? "bg-red-500/15 text-red-300 border-red-500/30" :
-        derived.tone === "info" ? "bg-blue-500/15 text-blue-300 border-blue-500/30" :
+        derived.tone === "danger" ? ADMIN_TONE.danger.badge :
+        derived.tone === "info" ? ADMIN_TONE.info.badge :
         "bg-muted text-muted-foreground border-border";
       return { label: derived.label, tone };
     }
   }
   const map: Record<string, { label: string; tone: string }> = {
-    open: { label: "Open", tone: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+    open: { label: "Open", tone: ADMIN_TONE.info.badge },
     seller_response_pending: { label: "Awaiting Seller", tone: ADMIN_TONE.warning.badge },
-    under_review: { label: "Under Review", tone: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
-    resolved: { label: "Resolved", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+    under_review: { label: "Under Review", tone: ADMIN_TONE.special.badge },
+    resolved: { label: "Resolved", tone: ADMIN_TONE.success.badge },
   };
   return map[row.dispute_status] ?? { label: row.dispute_status, tone: "bg-muted text-muted-foreground border-border" };
 }
@@ -165,11 +165,11 @@ function KpiStrip({
   const k = data?.kpis;
   const cards: KpiCardDef[] = [
     { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} from yesterday` : "", Icon: Scale, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30", subTone: "text-muted-foreground" },
-    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: `${dueTodayCount} due today`, Icon: Clock, tone: "text-amber-300 bg-amber-500/10 border-amber-500/30", subTone: "text-muted-foreground" },
-    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: `${assignedToMeCount} assigned to you`, Icon: Search, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
-    { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30", subTone: "text-red-400" },
+    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: `${dueTodayCount} due today`, Icon: Clock, tone: `text-amber-300 ${ADMIN_TONE.warning.panel}`, subTone: "text-muted-foreground" },
+    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: `${assignedToMeCount} assigned to you`, Icon: Search, tone: `text-blue-300 ${ADMIN_TONE.info.panel}`, subTone: "text-muted-foreground" },
+    { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: `text-red-300 ${ADMIN_TONE.danger.panel}`, subTone: "text-red-400" },
     { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: Check, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
-    { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
+    { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: `text-purple-300 ${ADMIN_TONE.special.panel}`, subTone: "text-muted-foreground" },
   ];
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">

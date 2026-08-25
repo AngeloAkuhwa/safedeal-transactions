@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { nameOf } from "../helpers";
 
 const TARGET_QUEUES = [
@@ -89,7 +90,7 @@ export function EscalateTaskDrawer({
               </div>
             </div>
             {financial && (
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
+              <div className={`mt-3 flex items-start gap-2 rounded-lg border ${ADMIN_TONE.warning.panel} p-2 text-xs text-amber-200`}>
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
                 Financial / compliance target: only routable when the batch's task type matches the queue's authority.
               </div>

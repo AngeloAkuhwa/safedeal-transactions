@@ -1,4 +1,4 @@
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
 export type MoneyStatusKey =
   | "not_secured"
   | "payment_pending"
@@ -18,15 +18,15 @@ export interface MoneyStatusMeta {
 }
 
 export const MONEY_STATUS_META: Record<string, MoneyStatusMeta> = {
-  not_secured: { label: "Not Secured", tone: "neutral", classes: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
-  payment_pending: { label: "Payment Pending", tone: "info", classes: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-  funds_held_in_escrow: { label: "Held in Escrow", tone: "info", classes: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
-  funds_pending_release: { label: "Awaiting Release", tone: "info", classes: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-  funds_releasing: { label: "Releasing", tone: "info", classes: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-  funds_released: { label: "Released", tone: "success", classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  funds_frozen: { label: "Funds Frozen", tone: "danger", classes: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
+  not_secured: { label: "Not Secured", tone: "neutral", classes: ADMIN_TONE.neutral.badge },
+  payment_pending: { label: "Payment Pending", tone: "info", classes: ADMIN_TONE.info.badge },
+  funds_held_in_escrow: { label: "Held in Escrow", tone: "info", classes: ADMIN_TONE.special.badge },
+  funds_pending_release: { label: "Awaiting Release", tone: "info", classes: ADMIN_TONE.info.badge },
+  funds_releasing: { label: "Releasing", tone: "info", classes: ADMIN_TONE.info.badge },
+  funds_released: { label: "Released", tone: "success", classes: ADMIN_TONE.success.badge },
+  funds_frozen: { label: "Funds Frozen", tone: "danger", classes: ADMIN_CATEGORY.cyan },
   refund_pending: { label: "Refund Pending", tone: "warning", classes: ADMIN_TONE.elevated.badge },
-  refund_issued: { label: "Refunded", tone: "neutral", classes: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
+  refund_issued: { label: "Refunded", tone: "neutral", classes: ADMIN_TONE.neutral.badge },
 };
 
 export function moneyStatusLabel(s?: string | null): string {

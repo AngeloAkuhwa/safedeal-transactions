@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
 import { Check, X, PlusCircle, MinusCircle, Clock, Ban } from "lucide-react";
 import type { PermissionRowState } from "@/services/permission-catalog";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { PERMISSION_ROW_STATE_LABEL } from "@/services/permission-catalog";
 
 const STATE_STYLE: Record<PermissionRowState, { cls: string; Icon: typeof Check }> = {
-  granted:          { cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300", Icon: Check },
+  granted:          { cls: `${ADMIN_TONE.success.panel} text-emerald-300`, Icon: Check },
   denied:           { cls: "border-muted-foreground/25 bg-muted/40 text-muted-foreground", Icon: X },
   override_granted: { cls: "border-sky-500/40 bg-sky-500/10 text-sky-300", Icon: PlusCircle },
   override_denied:  { cls: "border-rose-500/40 bg-rose-500/10 text-rose-300", Icon: MinusCircle },

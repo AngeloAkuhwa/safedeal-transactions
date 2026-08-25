@@ -11,8 +11,8 @@ interface Props {
 }
 
 const REASON_PILL: Record<string, string> = {
-  multiple_disputes: "bg-red-500/10 border-red-500/20 text-red-400",
-  chargeback_pattern: "bg-red-500/10 border-red-500/20 text-red-400",
+  multiple_disputes: ADMIN_TONE.danger.chip,
+  chargeback_pattern: ADMIN_TONE.danger.chip,
   identity_issues: ADMIN_TONE.elevated.chip,
   suspicious_activity: "bg-amber-500/10 border-amber-500/20 text-amber-300",
   fraud_detection: "bg-purple-500/10 border-purple-500/20 text-purple-300",
@@ -56,7 +56,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
           <div className="p-4 space-y-3 bg-slate-900/50">
             {row.related.tx_code && (
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-500/10 border border-purple-500/30 rounded flex items-center justify-center flex-shrink-0">
+                <div className={`w-6 h-6 ${ADMIN_TONE.special.panel} border rounded flex items-center justify-center flex-shrink-0`}>
                   <Banknote className={`h-3 w-3 ${ADMIN_TONE.special.text}`} />
                 </div>
                 <p className="text-xs text-slate-300">
@@ -67,7 +67,7 @@ export function FlaggedUserCard({ row, onOpen }: Props) {
             )}
             {row.refunds_30d >= 2 && (
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-red-500/10 border border-red-500/30 rounded flex items-center justify-center flex-shrink-0">
+                <div className={`w-6 h-6 ${ADMIN_TONE.danger.panel} border rounded flex items-center justify-center flex-shrink-0`}>
                   <Zap className={`h-3 w-3 ${ADMIN_TONE.danger.text}`} />
                 </div>
                 <p className={`text-xs ${ADMIN_TONE.danger.text} font-medium italic`}>
