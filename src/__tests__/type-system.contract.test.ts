@@ -66,7 +66,11 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) {
-      if (name === "admin") continue; // admin polish is deliberately last
+      // The admin exemption is gone (plan 6.3). It read "admin polish is
+      // deliberately last", and by the time it was lifted the surface
+      // already satisfied the rule: measuring found zero admin h1-h3 at a
+      // fixed 3xl or larger. So this closes the door rather than clearing
+      // a backlog, which is the honest description of what it did.
       walk(full, out);
     } else if (full.endsWith(".tsx")) {
       out.push(full);

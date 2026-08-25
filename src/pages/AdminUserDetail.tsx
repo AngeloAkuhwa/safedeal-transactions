@@ -196,7 +196,7 @@ export default function AdminUserDetail() {
                 <ArrowLeft className={`h-4 w-4 ${ADMIN_GROUND.body}`} />
               </button>
               <div>
-                <h2 className={`${ADMIN_GROUND.heading} text-xl sm:text-2xl font-bold`}>User Investigation Hub</h2>
+                <h2 className={`${ADMIN_GROUND.heading} h-page font-bold`}>User Investigation Hub</h2>
                 <p className={`${ADMIN_GROUND.muted} text-sm mt-0.5`}>Complete user investigation and support center</p>
               </div>
             </div>
