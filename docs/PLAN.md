@@ -127,7 +127,7 @@ Done. Status values: `pending`, `in progress`, `blocked: <on what>`, `done
 
 | # | item | owner | status |
 |---|---|---|---|
-| 4.1 | **Guest pay backend half**: identity attachment on pay, RLS for anonymous reads. Frontend has been ready since #33; until this lands, an anonymous buyer can read the payment page but not pay. The single largest unfinished user-facing feature. | Lovable (out of scope here without direction) | blocked: Lovable |
+| 4.1 | **Guest pay backend half**: identity attachment on pay, RLS for anonymous reads. Frontend has been ready since #33; until this lands, an anonymous buyer can read the payment page but not pay. The single largest unfinished user-facing feature. Taken over at the user's direction (2026-08-24, phase 7). Recon found anonymous reads already served (`resolve-share-token` runs service-role and never reads the caller), so the missing half was exactly one thing: nothing ever made the account a guest just created into the transaction's `buyer_id`, so the frontend's sign-up round trip ended at a 403. Fix: `initiate-paystack-payment` claims an unclaimed transaction (buyer_id null) for the first signed-in link holder, with a conditional UPDATE (`where buyer_id is null`) so a race has one winner; sits after the status and money gates so a cancelled or paid transaction can never acquire a buyer; fills the buyer participant seat (guarded by `user_id is null`) and writes a `buyer_claimed_by_link` transaction event. A transaction bound to another account still refuses. Do-not-break: the strict 403 for bound transactions, the state gates ahead of the claim, offer claiming (`claim-offer` binds by email match, untouched). | here (was Lovable) | done, guarded by `guest-claim.contract` (red-verified: 5 of 5 fail on pre-fix source) |
 | 4.2 | **amount_mismatch operator surface**: #46 refuses mismatched charges and stores the payload; nothing yet shows an operator that it happened. Needs a product decision on where (admin reconciliation screen already exists). | here, after decision D4 | blocked: D4 |
 | 4.3 | Admin roadmap stubs (impersonation, per-user export, add-user): currently honest "coming soon" toasts. Build or remove per product priority. | decision D5 | blocked: D5 |
 | 4.4 | Currency formatting debt burn-down. Measuring reframed the item: the primitive already exists (`formatMoney` dashes missing amounts, currency is a required parameter) and the ratchets already guard it; the work is burning down the six shrink-only lists in `invented-defaults.contract` (186 entries at start). Batch 1 (#58): the 13 customer frontend files in `MONEY_ZERO_DEBT`, where `?? 0` on money could render an invented ₦0.00 to a buyer or seller; counts renamed count-shaped, gates made NaN-safe, one file's `\|\| "NGN"` fixed in passing (its `CURRENCY_DEBT` entry went stale and was removed; 186 to 172). Batch 2 (#59): the 11 admin frontend files in the same list; both admin detail pages' local `ngn` wrappers had re-imposed `?? 0` over the dashing formatter, and the escrow tile now shows only recorded figures (sums and fallback chains skip absent parts instead of inventing 0). Batch 3 (#60): instrument precision; the zero pattern matched `?? 0.02` (the documented 2% fee-rate default) because digit-to-dot is a word boundary, and the policy file left the list once the false positive was fixed. Edge tail reclassified after reading the sites: most edge `?? 0` normalize SQL NULL aggregates where null honestly means zero activity (reconciliation sums, dashboard rollups), and the risky sites already fail closed (fee-chain mismatch flags for review, unknown seller level yields a 0 limit, missing snapshot yields a 0 refund ceiling). Low value to churn; they stay recorded. Two real product questions extracted to decisions D7 and D8. Symbol and positional lists stay recorded with their existing rationale (harmless while the book is NGN-only). | here | batches 1 to 3 done (#58, #59, #60); edge tail recorded by design |
@@ -149,10 +149,28 @@ stacked branches and merges land bottom-up when auth recovers.
 | 6.5 | Whether admin becomes theme-aware: goes to the user as a decision once 6.1 to 6.3 hold, per the 4.5 arc. | queued decision |
 
 Blocked externally and excluded from this path: decisions D1 to D8 (each
-unblocks its own item, nothing here waits on them), guest pay backend (4.1,
-Lovable), product card data (2.1b, Lovable), Supabase default privileges
-(Lovable). After 6.1 to 6.4, what remains in this repo is decision-shaped,
-not work-shaped.
+unblocks its own item, nothing here waits on them). The three items that
+were parked as Lovable's half (guest pay backend 4.1, product card data
+2.1b, Supabase default privileges) were taken over at the user's direction
+on 2026-08-24; see phase 7. After phases 6 and 7, what remains in this repo
+is decision-shaped, not work-shaped.
+
+### Phase 7: backend takeover (adopted 2026-08-24 at the user's direction)
+
+The user explicitly widened scope past "Backend, RLS and identity work
+scoped to Lovable": "pls complete your side and take over these too". Each
+item still lands plan-first, one PR each, with its guard and its
+do-not-break list. The service-role path for live changes is Lovable's
+`query_database`; schema changes are ALSO committed as migration files so
+the repo stays the source of truth.
+
+| # | item | status |
+|---|---|---|
+| 7.1 | Guest pay backend (the 4.1 row above): claim-on-pay in `initiate-paystack-payment`. | done (this PR) |
+| 7.2 | Supabase default privileges re-grant anonymous DML on future tables. Measured live 2026-08-25: everything reachable from the `postgres` role is ALREADY clean and already guarded. Existing public tables carry zero anon DML grants, all have RLS enabled, the postgres-grantor default ACLs are empty for client roles (a probe table created live arrived with no anon privileges), and `live-db.contract` pins every one of these facts, including the 24 `supabase_admin` default-ACL rows recorded verbatim as a known platform-owned exception. The residue is exactly those rows, and they are provably unreachable from here: `SET ROLE supabase_admin` and `ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin` both return permission denied (probed live), which is also why migration 20260815011243's guarded attempt bailed out. A migration from this side would be a no-op wearing a fix's clothes, so none was written; the fix was handed to the party that owns the role (see 7.4). When Lovable applies it, the exact-match baseline in `live-db.contract` fails loudly by design and gets shrunk to the revoked shape. | done on our side; platform half raised via 7.4 |
+| 7.3 | Product card data (2.1b): the card's trust, social proof and location slots want real data. Sold counts are derivable from completed transactions; location from the seller profile; ratings need product infrastructure that does not exist yet, so assess and propose before building. | pending |
+| 7.4 | Raise auth-layer stability with Lovable: the 2026-08-24 GoTrue degradation (11.5 hours of flapping 504s on `/auth/v1/token` while Postgres stayed healthy) blocked merges, likely failed real sign-ins, and made admin edge functions 500. CI now rides flaps (three retry layers, #74) but the service itself is Lovable's to fix. Raised 2026-08-25 via a plan-mode message (so their agent could not edit this project's code off the back of it), covering both the incident fact pattern and the 7.2 default-ACL request. Their agent independently re-verified the ACL rows, flagged that `graphql` and `graphql_public` carry the same anon defaults, confirmed the backend reports healthy now, confirmed neither side of the project can run the ALTER, and drafted a platform-team escalation plan (`.lovable/plan.md`). **Next step is the user's**: approve that plan in the Lovable editor so it is escalated, and relay the platform's answer on whether default grants get periodically re-applied. | raised; escalation awaiting user approval in Lovable |
+| 7.5 | Loose ends: merged remote branches need a GitHub-UI cleanup (the environment's git proxy blocks delete pushes); the 42px tap-target row on the seller storefront at 360px stays a watch item, treated as real if it recurs in CI. | tracked |
 
 ### Decisions queue (user input needed; nothing blocks silently)
 
