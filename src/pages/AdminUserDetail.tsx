@@ -666,7 +666,7 @@ export default function AdminUserDetail() {
               <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                 <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
                   <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                    <StickyNote className="h-5 w-5 text-amber-400" /> Admin Notes &amp; Flags
+                    <StickyNote className={`h-5 w-5 ${ADMIN_TONE.warning.text}`} /> Admin Notes &amp; Flags
                   </h3>
                   <div className="flex items-center gap-2">
                     <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className={`px-3 py-2 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} ${ADMIN_GROUND.body} rounded-lg text-xs font-medium border ${ADMIN_GROUND.borderSoft} min-h-11`}>

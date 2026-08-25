@@ -992,7 +992,7 @@ export default function AdminTransactionDetail() {
                 ) : showReleaseReviewBanner ? (
                   <div className={`flex items-center justify-between p-3 ${ADMIN_TONE.warning.panel} border rounded-lg`}>
                     <div className="flex items-center gap-3">
-                      <Clock className="h-4 w-4 text-amber-400" />
+                      <Clock className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
                       <span className="text-foreground font-medium text-sm">Pending Release Review</span>
                     </div>
                     <span className={`${ADMIN_TONE.warning.text} text-xs font-semibold tracking-wider`}>REVIEW</span>

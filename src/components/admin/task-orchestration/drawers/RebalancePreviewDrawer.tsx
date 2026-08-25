@@ -109,7 +109,7 @@ export function RebalancePreviewDrawer({
         {skipped.length > 0 && (
           <>
             <div className="mt-5 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <AlertTriangle className="h-3 w-3 text-amber-400" /> Protected: cannot move
+              <AlertTriangle className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} /> Protected: cannot move
               <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-xs tabular-nums">{skipped.length}</span>
             </div>
             <div className="space-y-1">

@@ -45,7 +45,7 @@ export function InternalUsersTable({
           Internal Access Management
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-          <ShieldAlert className="h-3 w-3 text-amber-400" />
+          <ShieldAlert className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
           Manage admin and agent permissions, roles, and access levels. Changes are logged and require approval
         </p>
       </div>
@@ -70,7 +70,7 @@ export function InternalUsersTable({
               <th className="px-5 py-3">Primary Role</th>
               <th className="px-5 py-3">
                 <span className="inline-flex items-center gap-1">
-                  <ShieldAlert className="h-3 w-3 text-amber-400" /> Effective Access
+                  <ShieldAlert className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} /> Effective Access
                 </span>
               </th>
               <th className="px-5 py-3">Status</th>

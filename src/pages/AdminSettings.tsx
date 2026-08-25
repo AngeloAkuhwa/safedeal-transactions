@@ -124,8 +124,8 @@ function HeaderBar({
           </div>
           <div className="flex items-center gap-1.5">
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
-              <AlertTriangle className="h-3 w-3 text-amber-400" />
-              <span className="text-amber-400 font-medium text-xs">Production</span>
+              <AlertTriangle className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
+              <span className={`${ADMIN_TONE.warning.text} font-medium text-xs`}>Production</span>
             </div>
             <div className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-muted border border-border rounded-full">
               <ShieldCheck className={`h-3 w-3 ${ADMIN_TONE.success.text}`} />
@@ -564,7 +564,7 @@ export default function AdminSettings() {
               <div className="mt-4 pt-4 border-t border-border">
                 <div className="bg-amber-500/10 border-l-4 border-amber-500 rounded-lg p-3 mb-4 sd-alert">
                   <div className="flex items-start gap-2">
-                    <ShieldAlert className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                    <ShieldAlert className={`h-4 w-4 ${ADMIN_TONE.warning.text} mt-0.5 shrink-0`} />
                     <div className="flex-1">
                       <p className="text-amber-200 font-semibold text-sm">Production Change Impact</p>
                       <p className="text-amber-300/80 text-xs mt-1">
@@ -610,7 +610,7 @@ export default function AdminSettings() {
                 <div className="flex items-center gap-2">
                   {!canConfigureFinancial && (
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                      <ShieldAlert className="h-3 w-3 text-amber-400" />
+                      <ShieldAlert className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
                       <span className="text-amber-300 text-xs font-medium">Read-only: needs financial access</span>
                     </div>
                   )}
@@ -636,7 +636,7 @@ export default function AdminSettings() {
 
               <div className="mb-4 pb-4 border-b border-border">
                 <h4 className="sd-eyebrow mb-3 flex items-center gap-1.5">
-                  <Crown className="h-3 w-3 text-amber-400" />
+                  <Crown className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
                   Special Category Fee Caps
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -821,7 +821,7 @@ export default function AdminSettings() {
             <div className="sd-card-pad border-b border-border">
               <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
                 <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="h-4 w-4 text-amber-400" />
+                  <ShoppingCart className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
                 </div>
                 Commerce Availability
               </h3>

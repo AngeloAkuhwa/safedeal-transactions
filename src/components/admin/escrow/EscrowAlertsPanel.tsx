@@ -144,7 +144,7 @@ export function EscrowAlertsPanel({
     rowIcon: <AlertCircle className="h-3 w-3" />,
     right: (
       <div className="text-right">
-        <p className="text-amber-400 text-xs font-semibold">Δ {formatMoney(r.delta, "NGN")}</p>
+        <p className={`${ADMIN_TONE.warning.text} text-xs font-semibold`}>Δ {formatMoney(r.delta, "NGN")}</p>
         <p className="text-slate-500 text-xs">Verify reconciliation</p>
       </div>
     ),
