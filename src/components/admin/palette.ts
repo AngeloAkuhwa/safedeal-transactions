@@ -165,3 +165,26 @@ export const ADMIN_CATEGORY: Record<AdminCategoryHue, string> = {
   indigo: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
   violet: "bg-violet-500/15 text-violet-300 border-violet-500/30",
 };
+
+/**
+ * The case timeline's vocabulary: a status dot and the header tint beside it.
+ *
+ * This existed twice, character for character, in `AdminCaseTimeline` and in
+ * `AdminDisputeDetail`, which is rule 7's failure mode and the reason the two
+ * timelines were free to drift. Consolidating it here also settles the header
+ * tint, which sat at the 300 step in both copies while every other standalone
+ * tinted text in the back office reads its tone's `.text`. The dots keep their
+ * 500 step verbatim: no palette entry carries a 500 dot, and a mechanical
+ * consolidation is not the place to invent one.
+ *
+ * `muted` deliberately has no text entry. An untoned header inherits its
+ * colour today, and giving it a slate tint would be a new decision wearing a
+ * consolidation's clothes.
+ */
+export const ADMIN_TIMELINE: Record<string, { dot: string; text?: string }> = {
+  green: { dot: "bg-emerald-500", text: ADMIN_TONE.success.text },
+  red: { dot: "bg-red-500", text: ADMIN_TONE.danger.text },
+  orange: { dot: "bg-orange-500", text: ADMIN_TONE.elevated.text },
+  blue: { dot: "bg-blue-500", text: ADMIN_TONE.info.text },
+  muted: { dot: "bg-muted-foreground/60" },
+};
