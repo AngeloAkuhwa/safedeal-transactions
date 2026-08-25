@@ -1,3 +1,4 @@
+import { ADMIN_TONE } from "@/components/admin/palette";
 export type MoneyStatusKey =
   | "not_secured"
   | "payment_pending"
@@ -24,7 +25,7 @@ export const MONEY_STATUS_META: Record<string, MoneyStatusMeta> = {
   funds_releasing: { label: "Releasing", tone: "info", classes: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
   funds_released: { label: "Released", tone: "success", classes: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   funds_frozen: { label: "Funds Frozen", tone: "danger", classes: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
-  refund_pending: { label: "Refund Pending", tone: "warning", classes: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
+  refund_pending: { label: "Refund Pending", tone: "warning", classes: ADMIN_TONE.elevated.badge },
   refund_issued: { label: "Refunded", tone: "neutral", classes: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
 };
 

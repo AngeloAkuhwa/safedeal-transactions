@@ -1,4 +1,5 @@
 import { Users, UserCheck, Flag, UserPlus, IdCard, Mail } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { UserDirectorySummary } from "@/services/admin-users-directory.service";
 
 interface Props { summary: UserDirectorySummary }
@@ -34,8 +35,8 @@ export function UsersMobileStatsScroll({ summary }: Props) {
           delta={d.verified} deltaClass="text-emerald-400" label="Verified" value={summary.verified_users} />
         <StatTile icon={Flag} iconWrap="bg-red-500/10" iconClass="text-red-400"
           delta={d.flagged} deltaClass="text-red-400" label="Flagged" value={summary.flagged_users} />
-        <StatTile icon={UserPlus} iconWrap="bg-orange-500/10" iconClass="text-orange-400"
-          delta={d.new_week} deltaClass="text-orange-400" label="New This Week" value={summary.new_this_week} />
+        <StatTile icon={UserPlus} iconWrap="bg-orange-500/10" iconClass={ADMIN_TONE.elevated.text}
+          delta={d.new_week} deltaClass={ADMIN_TONE.elevated.text} label="New This Week" value={summary.new_this_week} />
         <StatTile icon={IdCard} iconWrap="bg-purple-500/10" iconClass="text-purple-400"
           delta={d.id} deltaClass="text-purple-400" label="ID Verified" value={summary.id_verified} />
         <StatTile icon={Mail} iconWrap="bg-slate-500/10" iconClass="text-slate-400"

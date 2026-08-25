@@ -1,4 +1,5 @@
 import { Users, UserCheck, Flag, UserPlus, IdCard, Mail } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { UserDirectorySummary } from "@/services/admin-users-directory.service";
 
 interface Props { summary: UserDirectorySummary }
@@ -39,8 +40,8 @@ export function UsersSummaryCards({ summary }: Props) {
         label="Verified Users" value={summary.verified_users} delta={d.verified} deltaClass="text-emerald-400" hint={`${summary.verification_rate}% verification rate`} />
       <StatCard icon={Flag} iconWrap="bg-red-500/10 border-red-500/30" iconClass="text-red-400"
         label="Flagged Users" value={summary.flagged_users} delta={d.flagged} deltaClass="text-red-400" hint="Requires review" />
-      <StatCard icon={UserPlus} iconWrap="bg-orange-500/10 border-orange-500/30" iconClass="text-orange-400"
-        label="New This Week" value={summary.new_this_week} delta={d.new_week} deltaClass="text-orange-400"
+      <StatCard icon={UserPlus} iconWrap={ADMIN_TONE.elevated.panel} iconClass={ADMIN_TONE.elevated.text}
+        label="New This Week" value={summary.new_this_week} delta={d.new_week} deltaClass={ADMIN_TONE.elevated.text}
         hint={`${summary.new_per_day_avg}/day average`} />
       <StatCard icon={IdCard} iconWrap="bg-purple-500/10 border-purple-500/30" iconClass="text-purple-400"
         label="ID Verified" value={summary.id_verified} delta={d.id} deltaClass="text-purple-400"

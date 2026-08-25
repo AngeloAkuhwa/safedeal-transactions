@@ -1,10 +1,11 @@
 import { Flag, AlertTriangle, Ban } from "lucide-react";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { FlaggedSummary } from "@/services/admin-flagged-users.service";
 
 export function FlaggedMobileStatsScroll({ summary }: { summary: FlaggedSummary }) {
   const items = [
     { icon: Flag, wrap: "bg-red-500/10", color: "text-red-400", value: summary.total_flagged, label: "Total Flagged" },
-    { icon: AlertTriangle, wrap: "bg-orange-500/10", color: "text-orange-400", value: summary.critical, label: "Critical Risk" },
+    { icon: AlertTriangle, wrap: "bg-orange-500/10", color: ADMIN_TONE.elevated.text, value: summary.critical, label: "Critical Risk" },
     { icon: Ban, wrap: "bg-purple-500/10", color: "text-purple-400", value: summary.suspended, label: "Suspended" },
   ];
   return (

@@ -1,6 +1,7 @@
 import { Lock, Hourglass, RotateCcw, CheckCircle2, CalendarRange, Vault } from "lucide-react";
 import type { EscrowKpis } from "@/services/admin-escrow.service";
 import { formatMoney } from "@/lib/format";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { formatMoneyCompactOrDash } from "@/lib/payment/money-format";
 
 function fmtDelta(d: number): string {
@@ -45,8 +46,8 @@ export function EscrowKpiCards({ kpis }: { kpis: EscrowKpis }) {
         label="Total Frozen" value={kpis.total_frozen} currency={currency} sub={`${kpis.total_frozen_count.toLocaleString("en-NG")} frozen transactions`} delta={kpis.total_frozen_delta_pct} deltaColor="text-red-400"
       />
       <Card
-        icon={<Hourglass className="h-5 w-5" />} iconBg="bg-orange-500/10" iconBorder="border-orange-500/30" iconColor="text-orange-400"
-        label="Pending Release" value={kpis.pending_release} currency={currency} sub={`${kpis.pending_release_count.toLocaleString("en-NG")} pending releases`} delta={kpis.pending_release_delta_pct} deltaColor="text-orange-400"
+        icon={<Hourglass className="h-5 w-5" />} iconBg="bg-orange-500/10" iconBorder="border-orange-500/30" iconColor={ADMIN_TONE.elevated.text}
+        label="Pending Release" value={kpis.pending_release} currency={currency} sub={`${kpis.pending_release_count.toLocaleString("en-NG")} pending releases`} delta={kpis.pending_release_delta_pct} deltaColor={ADMIN_TONE.elevated.text}
       />
       <Card
         icon={<RotateCcw className="h-5 w-5" />} iconBg="bg-purple-500/10" iconBorder="border-purple-500/30" iconColor="text-purple-400"

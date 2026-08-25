@@ -195,10 +195,20 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * so caution text reads at one intensity everywhere. Pill-internal
  * text beside /15 and /20 washes keeps its 400 inside its composite,
  * the RolePicker favourite star keeps its hover pair, and both wait
- * for the wash batch).
+ * for the wash batch); 3253 to 3194 (6.2 batch 4, the orange mirror of
+ * batch 2: the elevated badge and chip triads in either member order,
+ * the panel pair, the chip hover, and the guarded shorts
+ * text-orange-400 and bg-orange-400, across 17 files. One asymmetry
+ * makes this NOT a copy of the amber pass and is the reason it was
+ * written fresh: warning.text is amber-300, so a panel-plus-amber-300
+ * composite was an exact set; elevated.text is orange-400, so a
+ * panel-plus-orange-300 composite is NOT, and folding one here would
+ * have been a silent visual change wearing a mechanical pass's
+ * clothes. Those sites, and the eight standalone orange-300 texts,
+ * stay raw for the fold batch).
  */
 const BUDGET = {
-  admin: 3253,
+  admin: 3194,
   ui: 4,
   customer: 12,
 };

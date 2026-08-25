@@ -3,6 +3,7 @@ import type { IconType } from "react-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
+import { ADMIN_TONE } from "@/components/admin/palette";
 import type { PayoutSummary } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
 type Tone = "orange" | "blue" | "red" | "emerald" | "purple" | "cyan";
 
 const TONE: Record<Tone, { box: string; icon: string; chip: string }> = {
-  orange:  { box: "bg-orange-500/10 border-orange-500/30",   icon: "text-orange-400",  chip: "text-orange-400 bg-orange-500/10" },
+  orange:  { box: ADMIN_TONE.elevated.panel,   icon: ADMIN_TONE.elevated.text,  chip: "text-orange-400 bg-orange-500/10" },
   blue:    { box: "bg-blue-500/10 border-blue-500/30",       icon: "text-blue-400",    chip: "text-blue-400 bg-blue-500/10" },
   red:     { box: "bg-red-500/10 border-red-500/30",         icon: "text-red-400",     chip: "text-red-400 bg-red-500/10" },
   emerald: { box: "bg-emerald-500/10 border-emerald-500/30", icon: "text-emerald-400", chip: "text-emerald-400 bg-emerald-500/10" },

@@ -100,7 +100,7 @@ const ESCROW_BADGE_CLS: Record<string, string> = {
 
 const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
   clean: { label: "Clean", cls: "bg-muted text-muted-foreground border-border" },
-  escalated: { label: "Escalated", cls: "bg-orange-500/15 text-orange-300 border-orange-500/30", Icon: Flag },
+  escalated: { label: "Escalated", cls: ADMIN_TONE.elevated.badge, Icon: Flag },
   high_risk: { label: "High Risk", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: ShieldAlert },
   fraud_watch: { label: "Fraud Watch", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: Flame },
 };
@@ -109,7 +109,7 @@ const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag
 const SECONDARY_FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
   frozen:         { label: "Frozen",         cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
   admin_frozen:   { label: "Admin Frozen",   cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
-  overdue:        { label: "Overdue",        cls: "bg-orange-500/15 text-orange-300 border-orange-500/30",Icon: Clock },
+  overdue:        { label: "Overdue",        cls: ADMIN_TONE.elevated.badge,Icon: Clock },
   payment_failed: { label: "Payment Failed", cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
   payout_failed:  { label: "Payout Failed",  cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
   risk_flagged:   { label: "Risk Flagged",   cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: Flag },
