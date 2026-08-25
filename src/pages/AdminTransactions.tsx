@@ -980,7 +980,7 @@ export default function AdminTransactions() {
                           t.lastActivityTone === "danger"
                             ? "text-red-400"
                             : t.lastActivityTone === "warn"
-                              ? "text-orange-300"
+                              ? ADMIN_TONE.elevated.text
                               : "text-muted-foreground"
                         }`}
                       >
@@ -1116,7 +1116,7 @@ export default function AdminTransactions() {
               {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
                 <div
                   className={`mt-2 text-xs ${
-                    t.lastActivityTone === "danger" ? "text-red-400" : "text-orange-300"
+                    t.lastActivityTone === "danger" ? ADMIN_TONE.danger.text : ADMIN_TONE.elevated.text
                   }`}
                 >
                   {t.lastActivityLabel}

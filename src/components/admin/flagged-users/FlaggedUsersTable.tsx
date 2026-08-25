@@ -156,7 +156,7 @@ export function FlaggedUsersTable(props: Props) {
                             <Scale className={`h-3 w-3 ${ADMIN_TONE.elevated.text}`} />
                           </div>
                           <div>
-                            <p className="text-orange-300 text-sm font-medium">{r.disputes_30d} active dispute{r.disputes_30d === 1 ? "" : "s"}</p>
+                            <p className={`${ADMIN_TONE.elevated.text} text-sm font-medium`}>{r.disputes_30d} active dispute{r.disputes_30d === 1 ? "" : "s"}</p>
                             <p className={`${ADMIN_GROUND.muted} text-xs`}>Last 30 days</p>
                           </div>
                         </div>

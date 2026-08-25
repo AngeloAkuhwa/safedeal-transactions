@@ -1,3 +1,4 @@
+import { ADMIN_TONE } from "@/components/admin/palette";
 import { Clock, RefreshCw } from "lucide-react";
 
 export function EscrowMobileHero({
@@ -40,8 +41,8 @@ export function EscrowMobileHero({
             <p className="text-red-300 text-lg font-bold leading-tight">{critical}</p>
           </div>
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2">
-            <p className="text-xs uppercase text-orange-300/80">Warnings</p>
-            <p className="text-orange-300 text-lg font-bold leading-tight">{warnings}</p>
+            <p className="text-xs uppercase text-orange-400/80">Warnings</p>
+            <p className={`${ADMIN_TONE.elevated.text} text-lg font-bold leading-tight`}>{warnings}</p>
           </div>
         </div>
       )}

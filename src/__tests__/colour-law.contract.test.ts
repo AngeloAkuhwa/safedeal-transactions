@@ -205,10 +205,21 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * panel-plus-orange-300 composite is NOT, and folding one here would
  * have been a silent visual change wearing a mechanical pass's
  * clothes. Those sites, and the eight standalone orange-300 texts,
- * stay raw for the fold batch).
+ * stay raw for the fold batch); 3194 to 3186 (6.2 batch 5, the orange
+ * fold, after D10 resolved the step question in favour of the palette
+ * as written: seven standalone orange-300 texts conform DOWN to
+ * elevated.text at orange-400, the opposite direction from batch 3's
+ * amber fold, because in each case the call sites conform to the
+ * palette rather than the palette to them. Three sites are held back
+ * deliberately: AdminCaseTimeline and AdminDisputeDetail tint their
+ * timeline headers emerald-300 / orange-300 / red-300 as a family, and
+ * AdminTransactionDetail pairs a red-300 failure reason with an
+ * orange-300 blocked reason. Folding one hue out of a multi-hue 300
+ * family would break the set, so those converge as sets in the family
+ * batch).
  */
 const BUDGET = {
-  admin: 3194,
+  admin: 3186,
   ui: 4,
   customer: 12,
 };
