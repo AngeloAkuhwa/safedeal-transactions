@@ -12,6 +12,7 @@ import {
   getEscrowAlertThresholds, updateEscrowAlertThresholds,
 } from "@/services/admin-escrow-alerts.service";
 import type { EscrowAlertThresholds } from "@/services/admin-escrow.service";
+import { ADMIN_GROUND } from "@/components/admin/palette";
 import { BlockSkeleton } from "@/components/common/PageSkeleton";
 
 interface Props {
@@ -67,7 +68,7 @@ export function ConfigureAlertsModal({ open, onOpenChange, initial, onSaved }: P
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-lg">
+      <DialogContent className={`${ADMIN_GROUND.panel} text-white max-w-lg`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Settings className="h-5 w-5 text-sky-400" /> Configure Escrow Alerts

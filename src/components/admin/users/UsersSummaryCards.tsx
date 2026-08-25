@@ -1,5 +1,5 @@
 import { Users, UserCheck, Flag, UserPlus, IdCard, Mail } from "lucide-react";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import type { UserDirectorySummary } from "@/services/admin-users-directory.service";
 
 interface Props { summary: UserDirectorySummary }
@@ -15,7 +15,7 @@ function StatCard({ icon: Icon, iconWrap, iconClass, label, value, delta, deltaC
   label: string; value: number | string; delta: string; deltaClass: string; hint: string;
 }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl p-6`}>
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center border ${iconWrap}`}>
           <Icon className={`h-5 w-5 ${iconClass}`} />

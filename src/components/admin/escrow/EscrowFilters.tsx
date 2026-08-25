@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import type { EscrowQuery } from "@/services/admin-escrow.service";
 
 interface Props {
@@ -30,7 +30,7 @@ function Select<T extends string>({ label, value, onChange, options }: {
 
 export function EscrowFilters({ value, search, onSearchChange, onChange, onApply, onReset }: Props) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
       <div className="p-4 lg:p-6 border-b border-slate-800">
         <h3 className="text-white text-base lg:text-lg font-semibold">Filters &amp; Search</h3>
         <p className="text-slate-400 text-xs lg:text-sm mt-1">Filter and search escrow records</p>

@@ -18,7 +18,7 @@ import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
 import { formatMoney } from "@/lib/format";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_BORDER, RISK_LABEL, RISK_PILL, RISK_DOT, relative, absoluteDate } from "./risk";
-import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
   rows: FlaggedUserRow[];
@@ -210,25 +210,25 @@ export function FlaggedUsersTable(props: Props) {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-2 min-w-[180px]">
-                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2 transition-all text-white text-xs font-medium min-h-11">
+                      <button type="button" onClick={() => onOpenDetail(r.user_id)} className={`px-3 py-1.5 ${ADMIN_SOLID.info} rounded-lg flex items-center justify-center gap-2 transition-all text-xs font-medium min-h-11`}>
                         <FolderOpen className="h-3 w-3" /> Review User
                       </button>
                       <button type="button" onClick={() => onOpenDetail(r.user_id)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center gap-2 transition-all text-slate-300 text-xs font-medium min-h-11">
                         <User className="h-3 w-3" /> View Profile
                       </button>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className={`flex-1 px-2 py-1.5 ${ADMIN_SOLID.elevated} rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-medium min-h-11`}>
                           <Search className="h-3 w-3" /> Investigate
                         </button>
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className={`flex-1 px-2 py-1.5 ${ADMIN_SOLID.danger} rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-medium min-h-11`}>
                           <ArrowUpRight className="h-3 w-3" /> Escalate
                         </button>
                       </div>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className={`flex-1 px-2 py-1.5 ${ADMIN_SOLID.special} rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-medium min-h-11`}>
                           <Ban className="h-3 w-3" /> Suspend
                         </button>
-                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className="flex-1 px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 transition-all text-white text-xs font-medium min-h-11">
+                        <button type="button" onClick={() => onOpenDetail(r.user_id)} className={`flex-1 px-2 py-1.5 ${ADMIN_SOLID.success} rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-medium min-h-11`}>
                           <CheckCircle2 className="h-3 w-3" /> Unflag
                         </button>
                       </div>

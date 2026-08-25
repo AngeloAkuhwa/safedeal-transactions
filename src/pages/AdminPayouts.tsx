@@ -19,7 +19,7 @@ import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
 import { fetchAdminSettings } from "@/services/admin-settings.service";
-import { ADMIN_TONE, ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE, ADMIN_SOLID } from "@/components/admin/palette";
 import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
@@ -304,7 +304,7 @@ export default function AdminPayouts() {
       )}
 
       {/* Desktop: original slate panel with all filters visible */}
-      <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <div className={`hidden lg:block ${ADMIN_GROUND.panel} border rounded-xl p-6`}>
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
           <PayoutTabs active={tab} onChange={(t) => { setTab(t); setFilters((f) => ({ ...f, status: t })); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
@@ -336,7 +336,7 @@ export default function AdminPayouts() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search seller, payout ID..."
-            className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+            className={`w-full pl-10 pr-4 py-3 ${ADMIN_GROUND.panel} border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm`}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export default function AdminPayouts() {
           </button>
         </div>
         {mobileFiltersOpen && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className={`${ADMIN_GROUND.panel} border rounded-xl p-4`}>
             <PayoutAdvancedFilters
               variant="mobile"
               value={filters}

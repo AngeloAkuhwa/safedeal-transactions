@@ -3,7 +3,7 @@ import type { IconType } from "react-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import type { PayoutSummary } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -27,7 +27,7 @@ function Tile({
 }: { icon: IconType; tone: Tone; label: string; value: string; badge?: string | null; hint?: string }) {
   const t = TONE[tone];
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 lg:p-6">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl p-4 lg:p-6`}>
       <div className="flex items-center justify-between mb-2">
         <div className={`w-9 h-9 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center border ${t.box}`}>
           <Icon className={t.icon} size={16} />

@@ -810,7 +810,7 @@ function StatCard({
 }) {
   const Comp: any = onClick ? "button" : "div";
   return (
-    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-6 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
+    <Comp onClick={onClick} className={`text-left ${ADMIN_GROUND.panel} border rounded-xl p-6 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (

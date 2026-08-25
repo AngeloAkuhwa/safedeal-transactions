@@ -1,5 +1,5 @@
 import { Users, UserCheck, Flag, UserPlus, IdCard, Mail } from "lucide-react";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 import type { UserDirectorySummary } from "@/services/admin-users-directory.service";
 
 interface Props { summary: UserDirectorySummary }
@@ -11,7 +11,7 @@ function StatTile({
   delta: string; deltaClass: string; label: string; value: number;
 }) {
   return (
-    <div className="w-40 bg-slate-900 border border-slate-800 p-4 rounded-2xl flex-shrink-0">
+    <div className={`w-40 ${ADMIN_GROUND.panel} border p-4 rounded-2xl flex-shrink-0`}>
       <div className="flex justify-between items-start mb-3">
         <div className={`p-2 rounded-lg ${iconWrap}`}>
           <Icon className={`h-4 w-4 ${iconClass}`} />

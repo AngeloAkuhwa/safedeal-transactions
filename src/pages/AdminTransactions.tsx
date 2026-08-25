@@ -73,7 +73,7 @@ import { TransactionsEmptyState } from "@/components/admin/transactions/Transact
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -655,7 +655,7 @@ export default function AdminTransactions() {
                 onClick={handleRefresh}
                 disabled={isFetching}
                 aria-label="Refresh transactions"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11"
+                className={`inline-flex items-center gap-2 rounded-lg ${ADMIN_SOLID.info} px-3.5 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11`}
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
@@ -1195,7 +1195,7 @@ export default function AdminTransactions() {
             <button
               type="button"
               onClick={() => setMobileSheetOpen(false)}
-              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 min-h-11"
+              className={`flex-1 rounded-lg ${ADMIN_SOLID.info} px-3 py-2 text-sm font-medium min-h-11`}
             >
               Apply
             </button>

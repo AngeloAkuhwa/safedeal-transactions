@@ -1,4 +1,5 @@
 import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
+import { ADMIN_GROUND } from "@/components/admin/palette";
 import { FlaggedUserCard } from "./FlaggedUserCard";
 
 interface Props {
@@ -21,7 +22,7 @@ export function FlaggedUsersMobileFeed({ rows, total, page, pageSize, onOpen, on
         <span className="text-xs text-slate-500">Showing {start}-{end} of {total.toLocaleString()}</span>
       </div>
       {rows.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center text-sm text-slate-500">
+        <div className={`${ADMIN_GROUND.panel} border rounded-2xl p-10 text-center text-sm text-slate-500`}>
           No flagged users match the current filters.
         </div>
       ) : (

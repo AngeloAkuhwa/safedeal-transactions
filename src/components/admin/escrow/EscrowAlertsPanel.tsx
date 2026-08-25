@@ -6,7 +6,7 @@ import type { EscrowAlerts } from "@/services/admin-escrow.service";
 import { canConfigureEscrowAlerts } from "@/services/admin-escrow-alerts.service";
 import { ConfigureAlertsModal } from "./ConfigureAlertsModal";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
 
 type Accent = {
   bg: string;        // icon container background
@@ -151,7 +151,7 @@ export function EscrowAlertsPanel({
   }));
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl">
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
       <div className="p-4 lg:p-6 border-b border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>

@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from "recharts";
 import type { EscrowTrends } from "@/services/admin-escrow.service";
+import { ADMIN_GROUND } from "@/components/admin/palette";
 import { formatMoneyCompactOrDash } from "@/lib/payment/money-format";
 
 const STATE_COLORS: Record<string, string> = {
@@ -20,7 +21,7 @@ function fmtDay(d: string): string {
 
 function Panel({ title, subtitle, children, className }: { title: string; subtitle: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-slate-900 border border-slate-800 rounded-xl ${className ?? ""}`}>
+    <div className={`${ADMIN_GROUND.panel} border rounded-xl ${className ?? ""}`}>
       <div className="p-4 lg:p-6 border-b border-slate-800">
         <h3 className="text-white text-base lg:text-lg font-semibold">{title}</h3>
         <p className="text-slate-400 text-xs lg:text-sm mt-1">{subtitle}</p>

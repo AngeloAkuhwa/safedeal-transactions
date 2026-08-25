@@ -291,10 +291,25 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * with any mismatch aborting the run. palette-sets-consumed.contract now
  * holds the floor, red-verified on all 131. Complete sets only, on
  * purpose: a partial set is bespoke work, and sweeping those would be a
- * visual change wearing a mechanical pass's clothes).
+ * visual change wearing a mechanical pass's clothes); 2677 to 2566 (batch
+ * 10, the guard reads the whole palette. The previous batch shipped this
+ * contract claiming it reads the sets from the palette itself. It read TWO
+ * of the palette's six class-bearing maps, ADMIN_TONE and ADMIN_CATEGORY,
+ * and was blind to ADMIN_SOLID, ADMIN_BADGE_STRONG, ADMIN_GROUND and
+ * ADMIN_TIMELINE. A guard written to close a scoping hole had the same
+ * scoping hole one level up, which is the failure repeating at the level
+ * above the one it was built for. Behind it: 50 complete sets, 39 of them
+ * restatements of ADMIN_GROUND.panel, the page-level card and the single
+ * most repeated entry in the palette, plus 11 ADMIN_SOLID solids that
+ * batches 7 and 9 both missed because each was scoped to one shape. All 50
+ * consumed under the same round-trip identity proof, three of them inside
+ * interpolated templates by tokenising only the literal spans so an inner
+ * ternary cannot be torn apart. One tone sets stay unpoliced deliberately
+ * and the guard says why: demanding ADMIN_GROUND.heading be consumed would
+ * flag every legitimate text-white in the back office).
  */
 const BUDGET = {
-  admin: 2677,
+  admin: 2566,
   ui: 4,
   customer: 12,
 };
