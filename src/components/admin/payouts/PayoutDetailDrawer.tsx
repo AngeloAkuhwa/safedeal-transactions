@@ -14,6 +14,7 @@ import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import { getPayoutPill, getPayoutCaption, getAccountPresentation } from "@/lib/payout-presentation";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
@@ -72,13 +73,14 @@ function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
 }
 
 function SellerAvatar({ name, src }: { name?: string | null; src?: string | null }) {
-  const initial = (name ?? "?").trim().charAt(0).toUpperCase() || "?";
-  return src ? (
-    <img src={src} alt={name ?? "Seller"} className={`w-12 h-12 rounded-full object-cover border ${ADMIN_GROUND.borderSoft}`} />
-  ) : (
-    <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-base">
-      {initial}
-    </div>
+  return (
+    <UserAvatar
+      url={src}
+      name={name}
+      alt={name ?? "Seller"}
+      className={`w-12 h-12 rounded-full object-cover border ${ADMIN_GROUND.borderSoft}`}
+      fallbackClassName="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-base"
+    />
   );
 }
 

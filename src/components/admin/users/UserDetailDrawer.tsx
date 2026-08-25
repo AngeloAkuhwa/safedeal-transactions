@@ -5,6 +5,7 @@ import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.servi
 import { formatMoneyCompact } from "@/lib/format";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
@@ -49,9 +50,12 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
         {data && (
           <div className="p-5 space-y-5">
             <div className="flex items-start gap-4">
-              {data.user.avatar_url
-                ? <img src={data.user.avatar_url} className="w-16 h-16 rounded-full ring-2 ring-slate-700" alt={data.user.full_name} />
-                : <span className="w-16 h-16 rounded-full bg-slate-800 ring-2 ring-slate-700 inline-flex items-center justify-center text-white text-xl font-bold">{(data.user.full_name || "?").slice(0,1).toUpperCase()}</span>}
+              <UserAvatar
+                url={data.user.avatar_url}
+                name={data.user.full_name}
+                className="w-16 h-16 rounded-full ring-2 ring-slate-700"
+                fallbackClassName="w-16 h-16 rounded-full bg-slate-800 ring-2 ring-slate-700 inline-flex items-center justify-center text-white text-xl font-bold"
+              />
               <div className="min-w-0">
                 <h4 className="text-white text-lg font-semibold">{data.user.full_name}</h4>
                 <p className="text-slate-400 text-sm truncate">{data.user.handle}</p>

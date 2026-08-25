@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PresenceDot } from "./PresenceDot";
 import { keyActivate } from "@/lib/a11y";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE, ADMIN_GROUND } from "@/components/admin/palette";
 
 interface Props {
@@ -78,7 +79,6 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
           </div>
         )}
         {rows.map((r) => {
-          const init = (r.full_name || "?").slice(0, 1).toUpperCase();
           const ring = ringClass(r);
           const badge = cornerBadge(r);
           const chip = statusChip(r);
@@ -98,9 +98,12 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               >
               <div className={`p-4 border-b ${ADMIN_GROUND.border} flex items-center gap-4`}>
                 <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="relative min-h-11 inline-flex items-center">
-                  {r.avatar_url
-                    ? <img src={r.avatar_url} className={`w-14 h-14 rounded-full ring-2 ${ring}`} alt={r.full_name} />
-                    : <span className={`w-14 h-14 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
+                  <UserAvatar
+                    url={r.avatar_url}
+                    name={r.full_name}
+                    className={`w-14 h-14 rounded-full ring-2 ${ring}`}
+                    fallbackClassName={`w-14 h-14 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}
+                  />
                   {badge && (
                     <div className={`absolute -bottom-1 -right-1 w-6 h-6 ${badge.wrap} rounded-full flex items-center justify-center border-2 border-slate-900`}>
                       {badge.icon}

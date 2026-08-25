@@ -5,6 +5,7 @@ import { availabilityDot, availabilityLabel, availabilityTextColor, humanize, in
 import { cn } from "@/lib/utils";
 import { ListChecks, Repeat, AlertTriangle, Flame, Clock, Mail, Users } from "lucide-react";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AgentDetailsDrawer({
@@ -30,9 +31,12 @@ export function AgentDetailsDrawer({
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="h-11 w-11 rounded-full bg-muted text-sm font-semibold text-foreground flex items-center justify-center overflow-hidden">
-                {agent?.avatar_url
-                  ? <img src={agent.avatar_url} className="h-full w-full object-cover" alt="" />
-                  : initialsOf(agent)}
+                <UserAvatar
+                  url={agent?.avatar_url}
+                  name={agent ? nameOf(agent) : null}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               </div>
               {agent && (
                 <span className={cn(

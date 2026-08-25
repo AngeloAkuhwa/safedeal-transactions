@@ -40,6 +40,7 @@ import {
 } from "@/services/admin-disputes.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { keyActivate } from "@/lib/a11y";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------- visual helpers ---------- */
@@ -793,12 +794,12 @@ export default function AdminDisputes() {
 /* ---------- Avatar ---------- */
 
 function Avatar({ name, url }: { name: string; url?: string | null }) {
-  if (url) {
-    return <img src={url} alt={name} className="h-6 w-6 rounded-full object-cover" />;
-  }
   return (
-    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-xs font-semibold text-white">
-      {initials(name)}
-    </div>
+    <UserAvatar
+      url={url}
+      name={name}
+      className="h-6 w-6 rounded-full object-cover"
+      fallbackClassName="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-xs font-semibold text-white"
+    />
   );
 }

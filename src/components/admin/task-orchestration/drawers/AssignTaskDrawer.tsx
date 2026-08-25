@@ -11,6 +11,7 @@ import {
   humanize, initialsOf, isEligibleAvailability, nameOf, priorityBadgeClass,
 } from "../helpers";
 import type { AgentRosterEntry, UnassignedTask } from "@/services/task-orchestration.service";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 export function AssignTaskDrawer({
@@ -130,9 +131,12 @@ export function AssignTaskDrawer({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <div className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                          {a.avatar_url
-                            ? <img src={a.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-                            : initialsOf(a)}
+                          <UserAvatar
+                            url={a.avatar_url}
+                            name={nameOf(a)}
+                            alt=""
+                            className="h-full w-full rounded-full object-cover"
+                          />
                           <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-background", availabilityDot(a.availability))} />
                         </div>
                         <div className="min-w-0">

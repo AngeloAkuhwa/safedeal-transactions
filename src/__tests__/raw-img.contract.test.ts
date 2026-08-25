@@ -47,22 +47,14 @@ import path from "node:path";
 
 const ROOT = path.resolve(__dirname, "..");
 
-/** The one legitimate definition site. */
-const DEFINITION = "components/common/ProductImage.tsx";
+/** The legitimate definition sites: one primitive per kind of image. */
+const DEFINITIONS = [
+  "components/common/ProductImage.tsx",
+  "components/common/UserAvatar.tsx",
+];
 
 const RAW_IMG_DEBT = new Map<string, number>([
-  ["components/admin/escrow/EscrowRecordsTable.tsx", 1], // avatar
-  ["components/admin/flagged-users/UserAvatar.tsx", 1], // avatar
-  ["components/admin/payouts/PayoutDetailDrawer.tsx", 1], // avatar
-  ["components/admin/task-orchestration/AgentLoadCard.tsx", 1], // avatar
-  ["components/admin/task-orchestration/LiveTaskProgression.tsx", 1], // avatar
-  ["components/admin/task-orchestration/ProductivityInsights.tsx", 1], // avatar
-  ["components/admin/task-orchestration/drawers/AgentDetailsDrawer.tsx", 1], // avatar
-  ["components/admin/task-orchestration/drawers/AssignTaskDrawer.tsx", 1], // avatar
   ["components/admin/transactions/EvidencePreviewDialog.tsx", 1], // evidence
-  ["components/admin/users/UserDetailDrawer.tsx", 1], // avatar
-  ["components/admin/users/UsersMobileFeed.tsx", 1], // avatar
-  ["components/admin/users/UsersTable.tsx", 1], // avatar
   ["components/auth/BrandedAuthSplash.tsx", 1], // asset (brand logo)
   ["components/disputes/BuyerClaimSection.tsx", 2], // evidence
   ["components/disputes/DeliveryProofSection.tsx", 1], // evidence
@@ -77,11 +69,8 @@ const RAW_IMG_DEBT = new Map<string, number>([
   ["components/transactions/ProductMediaGallery.tsx", 3], // renditions inline + lightbox
   ["components/verification/DisputeForm.tsx", 2], // upload
   ["pages/AdminAuditLogs.tsx", 1], // avatar
-  ["pages/AdminDisputeDetail.tsx", 3], // evidence + lightbox + avatar
-  ["pages/AdminDisputes.tsx", 1], // avatar
+  ["pages/AdminDisputeDetail.tsx", 2], // evidence + lightbox
   ["pages/AdminNotifications.tsx", 2], // avatar
-  ["pages/AdminTransactionDetail.tsx", 1], // avatar
-  ["pages/AdminUserDetail.tsx", 1], // avatar
   ["pages/BuyerTransactionDetail.tsx", 3], // evidence + avatar
   ["pages/BuyerTransactionReview.tsx", 1], // avatar
   ["pages/BuyerTransactionTracking.tsx", 3], // lightbox + evidence + avatar
@@ -105,14 +94,16 @@ describe("raw <img> only ever decreases", () => {
   const counts = new Map<string, number>();
   for (const file of walk(ROOT)) {
     const rel = path.relative(ROOT, file);
-    if (rel.startsWith("__tests__") || rel === DEFINITION) continue;
+    if (rel.startsWith("__tests__") || DEFINITIONS.includes(rel)) continue;
     const n = stripComments(fs.readFileSync(file, "utf8")).split("<img").length - 1;
     if (n) counts.set(rel, n);
   }
 
-  it("the definition site still exists and renders an img", () => {
-    const src = fs.readFileSync(path.join(ROOT, DEFINITION), "utf8");
-    expect(src.includes("<img"), `${DEFINITION} no longer renders an <img>`).toBe(true);
+  it("every definition site still exists and renders an img", () => {
+    for (const def of DEFINITIONS) {
+      const src = fs.readFileSync(path.join(ROOT, def), "utf8");
+      expect(src.includes("<img"), `${def} no longer renders an <img>`).toBe(true);
+    }
   });
 
   it("no file exceeds its recorded raw <img> count", () => {
