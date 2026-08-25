@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
-  TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
-  ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
-  ShoppingCart, Power, Image as ImageIcon,
-} from "lucide-react";
+import { ShieldCheck, ShieldAlert, History as HistoryIcon, TriangleAlert, Layers, Coins, Download, ArrowRight, RotateCcw, AlertTriangle, ShoppingCart, Power } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
 import {
@@ -530,12 +525,7 @@ export default function AdminSettings() {
             <div className="sd-card-pad border-b border-border">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
-                      <Clock className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
-                    </div>
-                    Timeout Rules
-                  </h3>
+                  <h3 className="h-card font-semibold text-foreground">Timeout Rules</h3>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">
                     Configure time limits for critical platform operations
                   </p>
@@ -599,12 +589,7 @@ export default function AdminSettings() {
             <div className="sd-card-pad border-b border-border">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                    <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <Percent className={`h-4 w-4 ${ADMIN_TONE.success.text}`} />
-                    </div>
-                    Fee Configuration
-                  </h3>
+                  <h3 className="h-card font-semibold text-foreground">Fee Configuration</h3>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Protection fee structure and limits</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -623,10 +608,7 @@ export default function AdminSettings() {
             </div>
             <div className="sd-card-pad">
               <div className="mb-4 pb-4 border-b border-border">
-                <h4 className="sd-eyebrow mb-3 flex items-center gap-1.5">
-                  <Coins className={`h-3 w-3 ${ADMIN_TONE.success.text}`} />
-                  Base Fee Structure
-                </h4>
+                <h4 className="sd-eyebrow mb-3">Base Fee Structure</h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
                   <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn") || !canConfigureFinancial} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
@@ -635,10 +617,7 @@ export default function AdminSettings() {
               </div>
 
               <div className="mb-4 pb-4 border-b border-border">
-                <h4 className="sd-eyebrow mb-3 flex items-center gap-1.5">
-                  <Crown className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
-                  Special Category Fee Caps
-                </h4>
+                <h4 className="sd-eyebrow mb-3">Special Category Fee Caps</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <FeeField label="High-Value Tier Rate" suffix="%" value={hvRate} onChange={setStr(setHvRate)} help="Rate for transactions above ₦2,000,000" overridden={isOverridden("pricing.tier_rates")} />
                   <div className={`p-3 bg-muted/30 border border-border rounded-lg ${isLocked("fees.refund_policy") ? "opacity-60" : ""}`}>
@@ -695,12 +674,7 @@ export default function AdminSettings() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             <section className="sd-card">
               <div className="sd-card-pad border-b border-border">
-                <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                  <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
-                    <Sliders className={`h-4 w-4 ${ADMIN_TONE.special.text}`} />
-                  </div>
-                  Platform Settings
-                </h3>
+                <h3 className="h-card font-semibold text-foreground">Platform Settings</h3>
                 <p className="text-xs text-muted-foreground mt-1 ml-10">Core platform toggles and thresholds</p>
               </div>
               <div className="sd-card-pad space-y-4">
@@ -749,12 +723,7 @@ export default function AdminSettings() {
 
             <section className="sd-card">
               <div className="sd-card-pad border-b border-border">
-                <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                  <div className="w-8 h-8 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-center">
-                    <ShieldHalf className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
-                  </div>
-                  Security &amp; Compliance
-                </h3>
+                <h3 className="h-card font-semibold text-foreground">Security &amp; Compliance</h3>
                 <p className="text-xs text-muted-foreground mt-1 ml-10">Identity verification and security protocols</p>
               </div>
               <div className="sd-card-pad space-y-4">
@@ -819,12 +788,7 @@ export default function AdminSettings() {
           {/* ============ COMMERCE (KILL SWITCHES) ============ */}
           <section className="sd-card">
             <div className="sd-card-pad border-b border-border">
-              <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
-                </div>
-                Commerce Availability
-              </h3>
+              <h3 className="h-card font-semibold text-foreground">Commerce Availability</h3>
               <p className="text-xs text-muted-foreground mt-1 ml-10">
                 Master kill switches for transactions. When checkout is OFF, buyers can still browse and onboard —
                 they just cannot pay. Vendor overrides apply to that vendor's storefront and cart flows only.
@@ -895,12 +859,7 @@ export default function AdminSettings() {
           {/* ============ MEDIA STANDARDS ============ */}
           <section className="sd-card">
             <div className="sd-card-pad border-b border-border">
-              <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
-                  <ImageIcon className="h-4 w-4 text-primary" />
-                </div>
-                Product Media Standards
-              </h3>
+              <h3 className="h-card font-semibold text-foreground">Product Media Standards</h3>
               <p className="text-xs text-muted-foreground mt-1 ml-10">
                 The quality bar for seller product photos and video. Enforced in the browser for instant feedback and
                 again on the server as the authority. Already-published products are grandfathered and never unpublished.
@@ -947,12 +906,7 @@ export default function AdminSettings() {
             <div className="sd-card-pad border-b border-border">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
-                      <HistoryIcon className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
-                    </div>
-                    Recent Changes &amp; Audit History
-                  </h3>
+                  <h3 className="h-card font-semibold text-foreground">Recent Changes &amp; Audit History</h3>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Track all system configuration modifications</p>
                 </div>
                 <button
@@ -993,12 +947,7 @@ export default function AdminSettings() {
           {scope === "platform" && (
             <section className="sd-card">
               <div className="sd-card-pad border-b border-border">
-                <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
-                  <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
-                    <Building2 className={`h-4 w-4 ${ADMIN_TONE.special.text}`} />
-                  </div>
-                  Vendor Overrides
-                </h3>
+                <h3 className="h-card font-semibold text-foreground">Vendor Overrides</h3>
                 <p className="text-xs text-muted-foreground mt-1 ml-10">
                   Settings currently overridden by individual vendors. Platform defaults apply to everyone else.
                 </p>

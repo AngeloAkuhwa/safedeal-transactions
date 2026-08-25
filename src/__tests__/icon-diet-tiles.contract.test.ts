@@ -66,11 +66,28 @@ function tsxFiles(dir = SRC, out: string[] = []): string[] {
   return out;
 }
 
-const isCustomer = (rel: string) =>
-  !rel.startsWith("src/components/admin/") &&
-  !/^src\/pages\/Admin/.test(rel) &&
-  !rel.startsWith("src/components/ui/") &&
-  !rel.includes("__tests__");
+/**
+ * Widened to the admin surface in plan 6.3a. It was customer-only while the
+ * back office was deliberately last; measuring found admin carried only five
+ * matches, so the exclusion was costing more in drift than it saved in work.
+ * The shadcn primitives stay out: they are vendored.
+ */
+const inScope = (rel: string) =>
+  !rel.startsWith("src/components/ui/") && !rel.includes("__tests__");
+
+/**
+ * One argued exception, shrink-only like the raw-img inventory.
+ *
+ * `AdminTransactionDetail`'s record list draws a per-row tile, and its
+ * sibling branch draws the same tile through a variable class this pattern
+ * structurally cannot see, so converting only the half the regex catches
+ * would leave one list rendering two different shapes. Converting BOTH means
+ * unpicking ICON_MAP's `bg-X-500/20 text-X-300` pairs, which lands in the
+ * wash-shape question plan 6.2 left open on purpose. It belongs to the
+ * density pass (6.3b), not here. Listed so the guard can still go on and
+ * refuse any NEW tile.
+ */
+const TILE_DEBT = new Set(["src/pages/AdminTransactionDetail.tsx"]);
 
 /**
  * A plain div, no hover state, equal width and height in the repeating range,
@@ -122,7 +139,7 @@ describe("small icons do not get a box", () => {
 
     for (const file of files) {
       const rel = path.relative(ROOT, file);
-      if (!isCustomer(rel)) continue;
+      if (!inScope(rel) || TILE_DEBT.has(rel)) continue;
       const raw = fs.readFileSync(file, "utf8");
       const icons = lucideNames(raw);
       if (!icons.size) continue;

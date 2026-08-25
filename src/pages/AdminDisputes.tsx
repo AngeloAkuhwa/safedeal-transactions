@@ -1,20 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  RefreshCw,
-  Download,
-  Search,
-  Scale,
-  Clock,
-  AlertTriangle,
-  Check,
-  Flag,
-  Loader2,
-  MoreHorizontal,
-  ChevronLeft,
-  ChevronRight,
-  Activity,
-  Menu,
-} from "lucide-react";
+import { RefreshCw, Download, Search, Scale, Clock, AlertTriangle, Check, Flag, MoreHorizontal, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";

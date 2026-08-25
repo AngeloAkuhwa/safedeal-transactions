@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import {
-  ShieldCheck, Clock, Download, FileCheck2, ListChecks, TriangleAlert, UserCog,
-  Database, Filter, Search, FileText, Code2, Eye, User,
-  Copy, X, UserX, Banknote, Scale, Bot, Info, CircleAlert, Settings as SettingsIcon,
-  ArrowRight, RefreshCw, LogIn, LogOut, Receipt, Undo2, Gavel, Menu,
-} from "lucide-react";
+import { ShieldCheck, Clock, Download, ListChecks, TriangleAlert, UserCog, Database, Filter, Search, FileText, Code2, Eye, User, Copy, X, UserX, Banknote, Scale, Bot, Info, CircleAlert, Settings as SettingsIcon, ArrowRight, RefreshCw, LogIn, LogOut, Receipt, Undo2, Gavel, Menu } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,10 +468,7 @@ export default function AdminAuditLogs() {
       {/* Filters */}
       <div className="rounded-xl border border-border bg-card">
         <div className="p-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Filter className="h-4 w-4 text-primary" />
-            Advanced Filters &amp; Search
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">Advanced Filters &amp; Search</h3>
           <p className="text-xs text-muted-foreground mt-1">Filter by action type, actor, target, or search specific entries</p>
         </div>
         <div className="p-4">

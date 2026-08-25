@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft, Download, StickyNote, Search,
-  Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
-  UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
-  History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
-  Building2, MapPin, Plus, Loader2, ChevronDown, Home, Ban,
-  RotateCcw, ArrowDown, ArrowUp, AlertCircle, Info,
-} from "lucide-react";
+import { ArrowLeft, Download, StickyNote, Search, Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar, ShoppingCart, Store, Scale, Eye, EyeOff, Clock, CheckCircle2, Building2, MapPin, Plus, Loader2, ChevronDown, Home, Ban, ArrowDown, ArrowUp, AlertCircle, Info } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAdminNav } from "@/components/admin/useAdminNav";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
@@ -350,9 +343,7 @@ export default function AdminUserDetail() {
                 {/* Profile Information */}
                 <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                   <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
-                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                      <UserCircle className={`h-5 w-5 ${ADMIN_TONE.info.text}`} /> Profile Information
-                    </h3>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Profile Information</h3>
                   </div>
                   <div className="p-6 space-y-4">
                     <div>
@@ -397,9 +388,7 @@ export default function AdminUserDetail() {
                 {/* Verification Status */}
                 <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                   <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
-                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                      <ShieldCheck className={`h-5 w-5 ${ADMIN_TONE.success.text}`} /> Verification Status
-                    </h3>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Verification Status</h3>
                   </div>
                   <div className="p-6 space-y-4">
                     <VerifRow icon={<Mail className="h-4 w-4" />} label="Email" ok={!!verif?.email} okLabel="Verified" />
@@ -441,9 +430,7 @@ export default function AdminUserDetail() {
                 {/* Payout Account */}
                 <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                   <div className={`p-6 border-b ${ADMIN_GROUND.border}`}>
-                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                      <Wallet className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Payout Account
-                    </h3>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Payout Account</h3>
                   </div>
                   <div className="p-6 space-y-4">
                     {payout ? (
@@ -495,9 +482,7 @@ export default function AdminUserDetail() {
                   <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                     <div className={`p-5 border-b ${ADMIN_GROUND.border} flex items-center justify-between flex-wrap gap-3`}>
                       <div>
-                        <h3 className={`${ADMIN_GROUND.heading} text-base font-semibold flex items-center gap-2`}>
-                          <Store className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Vendor Commerce Status
-                        </h3>
+                        <h3 className={`${ADMIN_GROUND.heading} text-base font-semibold`}>Vendor Commerce Status</h3>
                         <p className={`${ADMIN_GROUND.muted} text-xs mt-1`}>
                           Controls whether this vendor's storefront, cart, and checkout are available to buyers.
                         </p>
@@ -570,9 +555,7 @@ export default function AdminUserDetail() {
                 {/* Recent Transactions */}
                 <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                   <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
-                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                      <RotateCcw className={`h-5 w-5 ${ADMIN_TONE.info.text}`} /> Recent Transactions
-                    </h3>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Recent Transactions</h3>
                     <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className={`${ADMIN_TONE.info.text} hover:text-blue-300 text-sm font-medium min-h-11 inline-flex items-center`}>View All</button>
                   </div>
                   <div className="divide-y divide-slate-800">
@@ -617,9 +600,7 @@ export default function AdminUserDetail() {
                 {/* Activity Log */}
                 <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                   <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
-                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                      <ListChecks className={`h-5 w-5 ${ADMIN_TONE.special.text}`} /> Activity Log
-                    </h3>
+                    <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Activity Log</h3>
                   </div>
                   <div className="p-6 space-y-4">
                     {timeline.length === 0 && <p className={`${ADMIN_GROUND.faint} text-sm text-center py-6`}>No admin activity recorded.</p>}
@@ -669,9 +650,7 @@ export default function AdminUserDetail() {
               {/* Row 4: Admin Notes & Flags */}
               <div className={`${ADMIN_GROUND.panel} border rounded-xl`}>
                 <div className={`p-6 border-b ${ADMIN_GROUND.border} flex items-center justify-between`}>
-                  <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold flex items-center gap-2`}>
-                    <StickyNote className={`h-5 w-5 ${ADMIN_TONE.warning.text}`} /> Admin Notes &amp; Flags
-                  </h3>
+                  <h3 className={`${ADMIN_GROUND.heading} text-lg font-semibold`}>Admin Notes &amp; Flags</h3>
                   <div className="flex items-center gap-2">
                     <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className={`px-3 py-2 ${ADMIN_GROUND.raised} ${ADMIN_GROUND.raisedHover} ${ADMIN_GROUND.body} rounded-lg text-xs font-medium border ${ADMIN_GROUND.borderSoft} min-h-11`}>
                       Open in Flagged Users

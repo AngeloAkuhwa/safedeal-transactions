@@ -1,4 +1,4 @@
-import { TriangleAlert, Clock, Hourglass, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
+import { Clock, Hourglass, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
@@ -155,10 +155,7 @@ export function EscrowAlertsPanel({
       <div className="p-4 lg:p-6 border-b border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h3 className="text-white text-base lg:text-lg font-semibold flex items-center gap-2">
-              <TriangleAlert className={`h-5 w-5 ${ADMIN_TONE.elevated.text}`} />
-              Escrow Alerts &amp; Anomalies
-            </h3>
+            <h3 className="text-white text-base lg:text-lg font-semibold">Escrow Alerts &amp; Anomalies</h3>
             <p className="text-slate-400 text-xs lg:text-sm mt-1">Active operational alerts requiring attention • Updated real-time</p>
           </div>
           <div className="flex items-center gap-2">

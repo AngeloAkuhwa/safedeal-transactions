@@ -48,9 +48,12 @@ function tsxFiles(dir = SRC, out: string[] = []): string[] {
  * Admin and the shadcn primitives are out of scope, the same split the colour
  * law uses. Admin is the back office and no customer ever sees it.
  */
+/**
+ * Widened to the admin surface in plan 6.3a: its 28 icon-prefixed headings
+ * were cleared in the same change, so the exclusion had nothing left to
+ * protect. The shadcn primitives stay out; they are vendored.
+ */
 const isCustomer = (rel: string) =>
-  !rel.startsWith("src/components/admin/") &&
-  !/^src\/pages\/Admin/.test(rel) &&
   !rel.startsWith("src/components/ui/") &&
   !rel.includes("__tests__");
 

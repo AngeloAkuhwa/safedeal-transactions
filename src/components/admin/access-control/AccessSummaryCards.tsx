@@ -1,4 +1,4 @@
-import { UserCog, UserCheck, UserX, ShieldAlert, MailPlus, ClipboardCheck, Lock } from "lucide-react";
+import { UserCog, UserCheck, ShieldAlert, MailPlus, ClipboardCheck, Lock } from "lucide-react";
 import type { AccessSummary, AccessFilter } from "@/services/admin-access-control.service";
 import { ADMIN_TONE } from "@/components/admin/palette";
 

@@ -14,9 +14,7 @@ export function EmptyState({
 }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <UserX className="h-6 w-6" />
-      </div>
+      <UserX className="h-8 w-8 text-muted-foreground/40" />
       <div>
         <div className="text-sm font-semibold text-foreground">{title}</div>
         <div className="mt-1 text-xs text-muted-foreground">{description}</div>

@@ -10,9 +10,7 @@ export function TaskOrchestrationHeader({
     <div className="sticky top-0 z-sticky border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 lg:px-8">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground lg:text-2xl">
-            Task Orchestration &amp; Agent Load Management
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground lg:text-2xl">Task Orchestration &amp; Agent Load Management</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Senior admin workforce control · Real-time assignment operations
           </p>

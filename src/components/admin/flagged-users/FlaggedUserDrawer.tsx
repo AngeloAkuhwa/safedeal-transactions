@@ -225,9 +225,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
           )}
 
           <section>
-            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-              Recent admin actions
-            </h4>
+            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Recent admin actions</h4>
             {detailLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
             {!detailLoading && (detail?.admin_actions?.length ?? 0) === 0 && (
               <p className="text-slate-500 text-xs">No admin actions yet.</p>

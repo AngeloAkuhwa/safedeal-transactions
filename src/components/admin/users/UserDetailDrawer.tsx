@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Flag, Ban, CheckCircle2, ShieldCheck, Banknote, Scale, ExternalLink, Clock, Mail, Phone, IdCard } from "lucide-react";
+import { X, Loader2, Flag, Ban, CheckCircle2, ExternalLink, Clock, Mail, Phone, IdCard } from "lucide-react";
 import { useNavigate } from "react-router";
 import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.service";
 import { formatMoneyCompact } from "@/lib/format";
@@ -36,7 +36,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right" className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 text-slate-200 p-0 overflow-y-auto">
         <div className="sticky top-0 bg-slate-900 border-b border-slate-800 px-5 py-4 flex items-center justify-between z-sticky">
-          <h3 className="text-white font-semibold flex items-center gap-2"><ShieldCheck className={`h-4 w-4 ${ADMIN_TONE.success.text}`} /> User Detail</h3>
+          <h3 className="text-white font-semibold">User Detail</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded min-h-11 min-w-11 inline-flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
 
