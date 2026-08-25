@@ -1,11 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import {
-  Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search,
-  Filter, Megaphone, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
-  Clock, AlertCircle, Paperclip,
-} from "lucide-react";
+import { Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search, Filter, Megaphone, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download, Clock, AlertCircle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -201,10 +197,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
   return (
     <Card className="overflow-hidden" ref={filtersRef as any}>
       <div className="p-3 border-b border-border">
-        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-          <Search className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
-          Search & Filter Notifications
-        </h3>
+        <h3 className="text-foreground text-sm font-semibold">Search & Filter Notifications</h3>
         <p className="text-muted-foreground text-xs mt-0.5">Search by user, notification ID, or transaction reference</p>
       </div>
       <div className="p-3">
@@ -298,7 +291,6 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
       <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
           <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-            <AlertTriangle className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} />
             Failed Deliveries & Retry Queue
             {rows.length > 0 && (
               <span className={`rounded ${ADMIN_TONE.danger.chip} border px-1.5 py-0.5 text-xs`}>{rows.length}</span>
@@ -522,10 +514,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
   return (
     <Card className="overflow-hidden">
       <div className="p-3 border-b border-border">
-        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
-          <Megaphone className={`h-4 w-4 ${ADMIN_TONE.warning.text}`} />
-          Broadcast Message
-        </h3>
+        <h3 className="text-foreground text-sm font-semibold">Broadcast Message</h3>
         <p className="text-muted-foreground text-xs mt-0.5">Send system-wide announcements with caution</p>
       </div>
       <div className="p-3 space-y-3">

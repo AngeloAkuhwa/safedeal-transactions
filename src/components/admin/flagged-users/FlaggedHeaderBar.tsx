@@ -1,4 +1,4 @@
-import { RefreshCw, ShieldAlert, Flag, AlertTriangle } from "lucide-react";
+import { RefreshCw, ShieldAlert, AlertTriangle } from "lucide-react";
 import { FlaggedExportButton } from "./FlaggedExportButton";
 import type { FlaggedQuery } from "@/services/admin-flagged-users.service";
 import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
@@ -17,9 +17,7 @@ export function FlaggedHeaderBar({ activeFlags, critical, query, isFetching, onR
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <h2 className="text-white text-xl font-semibold flex items-center gap-2">
-              <Flag className={`h-5 w-5 ${ADMIN_TONE.danger.text}`} /> Flagged Users
-            </h2>
+            <h2 className="text-white text-xl font-semibold">Flagged Users</h2>
             <p className="text-slate-400 text-sm mt-0.5">Fraud review workspace for suspicious accounts and high-risk users</p>
           </div>
           <div className="flex items-center gap-2 ml-0 md:ml-4">

@@ -83,9 +83,7 @@ export function RoleSummaryCard({ role, rolePermissions }: Props) {
   if (!role) {
     return (
       <div className="rounded-2xl border border-dashed border-border/70 bg-gradient-to-b from-card to-card/60 p-6 text-center shadow-sm ring-1 ring-border/30">
-        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-          <Sparkles className="h-4 w-4 text-primary" />
-        </div>
+        <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground/40" />
         <div className="text-sm font-medium text-foreground/80">No role selected</div>
         <div className="mt-1 text-xs text-muted-foreground">
           Pick a role to preview its access footprint.

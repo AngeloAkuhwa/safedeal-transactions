@@ -1,4 +1,4 @@
-import { Menu, Flag } from "lucide-react";
+import { Menu } from "lucide-react";
 import { ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
@@ -15,9 +15,7 @@ export function FlaggedMobileTopBar({ onOpenMenu, activeFlags }: Props) {
             <Menu className="h-4 w-4" />
           </button>
           <div>
-            <h2 className="text-white font-bold text-lg leading-tight flex items-center gap-2">
-              <Flag className={`h-4 w-4 ${ADMIN_TONE.danger.text}`} /> Flagged Users
-            </h2>
+            <h2 className="text-white font-bold text-lg leading-tight">Flagged Users</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className={`flex items-center gap-1 text-xs ${ADMIN_TONE.danger.text} font-bold uppercase`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 sd-live-dot" />

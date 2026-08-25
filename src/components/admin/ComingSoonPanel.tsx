@@ -10,9 +10,7 @@ export function ComingSoonPanel({ module, description, planned = [] }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-8">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Clock className="h-6 w-6" />
-        </div>
+        <Clock className="h-8 w-8 shrink-0 text-muted-foreground/40" />
         <div className="min-w-0 flex-1">
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Coming soon

@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  ExternalLink, UserCheck, ArrowUpRightFromSquare, ShieldCheck,
-  Loader2, MessageSquarePlus, CheckCircle2, Clock, Play, FileText,
-  MessageCircle, Paperclip, Lock, User, ShoppingBag, Gavel, FileSearch,
-  Info, Copy, ExternalLink as ExtLink, StickyNote, HistoryIcon as HIcon,
-  SendHorizonal,
-} from "lucide-react";
+import { ExternalLink, UserCheck, ArrowUpRightFromSquare, ShieldCheck, Loader2, MessageSquarePlus, CheckCircle2, Clock, Play, MessageCircle, Paperclip, Lock, User, ShoppingBag, Gavel, FileSearch, Info, Copy, ExternalLink as ExtLink, StickyNote, HistoryIcon as HIcon, SendHorizonal } from "lucide-react";
 import { Link } from "react-router";
 import {
   currencyFmt, humanize, priorityBadgeClass, relative, shortNameOf,

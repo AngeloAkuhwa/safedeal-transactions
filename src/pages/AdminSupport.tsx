@@ -1,17 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import {
-  Inbox,
-  LifeBuoy,
-  Loader2,
-  Mail,
-  RefreshCw,
-  ScrollText,
-  Bell,
-  Landmark,
-  Search,
-} from "lucide-react";
+import { Loader2, Mail, RefreshCw, ScrollText, Bell, Landmark, Search } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,9 +108,7 @@ export default function AdminSupport() {
       <div className="space-y-6 p-4 md:p-6">
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              <Inbox className="h-4 w-4" /> Support inbox
-            </h2>
+            <h2 className=" text-sm font-semibold uppercase tracking-wider text-muted-foreground">Support inbox</h2>
             <Button variant="outline" size="sm" onClick={() => void refetch()} className="gap-1.5">
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
               Refresh
@@ -291,9 +279,7 @@ export default function AdminSupport() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            <LifeBuoy className="h-4 w-4" /> Debug &amp; audit basics
-          </h2>
+          <h2 className=" text-sm font-semibold uppercase tracking-wider text-muted-foreground">Debug &amp; audit basics</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {TOOLS.map((t) => {
               const Icon = t.icon;

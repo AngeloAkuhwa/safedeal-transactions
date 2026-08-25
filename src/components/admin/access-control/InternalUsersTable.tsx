@@ -40,10 +40,7 @@ export function InternalUsersTable({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="border-b border-border p-5">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <KeyRound className={`h-4 w-4 ${ADMIN_TONE.info.text}`} />
-          Internal Access Management
-        </h3>
+        <h3 className=" text-base font-semibold text-foreground">Internal Access Management</h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <ShieldAlert className={`h-3 w-3 ${ADMIN_TONE.warning.text}`} />
           Manage admin and agent permissions, roles, and access levels. Changes are logged and require approval

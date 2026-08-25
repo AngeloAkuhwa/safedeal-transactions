@@ -1,4 +1,4 @@
-import { Flag, ExternalLink, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Flag, ExternalLink, FileText, Vault, Scale, Link2, Hourglass, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router";
 import { formatMoneyOrDash } from "@/lib/payment/money-format";
 import { formatRelative } from "@/components/admin/dashboard/relative";

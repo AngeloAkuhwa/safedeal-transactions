@@ -1,15 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import {
-  ArrowLeft, Printer, AlertTriangle, Loader2, Phone, Mail, User as UserIcon,
-  ExternalLink, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale,
-  Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
-  CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
-  Search, Send, Ban, PlayCircle, Eye, NotebookPen, Store,
-  Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
-  MessageCircle, ArrowRight, Lock, Menu,
-  Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
-} from "lucide-react";
+import { ArrowLeft, Printer, AlertTriangle, Loader2, Phone, Mail, User as UserIcon, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel, CheckCircle2, XCircle, Flag, Wallet, CreditCard, Vault, Search, Send, Ban, PlayCircle, NotebookPen, Store, Star, Info, FilePlus2, Bell, HelpCircle, Check, Paperclip, MessageCircle, ArrowRight, Lock, Menu, Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -508,9 +499,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
-              Dispute #{disputeCode}
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight text-foreground truncate">Dispute #{disputeCode}</h1>
             <p className="text-xs text-muted-foreground truncate">
               {itemTitle} - {txCode}
             </p>
@@ -626,9 +615,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             {/* Financial overview */}
             <section className="rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden min-w-0">
               <div className="px-5 pt-5 pb-2 md:px-7 md:pt-6 md:pb-3">
-                <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
-                  Financial Overview &amp; Controls
-                </h2>
+                <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">Financial Overview &amp; Controls</h2>
               </div>
 
               <div className="px-5 pb-6 pt-2 md:px-7 md:pb-8 md:pt-4">
@@ -1040,9 +1027,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     return (
       <Card>
         <div className="p-6">
-          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC] mb-4">
-            {role === "buyer" ? "Buyer Information" : "Seller Information"}
-          </h2>
+          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC] mb-4">{role === "buyer" ? "Buyer Information" : "Seller Information"}</h2>
           <div className="text-sm text-muted-foreground">No {role} on this transaction.</div>
         </div>
       </Card>
@@ -1073,9 +1058,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
       <div className="p-6">
         {/* Title row: no border */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
-            {isBuyer ? "Buyer Information" : "Seller Information"}
-          </h2>
+          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">{isBuyer ? "Buyer Information" : "Seller Information"}</h2>
           <span className={cn(
             "inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider",
             roleChipCls,
