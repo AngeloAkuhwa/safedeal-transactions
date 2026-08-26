@@ -161,18 +161,21 @@ const BuyerTransactionTracking = () => {
 
       {/* Breadcrumb */}
       <div className="bg-card border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/dashboard/transactions" className="hover:text-foreground transition-colors">My Purchases</Link>
+        <nav
+          aria-label="Breadcrumb"
+          className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <Link to="/dashboard/transactions" className="hover:text-foreground transition-colors inline-flex items-center min-h-11 -mx-2 px-2 rounded">My Purchases</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <Link
             to={`/dashboard/transactions/${tx.id}`}
-            className="hover:text-foreground transition-colors truncate max-w-[160px]"
+            className="hover:text-foreground transition-colors truncate max-w-[160px] inline-flex items-center min-h-11 -mx-2 px-2 rounded"
           >
             {tx.transaction_code}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-foreground font-medium">Tracking</span>
-        </div>
+        </nav>
       </div>
 
       {/* Trust banner */}

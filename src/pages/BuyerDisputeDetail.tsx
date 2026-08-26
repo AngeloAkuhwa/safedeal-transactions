@@ -44,11 +44,11 @@ const BuyerDisputeDetail = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Breadcrumb */}
           <nav className="flex items-center text-sm text-muted-foreground">
-            <Link to="/dashboard" className="hover:text-foreground transition-colors">
+            <Link to="/dashboard" className="hover:text-foreground transition-colors inline-flex items-center min-h-11 -mx-2 px-2 rounded">
               Dashboard
             </Link>
             <ChevronRight className="h-4 w-4 mx-1" />
-            <Link to="/dashboard/disputes" className="hover:text-foreground transition-colors">
+            <Link to="/dashboard/disputes" className="hover:text-foreground transition-colors inline-flex items-center min-h-11 -mx-2 px-2 rounded">
               Disputes
             </Link>
             <ChevronRight className="h-4 w-4 mx-1" />
