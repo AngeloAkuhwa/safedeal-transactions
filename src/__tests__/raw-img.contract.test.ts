@@ -55,6 +55,7 @@ const DEFINITIONS = [
 
 const RAW_IMG_DEBT = new Map<string, number>([
   ["components/admin/transactions/EvidencePreviewDialog.tsx", 1], // evidence
+  ["components/auth/AuthUnavailable.tsx", 1], // asset (brand logo)
   ["components/auth/BrandedAuthSplash.tsx", 1], // asset (brand logo)
   ["components/disputes/BuyerClaimSection.tsx", 2], // evidence
   ["components/disputes/DeliveryProofSection.tsx", 1], // evidence
