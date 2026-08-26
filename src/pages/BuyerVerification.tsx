@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { Loader2, ShieldCheck, Upload, UserCheck, ChevronRight, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock } from "lucide-react";
+import { Loader2, ShieldCheck, ScanFace, UserCheck, ChevronRight, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   type IdentitySubmission,
   type IdentityVerificationMethod,
 } from "@/services/identity.service";
+import { InstantIdentityCheck } from "@/components/verification/InstantIdentityCheck";
 import { toast } from "@/components/ui/sonner";
 import { resolveVerificationStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { PageSkeleton } from "@/components/common/PageSkeleton";
@@ -102,6 +103,19 @@ const BuyerVerification = () => {
         {/* Status display */}
         {submission && <SubmissionStatus submission={submission} />}
 
+        {/* The automated route first, the manual one below it. Order is the
+            recommendation: an instant document check beats a two-day queue,
+            and the queue still exists for anyone the check cannot place. */}
+        {isBasicVerified && (!submission || submission.status === "rejected" || submission.status === "more_info_needed") && (
+          <InstantIdentityCheck
+            legalName={submission?.legal_name ?? data.profile.full_name ?? undefined}
+            onResolved={() => {
+              queryClient.invalidateQueries({ queryKey: ["identity-status"] });
+              queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
+            }}
+          />
+        )}
+
         {/* Form: show when no submission, or rejected/more_info_needed */}
         {isBasicVerified && (!submission || submission.status === "rejected" || submission.status === "more_info_needed") && (
           <IdentitySubmissionForm
@@ -122,14 +136,14 @@ const BuyerVerification = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN-based identity submission (manual review) or government-issued ID. Your full NIN is never transmitted or stored. Only the last 4 digits are retained." },
-              { icon: Clock, title: "Manual Review", desc: "Our team reviews your submission within 24–48 hours. This is not automated verification." },
-              { icon: UserCheck, title: "Get Verified", desc: "Once approved, you unlock higher limits and trusted buyer status." },
+              { icon: ScanFace, title: "Photograph your ID", desc: "A passport, driver's licence, national ID or voter's card, then a selfie. Or use the NIN route below, which our team reviews by hand." },
+              { icon: Clock, title: "Usually decided in under a minute", desc: "The document is read and matched against your selfie automatically. Anything the check cannot place goes to our team, who reply within 24 to 48 hours." },
+              { icon: UserCheck, title: "Get verified", desc: "Once approved you unlock higher limits and trusted buyer status. Sellers only ever see that level, never your documents." },
             ].map((step, idx) => (
               <div key={idx} className="flex items-start gap-4 rounded-lg border p-4">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  <step.icon className="h-5 w-5 text-muted-foreground" />
-                </div>
+                {/* No icon tile. The pattern is standing design debt (Phase 4
+                    icon diet) and this card was being rewritten anyway. */}
+                <step.icon className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-medium text-foreground">{step.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{step.desc}</p>
@@ -163,6 +177,15 @@ const BuyerVerification = () => {
   );
 };
 
+/** A ternary here silently labelled anything that was not "nin" as
+ *  "Government ID", so a MetaMap row would have read as a document upload the
+ *  person never made. A map with a fallback cannot mislabel a new method. */
+const METHOD_LABEL: Record<string, string> = {
+  nin: "NIN",
+  government_id: "Government ID",
+  metamap: "Document and selfie check",
+};
+
 function SubmissionStatus({ submission }: { submission: IdentitySubmission }) {
   const ICONS: Record<string, typeof CheckCircle2> = {
     pending_review: Clock,
@@ -185,7 +208,7 @@ function SubmissionStatus({ submission }: { submission: IdentitySubmission }) {
               <Badge variant="outline" className={toneClass}>{entry.label}</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Method: {submission.verification_method === "nin" ? "NIN" : "Government ID"} · 
+              Method: {METHOD_LABEL[submission.verification_method] ?? "Identity document"} · 
               Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
             </p>
             {submission.rejection_reason && (

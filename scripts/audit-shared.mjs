@@ -90,6 +90,10 @@ export const AUTH_ROUTES = {
     "/dashboard/cart",
     "/dashboard/saved",
     "/dashboard/transactions",
+    // Added with the MetaMap work, because that pass changed this page and
+    // then found that no audit rendered it: not the local sweep, not CI. A
+    // screen nobody photographs is a screen where a layout defect ships.
+    "/dashboard/verification",
     // Checkout is where the money is agreed. Both entry points, audited.
     "/dashboard/cart/checkout",
     `/store/${process.env.E2E_STORE_SLUG || "claude-e2e-store"}/${process.env.E2E_PRODUCT_SLUG || "claude-e2e-test-listing-16in-pro-laptop"}/checkout?qty=1`,
