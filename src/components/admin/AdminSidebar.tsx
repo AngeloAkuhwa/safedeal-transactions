@@ -18,6 +18,7 @@ import {
   ListChecks,
   Gauge,
   Landmark,
+  Bug,
 } from "lucide-react";
 import { useLocation } from "react-router";
 import { useAdminNav, isBuiltAdminRoute } from "./useAdminNav";
@@ -117,6 +118,7 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Settings",
       items: [
         { label: "Notifications", href: "/admin/notifications", icon: Bell },
+        { label: "Error Log", href: "/admin/errors", icon: Bug },
         { label: "Platform Settings", href: "/admin/settings", icon: Settings },
       ],
     },

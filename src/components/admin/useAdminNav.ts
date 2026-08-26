@@ -15,6 +15,7 @@ const BUILT_ROUTES = new Set<string>([
   "/admin/flagged-users",
   "/admin/users",
   "/admin/notifications",
+  "/admin/errors",
   "/admin/settings",
   "/admin/audit-logs",
   "/admin/access-control",

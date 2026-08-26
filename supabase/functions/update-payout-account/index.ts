@@ -12,7 +12,7 @@ import {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-correlation-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -150,6 +150,7 @@ Deno.serve(async (req) => {
       // seller can retry. We still record the attempt for ops.
       if (!paystackResult.status || paystackResult.status >= 500) {
         await logEdgeError(adminClient, {
+        req,
           function_name: "update-payout-account",
           user_id: userId,
           error_code: "paystack_unavailable",
@@ -189,6 +190,7 @@ Deno.serve(async (req) => {
         .eq("user_id", userId);
 
       await logEdgeError(adminClient, {
+        req,
         function_name: "update-payout-account",
         user_id: userId,
         error_code: "paystack_4xx",

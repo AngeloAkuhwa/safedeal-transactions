@@ -3,11 +3,12 @@ import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE_FALLBACK } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { resolveInitiationCharge } from "../_shared/payment-capture-guard.ts";
+import { logEdgeError } from "../_shared/log-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-correlation-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function jsonErr(msg: string, status: number) {
@@ -443,6 +444,20 @@ Deno.serve(async (req) => {
         reason: `Paystack init failed: ${paystackData.message}`,
       });
 
+      // Paystack refusing an init is the most likely real failure here and it
+      // returns before the catch below, so it needs its own record. Without
+      // this, the one error that actually stops buyers paying would be the
+      // one error the log never sees.
+      void logEdgeError(supabaseAdmin, {
+        function_name: "initiate-paystack-payment",
+        error_code: "paystack_init_failed",
+        message: paystackData.message || "Paystack initialization failed",
+        req,
+        http_status: 502,
+        severity: "fatal",
+        user_id: userId,
+        request_context: { stage: "paystack_init", transaction_id: txId },
+      });
       return jsonErr(paystackData.message || "Paystack initialization failed", 502);
     }
 
@@ -462,6 +477,17 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("initiate-paystack-payment error:", err);
+    // Logged under the id the browser sent, so the buyer's symptom and this
+    // stack are one query apart. Not awaited: the caller is already failing
+    // and must not also wait on the record of it.
+    void logEdgeError(null, {
+      function_name: "initiate-paystack-payment",
+      message: err,
+      req,
+      http_status: 500,
+      severity: "fatal",
+      request_context: { stage: "initiate" },
+    });
     return new Response(
       JSON.stringify({ error: err.message || "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
