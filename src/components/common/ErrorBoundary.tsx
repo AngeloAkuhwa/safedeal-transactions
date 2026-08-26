@@ -75,8 +75,9 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex flex-col gap-2">
           <h1 className="h-card text-foreground">This screen ran into a problem</h1>
           <p className="max-w-prose text-sm text-muted-foreground">
-            Nothing you were doing was lost. Your transactions and payments are unaffected by
-            this, and the problem has been reported to us automatically.
+            This is a problem with the page, not with your account. Your transactions and any
+            money held in escrow are unaffected, and the problem has been reported to us
+            automatically.
           </p>
         </div>
 

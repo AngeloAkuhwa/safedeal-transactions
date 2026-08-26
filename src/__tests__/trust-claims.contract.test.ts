@@ -170,6 +170,8 @@ const isInternalSurface = (file: string) =>
 
 const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }> = [
   { file: "src/pages/BuyerTransactionDetail.tsx", text: "Tracking:", reason: "Prefix for the courier tracking number recorded on this transaction." },
+  { file: "src/components/auth/AuthUnavailable.tsx", text: "This affects sign-in only. Your transactions and any money held in escrow live elsewhere and are not touched by it.", reason: "Substantiated and narrow: in both 2026-08 auth incidents the degradation was confined to GoTrue while Postgres and the escrow ledger stayed healthy. It claims where the money lives, not what has happened to it, because a payment already in flight is not undone by a sign-in outage." },
+  { file: "src/components/common/ErrorBoundary.tsx", text: "This is a problem with the page, not with your account. Your transactions and any money held in escrow are unaffected, and the problem has been reported to us automatically.", reason: "A caught render error is client-side by construction: it cannot have moved an escrow balance. The reporting half is a statement about this build, which does report every caught error." },
   
   
   { file: "supabase/functions/admin-transaction-detail/index.ts", text: "Escrow:", reason: "Prefix on an internal audit line naming the escrow ledger record." },
