@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { fetchReconciliationSummary, outstandingCount, EMPTY_SUMMARY } from "../_shared/reconciliation.ts";
+import { logEdgeError as sharedLogEdgeError } from "../_shared/log-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,22 +90,24 @@ function getDateRange(window: "7D" | "30D" | "90D") {
   return { start, end, days };
 }
 
+/**
+ * This was a private third copy of the edge logger, writing to a table
+ * nothing read. It now forwards to the one shared module (rule 7) while
+ * keeping its local three-argument shape, so the ~9 call sites below did not
+ * have to move for a change that is really about where the row lands.
+ */
 async function logEdgeError(
   client: SupabaseClient,
   message: string,
   user_id: string | null,
   context: Record<string, unknown> = {},
 ) {
-  try {
-    await client.from("edge_function_errors").insert({
-      function_name: "admin-dashboard",
-      user_id,
-      message,
-      request_context: context,
-    });
-  } catch {
-    /* noop */
-  }
+  await sharedLogEdgeError(client, {
+    function_name: "admin-dashboard",
+    message,
+    user_id,
+    request_context: context,
+  });
 }
 
 // ---------- micro-cache (per-isolate) ----------

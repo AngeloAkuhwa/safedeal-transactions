@@ -6,7 +6,7 @@ import { logEdgeError } from "../_shared/log-error.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-correlation-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
     }
     if (!["seller_preparing_delivery", "seller_dispatched"].includes(tx.status)) {
       await logEdgeError(admin, {
+        req,
         function_name: "rotate-delivery-token",
         user_id: userId,
         error_code: "invalid_status",
@@ -112,6 +113,7 @@ Deno.serve(async (req) => {
 
     if (insertErr) {
       await logEdgeError(admin, {
+        req,
         function_name: "rotate-delivery-token",
         user_id: userId,
         error_code: "insert_failed",
@@ -131,6 +133,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("rotate-delivery-token error:", err);
     await logEdgeError(admin, {
+        req,
       function_name: "rotate-delivery-token",
       error_code: "exception",
       message: (err as Error)?.message || String(err),

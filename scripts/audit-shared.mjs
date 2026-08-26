@@ -120,6 +120,11 @@ export const AUTH_ROUTES = {
     "/admin/permission-matrix",
     "/admin/settings",
     "/admin/audit-logs",
+    // The error log renders a stack trace and a JSON context blob, which are
+    // the two longest unbreakable strings in the back office. Exactly the
+    // shape that escapes its container at 320px, and exactly what static
+    // analysis cannot see.
+    "/admin/errors",
   ],
 };
 

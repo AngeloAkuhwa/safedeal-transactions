@@ -70,6 +70,7 @@ const AdminIdentity = lazy(() => import("./pages/AdminIdentity"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminUserDetail = lazy(() => import("./pages/AdminUserDetail"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const AdminErrors = lazy(() => import("./pages/AdminErrors"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
 const AdminAccessControl = lazy(() => import("./pages/AdminAccessControl"));
@@ -91,6 +92,7 @@ import { AdminPermissionsProvider } from "./context/AdminPermissionsContext";
 import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 import { useSessionIdleTimeout } from "./hooks/useSessionIdleTimeout";
 import { TestModeBanner } from "./components/TestModeBanner";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +128,10 @@ const App = () => (
           <TestModeBanner />
           <TwoFactorPrompt />
           <AppShell>
+          {/* Around Suspense, not inside it: a lazy route chunk that fails to
+              load throws here too, and that is a real failure on a flaky
+              mobile connection rather than a hypothetical one. */}
+          <ErrorBoundary boundary="routes">
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public routes */}
@@ -198,6 +204,7 @@ const App = () => (
                 <Route path="/admin/users/:id/profile" element={<Navigate to=".." replace relative="path" />} />
                 <Route path="/admin/users/:id/hub" element={<Navigate to=".." replace relative="path" />} />
                 <Route path="/admin/notifications" element={<AdminNotifications />} />
+                <Route path="/admin/errors" element={<AdminErrors />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
                 <Route path="/admin/access-control" element={<AdminAccessControl />} />
@@ -238,6 +245,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ErrorBoundary>
           <MobileTabBar />
           <InstallPrompt />
           </AppShell>

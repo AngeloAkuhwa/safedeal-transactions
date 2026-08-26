@@ -3,6 +3,7 @@ import { computePricing } from "../_shared/pricing.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
 import { verifyChargeAgainstSnapshot, checkReferenceBinding } from "../_shared/payment-capture-guard.ts";
+import { logEdgeError } from "../_shared/log-error.ts";
 
 function koboToNairaSafe(kobo: unknown): number {
   const n = Number(kobo);
@@ -12,7 +13,7 @@ function koboToNairaSafe(kobo: unknown): number {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-correlation-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 /**
@@ -573,6 +574,17 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("verify-paystack-payment error:", err);
+    // Logged under the id the browser sent, so the buyer's symptom and this
+    // stack are one query apart. Not awaited: the caller is already failing
+    // and must not also wait on the record of it.
+    void logEdgeError(null, {
+      function_name: "verify-paystack-payment",
+      message: err,
+      req,
+      http_status: 500,
+      severity: "fatal",
+      request_context: { stage: "verify" },
+    });
     return new Response(
       JSON.stringify({ error: err.message || "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

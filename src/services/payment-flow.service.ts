@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { reportError, newId } from "@/lib/errorLog";
 import type {
   PricingSnapshot,
   PricingSnapshotView,
@@ -154,10 +155,17 @@ export async function initiatePayment(args: {
 }> {
   const { data: { session } } = await supabase.auth.getSession();
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/initiate-paystack-payment`;
+  // Minted here and sent as a header the function logs against, so a buyer's
+  // "payment could not be initiated" and the server stack for the same
+  // attempt join on one id instead of a guess by timestamp. This is the
+  // single most valuable place in the product to have that, because it is
+  // the one where the buyer cannot tell whether their money moved.
+  const correlationId = newId();
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "x-correlation-id": correlationId,
       ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
     },
     body: JSON.stringify(args),
@@ -168,17 +176,51 @@ export async function initiatePayment(args: {
     // Surface commerce-gate `reason` (checkout_disabled/vendor_disabled/etc.) verbatim.
     const reason = typeof json?.reason === "string" ? json.reason : null;
     const errCode = typeof json?.error === "string" ? json.error : null;
-    throw new Error(reason || errCode || `Payment could not be initiated (${res.status})`);
+    const message = reason || errCode || `Payment could not be initiated (${res.status})`;
+    reportError({
+      kind: "payment_initiate_failed",
+      message,
+      severity: "fatal",
+      functionName: "initiate-paystack-payment",
+      httpStatus: res.status,
+      correlationId,
+      context: {
+        // A prefix, never the token. `shareToken` authorises payment on a
+        // public route, and this row is read by every operator holding
+        // platform_configuration.view. Six characters is enough to line the
+        // report up against a transaction and not enough to pay with.
+        share_token_prefix: args.shareToken.slice(0, 6),
+        payment_method: args.paymentMethod,
+        signed_in: Boolean(session),
+        reason,
+      },
+    });
+    throw new Error(message);
   }
   return json;
 }
 
 /** Verify a Paystack payment via the existing edge function. */
 export async function verifyPayment(reference: string): Promise<unknown> {
+  const correlationId = newId();
   const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
     body: { reference },
+    headers: { "x-correlation-id": correlationId },
   });
-  if (error) throw error;
+  if (error) {
+    // A verify that fails is the worst state in the product: Paystack has the
+    // money and we do not know it. Logged fatal, with the reference, so the
+    // row is enough to reconcile by hand without asking the buyer anything.
+    reportError({
+      kind: "payment_verify_failed",
+      message: error.message || "Payment verification failed",
+      severity: "fatal",
+      functionName: "verify-paystack-payment",
+      correlationId,
+      context: { reference },
+    });
+    throw error;
+  }
   return data;
 }
 
