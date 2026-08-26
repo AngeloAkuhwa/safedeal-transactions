@@ -304,9 +304,27 @@ jobs:
         # eleven.
         run: node scripts/mobile-audit.mjs --auth --widths 320,360,390,414,834,1440,1920 --out audit-out
 
-      - name: Keep the screenshots when it fails
-        if: failure()
+      # Kept on every run, not only on failure.
+      #
+      # This job already signs in as buyer, seller and admin and photographs
+      # all 26 routes at seven widths. Discarding those on a passing run threw
+      # away the only rendered record of what the product looks like, and left
+      # anyone reviewing a UI change to take a description on trust. The
+      # working agreement asks a UI change to be SHOWN rather than described,
+      # and the pictures already existed; they were being deleted.
+      #
+      # It also keeps the screenshots inside the boundary the credentials
+      # already live in. Signed-in screens cannot be rendered anywhere the
+      # E2E secrets are not, and those secrets are write-only by design, so
+      # this artifact is the supported way to get the authenticated surface
+      # in front of a person.
+      #
+      # Cost is upload only: no extra render, no extra sign-in, no added load
+      # on the auth service, which has degraded twice this week.
+      - name: Keep the screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audit-screenshots
           path: audit-out
+          retention-days: 30
