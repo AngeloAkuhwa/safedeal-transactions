@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_SOLID } from "@/components/admin/palette";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -92,7 +92,7 @@ export function ActionConfirmDialog({
               maxLength={reasonMax}
               placeholder={reasonPlaceholder}
               rows={4}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+              className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground ${ADMIN_FOCUS}`}
             />
             <span className="mt-1 block text-xs text-muted-foreground">
               {trimmed.length}/{reasonMax} (min {reasonMin})
@@ -106,7 +106,7 @@ export function ActionConfirmDialog({
               <input
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm uppercase tracking-wider text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
+                className={`w-full rounded-md border border-border bg-background px-3 py-2 text-sm uppercase tracking-wider text-foreground ${ADMIN_FOCUS} min-h-11`}
               />
             </label>
           )}

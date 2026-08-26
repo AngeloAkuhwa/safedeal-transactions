@@ -309,7 +309,7 @@ const isUi = (rel: string) => rel.startsWith("src/components/ui/");
  * flag every legitimate text-white in the back office).
  */
 const BUDGET = {
-  admin: 2566,
+  admin: 2520,
   ui: 4,
   customer: 12,
 };

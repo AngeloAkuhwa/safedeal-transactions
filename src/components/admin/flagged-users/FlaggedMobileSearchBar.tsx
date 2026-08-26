@@ -1,4 +1,4 @@
-import { ADMIN_GROUND } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND } from "@/components/admin/palette";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 interface Props {
@@ -19,7 +19,7 @@ export function FlaggedMobileSearchBar({ search, onSearchChange, onApply, onOpen
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onApply()}
           placeholder="Search users or IDs..."
-          className={`w-full ${ADMIN_GROUND.panel} border rounded-xl py-3.5 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500`}
+          className={`w-full ${ADMIN_GROUND.panel} border rounded-xl py-3.5 pl-11 pr-4 text-sm text-white placeholder-slate-500 ${ADMIN_FOCUS}`}
         />
       </div>
       <button

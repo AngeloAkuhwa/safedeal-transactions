@@ -1,6 +1,6 @@
 import { Search, X } from "lucide-react";
 import type { UserDirectoryQuery } from "@/services/admin-users-directory.service";
-import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import { resolveClaim } from "@/lib/trust/trust-claims";
 
 interface Props {
@@ -37,7 +37,7 @@ function Select({ value, options, onChange }: { value: string; options: { v: str
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-11"
+      className={`bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 ${ADMIN_FOCUS} min-h-11`}
     >
       {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
     </select>
@@ -55,7 +55,7 @@ export function UsersFilters({ value, search, onChange, onSearchChange, onApply,
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") onApply(); }}
             placeholder="Search name, email, phone, ID…"
-            className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-11"
+            className={`w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 ${ADMIN_FOCUS} min-h-11`}
           />
         </div>
         <Select value={value.role ?? "all"} options={ROLES} onChange={(v) => onChange({ ...value, role: v as UserDirectoryQuery["role"] })} />

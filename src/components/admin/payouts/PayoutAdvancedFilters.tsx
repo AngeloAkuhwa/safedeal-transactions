@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PayoutTab } from "@/services/admin-payouts.service";
+import { ADMIN_FOCUS } from "@/components/admin/palette";
 
 export type DateRangePreset = "all_time" | "last_7d" | "last_30d" | "last_3m" | "custom";
 export type AmountRange = "any" | "0_10k" | "10k_100k" | "100k_1m" | "1m_plus";
@@ -30,7 +31,7 @@ export const DEFAULT_PAYOUT_FILTERS: PayoutFilterState = {
   quick: "none",
 };
 
-const selectCls = "min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500";
+const selectCls = `min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm ${ADMIN_FOCUS}`;
 
 interface Props {
   value: PayoutFilterState;

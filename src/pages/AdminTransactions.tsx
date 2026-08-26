@@ -73,7 +73,7 @@ import { TransactionsEmptyState } from "@/components/admin/transactions/Transact
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 import { runExport } from "@/services/admin-escrow.service";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_SOLID, ADMIN_CATEGORY, ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_CATEGORY, ADMIN_FOCUS, ADMIN_FOCUS_VISIBLE, ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -645,7 +645,7 @@ export default function AdminTransactions() {
                 onClick={handleExport}
                 disabled={exporting}
                 aria-label="Export transactions"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 disabled:opacity-60 min-h-11"
+                className={`inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted ${ADMIN_FOCUS_VISIBLE} disabled:opacity-60 min-h-11`}
               >
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 {exporting ? "Exporting…" : "Export"}
@@ -655,7 +655,7 @@ export default function AdminTransactions() {
                 onClick={handleRefresh}
                 disabled={isFetching}
                 aria-label="Refresh transactions"
-                className={`inline-flex items-center gap-2 rounded-lg ${ADMIN_SOLID.info} px-3.5 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11`}
+                className={`inline-flex items-center gap-2 rounded-lg ${ADMIN_SOLID.info} px-3.5 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 ${ADMIN_FOCUS_VISIBLE} min-h-11`}
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
@@ -761,7 +761,7 @@ export default function AdminTransactions() {
               role="tab"
               aria-selected={active}
               onClick={() => setActiveQuick(f.key)}
-              className={`shrink-0 snap-start min-h-11 min-w-11 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+              className={`shrink-0 snap-start min-h-11 min-w-11 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${ADMIN_FOCUS_VISIBLE} ${
                 active
                   ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -897,7 +897,7 @@ export default function AdminTransactions() {
                     tabIndex={0}
                     role="button"
                     aria-label={`Open transaction ${t.transactionCode}`}
-                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/60 active:bg-muted/80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/50 motion-reduce:transition-none`}
+                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/60 active:bg-muted/80 cursor-pointer ${ADMIN_FOCUS_VISIBLE} focus-visible:ring-inset motion-reduce:transition-none`}
                   >
                     <td className="px-3 py-2.5 align-middle">
                       <div className="flex items-center gap-2">
@@ -1051,7 +1051,7 @@ export default function AdminTransactions() {
               tabIndex={0}
               role="button"
               aria-label={`Open transaction ${t.transactionCode}`}
-              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3 cursor-pointer transition-colors hover:bg-muted/30 active:scale-[0.998] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50`}
+              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3 cursor-pointer transition-colors hover:bg-muted/30 active:scale-[0.998] ${ADMIN_FOCUS_VISIBLE}`}
             >
               <header className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -1130,7 +1130,7 @@ export default function AdminTransactions() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); goToDetail(t); }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 min-h-11"
+                  className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted ${ADMIN_FOCUS_VISIBLE} min-h-11`}
                   aria-label={`View details for ${t.transactionCode}`}
                 >
                   <Eye className="h-3.5 w-3.5" aria-hidden /> View
@@ -1275,7 +1275,7 @@ function IconBtn({ children, onClick, label }: { children: React.ReactNode; onCl
           type="button"
           aria-label={label}
           onClick={(e) => { e.stopPropagation(); onClick(); }}
-          className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none min-h-11"
+          className={`rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground ${ADMIN_FOCUS_VISIBLE} motion-reduce:transition-none min-h-11`}
         >
           {children}
         </button>
@@ -1305,7 +1305,7 @@ function BottomNav({
       onClick={onClick}
       aria-label={label}
       aria-current={active ? "page" : undefined}
-      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${ADMIN_FOCUS_VISIBLE} ${
         active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
       } min-h-11`}
     >
@@ -1373,7 +1373,7 @@ function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (
       onChange={(e) => onChange(e.target.value)}
       placeholder={isLg ? "Search transaction code..." : "Search transactions..."}
       aria-label="Search transactions"
-      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
+      className={`w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground ${ADMIN_FOCUS} min-h-11`}
     />
   );
 }
@@ -1391,7 +1391,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11 min-w-11 inline-flex items-center justify-center"
+        className={`rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground ${ADMIN_FOCUS} min-h-11 min-w-11 inline-flex items-center justify-center`}
       >
         <option value="">All</option>
         {options.map((o) => (
@@ -1476,7 +1476,7 @@ function FilterInput({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 min-h-11"
+        className={`rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground ${ADMIN_FOCUS} min-h-11`}
       />
     </label>
   );

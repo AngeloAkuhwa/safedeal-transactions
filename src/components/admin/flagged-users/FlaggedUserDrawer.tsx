@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relative } from "./risk";
 import { keyActivate } from "@/lib/a11y";
-import { ADMIN_SOLID, ADMIN_GROUND, ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND, ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 interface Props {
   row: FlaggedUserRow | null;
@@ -251,7 +251,7 @@ export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
               onChange={(e) => setNote(e.target.value)}
               placeholder="Required note: reason for this action…"
               rows={3}
-              className={`w-full p-3 ${ADMIN_GROUND.panel} border rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500`}
+              className={`w-full p-3 ${ADMIN_GROUND.panel} border rounded-lg text-white text-sm placeholder-slate-500 ${ADMIN_FOCUS}`}
             />
             <div className="grid grid-cols-2 gap-2">
               <button

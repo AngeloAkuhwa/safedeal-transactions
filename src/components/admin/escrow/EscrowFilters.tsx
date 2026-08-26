@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import type { EscrowQuery } from "@/services/admin-escrow.service";
 
 interface Props {
@@ -20,7 +20,7 @@ function Select<T extends string>({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 min-h-11"
+        className={`w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm ${ADMIN_FOCUS} min-h-11`}
       >
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -92,7 +92,7 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") onApply(); }}
               placeholder="Search by transaction code, buyer, seller, or payment reference…"
-              className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 min-h-11"
+              className={`w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm ${ADMIN_FOCUS} min-h-11`}
             />
           </div>
           <button
