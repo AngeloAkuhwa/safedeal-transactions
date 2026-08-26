@@ -212,3 +212,54 @@ export const ADMIN_TIMELINE: Record<string, { dot: string; text?: string }> = {
   blue: { dot: "bg-blue-500", text: ADMIN_TONE.info.text },
   muted: { dot: "bg-muted-foreground/60" },
 };
+
+/**
+ * One focus treatment for the whole back office.
+ *
+ * Measured before this existed: 35 focus declarations across 14 admin files
+ * in SEVEN different hues, and the hue tracked the SCREEN rather than the
+ * state. Flagged users focused red, escrow and payouts focused emerald,
+ * disputes focused orange, everything else focused blue at four different
+ * opacities. So a search box on the flagged-users page announced itself in
+ * the colour this product reserves for something being wrong, and the same
+ * box on the payouts page announced itself in the colour reserved for
+ * something having completed. Neither is what "the cursor is here" means, and
+ * the colour law says so directly: destructive for real problems, success for
+ * a genuinely completed state.
+ *
+ * Nothing outside admin has this problem, because every customer surface
+ * focuses through the shadcn primitives and inherits `ring-ring` once.
+ *
+ * The value is the plurality recipe, character for character, so the five
+ * sites that already wrote it do not move a pixel and the rest converge on
+ * something that was already the house style rather than on a new invention.
+ *
+ * `focus:` rather than `focus-visible:` is deliberate and NOT an endorsement:
+ * it is what all 35 sites used, and swapping the trigger would change which
+ * interactions light up on every admin input at the same time as changing the
+ * colour. Two changes at once is how a consolidation stops being provable.
+ * Moving to `focus-visible` is its own pass.
+ */
+export const ADMIN_FOCUS =
+  "focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/40";
+
+/**
+ * The same treatment for controls that trigger on `focus-visible`.
+ *
+ * Two entries rather than one, because the surface genuinely has two triggers
+ * and collapsing them would smuggle a behaviour change into a colour change.
+ * `focus:` fires on a mouse click as well as a keyboard tab; `focus-visible:`
+ * only on the tab. The second is the better default and the newer half of this
+ * codebase already uses it, so both are kept and the difference between them
+ * is now the trigger alone, not the colour.
+ *
+ * These 14 sites were missed by the first sweep, which grepped `focus:` and
+ * did not think of the longer prefix. The contract test found them, which is
+ * the argument for writing the guard before believing the measurement.
+ *
+ * The ring is 2 rather than 1 here, matching what these sites already wrote:
+ * a focus-visible ring is keyboard-only and carries the whole affordance on
+ * its own, with no border change beside it.
+ */
+export const ADMIN_FOCUS_VISIBLE =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60";

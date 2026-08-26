@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND, ADMIN_SOLID } from "@/components/admin/palette";
 import type { FlaggedQuery } from "@/services/admin-flagged-users.service";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const SELECT_CLS =
-  "min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-red-500";
+  "min-h-11 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white ${ADMIN_FOCUS}";
 
 export function FlaggedFilters({ value, search, onChange, onSearchChange, onApply, onReset }: Props) {
   return (
@@ -92,7 +92,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
                 if (e.key === "Enter") onApply();
               }}
               placeholder="Search by user name, email, ID, or transaction code..."
-              className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              className={`w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 ${ADMIN_FOCUS}`}
             />
           </div>
           <button

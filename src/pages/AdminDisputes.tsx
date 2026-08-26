@@ -26,7 +26,7 @@ import {
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { keyActivate } from "@/lib/a11y";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_FOCUS_VISIBLE, ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 /* ---------- visual helpers ---------- */
 
@@ -459,13 +459,13 @@ export default function AdminDisputes() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search disputes, transactions, users…"
-                  className="h-11 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
+                  className={`h-11 pl-9 focus:ring-2 ${ADMIN_FOCUS} ${ADMIN_FOCUS_VISIBLE} focus-visible:ring-offset-0`}
                 />
               </form>
               <select
                 value={params.reason ?? ""}
                 onChange={(e) => setParam("reason", e.target.value || null)}
-                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className={`appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 ${ADMIN_FOCUS} ${ADMIN_FOCUS_VISIBLE} focus-visible:ring-offset-0`}
               >
                 <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
@@ -475,7 +475,7 @@ export default function AdminDisputes() {
               <select
                 value={params.agent ?? ""}
                 onChange={(e) => setParam("agent", e.target.value || null)}
-                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className={`appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 ${ADMIN_FOCUS} ${ADMIN_FOCUS_VISIBLE} focus-visible:ring-offset-0`}
               >
                 <option value="">All Agents</option>
                 {(data?.filters?.agents ?? []).map((a) => (
@@ -485,7 +485,7 @@ export default function AdminDisputes() {
               <select
                 value={params.amount_bucket ?? ""}
                 onChange={(e) => setParam("amount_bucket", e.target.value || null)}
-                className="appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                className={`appearance-none w-full h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 ${ADMIN_FOCUS} ${ADMIN_FOCUS_VISIBLE} focus-visible:ring-offset-0`}
               >
                 <option value="">All Amount Ranges</option>
                 <option value="lt_100k">Under ₦100,000</option>

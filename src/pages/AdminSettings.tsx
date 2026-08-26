@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_TONE } from "@/components/admin/palette";
 
 /** Keys whose values change money behaviour. Mirror of the edge function gate. */
 const isFinancialSettingKey = (key: string) =>
@@ -634,7 +634,7 @@ export default function AdminSettings() {
                       value={refundPolicy}
                       disabled={isLocked("fees.refund_policy") || !canConfigureFinancial}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className={`w-full h-11 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
+                      className={`w-full h-11 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm ${ADMIN_FOCUS}/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>

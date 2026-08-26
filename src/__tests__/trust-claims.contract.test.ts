@@ -224,8 +224,9 @@ const PER_STRING_ALLOWLIST: Array<{ file: string; text: string; reason: string }
   { file: "src/pages/BuyerTransactionTracking.tsx", text: "Your payment of is securely held in escrow. Funds will only release once you verify receipt.", reason: "Amount-specific line rendered only when escrow state is held." },
   { file: "src/pages/BuyerVerification.tsx", text: "Submit your identity to unlock higher transaction limits and trusted buyer status", reason: "Describes what identity submission changes on the account; no claim about the buyer." },
   { file: "src/pages/BuyerVerification.tsx", text: "Your Privacy is Protected", reason: "Privacy-section heading about identity data handling, not a transaction promise." },
-  { file: "src/pages/BuyerVerification.tsx", text: "Get Verified", reason: "Call-to-action button starting the identity verification flow." },
-  { file: "src/pages/BuyerVerification.tsx", text: "Once approved, you unlock higher limits and trusted buyer status.", reason: "Conditional on approval and names the stored verification_level value." },
+  { file: "src/pages/BuyerVerification.tsx", text: "Get verified", reason: "Step heading in the how-it-works list, not a promise that it will happen." },
+  { file: "src/pages/BuyerVerification.tsx", text: "Once approved you unlock higher limits and trusted buyer status. Sellers only ever see that level, never your documents.", reason: "Conditional on approval and names the stored verification_level value. The second sentence is a statement about what the storefront renders, which is enforced by the seller-facing surfaces themselves." },
+  { file: "src/components/verification/InstantIdentityCheck.tsx", text: "Photograph a passport, driver's licence, national ID or voter's card, then take a selfie. Most people are verified straight away. If anything needs a closer look, it goes to our team instead.", reason: "Describes what the provider check does and hedges the outcome (\"most people\", not \"you will be\"). The fallback to human review is real: any verdict other than an explicit `verified` lands in pending_review, which metamap-identity.contract enforces." },
   { file: "src/pages/Contact.tsx", text: "Open a dispute from the transaction itself instead of emailing. A dispute freezes the held funds while the case is reviewed. Email does not. You will find the option on the transaction while the money is still in escrow.", reason: "Support routing guidance: opening a dispute is what freezes held funds, email does not." },
   { file: "src/pages/Index.tsx", text: "SafeDeal: Escrow for every online deal", reason: "Page title naming the product category (escrow), not a guarantee." },
   { file: "src/pages/Index.tsx", text: "Escrow and transaction protection for online buyers and sellers.", reason: "Meta description naming what the product is; no scale or outcome claim." },
@@ -622,9 +623,14 @@ const SLA_WINDOW_DEBT = [
   "supabase/functions/transaction-verify/index.ts",
 ];
 
+// The `to` alternative in the second clause is not cosmetic. It was absent,
+// so "within 24 to 48 hours" did not register while "within 24-48 hours" did,
+// and rewording a debt entry from one to the other silently dropped the file
+// off this list as though the literal had been removed. It had not been. The
+// business-day clause above already spelled `to`; the hour clause now agrees.
 const SLA_WINDOW_LITERAL = (src: string) =>
   /\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*business\s+(?:day|hour)/i.test(src) ||
-  /(?:within|in|after|over|for)\s+\d+\s*(?:-|–)?\s*\d*\s*(?:hours|hrs)\b/i.test(src);
+  /(?:within|in|after|over|for)\s+\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*(?:hours|hrs)\b/i.test(src);
 
 describe("no surface invents its own response time", () => {
   it("no app or edge-function file hardcodes the target or the hours", () => {

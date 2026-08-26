@@ -19,7 +19,7 @@ import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
 import { fetchAdminSettings } from "@/services/admin-settings.service";
-import { ADMIN_GROUND, ADMIN_TONE, ADMIN_SOLID } from "@/components/admin/palette";
+import { ADMIN_FOCUS, ADMIN_GROUND, ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
@@ -336,7 +336,7 @@ export default function AdminPayouts() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search seller, payout ID..."
-            className={`w-full pl-10 pr-4 py-3 ${ADMIN_GROUND.panel} border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm`}
+            className={`w-full pl-10 pr-4 py-3 ${ADMIN_GROUND.panel} border rounded-xl text-white placeholder-slate-500 ${ADMIN_FOCUS} text-sm`}
           />
         </div>
         <div className="flex items-center gap-2">

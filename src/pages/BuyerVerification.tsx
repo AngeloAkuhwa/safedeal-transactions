@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { Loader2, ShieldCheck, Upload, UserCheck, ChevronRight, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock } from "lucide-react";
+import { Loader2, ShieldCheck, ScanFace, UserCheck, ChevronRight, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   type IdentitySubmission,
   type IdentityVerificationMethod,
 } from "@/services/identity.service";
+import { InstantIdentityCheck } from "@/components/verification/InstantIdentityCheck";
 import { toast } from "@/components/ui/sonner";
 import { resolveVerificationStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { PageSkeleton } from "@/components/common/PageSkeleton";
@@ -57,11 +58,24 @@ const BuyerVerification = () => {
       {/* Compact header */}
       <section className="border-b bg-card/50">
         <div className="sd-page sd-page-y">
+          {/* The two links measured 62x16 and 37x16, well under the 44px bar,
+              and nothing had ever caught it because this page was in no audit
+              route list until this change added it. */}
           <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-            <Link to="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3 w-3" />
-            <Link to="/dashboard/profile" className="hover:text-foreground transition-colors">Profile</Link>
-            <ChevronRight className="h-3 w-3" />
+            <Link
+              to="/dashboard"
+              className={`hover:text-foreground transition-colors ${BREADCRUMB_HIT}`}
+            >
+              Dashboard
+            </Link>
+            <ChevronRight className="h-3 w-3" aria-hidden="true" />
+            <Link
+              to="/dashboard/profile"
+              className={`hover:text-foreground transition-colors ${BREADCRUMB_HIT}`}
+            >
+              Profile
+            </Link>
+            <ChevronRight className="h-3 w-3" aria-hidden="true" />
             <span className="text-foreground font-medium">Verification</span>
           </nav>
           <div className="flex items-center gap-3">
@@ -102,6 +116,19 @@ const BuyerVerification = () => {
         {/* Status display */}
         {submission && <SubmissionStatus submission={submission} />}
 
+        {/* The automated route first, the manual one below it. Order is the
+            recommendation: an instant document check beats a two-day queue,
+            and the queue still exists for anyone the check cannot place. */}
+        {isBasicVerified && (!submission || submission.status === "rejected" || submission.status === "more_info_needed") && (
+          <InstantIdentityCheck
+            legalName={submission?.legal_name ?? data.profile.full_name ?? undefined}
+            onResolved={() => {
+              queryClient.invalidateQueries({ queryKey: ["identity-status"] });
+              queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
+            }}
+          />
+        )}
+
         {/* Form: show when no submission, or rejected/more_info_needed */}
         {isBasicVerified && (!submission || submission.status === "rejected" || submission.status === "more_info_needed") && (
           <IdentitySubmissionForm
@@ -122,14 +149,14 @@ const BuyerVerification = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN-based identity submission (manual review) or government-issued ID. Your full NIN is never transmitted or stored. Only the last 4 digits are retained." },
-              { icon: Clock, title: "Manual Review", desc: "Our team reviews your submission within 24–48 hours. This is not automated verification." },
-              { icon: UserCheck, title: "Get Verified", desc: "Once approved, you unlock higher limits and trusted buyer status." },
+              { icon: ScanFace, title: "Photograph your ID", desc: "A passport, driver's licence, national ID or voter's card, then a selfie. Or use the NIN route below, which our team reviews by hand." },
+              { icon: Clock, title: "Usually decided in under a minute", desc: "The document is read and matched against your selfie automatically. Anything the check cannot place goes to our team, who reply within 24 to 48 hours." },
+              { icon: UserCheck, title: "Get verified", desc: "Once approved you unlock higher limits and trusted buyer status. Sellers only ever see that level, never your documents." },
             ].map((step, idx) => (
               <div key={idx} className="flex items-start gap-4 rounded-lg border p-4">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  <step.icon className="h-5 w-5 text-muted-foreground" />
-                </div>
+                {/* No icon tile. The pattern is standing design debt (Phase 4
+                    icon diet) and this card was being rewritten anyway. */}
+                <step.icon className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-medium text-foreground">{step.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{step.desc}</p>
@@ -146,7 +173,7 @@ const BuyerVerification = () => {
               <Lock className="h-5 w-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Your Privacy is Protected</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-prose">
                   Your identity data is stored securely, accessible only to you and our review team.
                   Sellers only see your trust level, never your identity documents or NIN.
                   Only minimal data is retained: masked identifiers are preferred, and uploaded documents
@@ -161,6 +188,35 @@ const BuyerVerification = () => {
       <Footer />
     </div>
   );
+};
+
+/** A ternary here silently labelled anything that was not "nin" as
+ *  "Government ID", so a MetaMap row would have read as a document upload the
+ *  person never made. A map with a fallback cannot mislabel a new method. */
+/**
+ * A real 44px box around a breadcrumb link.
+ *
+ * The first attempt grew the hit area with `after:absolute after:-inset-y-3.5`,
+ * which measured 78x44 in a browser and kept the text exactly where it was.
+ * The render audit was happy. `mobile-touch-targets.contract` was not: it is a
+ * STATIC scan, it cannot resolve a pseudo-element, and `after:absolute` reads
+ * to it as a positioned box with no declared height.
+ *
+ * The two guards were disagreeing about the same elements for a deeper reason,
+ * recorded in the plan rather than papered over here: the static scan exempts
+ * a link whose classes look like inline prose, which is exactly the shape
+ * these breadcrumbs had, so it had been silently passing them while the render
+ * audit failed them the moment this page entered a route list.
+ *
+ * So: declare the box. `-mx-2 px-2` keeps the text horizontally where it was
+ * and the row grows to a 44px nav bar, which is a normal height for one.
+ */
+const BREADCRUMB_HIT = "inline-flex items-center min-h-11 -mx-2 px-2 rounded";
+
+const METHOD_LABEL: Record<string, string> = {
+  nin: "NIN",
+  government_id: "Government ID",
+  metamap: "Document and selfie check",
 };
 
 function SubmissionStatus({ submission }: { submission: IdentitySubmission }) {
@@ -185,7 +241,7 @@ function SubmissionStatus({ submission }: { submission: IdentitySubmission }) {
               <Badge variant="outline" className={toneClass}>{entry.label}</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Method: {submission.verification_method === "nin" ? "NIN" : "Government ID"} · 
+              Method: {METHOD_LABEL[submission.verification_method] ?? "Identity document"} · 
               Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
             </p>
             {submission.rejection_reason && (

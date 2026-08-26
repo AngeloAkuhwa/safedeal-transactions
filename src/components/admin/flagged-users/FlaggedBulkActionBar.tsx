@@ -6,6 +6,7 @@ import {
   type FlaggedBulkActionType,
 } from "@/services/admin-flagged-users.service";
 import { toast } from "@/hooks/use-toast";
+import { ADMIN_FOCUS } from "@/components/admin/palette";
 
 interface Props {
   userIds: string[];
@@ -66,7 +67,7 @@ export function FlaggedBulkActionBar({ userIds, onClear }: Props) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Required note for this bulk action…"
-        className="w-full min-h-11 mb-2 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500"
+        className={`w-full min-h-11 mb-2 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 ${ADMIN_FOCUS}`}
       />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {ACTIONS.map(({ key, label, icon: Icon, cls }) => (
