@@ -209,11 +209,11 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                       <button title="Transactions" onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }} className={`px-2.5 py-1.5 ${ADMIN_SOLID.success} rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center`}><ArrowLeftRight className="h-3.5 w-3.5" /></button>
                       <button title="Disputes" disabled={r.disputes.total === 0} onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : ADMIN_SOLID.elevated} min-h-11 min-w-11 justify-center`}>
                         <Scale className="h-3.5 w-3.5" />
-                        {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
+                        {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-700 text-white text-xs font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
                       </button>
                       <button title="Review Investigation" onClick={(e) => { e.stopPropagation(); navigate(`/admin/flagged-users?u=${r.user_id}`); }} className={`px-2.5 py-1.5 ${ADMIN_SOLID.danger} rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center`}><FileSearch className="h-3.5 w-3.5" /></button>
                       <button title="Start Impersonation" onClick={(e) => { e.stopPropagation(); toast({ title: "Impersonation coming soon" }); }} className={`px-2.5 py-1.5 ${ADMIN_SOLID.special} rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center`}><UserCog className="h-3.5 w-3.5" /></button>
-                      <button title={r.is_flagged ? "Unflag user" : "Flag user"} onClick={(e) => { e.stopPropagation(); onFlagToggle(r); }} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-amber-600 hover:bg-amber-700"} min-h-11 min-w-11 justify-center`}>
+                      <button title={r.is_flagged ? "Unflag user" : "Flag user"} onClick={(e) => { e.stopPropagation(); onFlagToggle(r); }} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-amber-700 hover:bg-amber-800"} min-h-11 min-w-11 justify-center`}>
                         {r.is_flagged ? <FlagOff className="h-3.5 w-3.5" /> : <Flag className="h-3.5 w-3.5" />}
                       </button>
                       <button title="Generate Export" onClick={(e) => { e.stopPropagation(); toast({ title: "Per-user export coming soon" }); }} className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs min-h-11 min-w-11 inline-flex items-center justify-center"><FileDown className="h-3.5 w-3.5" /></button>
@@ -229,7 +229,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
         <p className={`${ADMIN_GROUND.muted} text-sm`}>Showing {start}–{end} of {total.toLocaleString()} users</p>
         <div className="flex items-center gap-2">
           <button disabled={page <= 1} onClick={() => onPage(page - 1)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center"><ChevronLeft className="h-4 w-4" /></button>
-          <span className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium">{page}</span>
+          <span className="px-4 py-2 bg-emerald-700 text-white rounded-lg font-medium">{page}</span>
           <span className={`${ADMIN_GROUND.faint} text-sm`}>of {pageCount.toLocaleString()}</span>
           <button disabled={page >= pageCount} onClick={() => onPage(page + 1)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg disabled:opacity-50 min-h-11 min-w-11 inline-flex items-center justify-center"><ChevronRight className="h-4 w-4" /></button>
         </div>

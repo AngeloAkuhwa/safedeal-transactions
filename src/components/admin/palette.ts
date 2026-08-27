@@ -113,17 +113,37 @@ export const ADMIN_TONE: Record<AdminTone, AdminToneClasses> = {
  * (release funds, retry a payout) rather than labelling one. Only tones
  * that actually have a committing action get an entry; a tone missing here
  * has no solid form on purpose.
+ *
+ * **The resting step is 700 because 600 was not readable.** These sat at
+ * `bg-<hue>-600 text-white`, which measures 3.19:1 for amber, 3.56:1 for
+ * orange and 3.77:1 for emerald against the 4.5:1 the colour law requires.
+ * The buttons only crossed the bar on HOVER, at their 700 step, which is
+ * backwards: the resting state is the one you read before deciding to press
+ * it, and the highest-stakes controls in the back office had the least
+ * readable labels. Nobody caught it in review because a contrast ratio is
+ * not visible in a class name; `tinted-text-contrast.contract` now computes
+ * it, and computing it is what found this.
+ *
+ * Every tone moved, not only the three that failed. Red, blue and purple
+ * cleared at 600 by a margin of 0.33 to 0.88, and splitting the map across
+ * two steps to save them would trade a readable rule ("a white label sits on
+ * the 700 step") for six values a reviewer has to check individually. The
+ * hover step moves with it, so hover stays a darkening rather than becoming
+ * a lightening; the guard pins that direction, because a fix that quietly
+ * inverted the interaction would be a behaviour change smuggled inside a
+ * colour change.
  */
 export const ADMIN_SOLID: Partial<Record<AdminTone, string>> = {
-  success: "bg-emerald-600 hover:bg-emerald-700 text-white",
-  danger: "bg-red-600 hover:bg-red-700 text-white",
-  info: "bg-blue-600 hover:bg-blue-700 text-white",
-  special: "bg-purple-600 hover:bg-purple-700 text-white",
-  warning: "bg-amber-600 hover:bg-amber-700 text-white",
+  success: "bg-emerald-700 hover:bg-emerald-800 text-white",
+  danger: "bg-red-700 hover:bg-red-800 text-white",
+  info: "bg-blue-700 hover:bg-blue-800 text-white",
+  special: "bg-purple-700 hover:bg-purple-800 text-white",
+  warning: "bg-amber-700 hover:bg-amber-800 text-white",
   // Orange had committing actions and no entry, so its buttons were
   // written by hand. Added at the pattern every other tone already
-  // follows (600 resting, 700 on hover) rather than as a new idea.
-  elevated: "bg-orange-600 hover:bg-orange-700 text-white",
+  // follows (resting, then one step darker on hover) rather than as a
+  // new idea.
+  elevated: "bg-orange-700 hover:bg-orange-800 text-white",
 };
 
 /**

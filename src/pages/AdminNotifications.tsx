@@ -269,7 +269,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
           </Button>
           <Button
             onClick={() => setF({ ...f, failedOnly: !f.failedOnly })}
-            className={`px-4 h-11 text-xs font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
+            className={`px-4 h-11 text-xs font-semibold text-white ${f.failedOnly ? "bg-amber-800 hover:bg-amber-900" : "bg-amber-700 hover:bg-amber-800"}`}
           >
             <Filter className="h-3.5 w-3.5" /> Failed Only
           </Button>

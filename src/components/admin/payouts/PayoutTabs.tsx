@@ -32,7 +32,7 @@ export function PayoutTabs({ active, onChange, summary }: Props) {
             className={cn(
               "px-3 py-2 rounded-lg lg:rounded text-xs lg:text-sm font-medium whitespace-nowrap transition-all inline-flex items-center justify-center gap-2 flex-shrink-0 min-h-11 min-w-11",
               isActive
-                ? "bg-emerald-500 text-white"
+                ? "bg-emerald-700 text-white"
                 : "bg-slate-800 lg:bg-transparent text-slate-400 hover:text-white"
             )}
           >

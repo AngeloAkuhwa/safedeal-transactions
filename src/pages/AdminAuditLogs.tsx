@@ -133,7 +133,7 @@ function AuditHeader({
             {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             <span className="hidden sm:inline">Export Logs</span>
           </Button>
-          <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="gap-2 bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
+          <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className={`gap-2 text-sm font-medium ${ADMIN_SOLID.success}`}>
             {complianceLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
             <span className="hidden sm:inline">Compliance Report</span>
           </Button>
