@@ -45,7 +45,7 @@ import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { ProductImage } from "@/components/common/ProductImage";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { ADMIN_TONE } from "@/components/admin/palette";
+import { ADMIN_SOLID, ADMIN_TONE } from "@/components/admin/palette";
 
 // formatMoney dashes a missing amount; the old `?? 0` here defeated that and
 // stamped ₦0.00 over every absent figure on the admin detail page.
@@ -573,7 +573,7 @@ export default function AdminTransactionDetail() {
             </Button>
           )}
           {dispute && (
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+            <Button size="sm" className={ADMIN_SOLID.elevated} onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
               <Scale className="h-4 w-4 mr-1.5" /> View Dispute
             </Button>
           )}
@@ -766,7 +766,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
               {showInvestigateCTA && adminCan.canOpenInvestigation && (
-                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white shrink-0" onClick={() => setInvestigateOpen(true)}>
+                <Button size="sm" className={`${ADMIN_SOLID.danger} shrink-0`} onClick={() => setInvestigateOpen(true)}>
                   <Search className="h-4 w-4 mr-1.5" /> Investigate
                 </Button>
               )}
@@ -942,7 +942,7 @@ export default function AdminTransactionDetail() {
                       <Button
                         size="sm"
                         variant={active.isDisputeResolved ? "outline" : undefined}
-                        className={active.isDisputeResolved ? undefined : "bg-orange-500 hover:bg-orange-600 text-white"}
+                        className={active.isDisputeResolved ? undefined : ADMIN_SOLID.elevated}
                         onClick={() => navigate(`/admin/disputes/${dispute.id}`)}
                       >
                         <Scale className="h-4 w-4 mr-1.5" />
@@ -1640,7 +1640,7 @@ export default function AdminTransactionDetail() {
       {/* Mobile sticky bottom bar */}
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-sticky border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
-          <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
+          <Button size="sm" className={`flex-1 ${ADMIN_SOLID.info}`} onClick={() => setActionSheetOpen(true)}>
             <Gavel className="h-4 w-4 mr-1.5" /> Take Action
           </Button>
           <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3 min-w-11 inline-flex items-center justify-center">

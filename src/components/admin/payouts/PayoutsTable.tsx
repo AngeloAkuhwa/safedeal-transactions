@@ -600,7 +600,7 @@ export function PayoutsTable({
               <span key={`e-${i}`} className="px-2 text-xs text-slate-400">…</span>
             ) : p === page ? (
               /* Current page indicator: static, not a control. */
-              <span key={p} className="w-9 h-9 inline-flex items-center justify-center bg-emerald-500 text-white rounded-lg font-semibold text-sm">{p}</span>
+              <span key={p} className="w-9 h-9 inline-flex items-center justify-center bg-emerald-700 text-white rounded-lg font-semibold text-sm">{p}</span>
             ) : (
               <button key={p} onClick={() => onPageChange?.(p)} className="w-9 h-9 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all relative before:absolute before:-inset-2 before:content-['']">{p}</button>
             )

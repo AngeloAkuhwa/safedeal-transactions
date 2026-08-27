@@ -50,7 +50,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlin
           <button
             type="button"
             onClick={() => toast({ title: "Add User is coming soon." })}
-            className="w-11 h-11 min-w-11 shrink-0 flex items-center justify-center bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-900/20 active:scale-95"
+            className="w-11 h-11 min-w-11 shrink-0 flex items-center justify-center bg-emerald-700 text-white rounded-lg shadow-lg shadow-emerald-900/20 active:scale-95"
             aria-label="Add user"
           >
             <Plus className="h-4 w-4" />

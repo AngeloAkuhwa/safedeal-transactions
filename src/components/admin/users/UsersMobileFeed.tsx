@@ -236,7 +236,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="w-10 h-10 bg-emerald-600 text-white rounded-lg flex items-center justify-center text-sm font-bold">{page}</span>
+            <span className="w-10 h-10 bg-emerald-700 text-white rounded-lg flex items-center justify-center text-sm font-bold">{page}</span>
             <button
               disabled={page >= pageCount}
               onClick={() => onPage(page + 1)}
@@ -259,7 +259,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               <button
                 onClick={() => { const r = overflowRow; setOverflowRow(null); onFlagToggle(r); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold ${
-                  overflowRow.is_flagged ? "bg-slate-800 text-slate-200" : "bg-amber-600 text-white"
+                  overflowRow.is_flagged ? "bg-slate-800 text-slate-200" : "bg-amber-700 text-white"
                 }`}
               >
                 {overflowRow.is_flagged ? <FlagOff className="h-4 w-4" /> : <Flag className="h-4 w-4" />}
