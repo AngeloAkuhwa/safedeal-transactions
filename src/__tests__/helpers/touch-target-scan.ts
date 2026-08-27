@@ -796,9 +796,64 @@ function* eachTag(source: string): Generator<Tag> {
 
 const lineOf = (source: string, index: number) => source.slice(0, index).split("\n").length;
 
-/** Links inline in a sentence are exempt from WCAG 2.5.5; block links are not. */
-function isInlineTextLink(tagText: string, classes: string[]): boolean {
+/**
+ * Ranges covered by a `<nav>` element, so a link inside one can be told apart
+ * from a link inside a sentence.
+ *
+ * Nesting is not tracked: `<nav>` inside `<nav>` is not a thing anyone writes,
+ * and the outer range already covers the inner one.
+ */
+/**
+ * Ranges covered by a component that delegates its box to its child, i.e.
+ * `<Button asChild><Link/></Button>`.
+ *
+ * The link inside one of those has no className of its own on purpose: the
+ * wrapper is the control and carries the size. Without this, narrowing the nav
+ * exemption reports `<Button asChild><Link to="/auth">Sign up</Link></Button>`
+ * in the public header, which is a correctly sized button.
+ */
+function delegatedRanges(source: string): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  const open = /<([A-Z][A-Za-z0-9]*)\b[^>]*\basChild\b[^>]*>/g;
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(source))) {
+    const close = source.indexOf(`</${m[1]}>`, m.index);
+    if (close === -1) continue;
+    out.push([m.index, close]);
+  }
+  return out;
+}
+
+function navRanges(source: string): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  const open = /<nav\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(source))) {
+    const close = source.indexOf("</nav>", m.index);
+    if (close === -1) continue;
+    out.push([m.index, close]);
+  }
+  return out;
+}
+
+/**
+ * Links inline in a sentence are exempt from WCAG 2.5.5; block links are not.
+ *
+ * `inNav` narrows that exemption, and it is not a technicality. A breadcrumb
+ * link has exactly the shape of inline prose (no layout class, no size class)
+ * and was therefore exempted, so this scan silently passed
+ * `/dashboard/verification`'s breadcrumbs at 62x16 and 37x16 while the render
+ * audit failed them the instant that page entered a route list. One guard
+ * passing what another fails is the worst of the two outcomes, because the
+ * quiet one is the one people trust.
+ *
+ * A link inside `<nav>` is navigation, not prose. That is the whole
+ * distinction: it never appears mid-sentence, so demanding a real target of it
+ * costs nothing and closes the hole.
+ */
+function isInlineTextLink(tagText: string, classes: string[], inNav = false): boolean {
   if (/\basChild\b/.test(tagText)) return true; // the child is the control and is scanned on its own
+  if (inNav) return false; // navigation, not prose
   if (!/className=/.test(tagText)) return true; // bare inline link
   // A className expression the evaluator could not resolve (e.g.
   // `cn(buttonVariants({…}), className)`) is *unknown*, not inline prose.
@@ -813,6 +868,10 @@ export function scanSource(rawSource: string, file: string): Violation[] {
   const out: Violation[] = [];
   const source = rawSource;
   const consts = collectConsts(source);
+  const navs = navRanges(source);
+  const delegated = delegatedRanges(source);
+  const insideNav = (i: number) =>
+    navs.some(([a, b]) => i > a && i < b) && !delegated.some(([a, b]) => i > a && i < b);
   for (const { tag, text, index, end } of eachTag(source)) {
     const clickable = /\bonClick=/.test(text) || /\bonChange=/.test(text) || /\brole="button"/.test(text);
     const interactive = RAW_TAGS.has(tag) || COMPONENT_TAGS.has(tag) || clickable;
@@ -839,7 +898,7 @@ export function scanSource(rawSource: string, file: string): Violation[] {
     }
     const { height, width, classes } = measured;
 
-    if (LINK_TAGS.has(tag) && isInlineTextLink(text, classes)) continue;
+    if (LINK_TAGS.has(tag) && isInlineTextLink(text, classes, insideNav(index))) continue;
 
     if (height === null && width === null) {
       if (COMPONENT_TAGS.has(tag) && !LINK_TAGS.has(tag)) {
@@ -878,6 +937,14 @@ export function scanSource(rawSource: string, file: string): Violation[] {
     const failed: string[] = [];
     if (height !== null && height < MIN_TARGET_PX) failed.push(`height≈${height}px`);
     if (width !== null && width < MIN_TARGET_PX) failed.push(`width≈${width}px`);
+    // A null height was silently allowed whenever a width resolved, which let
+    // a navigation link with `max-w-[160px]` and no height class through: the
+    // width was fine and the box still collapsed to a 16px text line. Only
+    // asserted inside <nav>, where a link is never mid-sentence, because
+    // elsewhere a null height genuinely can mean inline prose.
+    if (LINK_TAGS.has(tag) && height === null && insideNav(index)) {
+      failed.push("no height declared (collapses to the text line)");
+    }
     if (!failed.length) continue;
     out.push({
       file,

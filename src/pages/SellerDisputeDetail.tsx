@@ -104,9 +104,9 @@ const SellerDisputeDetail = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Breadcrumb */}
           <nav className="flex items-center text-sm text-muted-foreground">
-            <Link to="/seller" className="hover:text-foreground transition-colors">Seller</Link>
+            <Link to="/seller" className="hover:text-foreground transition-colors inline-flex items-center min-h-11 -mx-2 px-2 rounded">Seller</Link>
             <ChevronRight className="h-4 w-4 mx-1" />
-            <Link to="/seller/disputes" className="hover:text-foreground transition-colors">Disputes</Link>
+            <Link to="/seller/disputes" className="hover:text-foreground transition-colors inline-flex items-center min-h-11 -mx-2 px-2 rounded">Disputes</Link>
             <ChevronRight className="h-4 w-4 mx-1" />
             <span className="text-foreground font-medium">
               {data ? formatDisputeRef(data.dispute.id) : "…"}
