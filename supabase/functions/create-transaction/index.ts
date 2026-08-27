@@ -2,6 +2,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, resolveEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import {
+  SELLER_PUBLISH_LIMIT_BY_LEVEL,
+  UNKNOWN_LEVEL_ERROR,
+  limitFor,
+} from "../_shared/verification-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -250,12 +255,6 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   return jsonResponse({ transaction_id: transactionId });
 }
 
-const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 200_000,
-  trusted_buyer: 5_000_000,
-  high_trust_buyer: Number.MAX_SAFE_INTEGER,
-};
 
 function mapConditionToProduct(c: string | null | undefined): string | null {
   const map: Record<string, string> = {
@@ -328,7 +327,14 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
       error: "Complete phone verification and location setup before publishing offers.",
     }, 403);
   }
-  const sellerAmountLimit = SELLER_LIMIT_BY_LEVEL[sellerLevel] ?? 0;
+  // An unrecognised level is a data fault, not a zero limit. `?? 0` here made
+  // a system fault look to the seller like a cap on their own account, with
+  // nothing logged: they would read "limit" and we would read nothing at all.
+  // Same shape `initiate-paystack-payment` already uses on the payment gate.
+  const sellerAmountLimit = limitFor(SELLER_PUBLISH_LIMIT_BY_LEVEL, sellerLevel);
+  if (sellerAmountLimit === null) {
+    return jsonResponse({ error: UNKNOWN_LEVEL_ERROR, level: sellerLevel }, 409);
+  }
 
   // Fetch shared draft data
   const [pricingRes, deliveryRes, notesRes, mediaFilesRes, draftItemRes] = await Promise.all([

@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  BUYER_AMOUNT_LIMIT_BY_LEVEL,
+  BUYER_CONCURRENT_SHOWN_IN_PROFILE,
+} from "../_shared/verification-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,19 +12,7 @@ const corsHeaders = {
 };
 
 // ── Seller tiered limits (mirrors buyer) ──
-const LIMIT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
-};
 
-const CONCURRENT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 3,
-  high_trust_buyer: 5,
-};
 
 const VERIFICATION_LABEL_MAP: Record<string, string> = {
   // Account-tier names only. These describe the seller's own stored tier and are
@@ -213,17 +205,17 @@ Deno.serve(async (req) => {
       // An unrecognised verification level is a data fault, not a zero
       // allowance. Report it as null rather than showing a ₦0 limit.
       const knownLevel =
-        Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level) &&
-        Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level);
+        Object.prototype.hasOwnProperty.call(BUYER_AMOUNT_LIMIT_BY_LEVEL, level) &&
+        Object.prototype.hasOwnProperty.call(BUYER_CONCURRENT_SHOWN_IN_PROFILE, level);
       const permissions = {
         verificationLevel: level,
         verificationLabel: VERIFICATION_LABEL_MAP[level] ?? VERIFICATION_LABEL_MAP.unverified,
-        transactionLimitNaira: knownLevel ? LIMIT_BY_LEVEL[level] : null,
-        maxConcurrentActiveTransactions: knownLevel ? CONCURRENT_BY_LEVEL[level] : null,
+        transactionLimitNaira: knownLevel ? BUYER_AMOUNT_LIMIT_BY_LEVEL[level] : null,
+        maxConcurrentActiveTransactions: knownLevel ? BUYER_CONCURRENT_SHOWN_IN_PROFILE[level] : null,
         activeTransactionCount,
         canPublishTransaction: level !== "unverified",
         canCreateAnotherActiveTransaction:
-          level !== "unverified" && knownLevel && activeTransactionCount < CONCURRENT_BY_LEVEL[level],
+          level !== "unverified" && knownLevel && activeTransactionCount < BUYER_CONCURRENT_SHOWN_IN_PROFILE[level],
         requiresIdentityVerification: level !== "trusted_buyer" && level !== "high_trust_buyer",
       };
 

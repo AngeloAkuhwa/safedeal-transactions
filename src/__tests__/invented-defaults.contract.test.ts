@@ -518,7 +518,6 @@ function isCountName(match: string): boolean {
 }
 
 const MONEY_ZERO_DEBT: string[] = [
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/admin-flagged-users-export/index.ts",
   "supabase/functions/admin-users-directory-export/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
@@ -557,8 +556,44 @@ const MONEY_ZERO_DEBT: string[] = [
   // index 0 (`LIMIT_BY_LEVEL[level] ?? 0`) and after the bare-identifier rule
   // lost the same leading-character requirement. Recorded, not narrowed away.
   "supabase/functions/admin-audit-logs/index.ts",
-  "supabase/functions/buyer-disputes/index.ts",
 ];
+
+describe("a CSV money column never claims zero for an absent figure", () => {
+  /**
+   * D8, answered by measuring rather than by sweeping.
+   *
+   * The decision assumed admin exports print `0` for absent escrow figures.
+   * For `admin-escrow-export` that premise is false: it iterates real
+   * `escrow_states` rows and all four amount columns are NOT NULL DEFAULT 0,
+   * so its `?? 0` is dead defensive code that can never fire.
+   *
+   * It was true in exactly one place. `admin-export-worker` builds
+   * `priceMap` from `transaction_pricing`, a map lookup that genuinely
+   * misses when a transaction has no pricing row, and printed the miss as
+   * `0` in the `buyer_total_ngn` column. In a financial export that is a
+   * claim the transaction was worth nothing, rather than an admission that
+   * we do not know what it was worth.
+   *
+   * The two `?? 0` uses in the amount-range filters directly above it are
+   * correct and deliberately left alone: there, absent genuinely means
+   * "outside the range". Only an exported VALUE is a statement.
+   */
+  const worker = fs.readFileSync(
+    path.resolve(ROOT, "supabase/functions/admin-export-worker/index.ts"),
+    "utf8",
+  );
+
+  it("the exported total is empty when no price is known", () => {
+    expect(worker).toMatch(/priceMap\.get\(t\.id\) \?\? ""/);
+    expect(worker).not.toMatch(/priceMap\.get\(t\.id\) \?\? 0,/);
+  });
+
+  it("keeps the zero default in the range filters, where absent means excluded", () => {
+    const filters = worker.match(/if \(amount(Min|Max) > 0\)[^\n]*/g) ?? [];
+    expect(filters.length).toBe(2);
+    for (const f of filters) expect(f).toContain("?? 0");
+  });
+});
 
 describe("money never falls back to zero", () => {
   it("has no un-recorded `?? 0` on a monetary value", () => {
