@@ -319,7 +319,12 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
       t.transaction_code, t.created_at, t.updated_at,
       t.status, t.money_status, t.dispute_status ?? "",
       b.name, b.email, s.name, s.email,
-      priceMap.get(t.id) ?? 0,
+      // Empty, not 0. A transaction with no pricing row has no known total,
+      // and `0` in a money column of a financial export is a factual claim
+      // that it was worth nothing. The two filters above keep `?? 0` because
+      // there "absent" correctly means "outside any amount range"; only the
+      // exported VALUE is a statement about the transaction.
+      priceMap.get(t.id) ?? "",
     ].map(csvEscape).join(","));
   }
   return { csv: lines.join("\n"), rowCount: rows.length };
