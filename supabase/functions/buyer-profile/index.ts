@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { LAUNCH_REGION_COUNTRY_CODE } from "../_shared/launch-region.ts";
+import {
+  BUYER_AMOUNT_LIMIT_BY_LEVEL,
+  BUYER_CONCURRENT_SHOWN_IN_PROFILE,
+} from "../_shared/verification-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,19 +31,7 @@ const PREF_KEYS = [
 // ── Tiered permission engine ──
 // Only `unverified` and `basic_verified` are reachable in Batch 2.
 // `trusted_buyer` and `high_trust_buyer` are scaffolded for future identity-based upgrades.
-const LIMIT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
-};
 
-const CONCURRENT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 3,
-  high_trust_buyer: 5,
-};
 
 const ACTIVE_TX_STATUSES = [
   "payment_secured",
@@ -84,10 +76,10 @@ async function computePermissions(
   // the buyer their limit is ₦0: the enforcement path (initiate-paystack-
   // payment) refuses the payment outright for the same reason.
   const knownLevel =
-    Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level) &&
-    Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level);
-  const maxConcurrent = knownLevel ? CONCURRENT_BY_LEVEL[level] : null;
-  const transactionLimit = knownLevel ? LIMIT_BY_LEVEL[level] : null;
+    Object.prototype.hasOwnProperty.call(BUYER_CONCURRENT_SHOWN_IN_PROFILE, level) &&
+    Object.prototype.hasOwnProperty.call(BUYER_AMOUNT_LIMIT_BY_LEVEL, level);
+  const maxConcurrent = knownLevel ? BUYER_CONCURRENT_SHOWN_IN_PROFILE[level] : null;
+  const transactionLimit = knownLevel ? BUYER_AMOUNT_LIMIT_BY_LEVEL[level] : null;
 
   // Explicit triple-check: phone + location + level must all pass
   const canAct = phoneVerified && hasLocation && level !== "unverified";

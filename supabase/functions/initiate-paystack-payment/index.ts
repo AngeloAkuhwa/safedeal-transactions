@@ -4,6 +4,10 @@ import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE_FALLBACK } from "../_shared
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { resolveInitiationCharge } from "../_shared/payment-capture-guard.ts";
 import { logEdgeError } from "../_shared/log-error.ts";
+import {
+  BUYER_AMOUNT_LIMIT_BY_LEVEL,
+  BUYER_CONCURRENT_ENFORCED_AT_PAYMENT,
+} from "../_shared/verification-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,19 +23,7 @@ function jsonErr(msg: string, status: number) {
 }
 
 // ── Tiered limits (must match buyer-profile) ──
-const LIMIT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
-};
 
-const CONCURRENT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 5,
-  trusted_buyer: 10,
-  high_trust_buyer: 20,
-};
 
 const ACTIVE_TX_STATUSES = [
   "payment_secured",
@@ -293,10 +285,10 @@ Deno.serve(async (req) => {
     // Gate 3: Amount limit by verification level.
     // An unrecognised level is a data fault, not a ₦0 limit: refuse explicitly
     // rather than fabricating a cap the buyer was never told about.
-    if (!Object.prototype.hasOwnProperty.call(LIMIT_BY_LEVEL, level)) {
+    if (!Object.prototype.hasOwnProperty.call(BUYER_AMOUNT_LIMIT_BY_LEVEL, level)) {
       return jsonErr("verification_level_unknown", 409);
     }
-    const amountLimit = LIMIT_BY_LEVEL[level];
+    const amountLimit = BUYER_AMOUNT_LIMIT_BY_LEVEL[level];
     if (itemAmount > amountLimit) {
       return jsonErr(
         `This transaction (₦${itemAmount.toLocaleString()}) exceeds your ₦${amountLimit.toLocaleString()} limit. Complete identity verification to unlock higher limits.`,
@@ -307,10 +299,10 @@ Deno.serve(async (req) => {
     // Gate 4: Concurrent active transaction cap.
     // Same shape as the limit lookup above: an unrecognised level is a data
     // fault, refused explicitly rather than silently collapsed to a 0 cap.
-    if (!Object.prototype.hasOwnProperty.call(CONCURRENT_BY_LEVEL, level)) {
+    if (!Object.prototype.hasOwnProperty.call(BUYER_CONCURRENT_ENFORCED_AT_PAYMENT, level)) {
       return jsonErr("verification_level_unknown", 409);
     }
-    const maxConcurrent = CONCURRENT_BY_LEVEL[level];
+    const maxConcurrent = BUYER_CONCURRENT_ENFORCED_AT_PAYMENT[level];
     const { count: activeCount } = await supabase
       .from("transactions")
       .select("id", { count: "exact", head: true })

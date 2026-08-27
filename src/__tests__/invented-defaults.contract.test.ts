@@ -518,7 +518,6 @@ function isCountName(match: string): boolean {
 }
 
 const MONEY_ZERO_DEBT: string[] = [
-  "supabase/functions/create-transaction/index.ts",
   "supabase/functions/admin-flagged-users-export/index.ts",
   "supabase/functions/admin-users-directory-export/index.ts",
   "supabase/functions/buyer-dashboard/index.ts",
@@ -557,7 +556,6 @@ const MONEY_ZERO_DEBT: string[] = [
   // index 0 (`LIMIT_BY_LEVEL[level] ?? 0`) and after the bare-identifier rule
   // lost the same leading-character requirement. Recorded, not narrowed away.
   "supabase/functions/admin-audit-logs/index.ts",
-  "supabase/functions/buyer-disputes/index.ts",
 ];
 
 describe("money never falls back to zero", () => {

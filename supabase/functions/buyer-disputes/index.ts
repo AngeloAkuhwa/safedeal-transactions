@@ -24,15 +24,10 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 // ── Tiered dispute limits (must match buyer-profile) ──
-const LIMIT_BY_LEVEL: Record<string, number> = {
-  unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
-};
 
 // Source of truth shared with transaction-verify enforcement
 import { MAX_OPEN_DISPUTES_BY_LEVEL } from "../_shared/dispute-limits.ts";
+import { BUYER_AMOUNT_LIMIT_BY_LEVEL, limitFor } from "../_shared/verification-limits.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -404,14 +399,27 @@ Deno.serve(async (req) => {
         total_count: total,
         total_pages: Math.ceil(total / pageSize) || 0,
       },
-      // Tiered dispute policy info for frontend
-      dispute_policy: {
-        verification_level: level,
-        amount_limit: LIMIT_BY_LEVEL[level] ?? 0,
-        max_open_disputes: MAX_OPEN_DISPUTES_BY_LEVEL[level] ?? 0,
-        current_open_disputes: summary.open_count,
-        can_open_new_dispute: summary.open_count < (MAX_OPEN_DISPUTES_BY_LEVEL[level] ?? 0),
-      },
+      // Tiered dispute policy info for frontend.
+      //
+      // Null rather than 0 for an unrecognised level, matching the shape
+      // `buyer-profile` and `seller-profile` already use. This block is read
+      // only, so it refuses by declining to state a number instead of
+      // returning an error: a UI that renders "0 disputes allowed" for a data
+      // fault tells the person something false about their own account, while
+      // a null renders as unknown.
+      dispute_policy: (() => {
+        const amountLimit = limitFor(BUYER_AMOUNT_LIMIT_BY_LEVEL, level);
+        const maxOpen = limitFor(MAX_OPEN_DISPUTES_BY_LEVEL, level);
+        return {
+          verification_level: level,
+          amount_limit: amountLimit,
+          max_open_disputes: maxOpen,
+          current_open_disputes: summary.open_count,
+          // Unknown level cannot open a new dispute: fail closed, and the
+          // nulls above say why rather than implying a zero allowance.
+          can_open_new_dispute: maxOpen !== null && summary.open_count < maxOpen,
+        };
+      })(),
     });
   } catch (err) {
     console.error("buyer-disputes error:", err);
